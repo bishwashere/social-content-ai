@@ -45,6 +45,11 @@ class Auth {
   async findUser(query: Partial<User>) {
     try {
       const user = await UserModel.findOne(query);
+
+      if (!user) {
+        return Err("User not found!");
+      }
+
       return Ok(user);
     } catch (e) {
       console.error("Failed to find user!", e);
