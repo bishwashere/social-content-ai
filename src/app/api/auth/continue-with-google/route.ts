@@ -12,6 +12,7 @@ export const POST = applyMiddleware(
   connectToDBMiddleware(),
   validateBody(authValidator.continueWithGoogle),
   catchApiAsyncError(async (req) => {
+    //@ts-expect-error: credential is not defined
     const { credential } = req.parsed
       .body as AuthValidatorType["continueWithGoogle"];
 
