@@ -1,12 +1,19 @@
 import { Err, Ok } from "ts-res";
 import { Project, ProjectDocument, ProjectModel } from "./schema/project";
 import {
+  CreateChatProps,
   CreateProjectProps,
   GetAllProjectsProps,
   GetProjectProps,
   UpdateProjectProps,
 } from "./types";
 import mongoose from "mongoose";
+import {
+  ProjectChat,
+  ProjectChatDocument,
+  ProjectChatModel,
+} from "./schema/chat";
+import { GetAllProjectChatsProps } from "@/backend-apis/projects/types";
 
 class Projects {
   /**
@@ -77,17 +84,13 @@ class Projects {
 
       const projectsWithChats = await Promise.all(
         projects.map(async (project) => {
-          // const collection = await getDBConnection({
-          //   collection: COLLECTIONS.projectChats,
-          // });
-          // const chats = await collection
-          //   .find({ projectId: project._id })
-          //   .sort({ createdAt: -1 })
-          //   .toArray();
+          const chats = await ProjectChatModel.find({
+            projectId: project._id,
+          }).sort({ createdAt: -1 });
 
           return {
             ...project.toJSON(),
-            chats: [],
+            chats: chats.map((chat) => chat.toJSON()),
           };
         })
       );
@@ -103,81 +106,62 @@ class Projects {
   /**
    *  Create a new chat with the given data. If retry has a chatId, update the chat with the given chatId.
    */
-  // async createChat({ retry, ...data }: CreateChatProps) {
-  //   try {
-  //     const db = await getDBConnection({
-  //       collection: COLLECTIONS.projectChats,
-  //     });
+  async createChat({ retry, ...data }: CreateChatProps) {
+    try {
+      if (retry && retry.chatId) {
+        const chat = await ProjectChatModel.findOneAndUpdate(
+          {
+            _id: new mongoose.Types.ObjectId(retry.chatId as string),
+            projectId: new mongoose.Types.ObjectId(data.projectId),
+          },
+          {
+            $set: {
+              updatedAt: new Date(),
+              ...data,
+              projectId: new mongoose.Types.ObjectId(data.projectId),
+            },
+          },
+          {
+            returnDocument: "after",
+          }
+        );
 
-  //     if (retry && retry.chatId) {
-  //       const chat = await db.findOneAndUpdate(
-  //         {
-  //           _id: new ObjectId(retry.chatId),
-  //           projectId: new ObjectId(data.projectId),
-  //         },
-  //         {
-  //           $set: {
-  //             updatedAt: new Date(),
-  //             ...data,
-  //             projectId: new ObjectId(data.projectId),
-  //           },
-  //         },
-  //         {
-  //           returnDocument: "after",
-  //         }
-  //       );
+        if (!chat) {
+          return Err("Chat not found!");
+        }
 
-  //       if (!chat) {
-  //         return Err("Chat not found!");
-  //       }
+        return Ok(chat);
+      } else {
+        const projectChat = await ProjectChatModel.create<ProjectChatDocument>({
+          ...data,
+          projectId: new mongoose.Types.ObjectId(data.projectId),
+        });
 
-  //       return Ok(serializeObjectId(chat as ProjectChat, ["_id", "projectId"]));
-  //     } else {
-  //       const { insertedId } = await db.insertOne({
-  //         createdAt: new Date(),
-  //         updatedAt: new Date(),
-  //         ...data,
-  //         projectId: new ObjectId(data.projectId),
-  //       });
+        return Ok(projectChat as ProjectChat);
+      }
+    } catch (e) {
+      console.error("Failed to create chat!", e);
 
-  //       const chat = await db.findOne<ProjectChat>({
-  //         _id: new ObjectId(insertedId),
-  //       });
-
-  //       return Ok(serializeObjectId(chat!, ["_id", "projectId"]));
-  //     }
-  //   } catch (e) {
-  //     console.error("Failed to create chat!", e);
-
-  //     return Err("Failed to create chat!");
-  //   }
-  // }
+      return Err("Failed to create chat!");
+    }
+  }
 
   /**
    *  Get all chats that belong to the project with the given projectId.
    */
-  // async getChats({ projectId }: GetAllChatsProps) {
-  //   try {
-  //     const db = await getDBConnection({
-  //       collection: COLLECTIONS.projectChats,
-  //     });
+  async getChats({ projectId }: GetAllProjectChatsProps) {
+    try {
+      const chats = await ProjectChatModel.find<ProjectChatDocument>({
+        projectId: new mongoose.Types.ObjectId(projectId),
+      }).sort({ createdAt: -1 });
 
-  //     const chats = await db
-  //       .find<ProjectChat>({
-  //         projectId: new ObjectId(projectId),
-  //       })
-  //       .sort({ createdAt: -1 })
-  //       .toArray();
+      return Ok(chats);
+    } catch (e) {
+      console.error("Failed to get chats!", e);
 
-  //     return Ok(
-  //       chats?.map((chat) => serializeObjectId(chat, ["_id", "projectId"]))
-  //     );
-  //   } catch (e) {
-  //     console.error("Failed to get chats!", e);
-
-  //     return Err("Failed to get chats!");
-  //   }
-  // }
+      return Err("Failed to get chats!");
+    }
+  }
 
   /**
    *  Get the project with the given projectId and userId.
