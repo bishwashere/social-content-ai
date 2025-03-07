@@ -7,13 +7,11 @@
  * Helps to safely execute asynchronous functions
  **/
 
-type TryCatchReturnAsync<Err, Return> = Promise<
-  [Err, undefined] | [undefined, Return]
->;
+type TryCatchReturnAsync<Err, Return> = [Err, undefined] | [undefined, Return];
 
 const tryCatchAsync = async <Err extends Error, Return>(
-  fn: () => Promise<Return>,
-): TryCatchReturnAsync<Err, Return> => {
+  fn: () => Promise<Return>
+): Promise<TryCatchReturnAsync<Err, Return>> => {
   try {
     const result = await fn();
     return [undefined, result] as [undefined, Return];
