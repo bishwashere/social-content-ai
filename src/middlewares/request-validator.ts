@@ -15,10 +15,13 @@ export const validateBody = (schema: ZodTypeAny) => {
       }
       const body = await req.json();
 
+      // @ts-expect-error: ....
       if (!req.parsed) {
+        // @ts-expect-error: ....
         req.parsed = {} as any;
       }
 
+      // @ts-expect-error: ....
       req.parsed.body = schema.parse(body);
       return CALL_NEXT_FUNCTION;
     } catch (e) {
