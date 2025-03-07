@@ -57,7 +57,7 @@ class AuthService {
    * Logout the user by removing the token from the cookies and clearing the query cache
    */
   async logout(queryClient: QueryClient) {
-    Cookies.remove("token");
+    Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
     await queryClient.clear();
     window.location.href = "/";
     return "You have been logged out";
