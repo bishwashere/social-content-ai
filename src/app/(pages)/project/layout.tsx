@@ -21,9 +21,7 @@ export default function ProjectLayout({
 }
 
 const Main = ({ children }: { children: React.ReactNode }) => {
-  const { open } = useSidebar()
   return (<div className="w-full"
-    style={{ marginLeft: open ? "var(--sidebar-width)" : 0 }}
   >
     <Header />
     <main className="flex-grow pt-16 overflow-auto">{children}</main>
