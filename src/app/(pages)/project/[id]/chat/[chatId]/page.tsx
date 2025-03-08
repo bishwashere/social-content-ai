@@ -10,7 +10,6 @@ import { useGetAllProjectChats } from "@/backend-apis/projects/hooks";
 import { ProjectChat } from "@/backend-apis/projects/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const runtime = "edge";
 
 export default function ChatPage() {
   const { id, chatId } = useParams() as { id: string; chatId: string };
