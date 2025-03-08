@@ -28,10 +28,6 @@ export class AI {
     content,
     prompt,
   }: GenerateChatNameProps): Promise<string> {
-    if (!prompt || !content) {
-      throw new Error("Either prompt or content is required");
-    }
-
     const model = this.genAI.getGenerativeModel({
       model: "models/gemini-2.0-flash-001",
     });
