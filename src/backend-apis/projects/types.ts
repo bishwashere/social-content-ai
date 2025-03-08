@@ -42,3 +42,30 @@ export type ProjectChat = MongooseBaseDocument<{
 export type GetAllProjectChatsProps = {
   projectId: string;
 };
+
+export type GetProjectTrackingProps = {
+  projectId: string;
+};
+
+export type ProjectTrackingResponse = {
+  projectId: string;
+  date: string;
+  url?: string;
+  platform: "x" | "tiktok" | "instagram" | "facebook";
+}[];
+
+export type TrackProjectProps = {
+  projectId: string;
+  platform: string;
+  url?: string;
+  date: string;
+};
+
+export type ProjectSummary = {
+  totalProjects: number;
+  activePlatforms: number;
+  inactivePlatforms: number;
+  totalPlatforms: number;
+  mostActiveProject: { name: string; count: number } | null;
+  totalPostsForEachProject: { name: string; count: number }[];
+};

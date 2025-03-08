@@ -4,7 +4,9 @@ import {
   CreateChatProps,
   CreateProjectProps,
   GetAllProjectsProps,
+  GetAllProjectTrackingsProps,
   GetProjectProps,
+  TrackProjectProps,
   UpdateProjectProps,
 } from "./types";
 import mongoose from "mongoose";
@@ -14,6 +16,7 @@ import {
   ProjectChatModel,
 } from "./schema/chat";
 import { GetAllProjectChatsProps } from "@/backend-apis/projects/types";
+import { ProjectTracking, ProjectTrackingModel } from "./schema/tracking";
 
 class Projects {
   /**
@@ -182,6 +185,101 @@ class Projects {
       console.error("Failed to get project!", e);
 
       return Err("Failed to get project!");
+    }
+  }
+
+  async trackProject({ projectId, ...rest }: TrackProjectProps) {
+    try {
+      const project = await ProjectModel.findOne({
+        _id: new mongoose.Types.ObjectId(projectId),
+      });
+
+      if (!project) {
+        return Err("Project not found!");
+      }
+
+      const activity = await ProjectTrackingModel.create({
+        projectId: new mongoose.Types.ObjectId(projectId),
+        ...rest,
+      });
+
+      return Ok(activity as ProjectTracking);
+    } catch (e) {
+      console.error("Failed to track project!", e);
+
+      return Err("Failed to track project activity!");
+    }
+  }
+
+  async getProjectTracking({ projectId }: GetAllProjectTrackingsProps) {
+    try {
+      const activity = await ProjectTrackingModel.find({
+        projectId: new mongoose.Types.ObjectId(projectId),
+      });
+
+      if (!activity) {
+        return Err("Project activity not found!");
+      }
+
+      console.log(activity);
+
+      return Ok(activity as ProjectTracking[]);
+    } catch (e) {
+      console.error("Failed to get project activity!", e);
+
+      return Err("Failed to get project activity!");
+    }
+  }
+
+  async getSummary({ userId }: { userId: string }) {
+    try {
+      const projects = await ProjectModel.find({
+        userId: new mongoose.Types.ObjectId(userId),
+      });
+
+      const projectIds = projects.map((p) => p._id.toString());
+
+      const trackings = await ProjectTrackingModel.find({
+        projectId: { $in: projectIds },
+      });
+
+      const totalProjects = projects.length;
+
+      const totalPostsForEachProject = projects.map((p) => ({
+        name: p.name as string,
+        count: trackings.filter(
+          (t) => t.projectId.toString() === p._id.toString()
+        ).length,
+      }));
+
+      const mostActiveProject = totalPostsForEachProject.reduce(
+        //@ts-expect-error: ...
+        (max, project) => (project.count > (max?.count || 0) ? project : max),
+        null
+      );
+
+      const platformCounts: Record<string, number> = {};
+      trackings.forEach((t) => {
+        platformCounts[t.platform] = (platformCounts[t.platform] || 0) + 1;
+      });
+
+      const totalPlatforms = Object.keys(platformCounts).length;
+      const activePlatforms = Object.values(platformCounts).filter(
+        (count) => count > 0
+      ).length;
+      const inactivePlatforms = totalPlatforms - activePlatforms;
+
+      return Ok({
+        totalProjects,
+        activePlatforms,
+        inactivePlatforms,
+        totalPlatforms,
+        totalPostsForEachProject,
+        mostActiveProject,
+      });
+    } catch (e) {
+      console.log("err", e);
+      return Err("Error getting summary");
     }
   }
 }

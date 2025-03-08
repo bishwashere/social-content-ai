@@ -40,7 +40,7 @@ export const POST = applyMiddleware(
 
     const chat = await ai.generateContent({
       projectDescription: project.data.description,
-      userPrompt: body.userPrompt,
+      userPrompt: body.userPrompt || "",
       projectName: project.data.name,
     });
 
@@ -53,15 +53,15 @@ export const POST = applyMiddleware(
 
     const chatName = await ai.generateChatName({
       content: JSON.stringify(chat),
-      prompt: body.userPrompt,
+      prompt: body.userPrompt || "",
     });
 
     const savedChat = await db.projects.createChat({
       contents: chat,
       projectId,
-      prompt: body.userPrompt,
       title: chatName || "Untitled",
       retry: body.retry || undefined,
+      prompt: body.userPrompt || "",
     });
 
     if (!savedChat.ok) {

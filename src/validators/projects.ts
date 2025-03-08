@@ -11,7 +11,7 @@ class ProjectValidator {
   });
 
   createChat = z.object({
-    userPrompt: z.string().min(1),
+    userPrompt: z.string().optional().nullable().nullish().default(""),
     retry: z
       .object({
         chatId: z.string(),
@@ -19,6 +19,11 @@ class ProjectValidator {
       .optional()
       .nullable()
       .nullish(),
+  });
+  trackProject = z.object({
+    platform: z.enum(["x", "tiktok", "instagram", "facebook"]),
+    url: z.string().optional().nullable().nullish(),
+    date: z.string(),
   });
 }
 

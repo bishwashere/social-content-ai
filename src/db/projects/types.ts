@@ -32,3 +32,14 @@ export type CreateChatProps = Omit<
 export type GetAllChatProps = {
   projectId: string;
 };
+
+export type TrackProjectProps = {
+  projectId: string;
+  platform: "x" | "tiktok" | "instagram" | "facebook";
+  url?: string;
+  date: Date;
+};
+
+export type GetAllProjectTrackingsProps = {
+  projectId: string;
+};

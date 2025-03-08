@@ -7,6 +7,8 @@ const API_ROUTES = {
     INDEX: "/projects",
     BY_ID: (id: string) => `/projects/${id}`,
     CHAT: (id: string) => `/projects/${id}/chat`,
+    TRACK: (id: string) => `/projects/${id}/track`,
+    SUMMARY: "/projects/summary",
   },
 };
 

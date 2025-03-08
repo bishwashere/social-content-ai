@@ -56,38 +56,38 @@ class Prompt {
     let themeContent = "";
 
     switch (theme) {
-    case "features":
-      themeContent = isProjectRelated
-        ? `based on the key features of the project`
-        : `highlighting general trends in the industry`;
-      break;
-    case "inspiration":
-      themeContent = isProjectRelated
-        ? `to inspire and motivate the audience, drawing from the essence of the project`
-        : `to inspire and uplift the audience with a universally relatable message`;
-      break;
-    case "user success stories":
-      themeContent = isProjectRelated
-        ? `highlighting real-world examples of how users benefit from the product`
-        : `sharing inspiring stories of people achieving their goals`;
-      break;
-    case "thought-provoking questions":
-      themeContent = `posing questions that resonate with ${
-        isProjectRelated
-          ? `the audience's interests and the product's vision`
-          : `a broader societal or personal perspective`
-      }`;
-      break;
-    case "fun facts":
-      themeContent = isProjectRelated
-        ? `sharing interesting and relevant facts that connect to the product's domain`
-        : `sharing curious and entertaining tidbits that spark engagement`;
-      break;
-    case "community highlights":
-      themeContent = isProjectRelated
-        ? `spotlighting contributions and stories from the community around the project`
-        : `celebrating stories of human connection and collaboration`;
-      break;
+      case "features":
+        themeContent = isProjectRelated
+          ? `based on the key features of the project`
+          : `highlighting general trends in the industry`;
+        break;
+      case "inspiration":
+        themeContent = isProjectRelated
+          ? `to inspire and motivate the audience, drawing from the essence of the project`
+          : `to inspire and uplift the audience with a universally relatable message`;
+        break;
+      case "user success stories":
+        themeContent = isProjectRelated
+          ? `highlighting real-world examples of how users benefit from the product`
+          : `sharing inspiring stories of people achieving their goals`;
+        break;
+      case "thought-provoking questions":
+        themeContent = `posing questions that resonate with ${
+          isProjectRelated
+            ? `the audience's interests and the product's vision`
+            : `a broader societal or personal perspective`
+        }`;
+        break;
+      case "fun facts":
+        themeContent = isProjectRelated
+          ? `sharing interesting and relevant facts that connect to the product's domain`
+          : `sharing curious and entertaining tidbits that spark engagement`;
+        break;
+      case "community highlights":
+        themeContent = isProjectRelated
+          ? `spotlighting contributions and stories from the community around the project`
+          : `celebrating stories of human connection and collaboration`;
+        break;
     }
 
     return `${verb} a ${tone} and ${style} piece of content ${themeContent}, focused on ${goal}. ${
@@ -103,7 +103,9 @@ class Prompt {
     platform,
     userPrompt,
   }: AddPlatformSpecificsProps) {
-    return `${corePrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Also give 1 answer not multiple answers. Give answer as specified here ${userPrompt}`;
+    return `${corePrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Also give 1 answer not multiple answers.${
+      userPrompt ? ` Give answer as specified here ${userPrompt}` : ""
+    }`;
   }
 }
 

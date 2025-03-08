@@ -43,7 +43,7 @@ export function AddProjectButton() {
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">Project Name</Label>
             <Input
               id="name"
@@ -53,7 +53,7 @@ export function AddProjectButton() {
               required
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"

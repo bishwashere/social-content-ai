@@ -3,8 +3,12 @@ import {
   CreateProjectProps,
   GenerateProjectContentProps,
   GetAllProjectChatsProps,
+  GetProjectTrackingProps,
   Project,
   ProjectChat,
+  ProjectSummary,
+  ProjectTrackingResponse,
+  TrackProjectProps,
   UpdateProjectProps,
 } from "./types";
 import api from "../axios";
@@ -177,6 +181,66 @@ class ProjectService {
     if (err) {
       throw new Error(err.response?.data?.message);
     }
+    return res.data.data;
+  }
+
+  async getTrackedProjects({ projectId }: GetProjectTrackingProps) {
+    const [err, res] = await tryCatchAsync<
+      ApiError,
+      ApiResponse<ProjectTrackingResponse>
+    >(async () => {
+      const response = await api.get(API_ROUTES.projects.TRACK(projectId));
+      return response;
+    });
+    if (err) {
+      return [];
+    }
+    return res.data.data;
+  }
+
+  async trackProject(
+    { projectId, ...data }: TrackProjectProps,
+    queryClient: QueryClient
+  ) {
+    const [err, res] = await tryCatchAsync<
+      ApiError,
+      ApiResponse<ProjectTrackingResponse>
+    >(async () => {
+      const response = await api.post(
+        API_ROUTES.projects.TRACK(projectId),
+        data
+      );
+      return response;
+    });
+    if (err) {
+      throw new Error(err.response?.data?.message);
+    }
+
+    await queryClient.setQueryData(
+      ["project-tracking", { projectId }],
+      (prev: ProjectTrackingResponse) =>
+        prev && prev.length ? [res.data.data, ...prev] : [res.data.data]
+    );
+
+    await queryClient.invalidateQueries({
+      queryKey: ["project-summary"],
+    });
+
+    return res.data.data;
+  }
+
+  async getSummary() {
+    const [err, res] = await tryCatchAsync<
+      ApiError,
+      ApiResponse<ProjectSummary>
+    >(async () => {
+      const response = await api.get(API_ROUTES.projects.SUMMARY);
+      return response;
+    });
+    if (err) {
+      throw new Error(err.response?.data?.message);
+    }
+
     return res.data.data;
   }
 }

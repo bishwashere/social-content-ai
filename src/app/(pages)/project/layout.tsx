@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
 
@@ -12,13 +12,20 @@ export default function ProjectLayout({
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex h-screen overflow-auto w-full">
+      <div className="h-screen overflow-auto w-full">
         <ProjectSidebar />
-        <div className="w-full">
-          <Header />
-          <main className="flex-grow pt-16 overflow-auto">{children}</main>
-        </div>
+        <Main>{children}</Main>
       </div>
     </SidebarProvider>
   );
+}
+
+const Main = ({ children }: { children: React.ReactNode }) => {
+  const { open } = useSidebar()
+  return (<div className="w-full"
+    style={{ marginLeft: open ? "var(--sidebar-width)" : 0 }}
+  >
+    <Header />
+    <main className="flex-grow pt-16 overflow-auto">{children}</main>
+  </div>)
 }

@@ -3,6 +3,8 @@ import {
   CreateProjectProps,
   GenerateProjectContentProps,
   GetAllProjectChatsProps,
+  GetProjectTrackingProps,
+  TrackProjectProps,
   UpdateProjectProps,
 } from "./types";
 import { projectService } from ".";
@@ -62,5 +64,31 @@ export const useGetAllProjectChats = (data: GetAllProjectChatsProps) => {
   return useQuery({
     queryFn: () => projectService.getAllProjectChats(data),
     queryKey: ["project-chats", data],
+  });
+};
+
+export const useGetTrackedProjects = (data: GetProjectTrackingProps) => {
+  return useQuery({
+    queryFn: () => projectService.getTrackedProjects(data),
+    queryKey: ["project-tracking", data],
+  });
+};
+
+export const useTrackProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: TrackProjectProps) => {
+      return projectService.trackProject(data, queryClient);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
+export const useGetProjectsSummary = () => {
+  return useQuery({
+    queryFn: () => projectService.getSummary(),
+    queryKey: ["project-summary"],
   });
 };
