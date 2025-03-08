@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
 
