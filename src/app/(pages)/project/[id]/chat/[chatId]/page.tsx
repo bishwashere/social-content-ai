@@ -4,10 +4,10 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ChevronLeft, CopyIcon } from "lucide-react";
+import { ChevronLeft, CopyIcon, Share2Icon } from "lucide-react";
 import Markdown from "react-markdown";
-import { useGetAllProjectChats } from "@/backend-apis/projects/hooks";
-import { ProjectChat } from "@/backend-apis/projects/types";
+import { useGetAllProjectChats, useGetAllProjects } from "@/backend-apis/projects/hooks";
+import { Project, ProjectChat } from "@/backend-apis/projects/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 
@@ -16,6 +16,21 @@ export default function ChatPage() {
   const [chat, setChat] = useState<ProjectChat | null>(null);
 
   const projectChats = useGetAllProjectChats({ projectId: id })
+  const projects = useGetAllProjects()
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    const fetchProject = () => {
+      const currentProject = projects?.data?.find(
+        (p: Project) => p._id === id
+      );
+      setCurrentProject(currentProject || null);
+    };
+
+    fetchProject();
+  }
+    , [id, projects.data]);
+
 
   useEffect(() => {
     const chat = projectChats.data?.find((p) => p._id === chatId);
@@ -71,13 +86,31 @@ export default function ChatPage() {
                   <div key={platform} className="border p-4 rounded-lg mb-4">
                     <div className="flex justify-between mb-2">
                       <h3 className="font-bold capitalize">{platform}</h3>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(text, platform)}
-                      >
-                        <CopyIcon className="h-4 w-4" />
-                      </Button>
+                      <div className="flex flex-row gap-2">
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copyToClipboard(text, platform)}
+                        >
+                          <CopyIcon />
+                        </Button>
+                        {
+                          //@ts-expect-error :....
+                          currentProject?.platformUrls[platform] && <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                          >
+                            <Link
+                              //@ts-expect-error :....
+                              href={currentProject?.platformUrls[platform] || "#"}
+                              target="_blank"
+                            >
+                              <Share2Icon />
+                            </Link>
+                          </Button>}
+                      </div>
                     </div>
                     <div
                       className="text-sm text-muted-foreground w-full *:break-words *:whitespace-pre-wrap">

@@ -5,11 +5,12 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CopyIcon, RefreshCcw, Sparkle } from "lucide-react";
+import { CopyIcon, RefreshCcw, Share2Icon, Sparkle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project } from "@/backend-apis/projects/types";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
+import Link from "next/link";
 interface ContentGeneratorProps {
   project: Project;
 }
@@ -78,13 +79,32 @@ export function ContentGenerator({
                   <CardTitle>
                     {platform.charAt(0).toUpperCase() + platform.slice(1)}
                   </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copyToClipboard(text, platform)}
-                  >
-                    <CopyIcon />
-                  </Button>
+                  <div className="flex flex-row gap-2">
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copyToClipboard(text, platform)}
+                    >
+                      <CopyIcon />
+                    </Button>
+                    {
+                      //@ts-expect-error :....
+                      project.platformUrls[platform] && <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                      >
+                        <Link
+                          //@ts-expect-error :....
+                          href={project.platformUrls[platform] || "#"}
+                          target="_blank"
+                        >
+                          <Share2Icon />
+                        </Link>
+                      </Button>}
+                  </div>
+
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
                   <Markdown >

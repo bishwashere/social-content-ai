@@ -16,6 +16,24 @@ const ProjectSchema = new mongoose.Schema(
       required: true,
       ref: "UserSchema",
     },
+    platformUrls: {
+      x: {
+        type: String,
+        required: false,
+      },
+      instagram: {
+        type: String,
+        required: false,
+      },
+      facebook: {
+        type: String,
+        required: false,
+      },
+      tiktok: {
+        type: String,
+        required: false,
+      },
+    },
   },
   {
     timestamps: true,

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ContentGenerator } from "../_components/content-generator";
+import { Label } from "@/components/ui/label";
 
 
 export default function ProjectPage() {
@@ -36,6 +37,12 @@ export default function ProjectPage() {
     }
   }, [project]); // Runs only when `project` is updated
 
+  const [platformUrls, setPlatformUrls] = useState<Project["platformUrls"]>({
+    x: "",
+    tiktok: "",
+    instagram: "",
+    facebook: "",
+  });
 
 
   useEffect(() => {
@@ -45,10 +52,23 @@ export default function ProjectPage() {
       );
       setProject(currentProject || null);
       setLoading(false);
+
+      if (project) {
+        setEditedName(project.name);
+        setEditedDescription(project.description);
+        console.log(project.platformUrls);
+        setPlatformUrls({
+          x: project.platformUrls?.x || "",
+          tiktok: project.platformUrls?.tiktok || "",
+          instagram: project.platformUrls?.instagram || "",
+          facebook: project.platformUrls?.facebook || "",
+        });
+      }
+
     };
 
     fetchProject();
-  }, [id, projects?.data]);
+  }, [id, project, projects?.data]);
 
 
   return (
@@ -99,7 +119,7 @@ export default function ProjectPage() {
                 {showDescription && (
                   <CardDescription className="p-2 bg-gray-50 rounded-lg w-full">
                     {isEditing ? (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <Input
                           type="text"
                           value={editedName}
@@ -113,6 +133,38 @@ export default function ProjectPage() {
                           className="w-full"
                           placeholder="Project Description"
                         />
+
+                        <div className="grid-cols-2 grid gap-4">
+                          {
+                            (["x", "tiktok", "instagram", "facebook"] as const).map((platform) => (
+                              <div
+                                key={platform}
+                                className="flex flex-col gap-2"
+                              >
+                                <Label
+                                  className="capitalize"
+                                  htmlFor={platform}
+                                >{platform} (optional)
+                                </Label>
+                                <Input
+                                  type="text"
+                                  value={platformUrls[platform]}
+                                  onChange={(e) => {
+                                    setPlatformUrls({
+                                      ...platformUrls,
+                                      [platform]: e.target.value,
+                                    });
+                                  }}
+                                  className="w-full"
+                                  id={platform}
+                                />
+
+                              </div>
+                            ))
+                          }
+
+                        </div>
+
                         <div className="flex gap-2">
                           <Button
                             className=" w-28"
@@ -122,6 +174,7 @@ export default function ProjectPage() {
                                 _id: project._id,
                                 name: editedName,
                                 description: editedDescription,
+                                platformUrls: platformUrls
                               });
                               setIsEditing(false);
                             }}

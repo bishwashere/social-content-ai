@@ -13,10 +13,22 @@ export type Project = MongooseBaseDocument<{
     _id: string;
     title: string;
   }[];
+  platformUrls: {
+    x?: string;
+    tiktok?: string;
+    instagram?: string;
+    facebook?: string;
+  };
 }>;
 
 export type UpdateProjectProps = Partial<CreateProjectProps> & {
   _id: string;
+  platformUrls: {
+    x?: string;
+    tiktok?: string;
+    instagram?: string;
+    facebook?: string;
+  };
 };
 
 export type GenerateProjectContentProps = {

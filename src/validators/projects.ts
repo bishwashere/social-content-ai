@@ -25,6 +25,17 @@ class ProjectValidator {
     url: z.string().optional().nullable().nullish(),
     date: z.string(),
   });
+
+  updateProject = this.createProject.partial().extend({
+    platformUrls: z
+      .object({
+        x: z.string().optional().nullable().nullish(),
+        instagram: z.string().optional().nullable().nullish(),
+        facebook: z.string().optional().nullable().nullish(),
+        tiktok: z.string().optional().nullable().nullish(),
+      })
+      .partial(),
+  });
 }
 
 export const projectValidator = new ProjectValidator();

@@ -10,16 +10,14 @@ import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 export const PATCH = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  validateBody(projectValidator.createProject.partial()),
+  validateBody(projectValidator.updateProject),
   catchApiAsyncError(async (req) => {
     const projectId = req.nextUrl.href.split("/").pop() || "";
 
     console.log("Editing project with id: ", projectId);
 
     //@ts-expect-error: ................
-    const body = req.parsed.body as Partial<
-      ProjectValidatorType["createProject"]
-    >;
+    const body = req.parsed.body as ProjectValidatorType["updateProject"];
 
     //@ts-expect-error: ................
     const user = req.parsed.user as User;
@@ -29,6 +27,8 @@ export const PATCH = applyMiddleware(
       description: body.description,
       userId: user._id,
       _id: projectId,
+      //@ts-expect-error: ................
+      platformUrls: body.platformUrls,
     });
 
     if (!project.ok) {
@@ -41,7 +41,7 @@ export const PATCH = applyMiddleware(
     return sendNextResponse({
       status: 201,
       data: project.data,
-      message: `Project ${project.data.name} created successfully!`,
+      message: `Project ${project.data.name} updated successfully!`,
     });
   })
 );
