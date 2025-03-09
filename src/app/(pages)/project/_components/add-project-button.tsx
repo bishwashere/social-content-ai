@@ -33,7 +33,7 @@ export function AddProjectButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full justify-start">
+        <Button className="w-48 h-10 text-sm md:w-40 md:h-9 lg:w-36 lg:h-8">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Project
         </Button>

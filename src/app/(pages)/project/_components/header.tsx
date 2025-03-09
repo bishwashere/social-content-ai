@@ -20,8 +20,8 @@ export function Header() {
   const { data: user } = useSession();
   const logout = useLogout()
   return (
-    <div className="w-full px-4 border-b h-fit relative">
-      <div className="flex h-16 items-center justify-between  bg-background max-w-3xl mx-auto">
+    <div className="w-full px-4 border-b h-fit relative md:ml-64 lg:ml-72 overflow-hidden">
+      <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
         <div className="flex items-center gap-6">
           <SidebarTrigger className="min-w-[24px]" />
           <Logo />

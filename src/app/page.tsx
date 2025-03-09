@@ -9,7 +9,7 @@ export default function HomeV3() {
         {/* Hero Section */}
         <header className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-md">
-            SocialAI
+            NextPostAI
           </h1>
           <p className="text-xl text-teal-100 max-w-lg mx-auto">
             Craft AI-powered social media posts that engage and convert—effortlessly!
@@ -26,7 +26,7 @@ export default function HomeV3() {
         {/* Features Section */}
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-            Why Choose SocialAI?
+            Why Choose NextPostAI?
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
@@ -67,7 +67,7 @@ export default function HomeV3() {
         <div className="mb-4">
           <GoogleLoginButton triggerClassName="min-w-32" />
         </div>
-        <p className="text-teal-200 text-sm">© 2025 SocialAI. All rights reserved.</p>
+        <p className="text-teal-200 text-sm">© 2025 NextPostAI. All rights reserved.</p>
       </div>
     </div>
   );

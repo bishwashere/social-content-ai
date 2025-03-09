@@ -19,7 +19,7 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-6 flex flex-col items-center mx-auto max-w-3xl p-6">
+    <div className="md:ml-64 lg:ml-72 p-6 space-y-6">
       <div className="text-center">
         Welcome to SocialAI!<br />
         Select a project from the left to get started, or click ‘Add Project’ to create a new one.
@@ -38,7 +38,10 @@ export default function Home() {
         </Button>
       </div>
 
-      <AddProjectButton />
+
+      <div className="flex justify-center items-center w-full">
+        <AddProjectButton />
+      </div>
 
 
       {/* Modal for Project Selection */}
