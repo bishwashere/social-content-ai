@@ -1,6 +1,8 @@
 import GoogleLoginButton from "@/components/common/google-login-button";
 
 export default function HomeV3() {
+
+
   return (
     <div className="bg-gradient-to-t from-teal-600 to-cyan-500 min-h-screen flex flex-col justify-between">
       <div className="container mx-auto px-4 py-8">
@@ -52,7 +54,7 @@ export default function HomeV3() {
         <div className="mt-12 text-center">
           <h2 className="text-2xl font-semibold text-white mb-4">See It in Action</h2>
           <p className="text-teal-100 max-w-2xl mx-auto mb-6">
-            Try a sample prompt: "Create an inspiring post for Instagram." Result: "Don’t just exist, bloom. You have sunshine within you. Let it shine! 🌟 #Inspiration #Growth #Motivation #YouGotThis"
+            Try a sample prompt: &apos;Create an inspiring post for Instagram.&apos; Result: &apos;Don&apos;t just exist, bloom. You have sunshine within you. Let it shine! 🌟 #Inspiration #Growth #Motivation #YouGotThis&apos;
           </p>
           <p className="text-teal-200 text-sm">
             Track it: Logged on Mar 08, 2025, for Instagram review.
