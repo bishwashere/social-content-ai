@@ -92,3 +92,15 @@ export const useGetProjectsSummary = () => {
     queryKey: ["project-summary"],
   });
 };
+
+export const useInviteUserToProject = () => {
+  return useMutation({
+    mutationFn: projectService.inviteUser,
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSuccess: (message) => {
+      toast.success(message);
+    },
+  });
+};

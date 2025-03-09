@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronRight,
   PlusCircleIcon,
+  Users2Icon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -26,6 +27,7 @@ import { AddProjectButton } from "./add-project-button";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Project } from "@/backend-apis/projects/types";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 
 export function ProjectSidebar() {
@@ -98,6 +100,7 @@ function ProjectItem({
   currentPath,
 }: ProjectItemProps) {
   const router = useRouter()
+  const { data: user } = useSession()
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <CollapsibleTrigger
@@ -122,24 +125,34 @@ function ProjectItem({
             )}
             <span className="font-medium truncate">{project.name}</span>
           </div>
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-          ) : (
-            <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-          )}
+
+          <div className="flex items-center gap-2">
+            {
+              user?._id !== project.userId && (
+                <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
+              )
+            }
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+            ) : (
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
+            )}
+          </div>
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-1 px-3 py-2">
-        <Link
-          href={`/project/${project._id}`}
-          className={cn(
-            "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
-            currentPath === `/project/${project._id}` &&
-            "bg-accent/50 text-accent-foreground"
-          )}
-        >
-          Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
-        </Link>
+        {
+          user?._id === project.userId &&
+          <Link
+            href={`/project/${project._id}`}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
+              currentPath === `/project/${project._id}` &&
+              "bg-accent/50 text-accent-foreground"
+            )}
+          >
+            Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
+          </Link>}
         {project.chats?.map((chat) => (
           <Link
             key={chat._id}

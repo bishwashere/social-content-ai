@@ -1,5 +1,7 @@
 import { db } from "@/db";
 import { User } from "@/db/auth/schema/user";
+import { ProjectChatModel } from "@/db/projects/schema/chat";
+import { ProjectDocument, ProjectModel } from "@/db/projects/schema/project";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
@@ -47,20 +49,33 @@ export const GET = applyMiddleware(
     //@ts-expect-error: ................
     const user = req.parsed.user as User;
 
-    const project = await db.projects.getAll({
-      userId: user._id.toString(),
-    });
+    const projects = await ProjectModel.find<ProjectDocument>({
+      $or: [{ userId: user._id }, { "invitedUsers.userId": user._id }],
+    }).sort({ createdAt: -1 });
 
-    if (!project.ok) {
+    const projectsWithChats = await Promise.all(
+      projects.map(async (project) => {
+        const chats = await ProjectChatModel.find({
+          projectId: project._id,
+        }).sort({ createdAt: -1 });
+
+        return {
+          ...project.toJSON(),
+          chats: chats.map((chat) => chat.toJSON()),
+        };
+      })
+    );
+
+    if (!projectsWithChats) {
       return sendNextResponse({
         status: 500,
-        message: project.error,
+        message: `Failed to fetch projects!`,
       });
     }
 
     return sendNextResponse({
       status: 201,
-      data: project.data,
+      data: projectsWithChats,
       message: `Project fetched successfully!`,
     });
   })

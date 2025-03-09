@@ -243,6 +243,22 @@ class ProjectService {
 
     return res.data.data;
   }
+
+  async inviteUser({ projectId, email }: { projectId: string; email: string }) {
+    const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
+      async () => {
+        const response = await api.post(API_ROUTES.projects.INVITE(projectId), {
+          email,
+        });
+        return response;
+      }
+    );
+    if (err) {
+      throw new Error(err.response?.data?.message);
+    }
+
+    return res.data.message;
+  }
 }
 
 export const projectService = new ProjectService();

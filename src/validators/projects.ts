@@ -36,6 +36,10 @@ class ProjectValidator {
       })
       .partial(),
   });
+
+  inviteUser = z.object({
+    email: z.string().email(),
+  });
 }
 
 export const projectValidator = new ProjectValidator();

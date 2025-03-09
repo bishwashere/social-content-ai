@@ -18,10 +18,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ContentGenerator } from "../_components/content-generator";
 import { Label } from "@/components/ui/label";
+import { InviteUserDialog } from "./chat/_components/invite-user";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 
 export default function ProjectPage() {
   const { id } = useParams();
+  const { data: user } = useSession()
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDescription, setShowDescription] = useState(false); // ✅ Define state
@@ -101,13 +104,22 @@ export default function ProjectPage() {
 
                 <div className="relative w-full">
                   {/* Settings Icon - Positioned Top Right */}
-                  <button
-                    onClick={() => setShowDescription(!showDescription)}
-                    className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100 transition"
-                  >
-                    <Settings className="w-5 h-5 text-gray-500" />
-                  </button>
 
+                  {
+                    user?._id === project.userId &&
+                    <div className="flex gap-4 absolute top-2 right-2 ">
+
+                      <button
+                        onClick={() => setShowDescription(!showDescription)}
+                        className="p-2 rounded-full hover:bg-gray-100 transition"
+                      >
+                        <Settings className="w-5 h-5 text-gray-500" />
+                      </button>
+
+                      <InviteUserDialog />
+
+                    </div>
+                  }
                   {/* Title - Centered */}
                   <CardHeader className="flex items-center justify-center w-full mt-6">
                     <CardTitle className="text-xl font-bold">{project.name}</CardTitle>

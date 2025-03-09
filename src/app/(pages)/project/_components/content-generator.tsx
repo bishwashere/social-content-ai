@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project } from "@/backend-apis/projects/types";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
+import { useSession } from "@/backend-apis/auth/hooks";
 interface ContentGeneratorProps {
   project: Project;
 }
@@ -19,6 +20,7 @@ export function ContentGenerator({
   project,
 }: ContentGeneratorProps) {
   const [prompt, setPrompt] = useState("");
+  const { data: user } = useSession()
   const generateProjectContent = useGenerateProjectContent()
 
   const copyToClipboard = useMemo(() => (text: string, platform: string) => {
@@ -52,6 +54,7 @@ export function ContentGenerator({
         loading={generateProjectContent.isPending}
         size={"lg"}
         className="w-full"
+        disabled={user?._id !== project.userId}
       >
         {generateProjectContent.data ? (
           <>

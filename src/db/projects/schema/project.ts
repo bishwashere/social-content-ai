@@ -20,19 +20,36 @@ const ProjectSchema = new mongoose.Schema(
       x: {
         type: String,
         required: false,
+        default: "",
       },
       instagram: {
         type: String,
         required: false,
+        default: "",
       },
       facebook: {
         type: String,
         required: false,
+        default: "",
       },
       tiktok: {
         type: String,
         required: false,
+        default: "",
       },
+    },
+    invitedUsers: {
+      type: [
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+            ref: "UserSchema",
+          },
+        },
+      ],
+      required: false,
+      default: [],
     },
   },
   {

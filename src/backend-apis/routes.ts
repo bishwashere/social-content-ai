@@ -9,6 +9,7 @@ const API_ROUTES = {
     CHAT: (id: string) => `/projects/${id}/chat`,
     TRACK: (id: string) => `/projects/${id}/track`,
     SUMMARY: "/projects/summary",
+    INVITE: (id: string) => `/projects/${id}/invite`,
   },
 };
 
