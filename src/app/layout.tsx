@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 
 export const metadata: Metadata = {
-  title: "SocialAI - AI-powered Social Media Content Generator",
+  title: "NextPostAI - AI-powered Social Media Content Generator",
   description: "Generate engaging social media content with AI",
 };
 

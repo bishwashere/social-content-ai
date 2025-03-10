@@ -21,7 +21,7 @@ export default function Home() {
   return (
     <div className="md:ml-64 lg:ml-72 p-6 space-y-6">
       <div className="text-center">
-        Welcome to SocialAI!<br />
+        Welcome to NextPostAI!<br />
         Select a project from the left to get started, or click ‘Add Project’ to create a new one.
       </div>
 
