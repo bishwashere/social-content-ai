@@ -1,4 +1,4 @@
-import { WithId } from "@/lib/types";
+import { ForClient, WithId } from "@/lib/types";
 import mongoose, { InferSchemaType } from "mongoose";
 
 const ProjectSchema = new mongoose.Schema(
@@ -17,39 +17,11 @@ const ProjectSchema = new mongoose.Schema(
       ref: "UserSchema",
     },
     platformUrls: {
-      x: {
-        type: String,
-        required: false,
-        default: "",
-      },
-      instagram: {
-        type: String,
-        required: false,
-        default: "",
-      },
-      facebook: {
-        type: String,
-        required: false,
-        default: "",
-      },
-      tiktok: {
-        type: String,
-        required: false,
-        default: "",
-      },
-    },
-    invitedUsers: {
-      type: [
-        {
-          userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            ref: "UserSchema",
-          },
-        },
-      ],
+      // equivalent to Record<string, string>
+      type: Map,
+      of: String,
       required: false,
-      default: [],
+      default: {},
     },
   },
   {
@@ -63,5 +35,8 @@ const ProjectModel =
   mongoose.model("ProjectSchema", ProjectSchema);
 export { ProjectSchema, ProjectModel };
 
-export type Project = WithId<InferSchemaType<typeof ProjectSchema>>;
-export type ProjectDocument = mongoose.Document<Project>;
+export type ProjectDoc = WithId<InferSchemaType<typeof ProjectSchema>>;
+export type Project = Omit<
+  ForClient<InferSchemaType<typeof ProjectSchema>>,
+  "userId"
+> & { userId: string; platformUrls: Record<string, string> };

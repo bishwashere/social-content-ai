@@ -1,19 +1,21 @@
-import { db } from "@/db";
 import { User } from "@/db/auth/schema/user";
 import { ProjectChatModel } from "@/db/projects/schema/chat";
-import { ProjectDocument, ProjectModel } from "@/db/projects/schema/project";
+import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
-import { validateBody } from "@/middlewares/request-validator";
+import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 
+/**
+ * Create a new project
+ */
 export const POST = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  validateBody(projectValidator.createProject),
+  requestValidator.validateBody(projectValidator.createProject),
   catchApiAsyncError(async (req) => {
     //@ts-expect-error: ................
     const body = req.parsed.body as ProjectValidatorType["createProject"];
@@ -21,27 +23,30 @@ export const POST = applyMiddleware(
     //@ts-expect-error: ................
     const user = req.parsed.user as User;
 
-    const project = await db.projects.create({
+    const project: ProjectDoc = await ProjectModel.create({
       name: body.name,
       description: body.description,
       userId: user._id,
     });
 
-    if (!project.ok) {
+    if (!project) {
       return sendNextResponse({
         status: 500,
-        message: project.error,
+        message: `Failed to create project!`,
       });
     }
 
     return sendNextResponse({
       status: 201,
-      data: project.data,
-      message: `Project ${project.data.name} created successfully!`,
+      data: project.toJSON(),
+      message: `Project ${project.name} created successfully!`,
     });
   })
 );
 
+/**
+ * Get all projects that belong to the user with chat titles.
+ */
 export const GET = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -49,7 +54,7 @@ export const GET = applyMiddleware(
     //@ts-expect-error: ................
     const user = req.parsed.user as User;
 
-    const projects = await ProjectModel.find<ProjectDocument>({
+    const projects: ProjectDoc[] = await ProjectModel.find({
       $or: [{ userId: user._id }, { "invitedUsers.userId": user._id }],
     }).sort({ createdAt: -1 });
 

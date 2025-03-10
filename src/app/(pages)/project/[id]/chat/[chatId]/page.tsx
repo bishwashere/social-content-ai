@@ -7,8 +7,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ChevronLeft, CopyIcon, Share2Icon } from "lucide-react";
 import Markdown from "react-markdown";
 import { useGetAllProjectChats, useGetAllProjects } from "@/backend-apis/projects/hooks";
-import { Project, ProjectChat } from "@/backend-apis/projects/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProjectChat } from "@/db/projects/schema/chat";
+import { Project } from "@/db/projects/schema/project";
 
 
 export default function ChatPage() {
@@ -82,7 +83,7 @@ export default function ChatPage() {
                 <p>{chat.prompt}</p>
               </div>
               <div className="space-y-4 pb-10">
-                {Object.entries(chat.contents).map(([platform, text]) => (
+                {Object.entries(chat.contents || {}).map(([platform, text]) => (
                   <div key={platform} className="border p-4 rounded-lg mb-4">
                     <div className="flex justify-between mb-2">
                       <h3 className="font-bold capitalize">{platform}</h3>
@@ -96,15 +97,13 @@ export default function ChatPage() {
                           <CopyIcon />
                         </Button>
                         {
-                          //@ts-expect-error :....
-                          currentProject?.platformUrls[platform] && <Button
+                          currentProject?.platformUrls?.get(platform) && <Button
                             variant="ghost"
                             size="icon"
                             asChild
                           >
                             <Link
-                              //@ts-expect-error :....
-                              href={currentProject?.platformUrls[platform] || "#"}
+                              href={currentProject?.platformUrls.get(platform) || "#"}
                               target="_blank"
                             >
                               <Share2Icon />

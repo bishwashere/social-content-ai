@@ -1,4 +1,4 @@
-import { WithId } from "@/lib/types";
+import { ForClient, WithId } from "@/lib/types";
 import mongoose, { InferSchemaType } from "mongoose";
 
 const ProjectTrackingSchema = new mongoose.Schema(
@@ -14,7 +14,7 @@ const ProjectTrackingSchema = new mongoose.Schema(
     },
     url: {
       type: String,
-      required: false,
+      required: true,
     },
     platform: {
       type: String,
@@ -32,7 +32,10 @@ const ProjectTrackingModel =
   mongoose.model("ProjectTrackingSchema", ProjectTrackingSchema);
 export { ProjectTrackingSchema, ProjectTrackingModel };
 
-export type ProjectTracking = WithId<
+export type ProjectTrackingDoc = WithId<
   InferSchemaType<typeof ProjectTrackingSchema>
 >;
-export type ProjectTrackingDocument = mongoose.Document<ProjectTracking>;
+export type ProjectTracking = Omit<
+  ForClient<InferSchemaType<typeof ProjectTrackingSchema>>,
+  "projectId" | "date"
+> & { projectId: string; date: string };

@@ -1,55 +1,23 @@
-import { MongooseBaseDocument } from "../types";
+import { ProjectValidatorType } from "@/validators/projects";
+import { Project } from "@/db/projects/schema/project";
+import { ProjectTracking } from "@/db/projects/schema/tracking";
 
-export type CreateProjectProps = {
-  name: string;
-  description: string;
-};
+export type CreateProjectProps = ProjectValidatorType["createProject"];
 
-export type Project = MongooseBaseDocument<{
-  name: string;
-  description: string;
-  userId: string;
+export type ProjectWithChats = Project & {
   chats?: {
     _id: string;
     title: string;
   }[];
-  platformUrls: {
-    x?: string;
-    tiktok?: string;
-    instagram?: string;
-    facebook?: string;
-  };
-}>;
+};
 
-export type UpdateProjectProps = Partial<CreateProjectProps> & {
+export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {
   _id: string;
-  platformUrls: {
-    x?: string;
-    tiktok?: string;
-    instagram?: string;
-    facebook?: string;
-  };
 };
 
-export type GenerateProjectContentProps = {
+export type GenerateProjectContentProps = ProjectValidatorType["createChat"] & {
   projectId: string;
-  userPrompt: string;
-  retry?: {
-    chatId: string;
-  };
 };
-
-export type ProjectChat = MongooseBaseDocument<{
-  projectId: string;
-  prompt: string;
-  title: string;
-  contents: {
-    facebook: string;
-    instagram: string;
-    x: string;
-    tiktok: string;
-  };
-}>;
 
 export type GetAllProjectChatsProps = {
   projectId: string;
@@ -59,18 +27,10 @@ export type GetProjectTrackingProps = {
   projectId: string;
 };
 
-export type ProjectTrackingResponse = {
-  projectId: string;
-  date: string;
-  url?: string;
-  platform: "x" | "tiktok" | "instagram" | "facebook";
-}[];
+export type ProjectTrackingResponse = ProjectTracking[];
 
-export type TrackProjectProps = {
+export type TrackProjectProps = ProjectValidatorType["trackProject"] & {
   projectId: string;
-  platform: string;
-  url?: string;
-  date: string;
 };
 
 export type ProjectSummary = {

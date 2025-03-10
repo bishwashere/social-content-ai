@@ -9,6 +9,11 @@ type Props = {
   children: React.ReactNode
 }
 
+/**
+ *  SessionProvider is a component that checks if the user is authenticated or not.
+ *  If the user is authenticated, it redirects to the dashboard page.
+ *  If the user is not authenticated, it redirects to the home page.
+ */
 const SessionProvider = ({ children }: Props) => {
   const { isLoading, isError } = useSession()
   const path = usePathname()

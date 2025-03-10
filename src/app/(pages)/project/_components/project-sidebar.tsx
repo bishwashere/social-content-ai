@@ -26,8 +26,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AddProjectButton } from "./add-project-button";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Project } from "@/backend-apis/projects/types";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { ProjectWithChats } from "@/backend-apis/projects/types";
 
 
 export function ProjectSidebar() {
@@ -87,7 +87,7 @@ export function ProjectSidebar() {
 }
 
 interface ProjectItemProps {
-  project: Project;
+  project: ProjectWithChats;
   isOpen: boolean;
   onToggle: () => void;
   currentPath: string;

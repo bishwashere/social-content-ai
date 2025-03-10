@@ -1,66 +1,78 @@
-import { db } from "@/db";
+import { ProjectModel } from "@/db/projects/schema/project";
+import {
+  ProjectTrackingDoc,
+  ProjectTrackingModel,
+} from "@/db/projects/schema/tracking";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
-import { validateBody } from "@/middlewares/request-validator";
+import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
-
+import mongoose from "mongoose";
+/**
+ * Track a project
+ */
 export const POST = applyMiddleware(
   connectToDBMiddleware(),
-  validateBody(projectValidator.trackProject),
+  requestValidator.validateBody(projectValidator.trackProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req) => {
-    const projectId = req.nextUrl.pathname.split("/")[3];
+  catchApiAsyncError(async (req, { params }) => {
+    const { id: projectId } = params as { id: string };
 
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["trackProject"];
 
     console.log("projectId", projectId);
 
-    const project = await db.projects.trackProject({
-      projectId,
-      platform: body.platform,
-      url: body.url || "",
-      date: new Date(body.date),
+    const project = await ProjectModel.findOne({
+      _id: new mongoose.Types.ObjectId(projectId),
     });
 
-    if (!project.ok) {
+    if (!project) {
       return sendNextResponse({
-        status: 400,
-        message: project.error,
+        status: 404,
+        message: "Project not found",
       });
     }
+
+    const activity = await ProjectTrackingModel.create({
+      projectId: new mongoose.Types.ObjectId(projectId),
+      ...body,
+    });
 
     return sendNextResponse({
       status: 200,
       message: "Project tracked successfully!",
-      data: project.data,
+      data: activity,
     });
   })
 );
 
+/**
+ * Get project tracking data by project id
+ */
 export const GET = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req) => {
-    const projectId = req.nextUrl.pathname.split("/")[3];
+  catchApiAsyncError(async (_req, { params }) => {
+    const { id: projectId } = params as { id: string };
 
-    const projectTracking = await db.projects.getProjectTracking({
-      projectId,
+    const activity: ProjectTrackingDoc[] = await ProjectTrackingModel.find({
+      projectId: new mongoose.Types.ObjectId(projectId),
     });
 
-    if (!projectTracking.ok) {
+    if (!activity) {
       return sendNextResponse({
-        status: 400,
-        message: projectTracking.error,
+        status: 404,
+        message: "Project tracking not found",
       });
     }
 
     return sendNextResponse({
       status: 200,
-      data: projectTracking.data,
+      data: activity,
       message: `Project tracking fetched successfully!`,
     });
   })

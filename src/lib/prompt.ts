@@ -9,7 +9,16 @@ export const PLATFORM_CHARACTER_LIMITS = {
   snapchat: 80, // Snappy, quick-to-read messages
 } as const;
 
-export const PLATFORMS = ["facebook", "instagram", "x", "tiktok"] as const;
+export const AVAILABLE_PLATFORMS = {
+  FACEBOOK: "facebook",
+  INSTAGRAM: "instagram",
+  X: "x",
+  TIKTOK: "tiktok",
+} as const;
+
+export const PLATFORMS = Object.values(AVAILABLE_PLATFORMS);
+
+export type Platform = (typeof PLATFORMS)[number];
 
 export const PROPERTIES = {
   styles: ["witty", "inspirational", "professional", "casual"],
@@ -48,6 +57,10 @@ class Prompt {
     };
   }
 
+  /**
+   *  Generate a core prompt for a content piece
+   * @param projectOverview - A brief overview of the project to make the prompt project-related
+   */
   generateCorePrompt(projectOverview?: string) {
     // Decide if the prompt will be project-related or general
     const { goal, style, theme, tone, verb } = this.getRandomProperties();
@@ -97,6 +110,9 @@ class Prompt {
     }`;
   }
 
+  /**
+   *  Generate a user prompt for a content piece
+   */
   addPlatformSpecifics({
     characterLimit,
     corePrompt,
@@ -113,7 +129,7 @@ export const prompt = new Prompt();
 
 export type AddPlatformSpecificsProps = {
   corePrompt: string;
-  platform: (typeof PLATFORMS)[number];
+  platform: Platform;
   characterLimit: (typeof PLATFORM_CHARACTER_LIMITS)[(typeof PLATFORMS)[number]];
   userPrompt: string;
 };

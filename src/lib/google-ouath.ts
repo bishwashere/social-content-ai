@@ -25,11 +25,14 @@ export class GoogleOauth {
    */
   async getUserProfile(): Promise<GoogleOauthUserProfile> {
     const resp = await this.axios.get("/userinfo");
-    
+
     return resp.data;
   }
 }
 
+/**
+ * The Google Oauth user profile returned from Google Oauth API
+ */
 export type GoogleOauthUserProfile = {
   id: string;
   email: string;

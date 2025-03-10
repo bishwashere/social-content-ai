@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ContinueWithGoogleParams } from "./types";
 import { authService } from ".";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
+/**
+ * Hook to login with google
+ **/
 export const useContinueWithGoogle = () => {
   const queryClient = useQueryClient();
 
@@ -19,6 +23,9 @@ export const useContinueWithGoogle = () => {
   });
 };
 
+/**
+ * Hook to get the current session
+ **/
 export const useSession = () => {
   return useQuery({
     queryFn: () => {
@@ -29,11 +36,15 @@ export const useSession = () => {
   });
 };
 
+/**
+ * Hook to logout the user
+ **/
 export const useLogout = () => {
+  const router = useRouter();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => {
-      return authService.logout(queryClient);
+      return authService.logout(queryClient, router);
     },
     onError: (error) => {
       toast.error(error.message);

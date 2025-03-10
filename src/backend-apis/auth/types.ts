@@ -1,17 +1,11 @@
-import { MongooseBaseDocument } from "../types";
+import { AuthValidatorType } from "@/validators/auth";
+import { User } from "@/db/auth/schema/user";
 
-export type ContinueWithGoogleParams = {
-  credential: string;
-};
-
-export type User = MongooseBaseDocument<{
-  name: string;
-  email: string;
-  avatarUrl: string;
-  idFromProvider: string;
-}>;
+export type ContinueWithGoogleParams = AuthValidatorType["continueWithGoogle"];
 
 export type ContinueWithGoogleResponse = {
   bearerToken: string;
   user: User;
 };
+
+export type GetUserSessionResponse = User;

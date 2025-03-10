@@ -7,6 +7,10 @@ export interface Response {
   data?: unknown;
 }
 
+/**
+ * Sends the response to the client in a standardized format
+ * @param res - Response object to send
+ */
 export const sendNextResponse = (res: Response) => {
   return NextResponse.json(
     {

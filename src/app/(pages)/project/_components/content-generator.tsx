@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { CopyIcon, RefreshCcw, Share2Icon, Sparkle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Project } from "@/backend-apis/projects/types";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { Project } from "@/db/projects/schema/project";
 interface ContentGeneratorProps {
   project: Project;
 }
@@ -76,7 +76,7 @@ export function ContentGenerator({
       {generateProjectContent.data && (
         <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
           <ScrollArea className="">
-            {Object.entries(generateProjectContent.data.contents).map(([platform, text]) => (
+            {Object.entries(generateProjectContent.data.contents || {}).map(([platform, text]) => (
               <Card key={platform} className="rounded-lg border mb-5">
                 <CardHeader className="flex justify-between items-center mb-2 flex-row">
                   <CardTitle>
@@ -92,14 +92,12 @@ export function ContentGenerator({
                       <CopyIcon />
                     </Button>
                     {
-                      //@ts-expect-error :....
                       project.platformUrls[platform] && <Button
                         variant="ghost"
                         size="icon"
                         asChild
                       >
                         <Link
-                          //@ts-expect-error :....
                           href={project.platformUrls[platform] || "#"}
                           target="_blank"
                         >

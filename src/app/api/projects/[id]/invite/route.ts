@@ -4,14 +4,14 @@ import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
-import { validateBody } from "@/middlewares/request-validator";
+import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 import mongoose from "mongoose";
 export const POST = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  validateBody(projectValidator.inviteUser),
+  requestValidator.validateBody(projectValidator.inviteUser),
   catchApiAsyncError(async (req) => {
     const projectId = req.nextUrl.pathname.split("/")[3];
 

@@ -4,6 +4,9 @@ import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 
+/**
+ * Retrieve the user session
+ */
 export const GET = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),

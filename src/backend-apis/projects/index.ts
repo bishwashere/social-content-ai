@@ -4,17 +4,18 @@ import {
   GenerateProjectContentProps,
   GetAllProjectChatsProps,
   GetProjectTrackingProps,
-  Project,
-  ProjectChat,
   ProjectSummary,
   ProjectTrackingResponse,
+  ProjectWithChats,
   TrackProjectProps,
   UpdateProjectProps,
 } from "./types";
 import api from "../axios";
-import API_ROUTES from "../routes";
 import { ApiError, ApiResponse } from "../types";
 import { QueryClient } from "@tanstack/react-query";
+import { Project } from "@/db/projects/schema/project";
+import { ProjectChat } from "@/db/projects/schema/chat";
+import { apiRoutes } from "../routes";
 
 class ProjectService {
   /**
@@ -23,7 +24,7 @@ class ProjectService {
   async createProject(project: CreateProjectProps, queryClient: QueryClient) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
       async () => {
-        const response = await api.post(API_ROUTES.projects.INDEX, project);
+        const response = await api.post(apiRoutes.PROJECTS(), project);
         return response;
       }
     );
@@ -42,12 +43,13 @@ class ProjectService {
    * Get all the projects related to the user, with title of chats
    */
   async getProjects() {
-    const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project[]>>(
-      async () => {
-        const response = await api.get(API_ROUTES.projects.INDEX);
-        return response;
-      }
-    );
+    const [err, res] = await tryCatchAsync<
+      ApiError,
+      ApiResponse<ProjectWithChats[]>
+    >(async () => {
+      const response = await api.get(apiRoutes.PROJECTS());
+      return response;
+    });
     if (err) {
       throw new Error(err.response?.data?.message);
     }
@@ -64,7 +66,7 @@ class ProjectService {
   ) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
       async () => {
-        const response = await api.patch(API_ROUTES.projects.BY_ID(_id), rest);
+        const response = await api.patch(apiRoutes.PROJECTS.BY_ID(_id), rest);
         return response;
       }
     );
@@ -96,7 +98,7 @@ class ProjectService {
   ) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<ProjectChat>>(
       async () => {
-        const response = await api.post(API_ROUTES.projects.CHAT(projectId), {
+        const response = await api.post(apiRoutes.PROJECTS.CHAT(projectId), {
           userPrompt,
           retry,
         });
@@ -108,24 +110,27 @@ class ProjectService {
     }
 
     if (retry && retry.chatId) {
-      await queryClient.setQueryData<Project[]>(["projects"], (data) => {
-        return data
-          ? // update the project with the new data
-            data?.map((project) => {
-              if (project._id === projectId) {
-                return {
-                  ...project,
-                  chats: project.chats?.map((chat) =>
-                    chat._id === retry.chatId
-                      ? { _id: res.data.data._id, title: res.data.data.title }
-                      : chat
-                  ),
-                };
-              }
-              return project;
-            })
-          : data;
-      });
+      await queryClient.setQueryData<ProjectWithChats[]>(
+        ["projects"],
+        (data) => {
+          return data
+            ? // update the project with the new data
+              data?.map((project) => {
+                if (project._id === projectId) {
+                  return {
+                    ...project,
+                    chats: project.chats?.map((chat) =>
+                      chat._id === retry.chatId
+                        ? { _id: res.data.data._id, title: res.data.data.title }
+                        : chat
+                    ),
+                  };
+                }
+                return project;
+              })
+            : data;
+        }
+      );
 
       await queryClient.setQueryData<ProjectChat[]>(
         ["project-chats", { projectId }],
@@ -139,22 +144,25 @@ class ProjectService {
       );
     } else {
       // update the project with the new chat
-      await queryClient.setQueryData<Project[]>(["projects"], (data) => {
-        return data
-          ? // update the project with the new data
-            data?.map((project) => {
-              if (project._id === projectId) {
-                return {
-                  ...project,
-                  chats: project.chats
-                    ? [res.data.data, ...project.chats]
-                    : [res.data.data],
-                };
-              }
-              return project;
-            })
-          : data;
-      });
+      await queryClient.setQueryData<ProjectWithChats[]>(
+        ["projects"],
+        (data) => {
+          return data
+            ? // update the project with the new data
+              data?.map((project) => {
+                if (project._id === projectId) {
+                  return {
+                    ...project,
+                    chats: project.chats
+                      ? [res.data.data, ...project.chats]
+                      : [res.data.data],
+                  };
+                }
+                return project;
+              })
+            : data;
+        }
+      );
 
       await queryClient.setQueryData<ProjectChat[]>(
         ["project-chats", { projectId }],
@@ -175,7 +183,7 @@ class ProjectService {
       ApiError,
       ApiResponse<ProjectChat[]>
     >(async () => {
-      const response = await api.get(API_ROUTES.projects.CHAT(projectId));
+      const response = await api.get(apiRoutes.PROJECTS.CHAT(projectId));
       return response;
     });
     if (err) {
@@ -189,7 +197,7 @@ class ProjectService {
       ApiError,
       ApiResponse<ProjectTrackingResponse>
     >(async () => {
-      const response = await api.get(API_ROUTES.projects.TRACK(projectId));
+      const response = await api.get(apiRoutes.PROJECTS.TRACK(projectId));
       return response;
     });
     if (err) {
@@ -207,7 +215,7 @@ class ProjectService {
       ApiResponse<ProjectTrackingResponse>
     >(async () => {
       const response = await api.post(
-        API_ROUTES.projects.TRACK(projectId),
+        apiRoutes.PROJECTS.TRACK(projectId),
         data
       );
       return response;
@@ -234,7 +242,7 @@ class ProjectService {
       ApiError,
       ApiResponse<ProjectSummary>
     >(async () => {
-      const response = await api.get(API_ROUTES.projects.SUMMARY);
+      const response = await api.get(apiRoutes.PROJECTS.SUMMARY());
       return response;
     });
     if (err) {
@@ -247,7 +255,7 @@ class ProjectService {
   async inviteUser({ projectId, email }: { projectId: string; email: string }) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
       async () => {
-        const response = await api.post(API_ROUTES.projects.INVITE(projectId), {
+        const response = await api.post(apiRoutes.PROJECTS.INVITE(projectId), {
           email,
         });
         return response;

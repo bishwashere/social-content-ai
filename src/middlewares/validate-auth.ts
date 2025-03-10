@@ -1,16 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { verifyJWT } from "@/lib/jwt";
 import { sendNextResponse } from "@/lib/send-next-response";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { CALL_NEXT_FUNCTION } from "./apply-middleware";
-import { db } from "@/db";
+import { UserModel } from "@/db/auth/schema/user";
 
 type Props = {
   errorIfNotAuthenticated: boolean;
 };
 
+/**
+ * Checks if the user is authenticated and attaches the user object to the request
+ */
 export const validateUserAuth = ({ errorIfNotAuthenticated }: Props) => {
-  return async (req: NextRequest, _res: NextResponse) => {
+  return async (req: NextRequest) => {
     // extract bearer token from header
     const token = req.headers.get("Authorization")?.split("Bearer ")[1] || "";
 
@@ -26,9 +29,9 @@ export const validateUserAuth = ({ errorIfNotAuthenticated }: Props) => {
       return CALL_NEXT_FUNCTION;
     }
 
-    const user = await db.auth.findUser({ email: payload.email });
+    const user = await UserModel.findOne({ email: payload.email });
 
-    if (!user.ok) {
+    if (!user) {
       if (errorIfNotAuthenticated) {
         return sendNextResponse({
           status: 401,
@@ -44,7 +47,7 @@ export const validateUserAuth = ({ errorIfNotAuthenticated }: Props) => {
     }
 
     // @ts-expect-error: ....
-    req.parsed.user = user.data;
+    req.parsed.user = user;
 
     return CALL_NEXT_FUNCTION;
   };

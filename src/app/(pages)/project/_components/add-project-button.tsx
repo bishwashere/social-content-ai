@@ -24,10 +24,12 @@ export function AddProjectButton() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createProject.mutateAsync({ name, description });
-    setOpen(false);
-    setName("");
-    setDescription("");
+    try {
+      await createProject.mutateAsync({ name, description });
+      setOpen(false);
+      setName("");
+      setDescription("");
+    } catch { }
   };
 
   return (

@@ -1,21 +1,24 @@
-import { db } from "@/db";
 import { User } from "@/db/auth/schema/user";
+import { ProjectChatDoc, ProjectChatModel } from "@/db/projects/schema/chat";
+import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import { AI } from "@/lib/ai";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
-import { validateBody } from "@/middlewares/request-validator";
+import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
-
+import mongoose from "mongoose";
+/**
+ * Create a chat or update an existing chat
+ * */
 export const POST = applyMiddleware(
   connectToDBMiddleware(),
-  validateBody(projectValidator.createChat),
+  requestValidator.validateBody(projectValidator.createChat),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req) => {
-    const projectId = req.nextUrl.pathname.split("/")[3];
-    console.log("href", req.nextUrl.href);
+  catchApiAsyncError(async (req, { params }) => {
+    const { id: projectId } = params as { id: string };
 
     // @ts-expect-error - user is not defined in Request type
     const userId = req.parsed.user as User;
@@ -25,26 +28,26 @@ export const POST = applyMiddleware(
 
     console.log("projectId", projectId);
 
-    const project = await db.projects.getProject({
-      projectId,
-      userId: userId._id.toString(),
+    const project: ProjectDoc | null = await ProjectModel.findOne({
+      _id: new mongoose.Types.ObjectId(projectId),
+      userId: userId._id,
     });
 
-    if (!project.ok) {
+    if (!project) {
       return sendNextResponse({
         status: 404,
-        message: project.error,
+        message: "Project not found",
       });
     }
     const ai = new AI();
 
-    const chat = await ai.generateContent({
-      projectDescription: project.data.description,
+    const chatFromAI = await ai.generateContent({
+      projectDescription: project.description,
       userPrompt: body.userPrompt || "",
-      projectName: project.data.name,
+      projectName: project.name,
     });
 
-    if (!chat) {
+    if (!chatFromAI) {
       return sendNextResponse({
         status: 400,
         message: "Failed to generate chat",
@@ -52,52 +55,81 @@ export const POST = applyMiddleware(
     }
 
     const chatName = await ai.generateChatName({
-      content: JSON.stringify(chat),
+      content: JSON.stringify(chatFromAI),
       prompt: body.userPrompt || "",
     });
 
-    const savedChat = await db.projects.createChat({
-      contents: chat,
-      projectId,
-      title: chatName || "Untitled",
-      retry: body.retry || undefined,
-      prompt: body.userPrompt || "",
-    });
+    if (body.retry && body.retry.chatId) {
+      const chat = await ProjectChatModel.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(body.retry.chatId as string),
+          projectId: new mongoose.Types.ObjectId(projectId),
+        },
+        {
+          $set: {
+            updatedAt: new Date(),
+            contents: chatFromAI,
+            title: chatName || "Untitled",
+            prompt: body.userPrompt || "",
+            projectId: new mongoose.Types.ObjectId(projectId),
+          },
+        },
+        {
+          returnDocument: "after",
+        }
+      );
 
-    if (!savedChat.ok) {
+      if (!chat) {
+        return sendNextResponse({
+          status: 404,
+          message: "Chat not found ",
+        });
+      }
+
       return sendNextResponse({
-        status: 400,
-        message: savedChat.error,
+        status: 200,
+        message: "Chat updated successfully",
+        data: chat,
+      });
+    } else {
+      const projectChat: ProjectChatDoc = await ProjectChatModel.create({
+        contents: chatFromAI,
+        title: chatName || "Untitled",
+        prompt: body.userPrompt || "",
+        projectId: new mongoose.Types.ObjectId(projectId),
+      });
+
+      return sendNextResponse({
+        status: 200,
+        message: "Chat created successfully",
+        data: projectChat,
       });
     }
-
-    return sendNextResponse({
-      status: 200,
-      message: "Chat created successfully",
-      data: savedChat.data,
-    });
   })
 );
 
+/**
+ * Get project chats by project id
+ */
 export const GET = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     const projectId = req.nextUrl.pathname.split("/")[3];
-    const chats = await db.projects.getChats({
-      projectId,
-    });
+    const chats: ProjectChatDoc[] = await ProjectChatModel.find({
+      projectId: new mongoose.Types.ObjectId(projectId),
+    }).sort({ createdAt: -1 });
 
-    if (!chats.ok) {
+    if (!chats) {
       return sendNextResponse({
-        status: 500,
-        message: chats.error,
+        status: 404,
+        message: "Failed to get chats",
       });
     }
 
     return sendNextResponse({
       status: 200,
-      data: chats.data,
+      data: chats,
       message: `Project chats fetched successfully!`,
     });
   })

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useGoogleLogin } from '@react-oauth/google';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useRouter } from 'next/navigation';
 
 type Props = {
   triggerClassName?: string
@@ -12,13 +13,13 @@ type Props = {
 const GoogleLoginButton = ({ triggerClassName }: Props) => {
   const [open, setOpen] = useState(false)
   const continueWithGoogle = useContinueWithGoogle()
-
+  const router = useRouter()
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      await continueWithGoogle.mutateAsync({ credential: tokenResponse.access_token });
-
-      // Reload only once to force UI update
-      window.location.href = window.location.href;
+      try {
+        await continueWithGoogle.mutateAsync({ credential: tokenResponse.access_token });
+        router.replace("/project")
+      } catch { }
     },
     scope: "profile email",
   });

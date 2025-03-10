@@ -1,6 +1,9 @@
-import { WithId } from "@/lib/types";
+import { ForClient, WithId } from "@/lib/types";
 import mongoose, { InferSchemaType } from "mongoose";
 
+/**
+ * Mongoose schema for the user collection
+ */
 const UserSchema = new mongoose.Schema(
   {
     email: {
@@ -30,4 +33,5 @@ const UserModel =
   mongoose.models.UserSchema || mongoose.model("UserSchema", UserSchema);
 export { UserSchema, UserModel };
 
-export type User = WithId<InferSchemaType<typeof UserSchema>>;
+export type UserDoc = WithId<InferSchemaType<typeof UserSchema>>;
+export type User = ForClient<InferSchemaType<typeof UserSchema>>;

@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetAllProjects, useUpdateProject } from "@/backend-apis/projects/hooks";
-import { Project } from "@/backend-apis/projects/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ import { ContentGenerator } from "../_components/content-generator";
 import { Label } from "@/components/ui/label";
 import { InviteUserDialog } from "./chat/_components/invite-user";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { Project } from "@/db/projects/schema/project";
 
 
 export default function ProjectPage() {
@@ -31,6 +31,7 @@ export default function ProjectPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
+  const [platformUrls, setPlatformUrls] = useState<Project["platformUrls"]>({} as Project["platformUrls"]);
   const projects = useGetAllProjects()
   const updateProject = useUpdateProject()
   useEffect(() => {
@@ -40,12 +41,6 @@ export default function ProjectPage() {
     }
   }, [project]); // Runs only when `project` is updated
 
-  const [platformUrls, setPlatformUrls] = useState<Project["platformUrls"]>({
-    x: "",
-    tiktok: "",
-    instagram: "",
-    facebook: "",
-  });
 
 
   useEffect(() => {
@@ -59,13 +54,12 @@ export default function ProjectPage() {
       if (project) {
         setEditedName(project.name);
         setEditedDescription(project.description);
-        console.log(project.platformUrls);
-        setPlatformUrls({
-          x: project.platformUrls?.x || "",
-          tiktok: project.platformUrls?.tiktok || "",
-          instagram: project.platformUrls?.instagram || "",
-          facebook: project.platformUrls?.facebook || "",
-        });
+        setPlatformUrls((prev) => {
+          return {
+            ...prev,
+            ...project.platformUrls,
+          }
+        })
       }
 
     };
@@ -147,32 +141,34 @@ export default function ProjectPage() {
                         />
 
                         <div className="grid-cols-2 grid gap-4">
-                          {
-                            (["x", "tiktok", "instagram", "facebook"] as const).map((platform) => (
-                              <div
-                                key={platform}
-                                className="flex flex-col gap-2"
-                              >
-                                <Label
-                                  className="capitalize"
-                                  htmlFor={platform}
-                                >{platform} (optional)
-                                </Label>
-                                <Input
-                                  type="text"
-                                  value={platformUrls[platform]}
-                                  onChange={(e) => {
-                                    setPlatformUrls({
-                                      ...platformUrls,
-                                      [platform]: e.target.value,
-                                    });
-                                  }}
-                                  className="w-full"
-                                  id={platform}
-                                />
 
-                              </div>
-                            ))
+                          {Object.entries(project.platformUrls || {}).map(([platform]) => (
+                            <div
+                              key={platform}
+                              className="flex flex-col gap-2"
+                            >
+                              <Label
+                                className="capitalize"
+                                htmlFor={platform}
+                              >{platform} (optional)
+                              </Label>
+                              <Input
+                                type="text"
+                                value={platformUrls?.get(platform)}
+                                onChange={(e) => {
+                                  setPlatformUrls((prev) => {
+                                    return {
+                                      ...prev,
+                                      [platform]: e.target.value
+                                    }
+                                  });
+                                }}
+                                className="w-full"
+                                id={platform}
+                              />
+
+                            </div>
+                          ))
                           }
 
                         </div>
@@ -182,12 +178,14 @@ export default function ProjectPage() {
                             className=" w-28"
                             loading={updateProject.isPending}
                             onClick={async () => {
-                              await updateProject.mutateAsync({
-                                _id: project._id,
-                                name: editedName,
-                                description: editedDescription,
-                                platformUrls: platformUrls
-                              });
+                              try {
+                                await updateProject.mutateAsync({
+                                  _id: project._id,
+                                  name: editedName,
+                                  description: editedDescription,
+                                  platformUrls: platformUrls
+                                });
+                              } catch { }
                               setIsEditing(false);
                             }}
                           >

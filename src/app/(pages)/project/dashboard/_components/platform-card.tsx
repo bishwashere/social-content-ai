@@ -114,9 +114,11 @@ export function PlatformCard({
               disabled={trackProject.isPending}
               onClick={async () => {
                 if (selectedDate) {
-                  await trackProject.mutateAsync({ projectId, platform, date: selectedDate.toISOString(), url: inputValue })
-                  setSelectedDate(null)
-                  setInputValue("")
+                  try {
+                    await trackProject.mutateAsync({ projectId, platform, date: selectedDate.toISOString(), url: inputValue })
+                    setSelectedDate(null)
+                    setInputValue("")
+                  } catch { }
                 }
               }}
               className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition h-fit"

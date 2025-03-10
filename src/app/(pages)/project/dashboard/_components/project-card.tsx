@@ -1,14 +1,13 @@
-// /dashboard/ProjectCard.tsx
 "use client";
 
 import { Edit3, Users2Icon } from "lucide-react";
 import { PlatformCard } from "./platform-card";
-import { Project } from "@/backend-apis/projects/types";
 import { useState } from "react";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { ProjectWithChats } from "@/backend-apis/projects/types";
 
 interface ProjectCardProps {
-  project: Project;
+  project: ProjectWithChats;
 }
 
 export function ProjectCard({

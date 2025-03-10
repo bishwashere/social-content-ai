@@ -1,5 +1,6 @@
 import { InferValidators } from "@/lib/types";
 import { z } from "zod";
+import { commonValidator } from "./common";
 
 /**
  * Zod validation schema for the auth module
@@ -21,20 +22,16 @@ class ProjectValidator {
       .nullish(),
   });
   trackProject = z.object({
-    platform: z.enum(["x", "tiktok", "instagram", "facebook"]),
-    url: z.string().optional().nullable().nullish(),
+    platform: commonValidator.availablePlatform(),
+    url: z.string().url(),
     date: z.string(),
   });
 
   updateProject = this.createProject.partial().extend({
-    platformUrls: z
-      .object({
-        x: z.string().optional().nullable().nullish(),
-        instagram: z.string().optional().nullable().nullish(),
-        facebook: z.string().optional().nullable().nullish(),
-        tiktok: z.string().optional().nullable().nullish(),
-      })
-      .partial(),
+    platformUrls: z.record(
+      commonValidator.availablePlatform(),
+      commonValidator.optionalString()
+    ),
   });
 
   inviteUser = z.object({

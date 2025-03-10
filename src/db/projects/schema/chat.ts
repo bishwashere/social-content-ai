@@ -1,4 +1,4 @@
-import { WithId } from "@/lib/types";
+import { ForClient, WithId } from "@/lib/types";
 import mongoose, { InferSchemaType } from "mongoose";
 
 const ProjectChatSchema = new mongoose.Schema(
@@ -17,22 +17,11 @@ const ProjectChatSchema = new mongoose.Schema(
       default: "",
     },
     contents: {
-      facebook: {
-        type: String,
-        required: true,
-      },
-      instagram: {
-        type: String,
-        required: true,
-      },
-      tiktok: {
-        type: String,
-        required: true,
-      },
-      x: {
-        type: String,
-        required: true,
-      },
+      // equivalent to Record<string, string>
+      type: Map,
+      of: String,
+      required: false,
+      default: {},
     },
   },
   {
@@ -46,5 +35,8 @@ const ProjectChatModel =
   mongoose.model("ProjectChatSchema", ProjectChatSchema);
 export { ProjectChatSchema, ProjectChatModel };
 
-export type ProjectChat = WithId<InferSchemaType<typeof ProjectChatSchema>>;
-export type ProjectChatDocument = mongoose.Document<ProjectChat>;
+export type ProjectChatDoc = WithId<InferSchemaType<typeof ProjectChatSchema>>;
+export type ProjectChat = Omit<
+  ForClient<InferSchemaType<typeof ProjectChatSchema>>,
+  "projectId"
+> & { projectId: string };
