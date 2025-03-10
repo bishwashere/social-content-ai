@@ -97,13 +97,13 @@ export default function ChatPage() {
                           <CopyIcon />
                         </Button>
                         {
-                          currentProject?.platformUrls?.get(platform) && <Button
+                          currentProject?.platformUrls?.[platform] && <Button
                             variant="ghost"
                             size="icon"
                             asChild
                           >
                             <Link
-                              href={currentProject?.platformUrls.get(platform) || "#"}
+                              href={currentProject?.platformUrls?.[platform] || "#"}
                               target="_blank"
                             >
                               <Share2Icon />

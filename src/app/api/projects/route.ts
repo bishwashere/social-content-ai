@@ -1,5 +1,9 @@
 import { User } from "@/db/auth/schema/user";
 import { ProjectChatModel } from "@/db/projects/schema/chat";
+import {
+  InvitedUserDoc,
+  InvitedUserModel,
+} from "@/db/projects/schema/invited-users";
 import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
@@ -54,8 +58,24 @@ export const GET = applyMiddleware(
     //@ts-expect-error: ................
     const user = req.parsed.user as User;
 
+    const invitedProjects: Pick<InvitedUserDoc, "projectId">[] =
+      await InvitedUserModel.find({
+        userId: user._id,
+      }).select("projectId");
+
     const projects: ProjectDoc[] = await ProjectModel.find({
-      $or: [{ userId: user._id }, { "invitedUsers.userId": user._id }],
+      $or: [
+        {
+          userId: user._id,
+        },
+        {
+          _id: {
+            $in: invitedProjects.map(
+              (invitedProject) => invitedProject.projectId
+            ),
+          },
+        },
+      ],
     }).sort({ createdAt: -1 });
 
     const projectsWithChats = await Promise.all(

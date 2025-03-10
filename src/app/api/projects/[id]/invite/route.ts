@@ -1,5 +1,10 @@
-import { User, UserModel } from "@/db/auth/schema/user";
-import { ProjectModel } from "@/db/projects/schema/project";
+import { INVITED_USER_ROLES } from "@/constants/common";
+import { UserDoc, UserModel } from "@/db/auth/schema/user";
+import {
+  InvitedUserDoc,
+  InvitedUserModel,
+} from "@/db/projects/schema/invited-users";
+import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
@@ -8,20 +13,64 @@ import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 import mongoose from "mongoose";
+
+/**
+ * Invite a user to the project
+ */
 export const POST = applyMiddleware(
   connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   requestValidator.validateBody(projectValidator.inviteUser),
-  catchApiAsyncError(async (req) => {
-    const projectId = req.nextUrl.pathname.split("/")[3];
+  catchApiAsyncError(async (req, { params }) => {
+    const { id: projectId } = params;
 
     //@ts-expect-error: ................
-    const user = req.parsed.user as User;
+    const user = req.parsed.user as UserDoc;
 
     //@ts-expect-error: ................
     const body = req.parsed.body as ProjectValidatorType["inviteUser"];
 
-    const userToInvite = await UserModel.findOne({
+    const project: ProjectDoc | null = await ProjectModel.findOne({
+      _id: new mongoose.Types.ObjectId(projectId),
+    });
+
+    if (!project) {
+      return sendNextResponse({
+        status: 400,
+        message: `Project with id ${projectId} not found!`,
+      });
+    }
+
+    // check if the user has permission to invite users
+    let hasPermission = false;
+
+    if (project.userId.toString() === user._id.toString()) {
+      hasPermission = true;
+    }
+
+    if (!hasPermission) {
+      // check if the user has permission to invite users
+      const invitedUser: InvitedUserDoc | null = await InvitedUserModel.findOne(
+        {
+          projectId: new mongoose.Types.ObjectId(projectId),
+          userId: new mongoose.Types.ObjectId(user._id),
+          role: INVITED_USER_ROLES.EDITOR,
+        }
+      );
+
+      if (invitedUser) {
+        hasPermission = true;
+      }
+    }
+
+    if (!hasPermission) {
+      return sendNextResponse({
+        status: 403,
+        message: "You do not have permission to invite users!",
+      });
+    }
+
+    const userToInvite: UserDoc | null = await UserModel.findOne({
       email: body.email,
     });
 
@@ -32,31 +81,24 @@ export const POST = applyMiddleware(
       });
     }
 
-    const project = await ProjectModel.findOneAndUpdate(
+    // check if the user is already invited
+    const invitedUser = await InvitedUserModel.findOneAndUpdate(
       {
-        _id: new mongoose.Types.ObjectId(projectId),
-        userId: user._id.toString(),
+        projectId: new mongoose.Types.ObjectId(projectId),
+        userId: new mongoose.Types.ObjectId(userToInvite._id),
       },
       {
-        $addToSet: {
-          invitedUsers: {
-            userId: userToInvite._id,
-          },
-        },
+        role: body.role,
       },
-      { new: true }
+      {
+        new: true,
+        upsert: true,
+      }
     );
-
-    if (!project) {
-      return sendNextResponse({
-        status: 400,
-        message: `Either project with id ${projectId} not found or you don't have permission to invite users to this project!`,
-      });
-    }
 
     return sendNextResponse({
       status: 201,
-      data: project.data,
+      data: invitedUser,
       message: "User invited successfully!",
     });
   })

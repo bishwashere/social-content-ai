@@ -1,11 +1,19 @@
 "use client"
 import { SendHorizonalIcon } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -17,8 +25,10 @@ import { useInviteUserToProject } from "@/backend-apis/projects/hooks"
 import { z } from "zod"
 import { toast } from "sonner"
 import { useParams } from "next/navigation"
+import { INVITED_USER_ROLES } from "@/constants/common"
 
 export function InviteUserDialog() {
+  const [role, setRole] = useState(INVITED_USER_ROLES.EDITOR)
   const { id } = useParams() as { id: string }
   const [email, setEmail] = useState("");
   const invite = useInviteUserToProject()
@@ -50,14 +60,33 @@ export function InviteUserDialog() {
               placeholder="Email"
             />
           </div>
+          <Select
+            onValueChange={(value) => setRole(value)}
+            value={role}
+          >
+            <SelectTrigger className="w-[150px] capitalize">
+              <SelectValue placeholder="Select a role" />
+            </SelectTrigger>
+            <SelectContent>
+              {
+                Object.values(INVITED_USER_ROLES).map((value, i) => (
+                  <SelectItem key={i} value={value} className="capitalize">{value}</SelectItem>
+                ))
+              }
+            </SelectContent>
+          </Select>
+        </div>
+
+        <DialogFooter className="ml-auto">
           <Button
             loading={invite.isPending}
             onClick={async () => {
               if (z.string().email().safeParse(email).success) {
                 try {
-                  const res = await invite.mutateAsync({ email, projectId: id })
+                  const res = await invite.mutateAsync({ email, projectId: id, role })
                   if (res) {
                     setIsOpen(false)
+                    setEmail("")
                   }
                 } catch { }
               } else {
@@ -68,7 +97,8 @@ export function InviteUserDialog() {
             Invite
             <SendHorizonalIcon />
           </Button>
-        </div>
+        </DialogFooter>
+
       </DialogContent>
     </Dialog>
   )

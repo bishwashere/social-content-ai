@@ -41,3 +41,7 @@ export type ProjectSummary = {
   mostActiveProject: { name: string; count: number } | null;
   totalPostsForEachProject: { name: string; count: number }[];
 };
+
+export type InviteUserProps = ProjectValidatorType["inviteUser"] & {
+  projectId: string;
+};

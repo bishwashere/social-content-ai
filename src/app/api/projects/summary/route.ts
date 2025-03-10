@@ -1,4 +1,8 @@
 import { User } from "@/db/auth/schema/user";
+import {
+  InvitedUserDoc,
+  InvitedUserModel,
+} from "@/db/projects/schema/invited-users";
 import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import { ProjectTrackingModel } from "@/db/projects/schema/tracking";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
@@ -17,9 +21,25 @@ export const GET = applyMiddleware(
     //@ts-expect-error: ................
     const user = req.parsed.user as User;
 
+    const invitedProjects: Pick<InvitedUserDoc, "projectId">[] =
+      await InvitedUserModel.find({
+        userId: user._id,
+      }).select("projectId");
+
     const projects: ProjectDoc[] = await ProjectModel.find({
-      userId: new mongoose.Types.ObjectId(user._id),
-    });
+      $or: [
+        {
+          userId: user._id,
+        },
+        {
+          _id: {
+            $in: invitedProjects.map(
+              (invitedProject) => invitedProject.projectId
+            ),
+          },
+        },
+      ],
+    }).sort({ createdAt: -1 });
 
     const projectIds = projects.map((p) => p._id.toString());
 

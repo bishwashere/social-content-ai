@@ -36,6 +36,7 @@ class ProjectValidator {
 
   inviteUser = z.object({
     email: z.string().email(),
+    role: commonValidator.invitedUserRole(),
   });
 }
 

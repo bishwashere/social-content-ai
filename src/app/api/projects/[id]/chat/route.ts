@@ -1,5 +1,10 @@
+import { INVITED_USER_ROLES } from "@/constants/common";
 import { User } from "@/db/auth/schema/user";
 import { ProjectChatDoc, ProjectChatModel } from "@/db/projects/schema/chat";
+import {
+  InvitedUserDoc,
+  InvitedUserModel,
+} from "@/db/projects/schema/invited-users";
 import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import { AI } from "@/lib/ai";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
@@ -21,24 +26,33 @@ export const POST = applyMiddleware(
     const { id: projectId } = params as { id: string };
 
     // @ts-expect-error - user is not defined in Request type
-    const userId = req.parsed.user as User;
+    const user = req.parsed.user as User;
 
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["createChat"];
 
-    console.log("projectId", projectId);
-
-    const project: ProjectDoc | null = await ProjectModel.findOne({
-      _id: new mongoose.Types.ObjectId(projectId),
-      userId: userId._id,
+    const isInvited: InvitedUserDoc | null = await InvitedUserModel.findOne({
+      userId: user._id,
+      projectId: new mongoose.Types.ObjectId(projectId),
+      role: INVITED_USER_ROLES.EDITOR,
     });
+
+    const project: ProjectDoc | null = await ProjectModel.findById(projectId);
 
     if (!project) {
       return sendNextResponse({
         status: 404,
-        message: "Project not found",
+        message: "Project not found!",
       });
     }
+
+    if (!project.userId.equals(user._id) && !isInvited) {
+      return sendNextResponse({
+        status: 403,
+        message: "You cannot create chat for this project!",
+      });
+    }
+
     const ai = new AI();
 
     const chatFromAI = await ai.generateContent({

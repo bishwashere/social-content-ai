@@ -141,18 +141,17 @@ function ProjectItem({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-1 px-3 py-2">
-        {
-          user?._id === project.userId &&
-          <Link
-            href={`/project/${project._id}`}
-            className={cn(
-              "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
-              currentPath === `/project/${project._id}` &&
-              "bg-accent/50 text-accent-foreground"
-            )}
-          >
-            Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
-          </Link>}
+
+        <Link
+          href={`/project/${project._id}`}
+          className={cn(
+            "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
+            currentPath === `/project/${project._id}` &&
+            "bg-accent/50 text-accent-foreground"
+          )}
+        >
+          Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
+        </Link>
         {project.chats?.map((chat) => (
           <Link
             key={chat._id}

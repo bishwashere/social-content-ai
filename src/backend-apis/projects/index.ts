@@ -4,6 +4,7 @@ import {
   GenerateProjectContentProps,
   GetAllProjectChatsProps,
   GetProjectTrackingProps,
+  InviteUserProps,
   ProjectSummary,
   ProjectTrackingResponse,
   ProjectWithChats,
@@ -252,12 +253,13 @@ class ProjectService {
     return res.data.data;
   }
 
-  async inviteUser({ projectId, email }: { projectId: string; email: string }) {
+  async inviteUser({ projectId, ...rest }: InviteUserProps) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
       async () => {
-        const response = await api.post(apiRoutes.PROJECTS.INVITE(projectId), {
-          email,
-        });
+        const response = await api.post(
+          apiRoutes.PROJECTS.INVITE(projectId),
+          rest
+        );
         return response;
       }
     );

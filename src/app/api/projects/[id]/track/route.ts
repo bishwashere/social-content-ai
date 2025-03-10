@@ -1,4 +1,10 @@
-import { ProjectModel } from "@/db/projects/schema/project";
+import { INVITED_USER_ROLES } from "@/constants/common";
+import { UserDoc } from "@/db/auth/schema/user";
+import {
+  InvitedUserDoc,
+  InvitedUserModel,
+} from "@/db/projects/schema/invited-users";
+import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
 import {
   ProjectTrackingDoc,
   ProjectTrackingModel,
@@ -24,16 +30,35 @@ export const POST = applyMiddleware(
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["trackProject"];
 
-    console.log("projectId", projectId);
+    //@ts-expect-error - user is not defined in Request type
+    const user = req.parsed.user as UserDoc;
 
-    const project = await ProjectModel.findOne({
-      _id: new mongoose.Types.ObjectId(projectId),
-    });
+    const invitedProjects: Pick<InvitedUserDoc, "projectId">[] =
+      await InvitedUserModel.find({
+        userId: user._id,
+        role: INVITED_USER_ROLES.EDITOR,
+      }).select("projectId");
+
+    console.log(invitedProjects, user);
+
+    // either the user is the owner of the project or the user is invited to the project
+    const project: ProjectDoc | null = await ProjectModel.findById(projectId);
 
     if (!project) {
       return sendNextResponse({
         status: 404,
-        message: "Project not found",
+        message:
+          "The project you are trying to track does not exist or has been deleted",
+      });
+    }
+
+    if (
+      !project.userId.equals(user._id) &&
+      !invitedProjects.some((p) => p.projectId.equals(project._id))
+    ) {
+      return sendNextResponse({
+        status: 403,
+        message: "You do not have permission for this action",
       });
     }
 

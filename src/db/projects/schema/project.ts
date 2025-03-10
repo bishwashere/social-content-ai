@@ -38,5 +38,5 @@ export { ProjectSchema, ProjectModel };
 export type ProjectDoc = WithId<InferSchemaType<typeof ProjectSchema>>;
 export type Project = Omit<
   ForClient<InferSchemaType<typeof ProjectSchema>>,
-  "userId"
+  "userId" | "platformUrls"
 > & { userId: string; platformUrls: Record<string, string> };
