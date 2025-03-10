@@ -27,8 +27,8 @@ export default function PricingModal({ open, setOpen }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Basic Plan</DialogTitle>
-          <DialogDescription>Unlock all features with our affordable basic plan.</DialogDescription>
+          <DialogTitle>Pro</DialogTitle>
+          <DialogDescription>Go Pro!</DialogDescription>
         </DialogHeader>
         <Card className="border-0 shadow-none">
           <CardHeader className="pb-2">
@@ -85,7 +85,7 @@ export default function PricingModal({ open, setOpen }: Props) {
                   router.push(res.data.redirectUrl)
                 } catch { }
               }}
-              className="w-full">Start 7-day free trial</Button>
+              className="w-full">Go Pro!</Button>
           </CardFooter>
         </Card>
       </DialogContent>
