@@ -1,2 +1,5 @@
+### 2025-03-10
+Added roles: admin, editor, and viewer 
+
 ### 2025-03-09
 Added collaboration 
