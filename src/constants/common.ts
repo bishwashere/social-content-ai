@@ -7,3 +7,11 @@ export const INVITED_USER_ROLES = {
 
 export type InvitedUserRoles =
   (typeof INVITED_USER_ROLES)[keyof typeof INVITED_USER_ROLES];
+
+export const SUBSCRIPTION_TYPES = {
+  TRIAL: "trial",
+  PAID: "paid",
+};
+
+export type SubscriptionTypes =
+  (typeof SUBSCRIPTION_TYPES)[keyof typeof SUBSCRIPTION_TYPES];

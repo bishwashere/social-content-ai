@@ -14,6 +14,10 @@ class ApiRoutes {
     SUMMARY: () => "/projects/summary",
     INVITE: (id: string) => `/projects/${id}/invite`,
   });
+
+  CHECKOUT = {
+    SESSION: () => "/checkout/session",
+  };
 }
 
 export const apiRoutes = new ApiRoutes();
