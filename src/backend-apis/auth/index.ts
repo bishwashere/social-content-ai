@@ -34,7 +34,7 @@ class AuthService {
 
     Cookies.set(AUTH_TOKEN_COOKIE_NAME, res?.data.data?.bearerToken || "");
 
-    await queryClient.setQueryData(["session"], res?.data.data?.user);
+    await queryClient.setQueryData(["session"], res?.data.data);
 
     return res?.data;
   }

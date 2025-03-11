@@ -17,6 +17,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { Project } from "@/db/projects/schema/project";
 import { ProjectChat } from "@/db/projects/schema/chat";
 import { apiRoutes } from "../routes";
+import { GetUserSessionResponse } from "../auth/types";
 
 class ProjectService {
   /**
@@ -172,6 +173,22 @@ class ProjectService {
         }
       );
     }
+
+    await queryClient.setQueryData(
+      ["session"],
+      (data: GetUserSessionResponse) => {
+        return data
+          ? {
+              ...data,
+              user: {
+                ...data.user,
+                remainingChatGenerations:
+                  data.user.remainingChatGenerations - 1,
+              },
+            }
+          : data;
+      }
+    );
 
     return res.data.data;
   }

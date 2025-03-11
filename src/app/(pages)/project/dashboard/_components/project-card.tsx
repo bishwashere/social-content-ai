@@ -5,6 +5,7 @@ import { PlatformCard } from "./platform-card";
 import { useState } from "react";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
+import { PLATFORMS } from "@/lib/prompt";
 
 interface ProjectCardProps {
   project: ProjectWithChats;
@@ -14,14 +15,14 @@ export function ProjectCard({
   project,
 }: ProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const { data: user } = useSession();
+  const { data } = useSession();
   return (
     <div className="p-4 border rounded-lg shadow-md relative">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">{project.name}</h2>
         <div className="flex space-x-2">
           {
-            user?._id !== project.userId && (
+            data?.user?._id !== project.userId && (
               <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
             )
           }
@@ -34,12 +35,7 @@ export function ProjectCard({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {[
-          "x",
-          "tiktok",
-          "instagram",
-          "facebook",
-        ].map((platform) => (
+        {Object.values(PLATFORMS).map((platform) => (
           <PlatformCard
             key={platform}
             isEditing={isEditing}

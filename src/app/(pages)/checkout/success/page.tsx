@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle2, ArrowRight } from "lucide-react"
 import confetti from "canvas-confetti"
-import { useGetCheckoutSessionDetails } from "@/backend-apis/checkout/hooks"
+import { useGetCheckoutSessionDetails } from "@/backend-apis/payment/hooks"
 import { useSearchParams } from "next/navigation"
 import PaymentVerification from "./_components/payment-verification"
 import PaymentErrorPage from "./_components/payment-error"

@@ -15,8 +15,9 @@ class ApiRoutes {
     INVITE: (id: string) => `/projects/${id}/invite`,
   });
 
-  CHECKOUT = {
-    SESSION: () => "/checkout/session",
+  PAYMENT = {
+    SESSION: () => "/payment/session",
+    SUBSCRIPTIONS: () => "/payment/subscriptions",
   };
 }
 

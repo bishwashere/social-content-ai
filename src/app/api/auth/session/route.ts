@@ -1,3 +1,7 @@
+import {
+  SubscriptionDoc,
+  SubscriptionModel,
+} from "@/db/subscriptions/schema/subscription";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
@@ -14,10 +18,19 @@ export const GET = applyMiddleware(
     // @ts-expect-error: user is not defined
     const user = req.parsed.user;
 
+    // subscription status
+    const subscription: SubscriptionDoc | null =
+      await SubscriptionModel.findOne({
+        userId: user._id,
+      });
+
     return sendNextResponse({
       message: "User Session",
       status: 200,
-      data: user,
+      data: {
+        user,
+        subscription,
+      },
     });
   })
 );

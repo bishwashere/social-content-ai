@@ -11,8 +11,10 @@ import {
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, FolderKanban, CheckCircle2 } from "lucide-react"
-import { useCreateCheckoutSession } from "@/backend-apis/checkout/hooks"
+import { useCreateCheckoutSession } from "@/backend-apis/payment/hooks"
 import { useRouter } from "next/navigation"
+import { useSession } from "@/backend-apis/auth/hooks"
+import { useEffect } from "react"
 
 type Props = {
   open: boolean
@@ -22,9 +24,19 @@ type Props = {
 export default function PricingModal({ open, setOpen }: Props) {
   const payment = useCreateCheckoutSession()
   const router = useRouter()
+  const { data } = useSession()
+
+  // only open the modal if the user doesn't have a subscription to give trial
+  useEffect(() => {
+    if (data?.subscription) {
+      setOpen(false)
+    } else {
+      setOpen(true)
+    }
+  }, [data?.subscription, setOpen])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open}   >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Pro</DialogTitle>
@@ -80,12 +92,12 @@ export default function PricingModal({ open, setOpen }: Props) {
               onClick={async () => {
                 try {
                   const res = await payment.mutateAsync()
-                  console.log(res)
-                  setOpen(false)
                   router.push(res.data.redirectUrl)
                 } catch { }
               }}
-              className="w-full">Go Pro!</Button>
+              className="w-full">
+              {payment.isSuccess ? "Redirecting..." : "Go Pro!"}
+            </Button>
           </CardFooter>
         </Card>
       </DialogContent>

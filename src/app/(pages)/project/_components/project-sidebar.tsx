@@ -100,7 +100,7 @@ function ProjectItem({
   currentPath,
 }: ProjectItemProps) {
   const router = useRouter()
-  const { data: user } = useSession()
+  const { data } = useSession()
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <CollapsibleTrigger
@@ -128,7 +128,7 @@ function ProjectItem({
 
           <div className="flex items-center gap-2">
             {
-              user?._id !== project.userId && (
+              data?.user?._id !== project.userId && (
                 <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
               )
             }

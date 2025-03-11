@@ -15,10 +15,12 @@ import { useLogout, useSession } from "@/backend-apis/auth/hooks";
 import { Logo } from "@/components/common/logo";
 import GoogleLoginButton from "@/components/common/google-login-button";
 import Subscription from "@/components/common/subscription";
+import { useRouter } from "next/navigation";
 
 export function Header() {
-  const { data: user } = useSession();
+  const { data } = useSession();
   const logout = useLogout()
+  const router = useRouter()
   return (
     <div className="w-full px-4 border-b h-fit relative md:ml-64 lg:ml-72 overflow-hidden">
       <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
@@ -29,14 +31,14 @@ export function Header() {
         <div className="flex items-center gap-4">
           <Subscription />
           {
-            !user ? <GoogleLoginButton /> :
+            !data?.user ? <GoogleLoginButton /> :
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatarUrl} alt={user.name} />
+                      <AvatarImage src={data?.user.avatarUrl} alt={data?.user.name} />
                       <AvatarFallback>
-                        {user.name}
+                        {data?.user.name}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -45,10 +47,10 @@ export function Header() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {user.name}
+                        {data?.user.name}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
+                        {data?.user.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -58,7 +60,9 @@ export function Header() {
                       <User className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/project/billing")}
+                    >
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Billing</span>
                     </DropdownMenuItem>

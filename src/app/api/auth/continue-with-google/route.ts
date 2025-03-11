@@ -1,4 +1,5 @@
 import { UserDoc, UserModel } from "@/db/auth/schema/user";
+import { SubscriptionModel } from "@/db/subscriptions/schema/subscription";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { GoogleOauth } from "@/lib/google-ouath";
 import { generateJWT } from "@/lib/jwt";
@@ -67,12 +68,17 @@ export const POST = applyMiddleware(
 
     console.log("📤 Returning response with token:", jwt ? "Yes" : "No", jwt);
 
+    const subscription = await SubscriptionModel.find({
+      userId: savedUser._id,
+    });
+
     return sendNextResponse({
       message: `Welcome, ${userProfile.name}`,
       status: 200,
       data: {
         user: savedUser,
         bearerToken: jwt,
+        subscription,
       },
     });
   })

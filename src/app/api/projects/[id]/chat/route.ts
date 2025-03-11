@@ -1,5 +1,5 @@
 import { INVITED_USER_ROLES } from "@/constants/common";
-import { User } from "@/db/auth/schema/user";
+import { UserDoc } from "@/db/auth/schema/user";
 import { ProjectChatDoc, ProjectChatModel } from "@/db/projects/schema/chat";
 import {
   InvitedUserDoc,
@@ -26,7 +26,15 @@ export const POST = applyMiddleware(
     const { id: projectId } = params as { id: string };
 
     // @ts-expect-error - user is not defined in Request type
-    const user = req.parsed.user as User;
+    const user = req.parsed.user as UserDoc;
+
+    // check if the user has remaining chat generations
+    if (user.remainingChatGenerations <= 0) {
+      return sendNextResponse({
+        status: 403,
+        message: "You have exhausted your chat generations for this month",
+      });
+    }
 
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["createChat"];
@@ -100,6 +108,9 @@ export const POST = applyMiddleware(
         });
       }
 
+      user.remainingChatGenerations -= 1;
+      await user.save();
+
       return sendNextResponse({
         status: 200,
         message: "Chat updated successfully",
@@ -112,6 +123,9 @@ export const POST = applyMiddleware(
         prompt: body.userPrompt || "",
         projectId: new mongoose.Types.ObjectId(projectId),
       });
+
+      user.remainingChatGenerations -= 1;
+      await user.save();
 
       return sendNextResponse({
         status: 200,

@@ -1,4 +1,5 @@
 import { PACKAGES } from "@/constants/packages";
+import { SubscriptionModel } from "@/db/subscriptions/schema/subscription";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { stripe } from "@/lib/stripe";
@@ -16,6 +17,19 @@ export const POST = applyMiddleware(
     // @ts-expect-error: user is not defined
     const user = req.parsed.user;
 
+    // if user is already subscribed, return an error
+    const subscriptions = await SubscriptionModel.findOne({
+      userId: user._id,
+      active: true,
+    });
+
+    if (subscriptions) {
+      return sendNextResponse({
+        status: 400,
+        message: "User is already subscribed",
+      });
+    }
+
     try {
       const session = await stripe.createSession(PACKAGES.BASIC, user);
 
@@ -28,10 +42,10 @@ export const POST = applyMiddleware(
       });
     } catch (error) {
       console.error("❌ Error creating checkout session:", error);
-      return {
+      return sendNextResponse({
         status: 500,
         message: "Failed to create checkout session",
-      };
+      });
     }
   })
 );

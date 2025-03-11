@@ -3,11 +3,18 @@ import {
   PACKAGES_DATA,
   TRIAL_PERIOD_IN_DAYS,
 } from "@/constants/packages";
-import { User } from "@/db/auth/schema/user";
+import { User, UserDoc, UserModel } from "@/db/auth/schema/user";
+import consola from "consola";
 import StripeNative from "stripe";
-
+import mongoose from "mongoose";
+import {
+  SubscriptionDoc,
+  SubscriptionModel,
+} from "@/db/subscriptions/schema/subscription";
+import { SUBSCRIPTION_STATUS } from "@/constants/subscription-status";
+import { CHAT_GENERATION_PER_MONTH } from "@/constants/common";
 class Stripe {
-  private stripe: StripeNative;
+  stripe: StripeNative;
 
   constructor() {
     this.stripe = new StripeNative(process.env.STRIPE_SECRET_KEY as string, {
@@ -45,6 +52,67 @@ class Stripe {
   getInvoice(invoiceId: string) {
     const invoice = this.stripe.invoices.retrieve(invoiceId);
     return invoice;
+  }
+
+  async createSubscription(
+    event: StripeNative.CustomerSubscriptionCreatedEvent
+  ) {
+    const userId = event.data.object?.metadata?.userId;
+
+    if (!userId) {
+      consola.error("❌ User ID not found in metadata", event.id);
+      throw new Error(`User ID not found in metadata ${event.id}`);
+    }
+
+    const user: UserDoc | null = await UserModel.findById(
+      new mongoose.Types.ObjectId(userId)
+    );
+
+    if (!user) {
+      consola.error("❌ User not found", userId);
+      throw new Error(`User not found ${userId}`);
+    }
+
+    /**
+     * if the user already has a active subscription, disable the old and create a new one
+     */
+
+    const activeSubs: SubscriptionDoc[] = await SubscriptionModel.find({
+      userId: user._id,
+      active: true,
+    });
+
+    // disable the old subscription and cancel the subscription in stripe, in case the user has an active subscription
+    // in ideal case, the user should not have an active subscription
+    if (activeSubs && activeSubs.length > 0) {
+      activeSubs.forEach(async (sub) => {
+        sub.status = SUBSCRIPTION_STATUS.INACTIVE;
+        await sub.save();
+        await this.stripe.subscriptions.update(sub.subscriptionIdFromStripe, {
+          cancel_at_period_end: true,
+        });
+      });
+    }
+
+    await SubscriptionModel.create({
+      userId: user._id,
+      startedAt: new Date(
+        event.data.object.current_period_start * 1000
+      ).toISOString(),
+      endsAt: new Date(
+        event.data.object.current_period_end * 1000
+      ).toISOString(),
+      invoiceId: event.data.object.latest_invoice,
+      status: event.data.object.status,
+      subscriptionIdFromStripe: event.data.object.id,
+      active: true,
+      customerId: event.data.object.customer as string,
+    });
+
+    user.remainingChatGenerations = CHAT_GENERATION_PER_MONTH;
+    await user.save();
+
+    return;
   }
 }
 
