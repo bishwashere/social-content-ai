@@ -1,5 +1,6 @@
 ### 2025-03-11
 Stripe completion
+Fixes
 
 ### 2025-03-10
 Added stripe payment. But not saving to db yet.
