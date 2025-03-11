@@ -15,6 +15,7 @@ import { useCreateCheckoutSession } from "@/backend-apis/payment/hooks"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/backend-apis/auth/hooks"
 import { useEffect } from "react"
+import { isSubscriptionExpired } from "@/lib/sub"
 
 type Props = {
   open: boolean
@@ -28,12 +29,14 @@ export default function PricingModal({ open, setOpen }: Props) {
 
   // only open the modal if the user doesn't have a subscription to give trial
   useEffect(() => {
-    if (data?.subscription) {
-      setOpen(false)
-    } else {
+    // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
+    if (!data?.subscription || !data?.user?.hasClaimedFreeTrial || isSubscriptionExpired(data.subscription.endsAt).isExpired
+    ) {
       setOpen(true)
+    } else {
+      setOpen(false)
     }
-  }, [data?.subscription, setOpen])
+  }, [data?.subscription, data?.user?.hasClaimedFreeTrial, setOpen])
 
   return (
     <Dialog open={open}   >
@@ -48,7 +51,7 @@ export default function PricingModal({ open, setOpen }: Props) {
               <div className="text-2xl font-bold">
                 $10<span className="text-sm font-normal text-muted-foreground">/month</span>
               </div>
-              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 px-3">7-day free trial</Badge>
+              {!data?.user?.hasClaimedFreeTrial && <Badge className="bg-primary/10 text-primary hover:bg-primary/20 px-3">7-day free trial</Badge>}
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">

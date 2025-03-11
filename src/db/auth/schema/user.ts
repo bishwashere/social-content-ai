@@ -27,6 +27,11 @@ const UserSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    hasClaimedFreeTrial: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
   },
   {
     timestamps: true,

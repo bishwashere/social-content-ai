@@ -22,7 +22,7 @@ class Stripe {
     });
   }
 
-  async createSession(packageToBuy: Package, user: User) {
+  async createSession(packageToBuy: Package, user: User, trial: boolean) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [PACKAGES_DATA(user)[packageToBuy]],
@@ -33,7 +33,7 @@ class Stripe {
       cancel_url:
         process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/checkout/cancel",
       subscription_data: {
-        trial_period_days: TRIAL_PERIOD_IN_DAYS,
+        trial_period_days: trial ? TRIAL_PERIOD_IN_DAYS : 0,
         metadata: {
           userId: user._id.toString(),
           name: user.name,
@@ -110,6 +110,7 @@ class Stripe {
     });
 
     user.remainingChatGenerations = CHAT_GENERATION_PER_MONTH;
+    user.hasClaimedFreeTrial = true;
     await user.save();
 
     return;

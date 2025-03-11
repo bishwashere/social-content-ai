@@ -6,9 +6,14 @@ import {
   InvitedUserModel,
 } from "@/db/projects/schema/invited-users";
 import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
+import {
+  SubscriptionDoc,
+  SubscriptionModel,
+} from "@/db/subscriptions/schema/subscription";
 import { AI } from "@/lib/ai";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
+import { isSubscriptionExpired } from "@/lib/sub";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 import { requestValidator } from "@/middlewares/request-validator";
@@ -33,6 +38,25 @@ export const POST = applyMiddleware(
       return sendNextResponse({
         status: 403,
         message: "You have exhausted your chat generations for this month",
+      });
+    }
+
+    // check if subscription is expired
+    const subs: SubscriptionDoc | null = await SubscriptionModel.findOne({
+      userId: user._id,
+    });
+
+    if (!subs) {
+      return sendNextResponse({
+        status: 403,
+        message: "You do not have an active subscription",
+      });
+    }
+
+    if (isSubscriptionExpired(subs.endsAt.toISOString()).isExpired) {
+      return sendNextResponse({
+        status: 403,
+        message: "Your subscription has expired",
       });
     }
 

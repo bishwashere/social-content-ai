@@ -1,8 +1,13 @@
 import { PACKAGES } from "@/constants/packages";
-import { SubscriptionModel } from "@/db/subscriptions/schema/subscription";
+import { User, UserDoc } from "@/db/auth/schema/user";
+import {
+  SubscriptionDoc,
+  SubscriptionModel,
+} from "@/db/subscriptions/schema/subscription";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { stripe } from "@/lib/stripe";
+import { isSubscriptionExpired } from "@/lib/sub";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 import { validateUserAuth } from "@/middlewares/validate-auth";
@@ -15,23 +20,33 @@ export const POST = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
-    const user = req.parsed.user;
+    const user = req.parsed.user as UserDoc;
 
     // if user is already subscribed, return an error
-    const subscriptions = await SubscriptionModel.findOne({
-      userId: user._id,
-      active: true,
-    });
+    const subscriptions: SubscriptionDoc | null =
+      await SubscriptionModel.findOne({
+        userId: user._id,
+      });
 
-    if (subscriptions) {
+    if (
+      subscriptions &&
+      !isSubscriptionExpired(subscriptions.endsAt.toISOString()).isExpired
+    ) {
       return sendNextResponse({
         status: 400,
-        message: "User is already subscribed",
+        message: "User is already subscribed and subscription is not expired",
       });
     }
 
     try {
-      const session = await stripe.createSession(PACKAGES.BASIC, user);
+      const session = await stripe.createSession(
+        PACKAGES.BASIC,
+        user.toJSON() as User,
+        !user.hasClaimedFreeTrial // only give trial if user has not claimed it before
+      );
+
+      // delete old subscription
+      if (subscriptions) await subscriptions?.deleteOne();
 
       return sendNextResponse({
         message: "Checkout session created",
