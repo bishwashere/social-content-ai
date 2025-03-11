@@ -1,6 +1,7 @@
 ### 2025-03-11
 Stripe completion  
-Fixes
+Fixes -> payment asking double  
+Fixes -> cancel not working, payment not asking to new users
 
 ### 2025-03-10
 Added stripe payment. But not saving to db yet.
