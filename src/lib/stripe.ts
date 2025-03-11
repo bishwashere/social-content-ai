@@ -114,6 +114,61 @@ class Stripe {
 
     return;
   }
+
+  async endSubscription(
+    event:
+      | StripeNative.CustomerSubscriptionDeletedEvent
+      | StripeNative.InvoicePaymentFailedEvent
+  ) {
+    const customer = event.data.object.customer;
+
+    const subscription = await SubscriptionModel.findOne({
+      customerId: customer,
+    });
+
+    if (!subscription) {
+      consola.error("❌ Subscription not found", customer);
+      throw new Error(`Subscription not found ${customer}`);
+    }
+
+    subscription.status = SUBSCRIPTION_STATUS.CANCELLED;
+
+    await subscription.save();
+
+    return;
+  }
+
+  async updateSubscription(
+    event:
+      | StripeNative.InvoicePaymentSucceededEvent
+      | StripeNative.CustomerSubscriptionUpdatedEvent
+  ) {
+    // update the subscription status and start and end date
+    const subscription = await SubscriptionModel.findOne({
+      customerId: event.data.object.customer,
+    });
+
+    if (!subscription) {
+      consola.error("❌ Subscription not found", event.data.object.customer);
+      throw new Error(`Subscription not found ${event.data.object.customer}`);
+    }
+
+    subscription.status = event.data.object.status;
+    const subscriptionFromStripe = await this.stripe.subscriptions.retrieve(
+      subscription.subscriptionIdFromStripe
+    );
+
+    subscription.startedAt = new Date(
+      subscriptionFromStripe.current_period_start * 1000
+    ).toISOString();
+    subscription.endsAt = new Date(
+      subscriptionFromStripe.current_period_end * 1000
+    ).toISOString();
+
+    await subscription.save();
+
+    return;
+  }
 }
 
 export const stripe = new Stripe();

@@ -36,18 +36,22 @@ export const POST = applyMiddleware(
 
       case "invoice.payment_succeeded":
         consola.log("✅ Payment successful (Trial Ended or Renewal)");
+        await stripe.updateSubscription(event);
         break;
 
       case "invoice.payment_failed":
         consola.info("⚠️ Payment failed!");
+        await stripe.endSubscription(event);
         break;
 
       case "customer.subscription.updated":
         consola.success("🔄 Subscription updated");
+        await stripe.updateSubscription(event);
         break;
 
       case "customer.subscription.deleted":
         consola.error("❌ Subscription ended");
+        await stripe.endSubscription(event);
         break;
 
       default:
