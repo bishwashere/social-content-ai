@@ -5,7 +5,6 @@ import tryCatchAsync from "@/lib/try-catch-async";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 import { consola } from "consola";
-import fs from "fs";
 
 export const POST = applyMiddleware(
   connectToDBMiddleware(),
@@ -28,10 +27,6 @@ export const POST = applyMiddleware(
         status: 400,
       });
     }
-    fs.writeFileSync(
-      `./temp/webhook-${new Date().toISOString()}.json`,
-      JSON.stringify(event, null, 2)
-    );
 
     switch (event.type) {
       case "customer.subscription.created":
