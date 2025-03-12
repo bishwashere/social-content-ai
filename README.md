@@ -1,3 +1,6 @@
+### 2025-03-12
+Fixes -> Stripe redirection
+
 ### 2025-03-11
 Stripe completion  
 Fixes -> payment asking double  
