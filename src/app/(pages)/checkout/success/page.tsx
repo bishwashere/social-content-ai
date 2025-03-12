@@ -1,25 +1,25 @@
 "use client"
 
-import { useEffect } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle2, ArrowRight } from "lucide-react"
 import confetti from "canvas-confetti"
 import { useGetCheckoutSessionDetails } from "@/backend-apis/payment/hooks"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import PaymentVerification from "./_components/payment-verification"
 import PaymentErrorPage from "./_components/payment-error"
 import { getInvoiceUrl } from "@/server-actions/get-invoice"
 import { toast } from "sonner"
+import { useSession } from "@/backend-apis/auth/hooks"
 
 export default function PaymentSuccess() {
-
+  useSession()
   const searchParams = useSearchParams()
-
+  const [waitingFor, setWaitingFor] = useState(6 * 1000) // 6 seconds
   const session = useGetCheckoutSessionDetails(searchParams.get("session_id") as string)
-
+  const router = useRouter()
 
   // Launch confetti effect when the component mounts
   useEffect(() => {
@@ -59,6 +59,20 @@ export default function PaymentSuccess() {
     return () => clearInterval(interval)
   }, [session.isLoading, session.isSuccess])
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWaitingFor((prev) => {
+        if (prev <= 0) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
 
   if (session.isLoading) return <PaymentVerification />
   if (session.isError || !session.data) return <PaymentErrorPage tid={searchParams.get("session_id") || ""} />
@@ -87,7 +101,7 @@ export default function PaymentSuccess() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Date</span>
               <span className="font-medium">{
-                new Date(session?.data?.data?.created).toLocaleDateString("en-US", {
+                new Date(session?.data?.data?.created * 1000).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -147,11 +161,13 @@ export default function PaymentSuccess() {
           >
             Download Invoice (PDF)
           </Button>
-          <Button asChild className="w-full">
-            <Link href="/project">
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+          <Button
+            disabled={waitingFor > 0}
+            className="w-full"
+            onClick={() => router.push("/project")}
+          >
+            Get Started {waitingFor > 0 && `in ${Math.floor(waitingFor / 1000)}s`}
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>

@@ -46,7 +46,15 @@ export const POST = applyMiddleware(
 
       case "customer.subscription.updated":
         consola.success("🔄 Subscription updated");
-        await stripe.updateSubscription(event);
+
+        if (event.data.object.canceled_at) {
+          consola.error("❌ Subscription cancelled");
+          await stripe.cancelSubscription(event);
+        } else {
+          consola.success("✅ Subscription renewed");
+          await stripe.updateSubscription(event);
+        }
+
         break;
 
       case "customer.subscription.deleted":

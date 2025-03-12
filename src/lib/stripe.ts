@@ -170,6 +170,28 @@ class Stripe {
 
     return;
   }
+
+  async cancelSubscription(
+    event: StripeNative.CustomerSubscriptionUpdatedEvent
+  ) {
+    // update the subscription status and start and end date
+    const subscription = await SubscriptionModel.findOne({
+      customerId: event.data.object.customer,
+    });
+
+    if (!subscription) {
+      consola.error("❌ Subscription not found", event.data.object.customer);
+      throw new Error(`Subscription not found ${event.data.object.customer}`);
+    }
+
+    if (event.data.object.canceled_at) {
+      subscription.status = SUBSCRIPTION_STATUS.CANCELLED;
+      await subscription.save();
+      return;
+    }
+
+    return;
+  }
 }
 
 export const stripe = new Stripe();

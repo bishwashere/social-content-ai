@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Coins } from "lucide-react";
 import PricingModal from "./pricing-modal";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { isSubscriptionExpired } from "@/lib/sub";
 const Subscription = () => {
   const [open, setOpen] = React.useState(false);
   const { data } = useSession()
@@ -17,7 +18,8 @@ const Subscription = () => {
         size="sm"
         className="bg-yellow-400 capitalize border-yellow-500 hover:text-yellow-800 hover:bg-yellow-300 text-yellow-900 transition-colors"
       >
-        <Coins /> {data?.user?.remainingChatGenerations ?? 0} Generation Left
+        <Coins /> {data?.subscription?.endsAt ? isSubscriptionExpired(data?.subscription?.endsAt).isExpired ? "Expired" : "Pro" : "Subscribe"
+        }
       </Button>
     </div>
   );
