@@ -97,9 +97,9 @@ export class AI {
         );
 
         return content;
-      } catch (error) {
+      } catch (error: unknown) {
         // Handle rate-limit error and other errors
-        if (error.status === 429) {
+        if (this.isErrorWithStatus(error) && error.status === 429) {
           console.warn(
             `Rate limit hit - with key index ${currentApiKeyIndex}:`,
             error
@@ -111,7 +111,7 @@ export class AI {
             console.error("All API keys exhausted.");
             break;
           }
-        else if (error.status==503){
+        } else if (this.isErrorWithStatus(error) && error.status === 503) {
           console.warn(
             `[503 Service Unavailable] The service is currently unavailable - with key index ${currentApiKeyIndex}:`,
             error
@@ -123,8 +123,6 @@ export class AI {
             console.error("All API keys exhausted.");
             break;
           }
-
-        }
         } else {
           console.error("Unexpected error:", error);
           throw error; // Re-throw non-rate-limit errors
