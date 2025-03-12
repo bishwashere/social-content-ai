@@ -119,7 +119,7 @@ class Prompt {
     platform,
     userPrompt,
   }: AddPlatformSpecificsProps) {
-    return `${corePrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Also give 1 answer not multiple answers.${
+    return `${corePrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Also give 1 answer not multiple answers. And no characters above or below like here is the answer. That is the answer. etc. Just direct the prompt itself.${
       userPrompt ? ` Give answer as specified here ${userPrompt}` : ""
     }`;
   }
