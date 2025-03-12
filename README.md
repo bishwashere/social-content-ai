@@ -1,5 +1,6 @@
 ### 2025-03-12
-Fixes -> Stripe redirection
+Fixes -> Stripe redirection  
+Fixes -> ai prompt ESLint
 
 ### 2025-03-11
 Stripe completion  
