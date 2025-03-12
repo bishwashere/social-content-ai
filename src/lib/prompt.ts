@@ -119,8 +119,8 @@ class Prompt {
     platform,
     userPrompt,
   }: AddPlatformSpecificsProps) {
-    return `${corePrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Also give 1 answer not multiple answers. And no characters above or below like here is the answer. That is the answer. etc. Just direct the prompt itself.${
-      userPrompt ? ` Give answer as specified here ${userPrompt}` : ""
+
+    return `${corePrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Do not give multiple options or choice. Also never mention the platform in the content, like: For {platform}, or {platform} (280 characters):. Or any other heading, or footer other than the actual answer.${userPrompt ? ` Give answer as specified here ${userPrompt}` : ""
     }`;
   }
 }
