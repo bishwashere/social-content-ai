@@ -33,7 +33,7 @@ class Stripe {
       cancel_url:
         process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/checkout/cancel",
       subscription_data: {
-        trial_period_days: trial ? TRIAL_PERIOD_IN_DAYS : 0,
+        ...(trial ? { trial_period_days: TRIAL_PERIOD_IN_DAYS } : {}), // only give trial period if the user has not claimed the free trial
         metadata: {
           userId: user._id.toString(),
           name: user.name,
