@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +47,7 @@ export default function Home() {
       {/* Modal for Project Selection */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
+          <DialogClose />
           <DialogHeader>
             <DialogTitle>Select a Project</DialogTitle>
           </DialogHeader>

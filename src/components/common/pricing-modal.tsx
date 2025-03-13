@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -13,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Users, FolderKanban, CheckCircle2 } from "lucide-react"
 import { useCreateCheckoutSession, useManageSubscription } from "@/backend-apis/payment/hooks"
 import { useRouter } from "next/navigation"
-import { useSession } from "@/backend-apis/auth/hooks"
+import { useLogout, useSession } from "@/backend-apis/auth/hooks"
 import { useEffect } from "react"
 import { isSubscriptionExpired } from "@/lib/sub"
 
@@ -27,6 +28,7 @@ export default function PricingModal({ open, setOpen }: Props) {
   const manage = useManageSubscription()
   const router = useRouter()
   const { data } = useSession()
+  const logout = useLogout()
 
   // only open the modal if the user doesn't have a subscription to give trial
   useEffect(() => {
@@ -42,6 +44,9 @@ export default function PricingModal({ open, setOpen }: Props) {
   return (
     <Dialog open={open}   >
       <DialogContent className="sm:max-w-md">
+        <DialogClose onClick={() => {
+          logout.mutate()
+        }} />
         <DialogHeader>
           <DialogTitle>Pro</DialogTitle>
           <DialogDescription>Go Pro!</DialogDescription>
