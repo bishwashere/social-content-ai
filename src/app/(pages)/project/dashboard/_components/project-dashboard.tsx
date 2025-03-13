@@ -18,7 +18,7 @@ export default function ProjectDashboard() {
   if (projects.isLoading) return null
 
   return (
-    <div className="p-6  w-5/6">
+    <div className="flex-grow max-w-3xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6">
 
       <Collapsible open={showSummary} onOpenChange={setShowSummary} >
         <CollapsibleTrigger className="flex w-full items-center bg-gray-200 p-3 rounded-lg justify-between">

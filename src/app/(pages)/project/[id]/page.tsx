@@ -67,8 +67,7 @@ export default function ProjectPage() {
 
 
   return (
-    <div className="flex-grow max-w-3xl mx-auto items-center justify-center px-4 space-y-4">
-
+    <div className="flex-grow max-w-3xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6">
       {
         loading || projects.isLoading ? (
           <div className="p-6 space-y-6 items-center justify-center">
