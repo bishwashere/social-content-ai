@@ -15,7 +15,8 @@ import { toast } from "sonner"
 import { useSession } from "@/backend-apis/auth/hooks"
 
 export default function PaymentSuccess() {
-  useSession()
+  const [isMockLoading, setIsMockLoading] = useState(false)
+  const user = useSession()
   const searchParams = useSearchParams()
   const [waitingFor, setWaitingFor] = useState(6 * 1000) // 6 seconds
   const session = useGetCheckoutSessionDetails(searchParams.get("session_id") as string)
@@ -164,7 +165,15 @@ export default function PaymentSuccess() {
           <Button
             disabled={waitingFor > 0}
             className="w-full"
-            onClick={() => router.push("/project")}
+            loading={isMockLoading}
+            onClick={() => {
+              user.refetch()
+              setIsMockLoading(true)
+              setTimeout(() => {
+                setIsMockLoading(false)
+                router.push("/project")
+              }, 2000)
+            }}
           >
             Get Started {waitingFor > 0 && `in ${Math.floor(waitingFor / 1000)}s`}
             <ArrowRight className="ml-2 h-4 w-4" />

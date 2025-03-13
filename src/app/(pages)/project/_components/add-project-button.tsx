@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -41,6 +42,7 @@ export function AddProjectButton() {
         </Button>
       </DialogTrigger>
       <DialogContent>
+        <DialogClose />
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>

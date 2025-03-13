@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -39,6 +40,7 @@ export function InviteUserDialog() {
         <Button size={"sm"} variant="outline">Invite</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
+        <DialogClose />
         <DialogHeader>
           <DialogTitle>
             Invite User

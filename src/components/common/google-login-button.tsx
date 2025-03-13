@@ -3,7 +3,7 @@ import { useContinueWithGoogle } from '@/backend-apis/auth/hooks'
 import React, { useState } from 'react'
 import { useGoogleLogin } from '@react-oauth/google';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useRouter } from 'next/navigation';
 
 type Props = {
@@ -30,6 +30,7 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
         <Button className={triggerClassName}>Sign In</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
+        <DialogClose />
         <DialogHeader>
           <DialogTitle className="text-center text-xl">Welcome Back</DialogTitle>
           <DialogDescription className="text-center">
