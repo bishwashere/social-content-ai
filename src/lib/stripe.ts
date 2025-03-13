@@ -40,6 +40,7 @@ class Stripe {
           email: user.email,
         },
       },
+      allow_promotion_codes: true,
     });
 
     return session;
