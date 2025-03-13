@@ -61,6 +61,13 @@ export function ProjectSidebar() {
           >
             📊 Project Dashboard
           </Link>
+          <Link
+            href="/project/wall"
+            className="block rounded-md px-3 py-2 text-sm font-medium text-center bg-gray-100 hover:bg-gray-200 mb-3"
+          >
+            Wall
+          </Link>
+
 
           {/* Projects */}
           {

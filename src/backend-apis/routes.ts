@@ -19,6 +19,8 @@ class ApiRoutes {
     SESSION: () => "/payment/session",
     SUBSCRIPTIONS: () => "/payment/subscriptions",
   };
+
+  WALL = Object.assign(() => "/wall", {});
 }
 
 export const apiRoutes = new ApiRoutes();
