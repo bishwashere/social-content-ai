@@ -224,6 +224,19 @@ class ProjectService {
     return res.data.data;
   }
 
+  async getProjectById(projectId: string) {
+    const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
+      async () => {
+        const response = await api.get(apiRoutes.PROJECTS.BY_ID(projectId));
+        return response;
+      }
+    );
+    if (err) {
+      return [];
+    }
+    return res.data.data;
+  }
+
   async trackProject(
     { projectId, ...data }: TrackProjectProps,
     queryClient: QueryClient

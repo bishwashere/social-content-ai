@@ -1,14 +1,17 @@
 "use client"
 import { useGetWall } from "@/backend-apis/wall/hooks"
+import { useGetAllProjects } from "@/backend-apis/projects/hooks";  // Use the useGetAllProjects hook
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "../ui/skeleton"
 import { Button } from "../ui/button"
 
-
 export default function SocialFeed() {
   const wall = useGetWall({ page: 1 })
+
+  // Fetch all projects using useGetAllProjects
+  const { data: allProjects, isLoading: isLoadingProjects } = useGetAllProjects();
 
   // Custom function to format date to relative time
   const formatRelativeTime = (dateString: string) => {
@@ -60,17 +63,14 @@ export default function SocialFeed() {
     }
   }
 
-
-
   return (
-    <div className="max-w-2xl mx-auto bg-background border rounded-lg shadow-sm ">
+    <div className="flex-grow max-w-3xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6">
       <div className="flex items-center justify-center p-3 border-b">
         <h2 className="text-base font-medium">For you</h2>
       </div>
 
       <ScrollArea className="h-[70vh]">
         <div className="divide-y">
-
           {
             wall.isLoading ? (
               <div className="p-6 space-y-6 items-center justify-center">
@@ -79,28 +79,42 @@ export default function SocialFeed() {
               </div>
             ) :
               wall?.data?.pages?.flatMap((page) => page.posts)
-                .map((post) => (
-                  <Card key={post._id} className="rounded-none border-0 shadow-none">
-                    <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10 border">
-                          <AvatarImage src={post.userId.avatarUrl} alt={post.userId.name} />
-                          <AvatarFallback>{post.userId.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium text-sm">{post.userId.name}</span>
-                            <span className="text-muted-foreground text-xs">{formatRelativeTime(post.createdAt)}</span>
-                            <img src={`/${post.platform}.svg`} alt="" className="size-4 object-contain object-center ml-2" />
-                          </div>
-                          <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">{post.content}</CardContent>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))
-          }
+                .map((post) => {
+                  // Find the project data using the projectId from all projects
+                  const project = allProjects?.find((proj) => proj._id === post.projectId);
+                  const projectName = project?.name || "Unknown Project";  // Fallback if project is not found
 
+                  return (
+                    <Card key={post._id} className="rounded-none border-0 shadow-none border-b border-gray-200">
+                      <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-10 w-10 border">
+                            <AvatarImage src={post.userId.avatarUrl} alt={post.userId.name} />
+                            <AvatarFallback>{post.userId.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-sm">{post.userId.name}</span>
+                              <span className="text-muted-foreground text-xs">{formatRelativeTime(post.createdAt)}</span>
+                            </div>
+                            <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">{post.content}</CardContent>
+
+                            {/* Display project name */}
+                            <div className="flex items-center gap-1">
+                              {/* Display project name with rounded corners and gray background */}
+                              <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
+                                {isLoadingProjects ? "Loading projects..." : projectName}
+                              </span>
+                              <img src={`/${post.platform}.svg`} alt="" className="size-4 object-contain object-center ml-2" />
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+
+                })
+          }
 
           {
             wall.data?.pages?.[wall?.data?.pages?.length - 1]?.pagination?.hasMore && (
@@ -109,7 +123,6 @@ export default function SocialFeed() {
                   className=" w-32"
                   onClick={() => wall.fetchNextPage()}
                   disabled={wall.isFetchingNextPage}
-
                 >
                   Load More
                 </Button>
@@ -121,4 +134,3 @@ export default function SocialFeed() {
     </div>
   )
 }
-
