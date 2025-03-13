@@ -1,0 +1,136 @@
+"use client"
+import { useGetWall } from "@/backend-apis/wall/hooks"
+import { useGetAllProjects } from "@/backend-apis/projects/hooks";  // Use the useGetAllProjects hook
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "../ui/skeleton"
+import { Button } from "../ui/button"
+
+export default function SocialFeed() {
+  const wall = useGetWall({ page: 1 })
+
+  // Fetch all projects using useGetAllProjects
+  const { data: allProjects, isLoading: isLoadingProjects } = useGetAllProjects();
+
+  // Custom function to format date to relative time
+  const formatRelativeTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+      // Less than a minute
+      if (diffInSeconds < 60) {
+        return "now"
+      }
+
+      // Less than an hour
+      if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60)
+        return `${minutes}m`
+      }
+
+      // Less than a day
+      if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600)
+        return `${hours}h`
+      }
+
+      // Less than a week
+      if (diffInSeconds < 604800) {
+        const days = Math.floor(diffInSeconds / 86400)
+        return `${days}d`
+      }
+
+      // Less than a month
+      if (diffInSeconds < 2592000) {
+        const weeks = Math.floor(diffInSeconds / 604800)
+        return `${weeks}w`
+      }
+
+      // Less than a year
+      if (diffInSeconds < 31536000) {
+        const months = Math.floor(diffInSeconds / 2592000)
+        return `${months}mo`
+      }
+
+      // More than a year
+      const years = Math.floor(diffInSeconds / 31536000)
+      return `${years}y`
+    } catch {
+      return "unknown"
+    }
+  }
+
+  return (
+    <div className="flex-grow max-w-3xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6">
+      <div className="flex items-center justify-center p-3 border-b">
+        <h2 className="text-base font-medium">For you</h2>
+      </div>
+
+      <ScrollArea className="h-[70vh]">
+        <div className="divide-y">
+          {
+            wall.isLoading ? (
+              <div className="p-6 space-y-6 items-center justify-center">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-48 w-full" />
+              </div>
+            ) :
+              wall?.data?.pages?.flatMap((page) => page.posts)
+                .map((post) => {
+                  // Find the project data using the projectId from all projects
+                  const project = allProjects?.find((proj) => proj._id === post.projectId);
+                  const projectName = project?.name || "Unknown Project";  // Fallback if project is not found
+
+                  return (
+                    <Card key={post._id} className="rounded-none border-0 shadow-none border-b border-gray-200">
+                      <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-10 w-10 border">
+                            <AvatarImage src={post.userId.avatarUrl} alt={post.userId.name} />
+                            <AvatarFallback>{post.userId.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-sm">{post.userId.name}</span>
+                              <span className="text-muted-foreground text-xs">{formatRelativeTime(post.createdAt)}</span>
+                            </div>
+                            <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">{post.content}</CardContent>
+
+                            {/* Display project name */}
+                            <div className="flex items-center gap-1">
+                              {/* Display project name with rounded corners and gray background */}
+                              <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
+                                {isLoadingProjects ? "Loading projects..." : projectName}
+                              </span>
+                              <img src={`/${post.platform}.svg`} alt="" className="size-4 object-contain object-center ml-2" />
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+
+                })
+          }
+
+          {
+            wall.data?.pages?.[wall?.data?.pages?.length - 1]?.pagination?.hasMore && (
+              <div className="w-full flex items-center justify-center my-4">
+                <Button
+                  className=" w-32"
+                  onClick={() => wall.fetchNextPage()}
+                  disabled={wall.isFetchingNextPage}
+                >
+                  Load More
+                </Button>
+              </div>
+            )
+          }
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}

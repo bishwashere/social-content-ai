@@ -54,14 +54,19 @@ export function ProjectSidebar() {
       </SidebarHeader>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <SidebarContent className="p-2">
+        <Link
+          href="/project/wall"
+          className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
+        >
+          👥 For You
+        </Link>
           {/* Dashboard Link */}
           <Link
             href="/project/dashboard"
-            className="block rounded-md px-3 py-2 text-sm font-medium text-center bg-gray-100 hover:bg-gray-200 mb-3"
+            className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
           >
             📊 Project Dashboard
           </Link>
-
           {/* Projects */}
           {
             isLoading ? (

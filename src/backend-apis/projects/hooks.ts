@@ -26,6 +26,14 @@ export const useCreateProject = () => {
   });
 };
 
+export const useGetProjectById = (projectId: string) => {
+  return useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => projectService.getProjectById(projectId),
+    enabled: !!projectId,
+  });
+};
+
 export const useGetAllProjects = () => {
   return useQuery({
     queryFn: projectService.getProjects,

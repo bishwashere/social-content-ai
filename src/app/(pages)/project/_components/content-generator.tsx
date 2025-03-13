@@ -5,12 +5,20 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CopyIcon, RefreshCcw, Share2Icon, Sparkle } from "lucide-react";
+import { CopyIcon, RefreshCcw, Share2Icon, Sparkle, UploadIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
 import { Project } from "@/db/projects/schema/project";
+import { useCreateWall } from "@/backend-apis/wall/hooks";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 interface ContentGeneratorProps {
   project: Project;
 }
@@ -20,7 +28,7 @@ export function ContentGenerator({
 }: ContentGeneratorProps) {
   const [prompt, setPrompt] = useState("");
   const generateProjectContent = useGenerateProjectContent()
-
+  const wall = useCreateWall()
   const copyToClipboard = useMemo(() => (text: string, platform: string) => {
     navigator.clipboard.writeText(text).then(
       () => {
@@ -88,6 +96,33 @@ export function ContentGenerator({
                     >
                       <CopyIcon />
                     </Button>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => wall.mutate({
+                              content: text,
+                              prompt: prompt,
+                              platform: platform,
+                              projectId: project._id,
+                            })}
+                          >
+                            <UploadIcon />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Publish to wall!
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+
+
                     {
                       project.platformUrls[platform] && <Button
                         variant="ghost"
