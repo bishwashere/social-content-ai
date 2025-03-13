@@ -134,7 +134,7 @@ export default function PaymentSuccess() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span>100 completions per month</span>
+                <span>Unlimited completions</span>
               </li>
             </ul>
           </div>

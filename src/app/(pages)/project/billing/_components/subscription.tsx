@@ -79,7 +79,7 @@ const Subscription = () => {
             <div>
               <p className="font-medium">Premium Features</p>
               <p className="text-sm text-muted-foreground">
-                Unlimited projects, users, and 100 completions per month
+                Unlimited projects, users, and unlimited completions.
               </p>
             </div>
           </div>

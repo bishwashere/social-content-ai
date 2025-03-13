@@ -84,7 +84,7 @@ export default function PricingModal({ open, setOpen }: Props) {
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">100 completions per month</p>
+                  <p className="font-medium">Unlimited completions</p>
                   <p className="text-sm text-muted-foreground">Ample capacity for your workflow</p>
                 </div>
               </div>
