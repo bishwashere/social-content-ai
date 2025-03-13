@@ -34,4 +34,4 @@ export const PACKAGES_DATA = (
   },
 });
 
-export const TRIAL_PERIOD_IN_DAYS = 1;
+export const TRIAL_PERIOD_IN_DAYS = 7;

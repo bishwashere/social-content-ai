@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, FolderKanban, CheckCircle2 } from "lucide-react"
-import { useCreateCheckoutSession } from "@/backend-apis/payment/hooks"
+import { useCreateCheckoutSession, useManageSubscription } from "@/backend-apis/payment/hooks"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/backend-apis/auth/hooks"
 import { useEffect } from "react"
@@ -24,6 +24,7 @@ type Props = {
 
 export default function PricingModal({ open, setOpen }: Props) {
   const payment = useCreateCheckoutSession()
+  const manage = useManageSubscription()
   const router = useRouter()
   const { data } = useSession()
 
@@ -83,7 +84,7 @@ export default function PricingModal({ open, setOpen }: Props) {
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">100 completions per month</p>
+                  <p className="font-medium">Unlimited completions</p>
                   <p className="text-sm text-muted-foreground">Ample capacity for your workflow</p>
                 </div>
               </div>
@@ -91,15 +92,35 @@ export default function PricingModal({ open, setOpen }: Props) {
           </CardContent>
           <CardFooter>
             <Button
-              loading={payment.isPending}
+              loading={payment.isPending || manage.isPending}
               onClick={async () => {
                 try {
-                  const res = await payment.mutateAsync()
-                  router.push(res.data.redirectUrl)
+
+                  if (data?.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired) {
+                    try {
+                      const res = await manage.mutateAsync()
+                      router.push(res.data.url)
+
+                    } catch {
+                      const res = await payment.mutateAsync()
+                      router.push(res.data.redirectUrl)
+                    }
+                  } else {
+                    const res = await payment.mutateAsync()
+                    router.push(res.data.redirectUrl)
+                  }
+
+
                 } catch { }
               }}
               className="w-full">
-              {payment.isSuccess ? "Redirecting..." : "Go Pro!"}
+              {payment.isSuccess || manage.isSuccess
+
+                ? "Redirecting..." :
+
+                data?.subscription && !isSubscriptionExpired(data.subscription.endsAt).isExpired ? "Renew" :
+
+                  "Go Pro!"}
             </Button>
           </CardFooter>
         </Card>
