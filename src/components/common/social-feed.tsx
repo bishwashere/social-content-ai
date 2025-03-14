@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "../ui/skeleton"
 import { Button } from "../ui/button"
+import { PlayIcon } from '@heroicons/react/solid'; // Import the play icon from Heroicons
+
 
 export default function SocialFeed() {
   const wall = useGetWall({ page: 1 })
@@ -99,9 +101,11 @@ export default function SocialFeed() {
                             </div>
                             <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">{post.content}</CardContent>
 
-                            {/* Display project name */}
-                            <div className="flex items-center gap-1">
-                              {/* Display project name with rounded corners and gray background */}
+                            {/* Display project name and views */}
+                            <div className="flex items-center gap-3">
+                              {/* Assuming you have a views property on the post */}
+                              <PlayIcon className="h-4 w-4 text-gray-600" />
+                              <span className="text-xs text-gray-600">{post.views || 1}</span>
                               <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
                                 {isLoadingProjects ? "Loading projects..." : projectName}
                               </span>

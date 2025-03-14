@@ -25,6 +25,11 @@ const WallSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    views: {
+    type: String,
+    required: true,
+    default: "1",
+    },
   },
   {
     timestamps: true,
