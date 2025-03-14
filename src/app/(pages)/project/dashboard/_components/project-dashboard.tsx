@@ -18,20 +18,19 @@ export default function ProjectDashboard() {
   if (projects.isLoading) return null
 
   return (
-    <div className="flex-grow max-w-3xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6">
+    <div className="flex-grow max-w-4xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-8 space-y-8">
 
-      <Collapsible open={showSummary} onOpenChange={setShowSummary} >
-        <CollapsibleTrigger className="flex w-full items-center bg-gray-200 p-3 rounded-lg justify-between">
-          <span>     📊 Summary</span>
+      <Collapsible open={showSummary} onOpenChange={setShowSummary}>
+        <CollapsibleTrigger className="flex w-full items-center bg-gray-200 p-4 rounded-md justify-between text-lg font-semibold">
+          <span>📊 Summary</span>
           <span>{showSummary ? "▲" : "▼"}</span>
         </CollapsibleTrigger>
-        <CollapsibleContent className="mt-5">
+        <CollapsibleContent className="mt-4 p-4 border-l-4 border-gray-200">
           <SummarySection summary={summary} />
         </CollapsibleContent>
       </Collapsible>
 
-
-      <div className="space-y-6 mt-9">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
         {projects?.data?.map((project) => (
           <ProjectCard
             key={project._id}
