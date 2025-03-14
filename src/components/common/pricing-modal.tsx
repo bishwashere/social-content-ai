@@ -30,16 +30,16 @@ export default function PricingModal({ open, setOpen }: Props) {
   const { data } = useSession()
   const logout = useLogout()
 
-  // // only open the modal if the user doesn't have a subscription to give trial
-  // useEffect(() => {
-  //   // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
-  //   if (!data?.subscription || !data?.user?.hasClaimedFreeTrial || isSubscriptionExpired(data.subscription.endsAt).isExpired
-  //   ) {
-  //     setOpen(true)
-  //   } else {
-  //     setOpen(false)
-  //   }
-  // }, [data?.subscription, data?.user?.hasClaimedFreeTrial, setOpen])
+  // only open the modal if the user doesn't have a subscription to give trial
+  useEffect(() => {
+    // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
+    if (!data?.subscription || !data?.user?.hasClaimedFreeTrial || isSubscriptionExpired(data.subscription.endsAt).isExpired
+    ) {
+      setOpen(true)
+    } else {
+      setOpen(false)
+    }
+  }, [data?.subscription, data?.user?.hasClaimedFreeTrial, setOpen])
 
   return (
     <Dialog open={open}   >
