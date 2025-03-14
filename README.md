@@ -1,5 +1,6 @@
 ### 2025-03-14  
-Fixes -> Wall
+Fixes -> Wall  
+Fix payment
 
 ### 2025-03-12
 Fixes -> Stripe redirection  
