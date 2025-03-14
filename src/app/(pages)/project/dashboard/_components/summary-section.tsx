@@ -24,7 +24,6 @@ export function SummarySection(
 
   return (
     <div className="p-6 bg-gray-100 rounded-md mb-8">
-      <p className="font-bold text-sm mb-2 italic underline">Summary:</p>
       <div className="space-y-3">
         <p className="text-sm font-semibold tracking-wide">
           Total Projects: {summary.data?.totalProjects || 0} | Active Platforms: {summary.data?.activePlatforms}/{summary?.data?.totalPlatforms} | Inactive
