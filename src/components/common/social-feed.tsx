@@ -81,7 +81,7 @@ export default function SocialFeed() {
               wall?.data?.pages?.flatMap((page) => page.posts)
                 .map((post) => {
                   // Find the project data using the projectId from all projects
-                  const project = allProjects?.find((proj) => proj._id === post.projectId);
+                  const project = allProjects?.find((proj) => proj._id === post._id);
                   const projectName = project?.name || "Unknown Project";  // Fallback if project is not found
 
                   return (
