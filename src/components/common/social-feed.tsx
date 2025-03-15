@@ -1,6 +1,5 @@
 "use client"
 import { useGetWall } from "@/backend-apis/wall/hooks"
-import { useGetAllProjects } from "@/backend-apis/projects/hooks";  // Use the useGetAllProjects hook
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -12,8 +11,7 @@ import { PlayIcon } from '@heroicons/react/solid'; // Import the play icon from 
 export default function SocialFeed() {
   const wall = useGetWall({ page: 1 })
 
-  // Fetch all projects using useGetAllProjects
-  const { data: allProjects, isLoading: isLoadingProjects } = useGetAllProjects();
+
 
   // Custom function to format date to relative time
   const formatRelativeTime = (dateString: string) => {
@@ -82,9 +80,6 @@ export default function SocialFeed() {
             ) :
               wall?.data?.pages?.flatMap((page) => page.posts)
                 .map((post) => {
-                  // Find the project data using the projectId from all projects
-                  const project = allProjects?.find((proj) => proj._id === post._id);
-                  const projectName = project?.name || "Unknown Project";  // Fallback if project is not found
 
                   return (
                     <Card key={post._id} className="rounded-none border-0 shadow-none border-b border-gray-200">
@@ -107,7 +102,7 @@ export default function SocialFeed() {
                               <PlayIcon className="h-4 w-4 text-gray-600" />
                               <span className="text-xs text-gray-600">{post.views || 1}</span>
                               <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
-                                {isLoadingProjects ? "Loading projects..." : projectName}
+                                {post.projectId.name}
                               </span>
                               <img src={`/${post.platform}.svg`} alt="" className="size-4 object-contain object-center ml-2" />
                             </div>
@@ -122,9 +117,9 @@ export default function SocialFeed() {
 
           {
             wall.data?.pages?.[wall?.data?.pages?.length - 1]?.pagination?.hasMore && (
-              <div className="w-full flex items-center justify-center my-4">
+              <div className="w-full flex items-center justify-center ">
                 <Button
-                  className=" w-32"
+                  className="w-32 my-4"
                   onClick={() => wall.fetchNextPage()}
                   disabled={wall.isFetchingNextPage}
                 >

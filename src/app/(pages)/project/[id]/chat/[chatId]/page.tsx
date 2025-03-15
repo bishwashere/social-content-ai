@@ -4,36 +4,26 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ChevronLeft, CopyIcon, Share2Icon, UploadCloudIcon } from "lucide-react";
+import { ChevronLeft, CopyIcon, Share2Icon } from "lucide-react";
 import Markdown from "react-markdown";
 import { useGetAllProjectChats, useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectChat } from "@/db/projects/schema/chat";
 import { Project } from "@/db/projects/schema/project";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { useCreateWall } from "@/backend-apis/wall/hooks";
+
+import PostToWall from "@/components/common/post-to-wall";
 
 
 export default function ChatPage() {
   const { id, chatId } = useParams() as { id: string; chatId: string };
   const [chat, setChat] = useState<ProjectChat | null>(null);
-  const wall = useCreateWall()
+
 
   const projectChats = useGetAllProjectChats({ projectId: id })
   const projects = useGetAllProjects()
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
-  const [wallDetails, setWallDetails] = useState<{
-    generating: boolean;
-    platform: string;
-    published: boolean;
-  }[]>([])
 
   useEffect(() => {
     const fetchProject = () => {
@@ -112,73 +102,12 @@ export default function ChatPage() {
                           <CopyIcon />
                         </Button>
 
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Button
-                                disabled={wallDetails.find((p) => p.platform === platform)?.published}
-                                loading={wall.isPending && wallDetails.find((p) => p.platform === platform)?.generating}
-                                variant="ghost"
-                                size="icon"
-                                onClick={async () => {
-                                  if (!currentProject) return;
-                                  if (!currentProject?._id) return;
-                                  setWallDetails((prev) => {
-                                    return [
-                                      ...prev,
-                                      {
-                                        generating: true,
-                                        platform: platform,
-                                        published: false,
-                                      },
-                                    ]
-                                  })
-                                  try {
-                                    await wall.mutateAsync({
-                                      content: text,
-                                      prompt: chat.prompt || "",
-                                      platform: platform,
-                                      projectId: currentProject?._id || "",
-                                    })
-
-                                    setWallDetails((prev) => {
-                                      return prev.map((p) => {
-                                        if (p.platform === platform) {
-                                          return {
-                                            ...p,
-                                            published: true,
-                                          }
-                                        }
-                                        return p
-                                      })
-                                    })
-                                  } catch { } finally {
-                                    setWallDetails((prev) => {
-                                      return prev.map((p) => {
-                                        if (p.platform === platform) {
-                                          return {
-                                            ...p,
-                                            generating: false,
-                                          }
-                                        }
-                                        return p
-                                      })
-                                    })
-                                  }
-
-                                }}
-                              >
-                                <UploadCloudIcon />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Publish to wall!
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-
+                        <PostToWall
+                          content={text}
+                          platform={platform}
+                          projectId={id}
+                          prompt={chat.prompt}
+                        />
                         {
                           currentProject?.platformUrls?.[platform] && <Button
                             variant="ghost"

@@ -64,7 +64,8 @@ export const GET = applyMiddleware(
       .sort({ createdAt: -1 })
       .skip((+page - 1) * +limit)
       .limit(+limit)
-      .populate("userId", "avatarUrl name");
+      .populate("userId", "avatarUrl name")
+      .populate("projectId", "name");
 
     const totalPosts = await WallModel.countDocuments();
     const totalPages = Math.ceil(totalPosts / +limit);

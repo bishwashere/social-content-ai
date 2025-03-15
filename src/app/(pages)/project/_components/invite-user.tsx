@@ -29,7 +29,7 @@ import { useParams } from "next/navigation"
 import { INVITED_USER_ROLES } from "@/constants/common"
 
 export function InviteUserDialog() {
-  const [role, setRole] = useState(INVITED_USER_ROLES.EDITOR)
+  const [role, setRole] = useState(INVITED_USER_ROLES.VIEWER)
   const { id } = useParams() as { id: string }
   const [email, setEmail] = useState("");
   const invite = useInviteUserToProject()

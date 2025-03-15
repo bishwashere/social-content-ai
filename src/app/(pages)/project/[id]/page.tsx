@@ -19,6 +19,7 @@ import { ContentGenerator } from "../_components/content-generator";
 import { Label } from "@/components/ui/label";
 import { InviteUserDialog } from "../_components/invite-user";
 import { Project } from "@/db/projects/schema/project";
+import { PLATFORMS } from "@/lib/prompt";
 
 
 export default function ProjectPage() {
@@ -137,7 +138,7 @@ export default function ProjectPage() {
 
                         <div className="grid-cols-2 grid gap-4">
 
-                          {Object.entries(project.platformUrls || {}).map(([platform]) => (
+                          {Object.values(PLATFORMS).map((platform) => (
                             <div
                               key={platform}
                               className="flex flex-col gap-2"
