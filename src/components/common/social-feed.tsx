@@ -6,6 +6,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "../ui/skeleton"
 import { Button } from "../ui/button"
 import { PlayIcon } from '@heroicons/react/solid'; // Import the play icon from Heroicons
+import { WallResponsePaginated } from "@/backend-apis/wall/types"
+import { useEffect } from "react"
+import { viewWall } from "@/server-actions/view-wall"
 
 
 export default function SocialFeed() {
@@ -82,34 +85,10 @@ export default function SocialFeed() {
                 .map((post) => {
 
                   return (
-                    <Card key={post._id} className="rounded-none border-0 shadow-none border-b border-gray-200">
-                      <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={post.userId.avatarUrl} alt={post.userId.name} />
-                            <AvatarFallback>{post.userId.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium text-sm">{post.userId.name}</span>
-                              <span className="text-muted-foreground text-xs">{formatRelativeTime(post.createdAt)}</span>
-                            </div>
-                            <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">{post.content}</CardContent>
-
-                            {/* Display project name and views */}
-                            <div className="flex items-center gap-3">
-                              {/* Assuming you have a views property on the post */}
-                              <PlayIcon className="h-4 w-4 text-gray-600" />
-                              <span className="text-xs text-gray-600">{post.views || 1}</span>
-                              <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
-                                {post.projectId.name}
-                              </span>
-                              <img src={`/${post.platform}.svg`} alt="" className="size-4 object-contain object-center ml-2" />
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
+                    <WallComp key={post._id} post={{
+                      ...post,
+                      createdAt: formatRelativeTime(post.createdAt)
+                    }} />
                   );
 
                 })
@@ -131,5 +110,57 @@ export default function SocialFeed() {
         </div>
       </ScrollArea>
     </div>
+  )
+}
+
+
+const WallComp = (
+  { post }: { post: WallResponsePaginated["posts"][number] }
+) => {
+  useEffect(() => {
+
+    const fn = async () => {
+
+      const isViewed = sessionStorage.getItem(`wall:viewed:${post._id}`) === "true";
+
+      if (!isViewed) {
+        const res = await viewWall(post._id);
+        if (res) {
+          sessionStorage.setItem(`wall:viewed:${post._id}`, "true");
+        }
+      }
+    };
+    fn();
+  }, [post._id])
+
+  return (
+    <Card key={post._id} className="rounded-none border-0 shadow-none border-b border-gray-200">
+      <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
+        <div className="flex items-start gap-3">
+          <Avatar className="h-10 w-10 border">
+            <AvatarImage src={post.userId.avatarUrl} alt={post.userId.name} />
+            <AvatarFallback>{post.userId.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium text-sm">{post.userId.name}</span>
+              <span className="text-muted-foreground text-xs">{post.createdAt}</span>
+            </div>
+            <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">{post.content}</CardContent>
+
+            {/* Display project name and views */}
+            <div className="flex items-center gap-3">
+              {/* Assuming you have a views property on the post */}
+              <PlayIcon className="h-4 w-4 text-gray-600" />
+              <span className="text-xs text-gray-600">{post.views || 1}</span>
+              <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
+                {post.projectId.name}
+              </span>
+              <img src={`/${post.platform}.svg`} alt="" className="size-4 object-contain object-center ml-2" />
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
   )
 }
