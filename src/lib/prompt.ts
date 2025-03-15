@@ -7,7 +7,7 @@ tiktok: 150, // Short captions for quick engagement
 
 export const PLATFORM_CUSTOM_PROMPTS = {
 facebook: "",
-instagram: "Use a viral style, sometimes just single word lines, to grap attention.",
+instagram: "Use a viral style, sometimes just single word lines+empty lines, to grap attention.",
 x: "",
 linkedin: "",
 } as const;
@@ -121,7 +121,7 @@ arr[Math.floor(Math.random() * arr.length)];
     // Combine custom prompt with the core prompt
     const finalPrompt = `${corePrompt} ${customPrompt}`;
 
-    return `${finalPrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Do not give multiple options or choice. Also never mention the platform in the content, like: For {platform}, or {platform} (280 characters):. Or any other heading, or footer other than the actual answer.${userPrompt ? ` Give answer as specified here ${userPrompt}` : ""}`;
+    return `${finalPrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Do not give multiple options or choice. Also never mention the platform in the content, like: For {platform}, or {platform} (280 characters):. Or any other heading, or footer other than the actual answer.${userPrompt ? ` Also ${userPrompt}` : ""}`;
   }
 }
 

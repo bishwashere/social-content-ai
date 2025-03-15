@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Home() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
@@ -86,7 +86,17 @@ export default function Home() {
                 <Plus className="w-4 h-4" />
               </Button>
               {isDetailsOpen && (
-                <div className="mt-2 space-y-4 p-4 border rounded-2xl">
+                <div
+                  className="mt-2 space-y-4 p-4 rounded-2xl"
+                  style={{
+                    border: "1px solid transparent",
+                    backgroundImage:
+                      "linear-gradient(white, white),",
+                    backgroundOrigin: "border-box",
+                    backgroundClip: "content-box, border-box",
+                    boxShadow: "0 0 10px rgba(120, 115, 245, 0.3)",
+                  }}
+                >
                   <div>
                     <label className="block text-sm font-medium mb-1">Project Name</label>
                     <input
@@ -122,7 +132,17 @@ export default function Home() {
                 <Plus className="w-4 h-4" />
               </Button>
               {isOptionsOpen && (
-                <div className="mt-2 space-y-2 p-4 border rounded-2xl">
+                <div
+                  className="mt-2 space-y-2 p-4 rounded-2xl"
+                  style={{
+                    border: "1px solid transparent",
+                    backgroundImage:
+                      "linear-gradient(white, white),",
+                    backgroundOrigin: "border-box",
+                    backgroundClip: "content-box, border-box",
+                    boxShadow: "0 0 10px rgba(44, 130, 255, 0.3)",
+                  }}
+                >
                   <Button
                     variant="outline"
                     className="w-full flex justify-center items-center gap-2 rounded-lg"
@@ -201,7 +221,18 @@ export default function Home() {
             </div>
 
             {/* Prompt (Outside Content Options) */}
-            <div>
+            <div
+              style={{
+                border: "1px solid transparent",
+                backgroundImage:
+                  "linear-gradient(white, white), ",
+                backgroundOrigin: "border-box",
+                backgroundClip: "content-box, border-box",
+                boxShadow: "0 0 10px rgba(255, 215, 0, 0.3)",
+                borderRadius: "1rem",
+                padding: "0.5rem",
+              }}
+            >
               <label className="block text-sm font-medium mb-1">Prompt (Optional)</label>
               <textarea
                 value={prompt}
