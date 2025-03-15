@@ -1,21 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Copy, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AddProjectButton } from "./_components/add-project-button";
 
 export default function Home() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const projects = useGetAllProjects()
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [description, setDescription] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [style, setStyle] = useState("persuasive");
+  const [tone, setTone] = useState("formal");
+  const [verb, setVerb] = useState("inform");
+  const [goal, setGoal] = useState("motivate");
+  const [theme, setTheme] = useState("business");
+  const [output, setOutput] = useState({});
+  const [selectedPlatform, setSelectedPlatform] = useState("facebook");
+
+  const projects = useGetAllProjects();
 
   const handleSelectProject = (projectId: string) => {
     router.push(`/project/${projectId}`);
+  };
+
+  const randomizeOptions = () => {
+    const styles = ["narrative", "descriptive", "persuasive", "expository"];
+    const tones = ["neutral", "formal", "casual", "humorous"];
+    const verbs = ["inform", "persuade", "entertain", "inspire"];
+    const goals = ["educate", "convince", "engage", "motivate"];
+    const themes = ["technology", "nature", "business", "personal"];
+
+    setStyle(styles[Math.floor(Math.random() * styles.length)]);
+    setTone(tones[Math.floor(Math.random() * tones.length)]);
+    setVerb(verbs[Math.floor(Math.random() * verbs.length)]);
+    setGoal(goals[Math.floor(Math.random() * goals.length)]);
+    setTheme(themes[Math.floor(Math.random() * themes.length)]);
+  };
+
+  const generateOutput = () => {
+    const baseOutput = `${prompt || "No prompt provided"}\n\nProject: ${projectName || "Unnamed"}\nDescription: ${description || "No description"}\nStyle: ${style}\nTone: ${tone}\nVerb: ${verb}\nGoal: ${goal}\nTheme: ${theme}\n\n`;
+    const outputs = {
+      facebook: `${baseOutput}Optimized for Facebook: Short, engaging post with a call-to-action.`,
+      threads: `${baseOutput}Optimized for Threads: Concise, conversational thread starter.`,
+      linkedin: `${baseOutput}Optimized for LinkedIn: Professional, detailed post for networking.`,
+      x: `${baseOutput}Optimized for X: Brief, impactful tweet within 280 characters.`,
+    };
+    setOutput(outputs);
+  };
+
+  const copyToClipboard = () => {
+    if (output[selectedPlatform]) {
+      navigator.clipboard.writeText(output[selectedPlatform]);
+      alert("Output copied to clipboard!");
+    }
   };
 
   return (
@@ -25,6 +69,201 @@ export default function Home() {
         Select a project from the left to get started, or click ‘Add Project’ to create a new one.
       </div>
 
+      {/* Main Content - Two Boxes */}
+      <div className="flex flex-col md:flex-row gap-6 justify-center items-start w-full">
+        {/* Left Box - Input */}
+        <div className="w-full md:w-1/2 bg-white p-6 rounded-2xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Project Details</h2>
+          <div className="space-y-4">
+            {/* Collapsible Project Details */}
+            <div>
+              <Button
+                variant="outline"
+                className="w-full flex justify-between items-center rounded-xl"
+                onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              >
+                Project Info
+                <Plus className="w-4 h-4" />
+              </Button>
+              {isDetailsOpen && (
+                <div className="mt-2 space-y-4 p-4 border rounded-2xl">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Project Name</label>
+                    <input
+                      type="text"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      className="w-full p-2 border rounded-lg"
+                      placeholder="Enter project name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full p-2 border rounded-lg"
+                      rows={4}
+                      placeholder="Enter project description"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Collapsible Options */}
+            <div>
+              <Button
+                variant="outline"
+                className="w-full flex justify-between items-center rounded-xl"
+                onClick={() => setIsOptionsOpen(!isOptionsOpen)}
+              >
+                Content Options
+                <Plus className="w-4 h-4" />
+              </Button>
+              {isOptionsOpen && (
+                <div className="mt-2 space-y-2 p-4 border rounded-2xl">
+                  <Button
+                    variant="outline"
+                    className="w-full flex justify-center items-center gap-2 rounded-lg"
+                    onClick={randomizeOptions}
+                  >
+                    <Shuffle className="w-4 h-4" />
+                    Randomize
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium w-24">Style</label>
+                    <select
+                      value={style}
+                      onChange={(e) => setStyle(e.target.value)}
+                      className="flex-1 p-2 border rounded-lg"
+                    >
+                      <option value="narrative">Narrative</option>
+                      <option value="descriptive">Descriptive</option>
+                      <option value="persuasive">Persuasive</option>
+                      <option value="expository">Expository</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium w-24">Tone</label>
+                    <select
+                      value={tone}
+                      onChange={(e) => setTone(e.target.value)}
+                      className="flex-1 p-2 border rounded-lg"
+                    >
+                      <option value="neutral">Neutral</option>
+                      <option value="formal">Formal</option>
+                      <option value="casual">Casual</option>
+                      <option value="humorous">Humorous</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium w-24">Verb</label>
+                    <select
+                      value={verb}
+                      onChange={(e) => setVerb(e.target.value)}
+                      className="flex-1 p-2 border rounded-lg"
+                    >
+                      <option value="inform">Inform</option>
+                      <option value="persuade">Persuade</option>
+                      <option value="entertain">Entertain</option>
+                      <option value="inspire">Inspire</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium w-24">Goal</label>
+                    <select
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                      className="flex-1 p-2 border rounded-lg"
+                    >
+                      <option value="educate">Educate</option>
+                      <option value="convince">Convince</option>
+                      <option value="engage">Engage</option>
+                      <option value="motivate">Motivate</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium w-24">Theme</label>
+                    <select
+                      value={theme}
+                      onChange={(e) => setTheme(e.target.value)}
+                      className="flex-1 p-2 border rounded-lg"
+                    >
+                      <option value="technology">Technology</option>
+                      <option value="nature">Nature</option>
+                      <option value="business">Business</option>
+                      <option value="personal">Personal</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Prompt (Outside Content Options) */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Prompt (Optional)</label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="w-full p-2 border rounded-lg"
+                rows={4}
+                placeholder="Enter your custom prompt here..."
+              />
+            </div>
+
+            <Button
+              onClick={generateOutput}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+            >
+              Generate Output
+            </Button>
+          </div>
+        </div>
+
+        {/* Right Box - Output */}
+        <div className="w-full md:w-1/2 bg-white p-6 rounded-2xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Output</h2>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <select
+                value={selectedPlatform}
+                onChange={(e) => setSelectedPlatform(e.target.value)}
+                className="p-2 border rounded-lg"
+              >
+                <option value="facebook">Facebook</option>
+                <option value="threads">Threads</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="x">X</option>
+              </select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyToClipboard}
+                disabled={!output[selectedPlatform]}
+                className="rounded-lg"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+            <div
+              className="min-h-[200px] p-4 rounded-2xl bg-gray-50"
+              style={{
+                border: "1px solid transparent",
+                backgroundOrigin: "border-box",
+                backgroundClip: "content-box, border-box",
+                boxShadow: "0 0 10px rgba(120, 115, 245, 0.3)",
+              }}
+            >
+              {output[selectedPlatform] ? (
+                <pre className="whitespace-pre-wrap">{output[selectedPlatform]}</pre>
+              ) : (
+                <p className="text-gray-500">Output will appear here once generated...</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Floating Button */}
       <div className="fixed bottom-8 right-8 z-50">
@@ -34,48 +273,35 @@ export default function Home() {
           className="rounded-full w-16 h-16 shadow-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center"
           onClick={() => setOpen(true)}
         >
-          <Plus className="w-8 h-8" />
+          <Plus className="w-8 h-4" />
         </Button>
       </div>
 
-
-      <div className="flex justify-center items-center w-full">
-        <AddProjectButton />
-      </div>
-
-
       {/* Modal for Project Selection */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogClose />
           <DialogHeader>
             <DialogTitle>Select a Project</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-
-            {
-              projects.isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-8" />
-                ))
-              ) : (
-                (projects?.data?.length || 0) > 0 ? (
-                  projects?.data?.map((project, i) => (
-                    <Button
-                      key={i}
-                      className="w-full"
-                      onClick={() => handleSelectProject(project._id)}
-                    >
-                      {project.name}
-                    </Button>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-500">No projects available.</p>
-                )
-              )
-            }
-
-
+            {projects.isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 rounded-lg" />
+              ))
+            ) : (projects?.data?.length || 0) > 0 ? (
+              projects?.data?.map((project, i) => (
+                <Button
+                  key={i}
+                  className="w-full rounded-lg"
+                  onClick={() => handleSelectProject(project._id)}
+                >
+                  {project.name}
+                </Button>
+              ))
+            ) : (
+              <p className="text-center text-gray-500">No projects available.</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
