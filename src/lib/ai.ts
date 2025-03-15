@@ -57,7 +57,7 @@ export class AI {
         : projectName || projectDescription;
 
     const corePrompt = prompt.generateCorePrompt(projectOverview);
-    console.log("corePrompt: ", corePrompt);
+    console.log("\nCORE PROMPT: \n", corePrompt);
 
     let currentApiKeyIndex = 0;
     let attempt = 0;
@@ -77,9 +77,8 @@ export class AI {
             platform: platform,
             userPrompt,
           });
-
+          console.log(`\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`, platformSpecificPrompt);
           const result = await model.generateContent(platformSpecificPrompt);
-
           return { platform, content: result.response.text().trim() };
         });
 
@@ -132,6 +131,7 @@ export class AI {
       }
     }
   }
+
 }
 
 export type GenerateChatNameProps = {
