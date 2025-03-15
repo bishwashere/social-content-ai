@@ -1,7 +1,7 @@
 // page.tsx
 
 "use client";
-
+import Markdown from "react-markdown";
 import { useEffect, useState } from "react";
 import { Plus, Copy, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -305,7 +305,7 @@ export default function Home() {
               }}
             >
               {output[selectedPlatform] ? (
-                <pre className="whitespace-pre-wrap">{output[selectedPlatform]}</pre>
+                <Markdown >{output[selectedPlatform]}</Markdown>
               ) : (
                 <p className="text-gray-500">Output will appear here once generated...</p>
               )}
