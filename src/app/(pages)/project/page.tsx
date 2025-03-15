@@ -87,7 +87,7 @@ export default function Home() {
       <div className="flex flex-col md:flex-row gap-6 justify-center items-start w-full">
         {/* Left Box - Input */}
         <div className="w-full md:w-1/2 bg-white p-6 rounded-2xl shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Project Details</h2>
+          <h2 className="text-xl font-semibold mb-4">Customise (optional)</h2>
           <div className="space-y-4">
             {/* Collapsible Project Details */}
             <div>
@@ -296,7 +296,7 @@ export default function Home() {
               </Button>
             </div>
             <div
-              className="min-h-[200px] p-4 rounded-2xl bg-gray-50"
+              className="min-h-[500px] p-4 rounded-2xl bg-gray-50"
               style={{
                 border: "1px solid transparent",
                 backgroundOrigin: "border-box",
