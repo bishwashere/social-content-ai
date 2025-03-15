@@ -2,18 +2,18 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Copy, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import { useGetAllProjects } from "@/backend-apis/projects/hooks";
+import { useGenerateProjectContent, useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Import utilities
 import { randomizeOptions } from "./projectPageUtils/randomizeOptions";
-import { generateOutput } from "./projectPageUtils/generateOutput";
 import { copyToClipboard } from "./projectPageUtils/clipboard";
+import { PLATFORMS } from "@/lib/prompt";
 
 export default function Home() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function Home() {
   const [verb, setVerb] = useState("inform");
   const [goal, setGoal] = useState("motivate");
   const [theme, setTheme] = useState("business");
-  const [output, setOutput] = useState({});
+  const [output, setOutput] = useState<Record<string, string>>({});
   const [selectedPlatform, setSelectedPlatform] = useState("facebook");
 
   const projects = useGetAllProjects();
@@ -36,6 +36,8 @@ export default function Home() {
   const handleSelectProject = (projectId: string) => {
     router.push(`/project/${projectId}`);
   };
+
+  const chat = useGenerateProjectContent()
 
   const handleRandomizeOptions = () => {
     const randomOptions = randomizeOptions();
@@ -46,18 +48,22 @@ export default function Home() {
     setTheme(randomOptions.theme);
   };
 
-  const handleGenerateOutput = () => {
-    const outputResult = generateOutput({
-      prompt,
-      projectName,
-      description,
-      style,
-      tone,
-      verb,
-      goal,
-      theme
-    });
-    setOutput(outputResult);
+  const handleGenerateOutput = async () => {
+
+    try {
+      const res = await chat.mutateAsync({
+        userPrompt: prompt,
+        options: { style, tone, verb, goal, theme },
+        projectName,
+        projectDescription: description,
+        projectId: ""
+      })
+
+      //@ts-expect-error: type is not defined
+      setOutput(res.contents || {});
+
+    } catch { }
+
   };
 
   const handleCopyToClipboard = () => {
@@ -65,6 +71,10 @@ export default function Home() {
       copyToClipboard(output[selectedPlatform]);
     }
   };
+
+  useEffect(() => {
+    console.log("output: ", output);
+  }, [output]);
 
   return (
     <div className="md:ml-64 lg:ml-72 p-6 space-y-6">
@@ -248,6 +258,7 @@ export default function Home() {
             </div>
 
             <Button
+              loading={chat.isPending}
               onClick={handleGenerateOutput}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
             >
@@ -266,10 +277,13 @@ export default function Home() {
                 onChange={(e) => setSelectedPlatform(e.target.value)}
                 className="p-2 border rounded-lg"
               >
-                <option value="facebook">Facebook</option>
-                <option value="threads">Threads</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="x">X</option>
+                {
+                  PLATFORMS.map((platform) => (
+                    <option key={platform} value={platform} className="capitalize">
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </option>
+                  ))
+                }
               </select>
               <Button
                 variant="outline"

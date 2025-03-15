@@ -7,6 +7,8 @@ class ApiRoutes {
     SESSION: () => "/auth/session",
   };
 
+  CREATE_CHAT = () => "/chat";
+
   PROJECTS = Object.assign(() => "/projects", {
     BY_ID: (id: string) => `/projects/${id}`,
     CHAT: (id: string) => `/projects/${id}/chat`,

@@ -20,6 +20,21 @@ class ProjectValidator {
       .optional()
       .nullable()
       .nullish(),
+    options: z
+      .object({
+        style: z.string(),
+        tone: z.string(),
+        verb: z.string(),
+        goal: z.string(),
+        theme: z.string(),
+      })
+      .optional()
+      .nullable()
+      .nullish(),
+
+    projectId: z.string().optional().nullable().nullish(),
+    projectName: z.string().optional().nullable().nullish(),
+    projectDescription: z.string().optional().nullable().nullish(),
   });
   trackProject = z.object({
     platform: commonValidator.availablePlatform(),

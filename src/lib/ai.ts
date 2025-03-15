@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PLATFORM_CHARACTER_LIMITS, PLATFORMS, prompt } from "./prompt";
+import { GenerateProjectContentProps } from "@/backend-apis/projects/types";
 
 /**
  * Utilities related to ai
@@ -27,7 +28,10 @@ export class AI {
   async generateChatName({
     content,
     prompt,
-  }: GenerateChatNameProps): Promise<string> {
+  }: {
+    content: string;
+    prompt?: string;
+  }): Promise<string> {
     const model = this.genAI.getGenerativeModel({
       model: "models/gemini-2.0-flash-001",
     });
@@ -50,16 +54,20 @@ export class AI {
     projectDescription,
     projectName,
     userPrompt,
-  }: GenerateContentProps) {
+    options,
+  }: GenerateProjectContentProps) {
     const projectOverview =
       projectName && projectDescription
         ? `${projectName}: ${projectDescription}`
         : projectName || projectDescription;
 
-    if (!projectOverview || projectOverview.length === 0 || projectOverview === undefined) {return null;}
+    console.log("PROJECT OVERVIEW: ", projectOverview);
 
     console.log("PROJECT OVERVIEW: ", projectOverview);
-    const corePrompt = prompt.generateCorePrompt(projectOverview);
+    const corePrompt = prompt.generateCorePrompt(
+      options,
+      projectOverview || ""
+    );
     console.log("\nCORE PROMPT: \n", corePrompt);
 
     let currentApiKeyIndex = 0;
@@ -78,9 +86,12 @@ export class AI {
             characterLimit: PLATFORM_CHARACTER_LIMITS[platform],
             corePrompt,
             platform: platform,
-            userPrompt,
+            userPrompt: userPrompt || "",
           });
-          console.log(`\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`, platformSpecificPrompt);
+          console.log(
+            `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
+            platformSpecificPrompt
+          );
           const result = await model.generateContent(platformSpecificPrompt);
           return { platform, content: result.response.text().trim() };
         });
@@ -134,5 +145,4 @@ export class AI {
       }
     }
   }
-
 }

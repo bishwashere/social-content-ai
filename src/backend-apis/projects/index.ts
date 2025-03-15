@@ -95,14 +95,16 @@ class ProjectService {
    * Generates the content for a project, if retry is provided, it will update the chat with the new generated content
    */
   async generateProjectContent(
-    { projectId, userPrompt, retry }: GenerateProjectContentProps,
+    { projectId, userPrompt, retry, ...rest }: GenerateProjectContentProps,
     queryClient: QueryClient
   ) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<ProjectChat>>(
       async () => {
-        const response = await api.post(apiRoutes.PROJECTS.CHAT(projectId), {
+        const response = await api.post(apiRoutes.CREATE_CHAT(), {
           userPrompt,
           retry,
+          projectId,
+          ...rest,
         });
         return response;
       }
@@ -111,29 +113,11 @@ class ProjectService {
       throw new Error(err.response?.data?.message);
     }
 
-    if (retry && retry.chatId) {
-      await queryClient.setQueryData<ProjectWithChats[]>(
-        ["projects"],
-        (data) => {
-          return data
-            ? // update the project with the new data
-              data?.map((project) => {
-                if (project._id === projectId) {
-                  return {
-                    ...project,
-                    chats: project.chats?.map((chat) =>
-                      chat._id === retry.chatId
-                        ? { _id: res.data.data._id, title: res.data.data.title }
-                        : chat
-                    ),
-                  };
-                }
-                return project;
-              })
-            : data;
-        }
-      );
+    await queryClient.invalidateQueries({
+      queryKey: ["projects"],
+    });
 
+    if (retry && retry.chatId) {
       await queryClient.setQueryData<ProjectChat[]>(
         ["project-chats", { projectId }],
         (data) => {
@@ -145,27 +129,6 @@ class ProjectService {
         }
       );
     } else {
-      // update the project with the new chat
-      await queryClient.setQueryData<ProjectWithChats[]>(
-        ["projects"],
-        (data) => {
-          return data
-            ? // update the project with the new data
-              data?.map((project) => {
-                if (project._id === projectId) {
-                  return {
-                    ...project,
-                    chats: project.chats
-                      ? [res.data.data, ...project.chats]
-                      : [res.data.data],
-                  };
-                }
-                return project;
-              })
-            : data;
-        }
-      );
-
       await queryClient.setQueryData<ProjectChat[]>(
         ["project-chats", { projectId }],
         (data) => {
