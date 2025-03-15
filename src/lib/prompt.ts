@@ -64,9 +64,10 @@ arr[Math.floor(Math.random() * arr.length)];
    *  Generate a core prompt for a content piece
    * @param projectOverview - A brief overview of the project to make the prompt project-related
    */
-  generateCorePrompt(isProjectRelated: boolean, projectOverview?: string): string {
+  generateCorePrompt(projectOverview?: string): string {
     const { verb, tone, style, goal, theme } = this.getRandomProperties();
     let themeContent = '';
+    const isProjectRelated = projectOverview && Math.random() > 0.7;
 
     // Generate content for each theme
     switch (theme) {
@@ -103,7 +104,7 @@ arr[Math.floor(Math.random() * arr.length)];
     }
 
     return `${verb} a ${tone} and ${style} piece of content ${themeContent}, focused on ${goal}. ${isProjectRelated
-      ? `Ensure the content resonates with the audience while considering the project: ${projectOverview}.`
+      ? `For the project: ${projectOverview}.`
       : `Create something universally engaging without specific reference to any project.`}`;
   }
 

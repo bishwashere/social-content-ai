@@ -56,6 +56,9 @@ export class AI {
         ? `${projectName}: ${projectDescription}`
         : projectName || projectDescription;
 
+    if (!projectOverview || projectOverview.length === 0 || projectOverview === undefined) {return null;}
+
+    console.log("PROJECT OVERVIEW: ", projectOverview);
     const corePrompt = prompt.generateCorePrompt(projectOverview);
     console.log("\nCORE PROMPT: \n", corePrompt);
 
@@ -133,14 +136,3 @@ export class AI {
   }
 
 }
-
-export type GenerateChatNameProps = {
-  prompt?: string;
-  content?: string;
-};
-
-export type GenerateContentProps = {
-  projectName: string;
-  projectDescription: string;
-  userPrompt: string;
-};

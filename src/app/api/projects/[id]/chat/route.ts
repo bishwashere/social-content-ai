@@ -89,8 +89,8 @@ export const POST = applyMiddleware(
 
     const chatFromAI = await ai.generateContent({
       projectDescription: project.description,
-      userPrompt: body.userPrompt || "",
       projectName: project.name,
+      userPrompt: body.userPrompt || "",
     });
 
     if (!chatFromAI) {
