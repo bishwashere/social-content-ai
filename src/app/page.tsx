@@ -1,8 +1,7 @@
 import GoogleLoginButton from "@/components/common/google-login-button";
+import Image from "next/image"; // Import the Image component from Next.js
 
 export default function HomeV3() {
-
-
   return (
     <div className="bg-gradient-to-t from-teal-600 to-cyan-500 min-h-screen flex flex-col justify-between">
       <div className="container mx-auto px-4 py-8">
@@ -14,59 +13,75 @@ export default function HomeV3() {
           <p className="text-xl text-teal-100 max-w-lg mx-auto">
             Craft AI-powered social media posts that engage and convert—effortlessly!
           </p>
-          <p className="text-md text-teal-200 mt-2">
-            Generate, optimize, and track content for TikTok, Instagram, and Facebook.
-          </p>
         </header>
-        {/* Top Button */}
-        <div className="flex justify-center mb-8">
-          <GoogleLoginButton triggerClassName="min-w-32" />
-        </div>
 
-        {/* Features Section */}
-        <div className="max-w-6xl mx-auto">
+        {/* Static Features Section */}
+        <div className="max-w-6xl mx-auto mb-12">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-            Why Choose NextPostAI?
+            Explore NextPostAI Features
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
+            {/* Feature 1: Wall */}
             <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">Smart Content Generation</h3>
-              <p className="text-teal-100 text-sm">
-                Input a prompt and get tailored posts for any platform with AI precision.
+              <h3 className="text-white font-semibold mb-2">Community Wall</h3>
+              <p className="text-teal-100 text-sm mb-4">
+                Share your projects and see what others are creating. Inspire and get inspired!
               </p>
+              <div className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative">
+                <Image
+                  src="/wall.png" // Placeholder image for Wall
+                  alt="Community Wall Preview"
+                  layout="fill" // Fills the parent div
+                  objectFit="cover" // Ensures the image covers the area
+                  className="rounded-lg"
+                />
+              </div>
             </div>
+
+            {/* Feature 2: Content Generator */}
             <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">Post Tracking</h3>
-              <p className="text-teal-100 text-sm">
-                Log and manage your posted content with date tracking for easy oversight.
+              <h3 className="text-white font-semibold mb-2">Content Generator</h3>
+              <p className="text-teal-100 text-sm mb-4">
+                Generate posts instantly—no project needed. Tailored for any platform!
               </p>
+              <div className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative">
+                <Image
+                  src="/generator.png" // Placeholder image for Content Generator
+                  alt="Content Generator Preview"
+                  layout="fill"
+                  objectFit="cover"
+                  className="rounded-lg"
+                />
+              </div>
             </div>
+
+            {/* Feature 3: Dashboard */}
             <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">Multi-Platform Magic</h3>
-              <p className="text-teal-100 text-sm">
-                Optimize for TikTok, Instagram, and Facebook with a single click.
+              <h3 className="text-white font-semibold mb-2">Dashboard</h3>
+              <p className="text-teal-100 text-sm mb-4">
+                Track your post history and performance with ease.
               </p>
+              <div className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative">
+                <Image
+                  src="/dashboard.png" // Placeholder image for Dashboard
+                  alt="Dashboard Preview"
+                  layout="fill"
+                  objectFit="cover"
+                  className="rounded-lg"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Demo Section */}
-        <div className="mt-12 text-center">
-          <h2 className="text-2xl font-semibold text-white mb-4">See It in Action</h2>
-          <p className="text-teal-100 max-w-2xl mx-auto mb-6">
-            Try a sample prompt: &apos;Create an inspiring post for Instagram.&apos; Result: &apos;Don&apos;t just exist, bloom. You have sunshine within you. Let it shine! 🌟 #Inspiration #Growth #Motivation #YouGotThis&apos;
-          </p>
-          <p className="text-teal-200 text-sm">
-            Track it: Logged on Mar 08, 2025, for Instagram review.
-          </p>
+        {/* Call-to-Action */}
+        <div className="flex justify-center mb-8">
+          <GoogleLoginButton triggerClassName="min-w-32" />
         </div>
       </div>
 
-      {/* Bottom Button & Footer */}
+      {/* Footer */}
       <div className="bg-teal-800/50 py-6 text-center">
-        <div className="mb-4">
-          <GoogleLoginButton triggerClassName="min-w-32" />
-        </div>
         <p className="text-teal-200 text-sm">© 2025 NextPostAI. All rights reserved.</p>
       </div>
     </div>
