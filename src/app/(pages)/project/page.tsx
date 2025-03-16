@@ -1,5 +1,3 @@
-// page.tsx
-
 "use client";
 import Markdown from "react-markdown";
 import { useEffect, useState } from "react";
@@ -37,7 +35,7 @@ export default function Home() {
     router.push(`/project/${projectId}`);
   };
 
-  const chat = useGenerateProjectContent()
+  const chat = useGenerateProjectContent();
 
   const handleRandomizeOptions = () => {
     const randomOptions = randomizeOptions();
@@ -49,21 +47,18 @@ export default function Home() {
   };
 
   const handleGenerateOutput = async () => {
-
     try {
       const res = await chat.mutateAsync({
         userPrompt: prompt,
         options: { style, tone, verb, goal, theme },
         projectName,
         projectDescription: description,
-        projectId: ""
-      })
+        projectId: "",
+      });
 
       //@ts-expect-error: type is not defined
       setOutput(res.contents || {});
-
-    } catch { }
-
+    } catch {}
   };
 
   const handleCopyToClipboard = () => {
@@ -104,8 +99,7 @@ export default function Home() {
                   className="mt-2 space-y-4 p-4 rounded-2xl"
                   style={{
                     border: "1px solid transparent",
-                    backgroundImage:
-                      "linear-gradient(white, white),",
+                    backgroundImage: "linear-gradient(white, white),",
                     backgroundOrigin: "border-box",
                     backgroundClip: "content-box, border-box",
                     boxShadow: "0 0 10px rgba(120, 115, 245, 0.3)",
@@ -150,8 +144,7 @@ export default function Home() {
                   className="mt-2 space-y-2 p-4 rounded-2xl"
                   style={{
                     border: "1px solid transparent",
-                    backgroundImage:
-                      "linear-gradient(white, white),",
+                    backgroundImage: "linear-gradient(white, white),",
                     backgroundOrigin: "border-box",
                     backgroundClip: "content-box, border-box",
                     boxShadow: "0 0 10px rgba(44, 130, 255, 0.3)",
@@ -238,8 +231,7 @@ export default function Home() {
             <div
               style={{
                 border: "1px solid transparent",
-                backgroundImage:
-                  "linear-gradient(white, white), ",
+                backgroundImage: "linear-gradient(white, white), ",
                 backgroundOrigin: "border-box",
                 backgroundClip: "content-box, border-box",
                 boxShadow: "0 0 10px rgba(255, 215, 0, 0.3)",
@@ -277,13 +269,11 @@ export default function Home() {
                 onChange={(e) => setSelectedPlatform(e.target.value)}
                 className="p-2 border rounded-lg"
               >
-                {
-                  PLATFORMS.map((platform) => (
-                    <option key={platform} value={platform} className="capitalize">
-                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                    </option>
-                  ))
-                }
+                {PLATFORMS.map((platform) => (
+                  <option key={platform} value={platform} className="capitalize">
+                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  </option>
+                ))}
               </select>
               <Button
                 variant="outline"
@@ -302,10 +292,17 @@ export default function Home() {
                 backgroundOrigin: "border-box",
                 backgroundClip: "content-box, border-box",
                 boxShadow: "0 0 10px rgba(120, 115, 245, 0.3)",
+                whiteSpace: "pre-wrap", // Added to preserve newlines
               }}
             >
               {output[selectedPlatform] ? (
-                <Markdown >{output[selectedPlatform]}</Markdown>
+                <Markdown>
+                  {output[selectedPlatform]
+                    .split("\n")
+                    .map((line, index) => line.trim())
+                    .filter((line) => line.length > 0)
+                    .join("\n\n")}
+                </Markdown>
               ) : (
                 <p className="text-gray-500">Output will appear here once generated...</p>
               )}

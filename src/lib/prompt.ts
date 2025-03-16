@@ -10,9 +10,9 @@ export const PLATFORM_CHARACTER_LIMITS = {
 export const PLATFORM_CUSTOM_PROMPTS = {
   facebook: "",
   instagram:
-    "Use a PIER style, without mentioneing it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. And clear call to action.",
+    "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   x: "",
-  linkedin: "Use a PIER style, without mentioneing it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. And clear call to action.",
+  linkedin: "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
