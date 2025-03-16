@@ -22,7 +22,7 @@ export function ContentGenerator({
   project,
 }: ContentGeneratorProps) {
   const [prompt, setPrompt] = useState("");
-  const generateProjectContent = useGenerateProjectContent()
+  const generateProjectContent = useGenerateProjectContent();
   const copyToClipboard = useMemo(() => (text: string, platform: string) => {
     navigator.clipboard.writeText(text).then(
       () => {
@@ -47,9 +47,10 @@ export function ContentGenerator({
       <Button
         onClick={() => {
           generateProjectContent.mutate({
-            projectId: project._id, userPrompt: prompt,
-            retry: generateProjectContent.data ? { chatId: generateProjectContent.data?._id } : undefined
-          })
+            projectId: project._id,
+            userPrompt: prompt,
+            retry: generateProjectContent.data ? { chatId: generateProjectContent.data?._id } : undefined,
+          });
         }}
         loading={generateProjectContent.isPending}
         size={"lg"}
@@ -67,11 +68,6 @@ export function ContentGenerator({
           </>
         )}
       </Button>
-      {/* {credits <= 0 && (
-        <p className="text-sm text-destructive">
-          You have no credits left. Please purchase more credits.
-        </p>
-      )} */}
       {generateProjectContent.data && (
         <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
           <ScrollArea className="">
@@ -82,7 +78,6 @@ export function ContentGenerator({
                     {platform.charAt(0).toUpperCase() + platform.slice(1)}
                   </CardTitle>
                   <div className="flex flex-row gap-2">
-
                     <Button
                       variant="ghost"
                       size="icon"
@@ -90,35 +85,28 @@ export function ContentGenerator({
                     >
                       <CopyIcon />
                     </Button>
-
                     <PostToWall
                       content={text}
                       platform={platform}
                       projectId={project._id}
                       prompt={prompt}
                     />
-
-
-
-                    {
-                      project.platformUrls[platform] && <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                      >
-                        <Link
-                          href={project.platformUrls[platform] || "#"}
-                          target="_blank"
-                        >
+                    {project.platformUrls[platform] && (
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link href={project.platformUrls[platform] || "#"} target="_blank">
                           <Share2Icon />
                         </Link>
-                      </Button>}
+                      </Button>
+                    )}
                   </div>
-
                 </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  <Markdown >
-                    {text}
+                <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
+                  <Markdown>
+                    {text
+                      .split("\n")
+                      .map((line, index) => line.trim())
+                      .filter((line) => line.length > 0)
+                      .join("\n\n")}
                   </Markdown>
                 </CardContent>
               </Card>

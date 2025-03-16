@@ -1,25 +1,25 @@
 import { ProjectValidatorType } from "@/validators/projects";
 
 export const PLATFORM_CHARACTER_LIMITS = {
-  facebook: 280, // Short and engaging for better readability
-  instagram: 500, // Captions that tell a story but stay concise
-  x: 280, // Matches Twitter's limit for clarity
-  tiktok: 150, // Short captions for quick engagement
+  facebook: 500,
+  instagram: 500,
+  x: 250,
+  linkedin: 500,
 } as const;
 
 export const PLATFORM_CUSTOM_PROMPTS = {
   facebook: "",
   instagram:
-    "Use a viral style, attention grabbing words in a single line sometime, to grap attention. No placeholders in final output.",
+    "Use a PIER style, without mentioneing it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. And clear call to action.",
   x: "",
-  linkedin: "",
+  linkedin: "Use a PIER style, without mentioneing it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. And clear call to action.",
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
   FACEBOOK: "facebook",
   INSTAGRAM: "instagram",
   X: "x",
-  TIKTOK: "tiktok",
+  LINKEDIN: "linkedin",
 } as const;
 
 export const PLATFORMS = Object.values(AVAILABLE_PLATFORMS);
@@ -145,25 +145,3 @@ class Prompt {
 }
 
 export const prompt = new Prompt();
-
-// Example usage:
-const tiktokPrompt = prompt.addPlatformSpecifics({
-  characterLimit: PLATFORM_CHARACTER_LIMITS.tiktok,
-  corePrompt: prompt.generateCorePrompt(null, "Our new app feature"),
-  platform: "tiktok",
-  userPrompt: "Use engaging emojis and hashtags.",
-});
-
-console.log(tiktokPrompt);
-
-const instagramPrompt = prompt.addPlatformSpecifics({
-  characterLimit: PLATFORM_CHARACTER_LIMITS.instagram,
-  corePrompt: prompt.generateCorePrompt(
-    null,
-    "Launching a new feature for creators"
-  ),
-  platform: "instagram",
-  userPrompt: "Include a call-to-action for followers.",
-});
-
-console.log(instagramPrompt);

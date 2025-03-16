@@ -11,19 +11,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectChat } from "@/db/projects/schema/chat";
 import { Project } from "@/db/projects/schema/project";
 
-
 import PostToWall from "@/components/common/post-to-wall";
-
 
 export default function ChatPage() {
   const { id, chatId } = useParams() as { id: string; chatId: string };
   const [chat, setChat] = useState<ProjectChat | null>(null);
 
-
-  const projectChats = useGetAllProjectChats({ projectId: id })
-  const projects = useGetAllProjects()
+  const projectChats = useGetAllProjectChats({ projectId: id });
+  const projects = useGetAllProjects();
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-
 
   useEffect(() => {
     const fetchProject = () => {
@@ -34,9 +30,7 @@ export default function ChatPage() {
     };
 
     fetchProject();
-  }
-    , [id, projects.data]);
-
+  }, [id, projects.data]);
 
   useEffect(() => {
     const chat = projectChats.data?.find((p) => p._id === chatId);
@@ -55,96 +49,86 @@ export default function ChatPage() {
     );
   };
 
-
-
   return (
     <div className="flex-grow max-w-3xl mx-auto justify-center px-4 space-y-4">
-
-      {
-        projectChats.isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-8" />
-            <Skeleton className="h-8" />
-            <Skeleton className="h-8" />
+      {projectChats.isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-8" />
+          <Skeleton className="h-8" />
+          <Skeleton className="h-8" />
+        </div>
+      ) : chat ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/project/${id}`}
+              className={buttonVariants({ variant: "ghost", size: "icon" })}
+            >
+              <ChevronLeft />
+            </Link>
+            <h1 className="text-2xl font-bold">{chat.title}</h1>
           </div>
-        ) :
-
-          chat ?
-
-            <>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/project/${id}`}
-                  className={buttonVariants({ variant: "ghost", size: "icon" })}
-                >
-                  <ChevronLeft />
-                </Link>
-                <h1 className="text-2xl font-bold">
-                  {chat.title}
-                </h1>
-              </div>
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">Prompt:</h2>
-                <p>{chat.prompt}</p>
-              </div>
-              <div className="space-y-4 pb-10">
-                {Object.entries(chat.contents || {}).map(([platform, text]) => (
-                  <div key={platform} className="border p-4 rounded-lg mb-4">
-                    <div className="flex justify-between mb-2">
-                      <h3 className="font-bold capitalize">{platform}</h3>
-                      <div className="flex flex-row gap-2">
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => copyToClipboard(text, platform)}
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold">Prompt:</h2>
+            <p>{chat.prompt}</p>
+          </div>
+          <div className="space-y-4 pb-10">
+            {Object.entries(chat.contents || {}).map(([platform, text]) => (
+              <div key={platform} className="border p-4 rounded-lg mb-4">
+                <div className="flex justify-between mb-2">
+                  <h3 className="font-bold capitalize">{platform}</h3>
+                  <div className="flex flex-row gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copyToClipboard(text, platform)}
+                    >
+                      <CopyIcon />
+                    </Button>
+                    <PostToWall
+                      content={text}
+                      platform={platform}
+                      projectId={id}
+                      prompt={chat.prompt}
+                    />
+                    {currentProject?.platformUrls?.[platform] && (
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link
+                          href={currentProject?.platformUrls?.[platform] || "#"}
+                          target="_blank"
                         >
-                          <CopyIcon />
-                        </Button>
-
-                        <PostToWall
-                          content={text}
-                          platform={platform}
-                          projectId={id}
-                          prompt={chat.prompt}
-                        />
-                        {
-                          currentProject?.platformUrls?.[platform] && <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                          >
-                            <Link
-                              href={currentProject?.platformUrls?.[platform] || "#"}
-                              target="_blank"
-                            >
-                              <Share2Icon />
-                            </Link>
-                          </Button>}
-                      </div>
-                    </div>
-                    <div
-                      className="text-sm text-muted-foreground w-full *:break-words *:whitespace-pre-wrap">
-
-                      <Markdown >
-                        {text}
-                      </Markdown>
-                    </div>
-
+                          <Share2Icon />
+                        </Link>
+                      </Button>
+                    )}
                   </div>
-                ))}
+                </div>
+                <div
+                  className="text-sm text-muted-foreground w-full"
+                  style={{ whiteSpace: "pre-wrap" }}
+                >
+                  <Markdown>
+                    {text
+                      .split("\n")
+                      .map((line, index) => line.trim())
+                      .filter((line) => line.length > 0)
+                      .join("\n\n")}
+                  </Markdown>
+                </div>
               </div>
-            </> :
-
-            <div className="flex flex-wrap gap-2 items-center ">
-              <h1 className="text-2xl font-bold text-destructive">
-                Chat Not Found
-              </h1>
-              <p>
-                The chat you&aposre looking for doesn&apost exist or has been deleted.
-              </p>
-            </div>
-      }
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-wrap gap-2 items-center">
+          <h1 className="text-2xl font-bold text-destructive">
+            Chat Not Found
+          </h1>
+          <p>
+            The chat you&apos;re looking for doesn&apos;t exist or has been deleted.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
