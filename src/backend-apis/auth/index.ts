@@ -18,7 +18,7 @@ class AuthService {
    */
   async continueWithGoogle(
     { credential }: ContinueWithGoogleParams,
-    queryClient: QueryClient
+    queryClient: QueryClient,
   ) {
     const [err, res] = await tryCatchAsync<
       ApiError,

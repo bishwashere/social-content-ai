@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Button } from '../ui/button';
+} from "@/components/ui/tooltip";
+import { Button } from "../ui/button";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -15,20 +15,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { useCreateWall } from '@/backend-apis/wall/hooks';
-import { UploadCloudIcon } from 'lucide-react';
+} from "@/components/ui/alert-dialog";
+import { useCreateWall } from "@/backend-apis/wall/hooks";
+import { UploadCloudIcon } from "lucide-react";
 
 type Props = {
   content: string;
   platform: string;
   projectId: string;
   prompt: string;
-}
+};
 
 const PostToWall = (props: Props) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const wall = useCreateWall()
+  const [isOpen, setIsOpen] = useState(false);
+  const wall = useCreateWall();
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
@@ -45,9 +45,7 @@ const PostToWall = (props: Props) => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>
-                Publish to wall!
-              </p>
+              <p>Publish to wall!</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -56,7 +54,8 @@ const PostToWall = (props: Props) => {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will publish this content to public wall where other users can see the content and project name.
+            This will publish this content to public wall where other users can
+            see the content and project name.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -70,18 +69,19 @@ const PostToWall = (props: Props) => {
                   prompt: props.prompt || "",
                   platform: props.platform,
                   projectId: props.projectId,
-                })
-
-              } catch { } finally {
-                setIsOpen(false)
+                });
+              } catch {
+              } finally {
+                setIsOpen(false);
               }
-
             }}
-          >Continue</Button>
+          >
+            Continue
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
-}
+  );
+};
 
-export default PostToWall
+export default PostToWall;

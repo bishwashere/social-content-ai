@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ChevronLeft, CopyIcon, Share2Icon } from "lucide-react";
 import Markdown from "react-markdown";
-import { useGetAllProjectChats, useGetAllProjects } from "@/backend-apis/projects/hooks";
+import {
+  useGetAllProjectChats,
+  useGetAllProjects,
+} from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectChat } from "@/db/projects/schema/chat";
 import { Project } from "@/db/projects/schema/project";
@@ -23,9 +26,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     const fetchProject = () => {
-      const currentProject = projects?.data?.find(
-        (p: Project) => p._id === id
-      );
+      const currentProject = projects?.data?.find((p: Project) => p._id === id);
       setCurrentProject(currentProject || null);
     };
 
@@ -45,7 +46,7 @@ export default function ChatPage() {
       (err) => {
         console.error("Could not copy text: ", err);
         toast.error("Failed to copy content");
-      }
+      },
     );
   };
 
@@ -108,9 +109,9 @@ export default function ChatPage() {
                   style={{ whiteSpace: "pre-wrap" }}
                 >
                   <Markdown>
-                    {text
+                    {(text as string)
                       .split("\n")
-                      .map((line, index) => line.trim())
+                      .map((line) => line.trim())
                       .filter((line) => line.length > 0)
                       .join("\n\n")}
                   </Markdown>
@@ -125,7 +126,8 @@ export default function ChatPage() {
             Chat Not Found
           </h1>
           <p>
-            The chat you&apos;re looking for doesn&apos;t exist or has been deleted.
+            The chat you&apos;re looking for doesn&apos;t exist or has been
+            deleted.
           </p>
         </div>
       )}

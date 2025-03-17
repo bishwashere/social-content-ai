@@ -19,6 +19,6 @@ export const sendNextResponse = (res: Response) => {
     },
     {
       status: res.status || 200,
-    }
+    },
   );
 };

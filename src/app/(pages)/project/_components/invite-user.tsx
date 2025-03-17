@@ -1,14 +1,14 @@
-"use client"
-import { SendHorizonalIcon } from "lucide-react"
+"use client";
+import { SendHorizonalIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -18,33 +18,33 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useState } from "react"
-import { useInviteUserToProject } from "@/backend-apis/projects/hooks"
-import { z } from "zod"
-import { toast } from "sonner"
-import { useParams } from "next/navigation"
-import { INVITED_USER_ROLES } from "@/constants/common"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useInviteUserToProject } from "@/backend-apis/projects/hooks";
+import { z } from "zod";
+import { toast } from "sonner";
+import { useParams } from "next/navigation";
+import { INVITED_USER_ROLES } from "@/constants/common";
 
 export function InviteUserDialog() {
-  const [role, setRole] = useState(INVITED_USER_ROLES.VIEWER)
-  const { id } = useParams() as { id: string }
+  const [role, setRole] = useState(INVITED_USER_ROLES.VIEWER);
+  const { id } = useParams() as { id: string };
   const [email, setEmail] = useState("");
-  const invite = useInviteUserToProject()
-  const [isOpen, setIsOpen] = useState(false)
+  const invite = useInviteUserToProject();
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size={"sm"} variant="outline">Invite</Button>
+        <Button size={"sm"} variant="outline">
+          Invite
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogClose />
         <DialogHeader>
-          <DialogTitle>
-            Invite User
-          </DialogTitle>
+          <DialogTitle>Invite User</DialogTitle>
           <DialogDescription>
             Enter the email of the user you want to invite to view this project.
           </DialogDescription>
@@ -62,19 +62,16 @@ export function InviteUserDialog() {
               placeholder="Email"
             />
           </div>
-          <Select
-            onValueChange={(value) => setRole(value)}
-            value={role}
-          >
+          <Select onValueChange={(value) => setRole(value)} value={role}>
             <SelectTrigger className="w-[150px] capitalize">
               <SelectValue placeholder="Select a role" />
             </SelectTrigger>
             <SelectContent>
-              {
-                Object.values(INVITED_USER_ROLES).map((value, i) => (
-                  <SelectItem key={i} value={value} className="capitalize">{value}</SelectItem>
-                ))
-              }
+              {Object.values(INVITED_USER_ROLES).map((value, i) => (
+                <SelectItem key={i} value={value} className="capitalize">
+                  {value}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -85,23 +82,29 @@ export function InviteUserDialog() {
             onClick={async () => {
               if (z.string().email().safeParse(email).success) {
                 try {
-                  const res = await invite.mutateAsync({ email, projectId: id, role })
+                  const res = await invite.mutateAsync({
+                    email,
+                    projectId: id,
+                    role,
+                  });
                   if (res) {
-                    setIsOpen(false)
-                    setEmail("")
+                    setIsOpen(false);
+                    setEmail("");
                   }
-                } catch { }
+                } catch {}
               } else {
-                toast.error("Invalid email")
+                toast.error("Invalid email");
               }
             }}
-            type="submit" size="sm" className="px-3">
+            type="submit"
+            size="sm"
+            className="px-3"
+          >
             Invite
             <SendHorizonalIcon />
           </Button>
         </DialogFooter>
-
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -37,7 +37,7 @@ const SubscriptionSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "subscriptions",
-  }
+  },
 );
 
 const SubscriptionModel =

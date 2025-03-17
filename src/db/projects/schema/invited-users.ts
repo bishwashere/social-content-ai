@@ -23,7 +23,7 @@ const InvitedUserSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "invited-users-to-projects",
-  }
+  },
 );
 
 const InvitedUserModel =

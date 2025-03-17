@@ -64,7 +64,7 @@ export const PATCH = applyMiddleware(
       },
       {
         returnDocument: "after",
-      }
+      },
     );
 
     if (!project) {
@@ -79,5 +79,5 @@ export const PATCH = applyMiddleware(
       data: project,
       message: `Project ${project.name} updated successfully!`,
     });
-  })
+  }),
 );

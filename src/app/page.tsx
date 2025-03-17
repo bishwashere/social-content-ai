@@ -11,7 +11,8 @@ export default function HomeV3() {
             NextPostAI
           </h1>
           <p className="text-xl text-teal-100 max-w-lg mx-auto">
-            Craft AI-powered social media posts that engage and convert—effortlessly!
+            Craft AI-powered social media posts that engage and
+            convert—effortlessly!
           </p>
         </header>
 
@@ -25,7 +26,8 @@ export default function HomeV3() {
             <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
               <h3 className="text-white font-semibold mb-2">Community Wall</h3>
               <p className="text-teal-100 text-sm mb-4">
-                Share your projects and see what others are creating. Inspire and get inspired!
+                Share your projects and see what others are creating. Inspire
+                and get inspired!
               </p>
               <div className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative">
                 <Image
@@ -40,9 +42,12 @@ export default function HomeV3() {
 
             {/* Feature 2: Content Generator */}
             <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">Content Generator</h3>
+              <h3 className="text-white font-semibold mb-2">
+                Content Generator
+              </h3>
               <p className="text-teal-100 text-sm mb-4">
-                Generate posts instantly—no project needed. Tailored for any platform!
+                Generate posts instantly—no project needed. Tailored for any
+                platform!
               </p>
               <div className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative">
                 <Image
@@ -82,7 +87,9 @@ export default function HomeV3() {
 
       {/* Footer */}
       <div className="bg-teal-800/50 py-6 text-center">
-        <p className="text-teal-200 text-sm">© 2025 NextPostAI. All rights reserved.</p>
+        <p className="text-teal-200 text-sm">
+          © 2025 NextPostAI. All rights reserved.
+        </p>
       </div>
     </div>
   );

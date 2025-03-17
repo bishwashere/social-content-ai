@@ -34,7 +34,7 @@ export const GET = applyMiddleware(
         {
           _id: {
             $in: invitedProjects.map(
-              (invitedProject) => invitedProject.projectId
+              (invitedProject) => invitedProject.projectId,
             ),
           },
         },
@@ -52,14 +52,14 @@ export const GET = applyMiddleware(
     const totalPostsForEachProject = projects.map((p) => ({
       name: p.name as string,
       count: trackings.filter(
-        (t) => t.projectId.toString() === p._id.toString()
+        (t) => t.projectId.toString() === p._id.toString(),
       ).length,
     }));
 
     const mostActiveProject = totalPostsForEachProject.reduce(
       //@ts-expect-error: ...
       (max, project) => (project.count > (max?.count || 0) ? project : max),
-      null
+      null,
     );
 
     const platformCounts: Record<string, number> = {};
@@ -69,7 +69,7 @@ export const GET = applyMiddleware(
 
     const totalPlatforms = Object.keys(platformCounts).length;
     const activePlatforms = Object.values(platformCounts).filter(
-      (count) => count > 0
+      (count) => count > 0,
     ).length;
     const inactivePlatforms = totalPlatforms - activePlatforms;
 
@@ -85,5 +85,5 @@ export const GET = applyMiddleware(
         mostActiveProject,
       },
     });
-  })
+  }),
 );

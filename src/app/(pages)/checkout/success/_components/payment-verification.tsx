@@ -1,30 +1,30 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Loader2, CreditCard, ShieldCheck } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, CreditCard, ShieldCheck } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export default function PaymentVerification() {
-  const [progress, setProgress] = useState(0)
+  const [progress, setProgress] = useState(0);
 
   // Simulate payment verification progress
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let interval: NodeJS.Timeout;
 
     // Start the progress animation
     const startProgress = () => {
-      let currentProgress = 0
+      let currentProgress = 0;
       interval = setInterval(() => {
         // Increment progress with a slight randomization
-        const increment = Math.random() * 15 + 5
-        currentProgress = Math.min(currentProgress + increment, 100)
-        setProgress(currentProgress)
+        const increment = Math.random() * 15 + 5;
+        currentProgress = Math.min(currentProgress + increment, 100);
+        setProgress(currentProgress);
 
         // Clear interval when done
         if (currentProgress >= 100) {
-          clearInterval(interval)
+          clearInterval(interval);
           // Here you would typically redirect to success or failure page
           // For demo purposes, we'll just keep showing 100%
 
@@ -33,17 +33,17 @@ export default function PaymentVerification() {
           //   window.location.href = '/payment/success'; // or '/payment/failed'
           // }, 1000);
         }
-      }, 800)
-    }
+      }, 800);
+    };
 
     // Start with a small delay to allow component to render
-    const timer = setTimeout(startProgress, 300)
+    const timer = setTimeout(startProgress, 300);
 
     return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
-    }
-  }, [])
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
@@ -59,11 +59,21 @@ export default function PaymentVerification() {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="10" />
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="currentColor"
+                strokeWidth="10"
+              />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Verifying Your Payment</h1>
-          <p className="text-muted-foreground">Please wait while we confirm your transaction</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Verifying Your Payment
+          </h1>
+          <p className="text-muted-foreground">
+            Please wait while we confirm your transaction
+          </p>
         </div>
 
         <Card>
@@ -102,10 +112,10 @@ export default function PaymentVerification() {
         </Card>
 
         <p className="text-xs text-center text-muted-foreground">
-          This usually takes less than a minute. Please don&apos;t close this page.
+          This usually takes less than a minute. Please don&apos;t close this
+          page.
         </p>
       </div>
     </div>
-  )
+  );
 }
-

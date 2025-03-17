@@ -185,7 +185,7 @@ export const POST = applyMiddleware(
           },
           {
             returnDocument: "after",
-          }
+          },
         );
 
         if (!chat) {
@@ -221,5 +221,5 @@ export const POST = applyMiddleware(
         });
       }
     }
-  })
+  }),
 );

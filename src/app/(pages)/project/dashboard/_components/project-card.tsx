@@ -11,9 +11,7 @@ interface ProjectCardProps {
   project: ProjectWithChats;
 }
 
-export function ProjectCard({
-  project,
-}: ProjectCardProps) {
+export function ProjectCard({ project }: ProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { data } = useSession();
   return (
@@ -21,14 +19,13 @@ export function ProjectCard({
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">{project.name}</h2>
         <div className="flex space-x-2">
-          {
-            data?.user?._id !== project.userId && (
-              <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
-            )
-          }
-          <button onClick={() =>
-            setIsEditing((prev) => !prev)
-          } className="text-gray-500 hover:text-gray-700">
+          {data?.user?._id !== project.userId && (
+            <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
+          )}
+          <button
+            onClick={() => setIsEditing((prev) => !prev)}
+            className="text-gray-500 hover:text-gray-700"
+          >
             <Edit3 className="h-5 w-5" />
           </button>
         </div>

@@ -11,5 +11,5 @@ export const GET = applyMiddleware(
       status: 200,
       message: "Hello World",
     });
-  })
+  }),
 );

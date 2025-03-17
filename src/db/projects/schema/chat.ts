@@ -27,7 +27,7 @@ const ProjectChatSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "project-chats",
-  }
+  },
 );
 
 const ProjectChatModel =

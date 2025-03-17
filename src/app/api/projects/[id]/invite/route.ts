@@ -55,7 +55,7 @@ export const POST = applyMiddleware(
           projectId: new mongoose.Types.ObjectId(projectId),
           userId: new mongoose.Types.ObjectId(user._id),
           role: INVITED_USER_ROLES.EDITOR,
-        }
+        },
       );
 
       if (invitedUser) {
@@ -93,7 +93,7 @@ export const POST = applyMiddleware(
       {
         new: true,
         upsert: true,
-      }
+      },
     );
 
     return sendNextResponse({
@@ -101,5 +101,5 @@ export const POST = applyMiddleware(
       data: invitedUser,
       message: "User invited successfully!",
     });
-  })
+  }),
 );

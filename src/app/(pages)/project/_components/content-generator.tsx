@@ -18,22 +18,23 @@ interface ContentGeneratorProps {
   project: Project;
 }
 
-export function ContentGenerator({
-  project,
-}: ContentGeneratorProps) {
+export function ContentGenerator({ project }: ContentGeneratorProps) {
   const [prompt, setPrompt] = useState("");
   const generateProjectContent = useGenerateProjectContent();
-  const copyToClipboard = useMemo(() => (text: string, platform: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        toast.success(`${platform} content copied to clipboard!`);
-      },
-      (err) => {
-        console.error("Could not copy text: ", err);
-        toast.error("Failed to copy content");
-      }
-    );
-  }, []);
+  const copyToClipboard = useMemo(
+    () => (text: string, platform: string) => {
+      navigator.clipboard.writeText(text).then(
+        () => {
+          toast.success(`${platform} content copied to clipboard!`);
+        },
+        (err) => {
+          console.error("Could not copy text: ", err);
+          toast.error("Failed to copy content");
+        },
+      );
+    },
+    [],
+  );
 
   return (
     <div className="space-y-4 w-full">
@@ -49,7 +50,9 @@ export function ContentGenerator({
           generateProjectContent.mutate({
             projectId: project._id,
             userPrompt: prompt,
-            retry: generateProjectContent.data ? { chatId: generateProjectContent.data?._id } : undefined,
+            retry: generateProjectContent.data
+              ? { chatId: generateProjectContent.data?._id }
+              : undefined,
           });
         }}
         loading={generateProjectContent.isPending}
@@ -71,46 +74,54 @@ export function ContentGenerator({
       {generateProjectContent.data && (
         <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
           <ScrollArea className="">
-            {Object.entries(generateProjectContent.data.contents || {}).map(([platform, text]) => (
-              <Card key={platform} className="rounded-lg border mb-5">
-                <CardHeader className="flex justify-between items-center mb-2 flex-row">
-                  <CardTitle>
-                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                  </CardTitle>
-                  <div className="flex flex-row gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => copyToClipboard(text, platform)}
-                    >
-                      <CopyIcon />
-                    </Button>
-                    <PostToWall
-                      content={text}
-                      platform={platform}
-                      projectId={project._id}
-                      prompt={prompt}
-                    />
-                    {project.platformUrls[platform] && (
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={project.platformUrls[platform] || "#"} target="_blank">
-                          <Share2Icon />
-                        </Link>
+            {Object.entries(generateProjectContent.data.contents || {}).map(
+              ([platform, text]) => (
+                <Card key={platform} className="rounded-lg border mb-5">
+                  <CardHeader className="flex justify-between items-center mb-2 flex-row">
+                    <CardTitle>
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </CardTitle>
+                    <div className="flex flex-row gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(text, platform)}
+                      >
+                        <CopyIcon />
                       </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
-                  <Markdown>
-                    {text
-                      .split("\n")
-                      .map((line, index) => line.trim())
-                      .filter((line) => line.length > 0)
-                      .join("\n\n")}
-                  </Markdown>
-                </CardContent>
-              </Card>
-            ))}
+                      <PostToWall
+                        content={text}
+                        platform={platform}
+                        projectId={project._id}
+                        prompt={prompt}
+                      />
+                      {project.platformUrls[platform] && (
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link
+                            href={project.platformUrls[platform] || "#"}
+                            target="_blank"
+                          >
+                            <Share2Icon />
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent
+                    className="text-sm text-muted-foreground"
+                    style={{ whiteSpace: "pre-wrap" }}
+                  >
+                    <Markdown>
+                      {(text as string)
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter((line) => line.length > 0)
+                        .join("\n\n")}
+                    </Markdown>
+                  </CardContent>
+                </Card>
+              ),
+            )}
           </ScrollArea>
         </div>
       )}

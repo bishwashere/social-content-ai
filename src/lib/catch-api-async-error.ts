@@ -7,7 +7,7 @@ import { Params } from "@/types/api";
  *  @param fn - The API route handler function
  */
 const catchApiAsyncError = (
-  fn: (req: NextRequest, params: Params) => unknown
+  fn: (req: NextRequest, params: Params) => unknown,
 ) => {
   return async (req: NextRequest, params: Params) => {
     try {

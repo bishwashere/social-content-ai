@@ -3,9 +3,18 @@ import Markdown from "react-markdown";
 import { useEffect, useState } from "react";
 import { Plus, Copy, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import { useGenerateProjectContent, useGetAllProjects } from "@/backend-apis/projects/hooks";
+import {
+  useGenerateProjectContent,
+  useGetAllProjects,
+} from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Import utilities
@@ -74,8 +83,10 @@ export default function Home() {
   return (
     <div className="md:ml-64 lg:ml-72 p-6 space-y-6">
       <div className="text-center">
-        Welcome to NextPostAI!<br />
-        Select a project from the left to get started, or click ‘Add Project’ to create a new one.
+        Welcome to NextPostAI!
+        <br />
+        Select a project from the left to get started, or click ‘Add Project’ to
+        create a new one.
       </div>
 
       {/* Main Content - Two Boxes */}
@@ -106,7 +117,9 @@ export default function Home() {
                   }}
                 >
                   <div>
-                    <label className="block text-sm font-medium mb-1">Project Name</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Project Name
+                    </label>
                     <input
                       type="text"
                       value={projectName}
@@ -116,7 +129,9 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Description
+                    </label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -239,7 +254,9 @@ export default function Home() {
                 padding: "0.5rem",
               }}
             >
-              <label className="block text-sm font-medium mb-1">Prompt (Optional)</label>
+              <label className="block text-sm font-medium mb-1">
+                Prompt (Optional)
+              </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -270,7 +287,11 @@ export default function Home() {
                 className="p-2 border rounded-lg"
               >
                 {PLATFORMS.map((platform) => (
-                  <option key={platform} value={platform} className="capitalize">
+                  <option
+                    key={platform}
+                    value={platform}
+                    className="capitalize"
+                  >
                     {platform.charAt(0).toUpperCase() + platform.slice(1)}
                   </option>
                 ))}
@@ -299,12 +320,14 @@ export default function Home() {
                 <Markdown>
                   {output[selectedPlatform]
                     .split("\n")
-                    .map((line, index) => line.trim())
+                    .map((line) => line.trim())
                     .filter((line) => line.length > 0)
                     .join("\n\n")}
                 </Markdown>
               ) : (
-                <p className="text-gray-500">Output will appear here once generated...</p>
+                <p className="text-gray-500">
+                  Output will appear here once generated...
+                </p>
               )}
             </div>
           </div>
@@ -346,7 +369,9 @@ export default function Home() {
                 </Button>
               ))
             ) : (
-              <p className="text-center text-gray-500">No projects available.</p>
+              <p className="text-center text-gray-500">
+                No projects available.
+              </p>
             )}
           </div>
         </DialogContent>

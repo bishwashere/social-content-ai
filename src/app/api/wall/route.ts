@@ -23,7 +23,7 @@ export const POST = applyMiddleware(
     const user = req.parsed.user as User;
 
     const project: ProjectDoc | null = await ProjectModel.findById(
-      body.projectId
+      body.projectId,
     );
 
     if (!project) {
@@ -49,7 +49,7 @@ export const POST = applyMiddleware(
       data: post.toJSON(),
       message: "Post created successfully!",
     });
-  })
+  }),
 );
 
 /**
@@ -85,5 +85,5 @@ export const GET = applyMiddleware(
       },
       message: "Posts fetched successfully!",
     });
-  })
+  }),
 );

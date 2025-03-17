@@ -1,11 +1,23 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { AlertCircle, ArrowLeft, ShieldAlert } from "lucide-react"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { AlertCircle, ArrowLeft, ShieldAlert } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function PaymentFailed() {
   // Generate a reference ID for the failed transaction
@@ -18,10 +30,11 @@ export default function PaymentFailed() {
             <AlertCircle className="h-10 w-10 text-red-600" />
           </div>
           <CardTitle className="text-2xl font-bold">Payment Failed</CardTitle>
-          <CardDescription>We couldn&apos;t process your payment for the premium plan</CardDescription>
+          <CardDescription>
+            We couldn&apos;t process your payment for the premium plan
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-
           <div className="space-y-2">
             <h3 className="font-semibold flex items-center">
               <ShieldAlert className="h-4 w-4 mr-2 text-red-600" />
@@ -38,7 +51,9 @@ export default function PaymentFailed() {
 
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="troubleshooting">
-              <AccordionTrigger className="text-sm font-medium">Troubleshooting steps</AccordionTrigger>
+              <AccordionTrigger className="text-sm font-medium">
+                Troubleshooting steps
+              </AccordionTrigger>
               <AccordionContent className="text-sm space-y-2">
                 <p>Here are some steps you can take:</p>
                 <ol className="space-y-1.5 pl-6 list-decimal">
@@ -63,6 +78,5 @@ export default function PaymentFailed() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
-

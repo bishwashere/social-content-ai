@@ -45,7 +45,7 @@ export const POST = applyMiddleware(
       data: project.toJSON(),
       message: `Project ${project.name} created successfully!`,
     });
-  })
+  }),
 );
 
 /**
@@ -71,7 +71,7 @@ export const GET = applyMiddleware(
         {
           _id: {
             $in: invitedProjects.map(
-              (invitedProject) => invitedProject.projectId
+              (invitedProject) => invitedProject.projectId,
             ),
           },
         },
@@ -88,7 +88,7 @@ export const GET = applyMiddleware(
           ...project.toJSON(),
           chats: chats.map((chat) => chat.toJSON()),
         };
-      })
+      }),
     );
 
     if (!projectsWithChats) {
@@ -103,5 +103,5 @@ export const GET = applyMiddleware(
       data: projectsWithChats,
       message: `Project fetched successfully!`,
     });
-  })
+  }),
 );

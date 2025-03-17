@@ -45,7 +45,7 @@ class ProjectValidator {
   updateProject = this.createProject.partial().extend({
     platformUrls: z.record(
       commonValidator.availablePlatform(),
-      commonValidator.optionalString()
+      commonValidator.optionalString(),
     ),
   });
 

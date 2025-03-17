@@ -49,7 +49,7 @@ export const POST = applyMiddleware(
       {
         upsert: true,
         returnDocument: "after",
-      }
+      },
     );
 
     if (!savedUser) {
@@ -63,7 +63,7 @@ export const POST = applyMiddleware(
     console.log("🔑 Generating JWT token for user:", savedUser._id.toString());
     const jwt = generateJWT(
       { _id: savedUser._id.toString(), email: savedUser.email },
-      process.env.JWT_SECRET as string
+      process.env.JWT_SECRET as string,
     );
 
     console.log("📤 Returning response with token:", jwt ? "Yes" : "No", jwt);
@@ -81,5 +81,5 @@ export const POST = applyMiddleware(
         subscription,
       },
     });
-  })
+  }),
 );

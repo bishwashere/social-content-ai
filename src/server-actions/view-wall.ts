@@ -12,7 +12,7 @@ export const viewWall = async (wallId: string) => {
         $inc: {
           views: 1,
         },
-      }
+      },
     );
     return true;
   } catch (e) {

@@ -42,7 +42,7 @@ export const POST = applyMiddleware(
       const session = await stripe.createSession(
         PACKAGES.BASIC,
         user.toJSON() as User,
-        !user.hasClaimedFreeTrial // only give trial if user has not claimed it before
+        !user.hasClaimedFreeTrial, // only give trial if user has not claimed it before
       );
 
       // delete old subscription
@@ -62,7 +62,7 @@ export const POST = applyMiddleware(
         message: "Failed to create checkout session",
       });
     }
-  })
+  }),
 );
 
 /**
@@ -97,5 +97,5 @@ export const GET = applyMiddleware(
         message: "Failed to get checkout session details",
       });
     }
-  })
+  }),
 );

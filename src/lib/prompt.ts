@@ -12,7 +12,8 @@ export const PLATFORM_CUSTOM_PROMPTS = {
   instagram:
     "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   x: "",
-  linkedin: "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
+  linkedin:
+    "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
@@ -69,7 +70,7 @@ class Prompt {
    */
   generateCorePrompt(
     options: ProjectValidatorType["createChat"]["options"],
-    projectOverview?: string
+    projectOverview?: string,
   ): string {
     const { verb, tone, style, goal, theme } =
       options || this.getRandomProperties();

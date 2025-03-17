@@ -33,7 +33,7 @@ const WallSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "wall",
-  }
+  },
 );
 
 const WallModel =

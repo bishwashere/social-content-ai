@@ -27,7 +27,7 @@ const ProjectSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "projects",
-  }
+  },
 );
 
 const ProjectModel =

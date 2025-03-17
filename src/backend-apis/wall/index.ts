@@ -14,7 +14,7 @@ class WallService {
       async () => {
         const response = await api.post(apiRoutes.WALL(), project);
         return response;
-      }
+      },
     );
     if (err) {
       throw new Error(err.response?.data?.message);

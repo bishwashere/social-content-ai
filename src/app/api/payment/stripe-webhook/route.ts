@@ -16,7 +16,7 @@ export const POST = applyMiddleware(
       return stripe.stripe.webhooks.constructEvent(
         await req.text(),
         sig,
-        endpointSecret
+        endpointSecret,
       );
     });
 
@@ -70,5 +70,5 @@ export const POST = applyMiddleware(
       message: "Stripe webhook",
       status: 200,
     });
-  })
+  }),
 );

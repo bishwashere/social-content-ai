@@ -30,5 +30,5 @@ export const GET = applyMiddleware(
       data: chats,
       message: `Project chats fetched successfully!`,
     });
-  })
+  }),
 );

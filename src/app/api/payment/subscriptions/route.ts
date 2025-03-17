@@ -30,7 +30,7 @@ export const GET = applyMiddleware(
       message: "Subscription details",
       data: subscription,
     });
-  })
+  }),
 );
 
 /**
@@ -69,5 +69,5 @@ export const PUT = applyMiddleware(
         url: portal.url,
       },
     });
-  })
+  }),
 );

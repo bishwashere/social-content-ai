@@ -45,7 +45,7 @@ class PaymentService {
       async () => {
         const response = await api.get(apiRoutes.PAYMENT.SUBSCRIPTIONS());
         return response;
-      }
+      },
     );
 
     if (err) throw new Error(err.response?.data?.message);

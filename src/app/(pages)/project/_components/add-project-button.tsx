@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import { useCreateProject } from "@/backend-apis/projects/hooks";
 
-
 export function AddProjectButton() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -30,7 +29,7 @@ export function AddProjectButton() {
       setOpen(false);
       setName("");
       setDescription("");
-    } catch { }
+    } catch {}
   };
 
   return (
@@ -67,7 +66,12 @@ export function AddProjectButton() {
               className="h-24"
             />
           </div>
-          <Button loading={createProject.isPending} disabled={!name || !description} type="submit" className="w-full">
+          <Button
+            loading={createProject.isPending}
+            disabled={!name || !description}
+            type="submit"
+            className="w-full"
+          >
             Create Project
           </Button>
         </form>

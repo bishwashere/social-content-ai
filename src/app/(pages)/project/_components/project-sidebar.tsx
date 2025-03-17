@@ -29,7 +29,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
 
-
 export function ProjectSidebar() {
   const params = useParams();
   const pathname = usePathname();
@@ -41,11 +40,11 @@ export function ProjectSidebar() {
     setOpenSections((current) =>
       current.includes(value)
         ? current.filter((item) => item !== value)
-        : [...current, value]
+        : [...current, value],
     );
   };
 
-  const { data: projects, isLoading } = useGetAllProjects()
+  const { data: projects, isLoading } = useGetAllProjects();
 
   return (
     <Sidebar className="border-r">
@@ -54,12 +53,12 @@ export function ProjectSidebar() {
       </SidebarHeader>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <SidebarContent className="p-2">
-        <Link
-          href="/project/wall"
-          className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
-        >
-          👥 For You
-        </Link>
+          <Link
+            href="/project/wall"
+            className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
+          >
+            👥 For You
+          </Link>
           {/* Dashboard Link */}
           <Link
             href="/project/dashboard"
@@ -68,13 +67,11 @@ export function ProjectSidebar() {
             📊 Project Dashboard
           </Link>
           {/* Projects */}
-          {
-            isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-8" />
               ))
-            ) : (
-              projects?.map((project) => (
+            : projects?.map((project) => (
                 <ProjectItem
                   key={project._id}
                   project={project}
@@ -82,9 +79,7 @@ export function ProjectSidebar() {
                   onToggle={() => handleSectionToggle(project._id)}
                   currentPath={pathname}
                 />
-              ))
-            )
-          }
+              ))}
         </SidebarContent>
       </ScrollArea>
     </Sidebar>
@@ -104,22 +99,19 @@ function ProjectItem({
   onToggle,
   currentPath,
 }: ProjectItemProps) {
-  const router = useRouter()
-  const { data } = useSession()
+  const router = useRouter();
+  const { data } = useSession();
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <CollapsibleTrigger
         className="w-[calc(var(--sidebar-width)-1rem)]"
-        onClick={() =>
-          router.push(`/project/${project._id}`)
-        }
+        onClick={() => router.push(`/project/${project._id}`)}
       >
-
         <div
           className={cn(
             "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200",
             currentPath === `/project/${project._id}` &&
-            "bg-accent text-accent-foreground"
+              "bg-accent text-accent-foreground",
           )}
         >
           <div className="flex items-center gap-2 truncate">
@@ -132,11 +124,9 @@ function ProjectItem({
           </div>
 
           <div className="flex items-center gap-2">
-            {
-              data?.user?._id !== project.userId && (
-                <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
-              )
-            }
+            {data?.user?._id !== project.userId && (
+              <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
+            )}
             {isOpen ? (
               <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
             ) : (
@@ -146,13 +136,12 @@ function ProjectItem({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-1 px-3 py-2">
-
         <Link
           href={`/project/${project._id}`}
           className={cn(
             "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
             currentPath === `/project/${project._id}` &&
-            "bg-accent/50 text-accent-foreground"
+              "bg-accent/50 text-accent-foreground",
           )}
         >
           Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
@@ -164,18 +153,16 @@ function ProjectItem({
             className={cn(
               "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
               currentPath === `/project/${project._id}/chat/${chat._id}` &&
-              "bg-accent/50 text-accent-foreground"
+                "bg-accent/50 text-accent-foreground",
             )}
           >
             <div className="flex items-center gap-2">
               <div className="w-1 h-1 rounded-full bg-current opacity-60" />
-              <span className="truncate max-w-[150px]">
-                {chat.title}
-              </span>
+              <span className="truncate max-w-[150px]">{chat.title}</span>
             </div>
           </Link>
         ))}
       </CollapsibleContent>
-    </Collapsible >
+    </Collapsible>
   );
 }

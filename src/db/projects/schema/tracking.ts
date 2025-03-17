@@ -24,7 +24,7 @@ const ProjectTrackingSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "project-trackings",
-  }
+  },
 );
 
 const ProjectTrackingModel =

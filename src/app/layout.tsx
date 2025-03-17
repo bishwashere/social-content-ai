@@ -6,12 +6,10 @@ import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
-
 export const metadata: Metadata = {
   title: "NextPostAI - AI-powered Social Media Content Generator",
   description: "Generate engaging social media content with AI",
 };
-
 
 export default function RootLayout({
   children,
@@ -20,9 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={inter.className}
-      >
+      <body className={inter.className}>
         <RootProvider>
           {children}
           <Toaster richColors />

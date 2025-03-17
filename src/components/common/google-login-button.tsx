@@ -1,25 +1,35 @@
-"use client"
-import { useContinueWithGoogle } from '@/backend-apis/auth/hooks'
-import React, { useState } from 'react'
-import { useGoogleLogin } from '@react-oauth/google';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useRouter } from 'next/navigation';
+"use client";
+import { useContinueWithGoogle } from "@/backend-apis/auth/hooks";
+import React, { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
 
 type Props = {
-  triggerClassName?: string
-}
+  triggerClassName?: string;
+};
 
 const GoogleLoginButton = ({ triggerClassName }: Props) => {
-  const [open, setOpen] = useState(false)
-  const continueWithGoogle = useContinueWithGoogle()
-  const router = useRouter()
+  const [open, setOpen] = useState(false);
+  const continueWithGoogle = useContinueWithGoogle();
+  const router = useRouter();
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        await continueWithGoogle.mutateAsync({ credential: tokenResponse.access_token });
-        router.replace("/project")
-      } catch { }
+        await continueWithGoogle.mutateAsync({
+          credential: tokenResponse.access_token,
+        });
+        router.replace("/project");
+      } catch {}
     },
     scope: "profile email",
   });
@@ -32,7 +42,9 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
       <DialogContent className="sm:max-w-md">
         <DialogClose />
         <DialogHeader>
-          <DialogTitle className="text-center text-xl">Welcome Back</DialogTitle>
+          <DialogTitle className="text-center text-xl">
+            Welcome Back
+          </DialogTitle>
           <DialogDescription className="text-center">
             Sign in to your account to continue
           </DialogDescription>
@@ -44,7 +56,11 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
             className="w-full max-w-sm flex items-center justify-center gap-2 py-6"
             onClick={() => login()}
           >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="" className='size-5' />
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              alt=""
+              className="size-5"
+            />
             Continue with Google
           </Button>
 
@@ -54,7 +70,7 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default GoogleLoginButton
+export default GoogleLoginButton;

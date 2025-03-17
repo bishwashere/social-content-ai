@@ -3,19 +3,22 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 
 import { useState } from "react";
 import { ProjectCard } from "./project-card";
-import { useGetAllProjects, useGetProjectsSummary } from "@/backend-apis/projects/hooks";
+import {
+  useGetAllProjects,
+  useGetProjectsSummary,
+} from "@/backend-apis/projects/hooks";
 import { SummarySection } from "./summary-section";
 
 export default function ProjectDashboard() {
   const [showSummary, setShowSummary] = useState(false);
-  const projects = useGetAllProjects()
-  const summary = useGetProjectsSummary()
+  const projects = useGetAllProjects();
+  const summary = useGetProjectsSummary();
 
-  if (projects.isLoading) return null
+  if (projects.isLoading) return null;
 
   return (
     <div className="flex-grow max-w-full mx-auto items-center justify-center p-8 space-y-8">
@@ -31,10 +34,7 @@ export default function ProjectDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
         {projects?.data?.map((project) => (
-          <ProjectCard
-            key={project._id}
-            project={project}
-          />
+          <ProjectCard key={project._id} project={project} />
         ))}
       </div>
     </div>
