@@ -19,8 +19,11 @@ const Subscription = () => {
         {data?.subscription?.endsAt
           ? isSubscriptionExpired(data?.subscription?.endsAt).isExpired
             ? "Expired"
-            : "Pro"
+            : data?.subscription?.status === "trialing"
+              ? "Trial"
+              : "Pro"
           : "Subscribe"}
+        {data?.user?.remainingChatGenerations || 0}
       </Button>
     </div>
   );

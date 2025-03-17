@@ -12,7 +12,7 @@ import {
   SubscriptionModel,
 } from "@/db/subscriptions/schema/subscription";
 import { SUBSCRIPTION_STATUS } from "@/constants/subscription-status";
-import { CHAT_GENERATION_PER_MONTH } from "@/constants/common";
+import { CHAT_GENERATION_PER_MONTH_WHILE_TRIAL } from "@/constants/common";
 class Stripe {
   stripe: StripeNative;
 
@@ -56,7 +56,7 @@ class Stripe {
   }
 
   async createSubscription(
-    event: StripeNative.CustomerSubscriptionCreatedEvent,
+    event: StripeNative.CustomerSubscriptionCreatedEvent
   ) {
     const userId = event.data.object?.metadata?.userId;
 
@@ -66,7 +66,7 @@ class Stripe {
     }
 
     const user: UserDoc | null = await UserModel.findById(
-      new mongoose.Types.ObjectId(userId),
+      new mongoose.Types.ObjectId(userId)
     );
 
     if (!user) {
@@ -98,10 +98,10 @@ class Stripe {
     await SubscriptionModel.create({
       userId: user._id,
       startedAt: new Date(
-        event.data.object.current_period_start * 1000,
+        event.data.object.current_period_start * 1000
       ).toISOString(),
       endsAt: new Date(
-        event.data.object.current_period_end * 1000,
+        event.data.object.current_period_end * 1000
       ).toISOString(),
       invoiceId: event.data.object.latest_invoice,
       status: event.data.object.status,
@@ -110,7 +110,7 @@ class Stripe {
       customerId: event.data.object.customer as string,
     });
 
-    user.remainingChatGenerations = CHAT_GENERATION_PER_MONTH;
+    user.remainingChatGenerations = CHAT_GENERATION_PER_MONTH_WHILE_TRIAL;
     user.hasClaimedFreeTrial = true;
     await user.save();
 
@@ -120,7 +120,7 @@ class Stripe {
   async endSubscription(
     event:
       | StripeNative.CustomerSubscriptionDeletedEvent
-      | StripeNative.InvoicePaymentFailedEvent,
+      | StripeNative.InvoicePaymentFailedEvent
   ) {
     const customer = event.data.object.customer;
 
@@ -143,7 +143,7 @@ class Stripe {
   async updateSubscription(
     event:
       | StripeNative.InvoicePaymentSucceededEvent
-      | StripeNative.CustomerSubscriptionUpdatedEvent,
+      | StripeNative.CustomerSubscriptionUpdatedEvent
   ) {
     // update the subscription status and start and end date
     const subscription = await SubscriptionModel.findOne({
@@ -157,14 +157,14 @@ class Stripe {
 
     subscription.status = event.data.object.status;
     const subscriptionFromStripe = await this.stripe.subscriptions.retrieve(
-      subscription.subscriptionIdFromStripe,
+      subscription.subscriptionIdFromStripe
     );
 
     subscription.startedAt = new Date(
-      subscriptionFromStripe.current_period_start * 1000,
+      subscriptionFromStripe.current_period_start * 1000
     ).toISOString();
     subscription.endsAt = new Date(
-      subscriptionFromStripe.current_period_end * 1000,
+      subscriptionFromStripe.current_period_end * 1000
     ).toISOString();
 
     await subscription.save();
@@ -173,7 +173,7 @@ class Stripe {
   }
 
   async cancelSubscription(
-    event: StripeNative.CustomerSubscriptionUpdatedEvent,
+    event: StripeNative.CustomerSubscriptionUpdatedEvent
   ) {
     // update the subscription status and start and end date
     const subscription = await SubscriptionModel.findOne({

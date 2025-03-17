@@ -17,3 +17,4 @@ export type SubscriptionTypes =
   (typeof SUBSCRIPTION_TYPES)[keyof typeof SUBSCRIPTION_TYPES];
 
 export const CHAT_GENERATION_PER_MONTH = 1000;
+export const CHAT_GENERATION_PER_MONTH_WHILE_TRIAL = 10
