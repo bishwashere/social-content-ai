@@ -1,3 +1,6 @@
+### 03-16
+Eslint fix + main page + larger responses
+
 ### 2025-03-14
 
 Fixes -> Wall  
