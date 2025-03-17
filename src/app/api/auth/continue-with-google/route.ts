@@ -3,6 +3,7 @@ import { SubscriptionModel } from "@/db/subscriptions/schema/subscription";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { GoogleOauth } from "@/lib/google-ouath";
 import { generateJWT } from "@/lib/jwt";
+import { mail } from "@/lib/mail";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
@@ -24,6 +25,9 @@ export const POST = applyMiddleware(
     const user = new GoogleOauth(credential);
 
     const userProfile = await user.getUserProfile();
+
+    const existingUser = await UserModel.findOne({ email: userProfile.email });
+    const isNewUser = !existingUser;
 
     /**
      * 1. Find the user with the given email
@@ -49,7 +53,7 @@ export const POST = applyMiddleware(
       {
         upsert: true,
         returnDocument: "after",
-      },
+      }
     );
 
     if (!savedUser) {
@@ -60,10 +64,26 @@ export const POST = applyMiddleware(
       };
     }
 
+    if (isNewUser) {
+      Promise.resolve(
+        mail.sendTemplate(
+          "WELCOME_ON_LOGIN",
+          {
+            name: userProfile.name,
+            activationLink: process.env.NEXT_PUBLIC_FRONTEND_BASE_URL as string,
+          },
+          {
+            subject: `Welcome to NextPost AI, ${userProfile.name}!`,
+            to: [userProfile.email],
+          }
+        )
+      );
+    }
+
     console.log("🔑 Generating JWT token for user:", savedUser._id.toString());
     const jwt = generateJWT(
       { _id: savedUser._id.toString(), email: savedUser.email },
-      process.env.JWT_SECRET as string,
+      process.env.JWT_SECRET as string
     );
 
     console.log("📤 Returning response with token:", jwt ? "Yes" : "No", jwt);
@@ -81,5 +101,5 @@ export const POST = applyMiddleware(
         subscription,
       },
     });
-  }),
+  })
 );
