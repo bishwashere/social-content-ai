@@ -18,6 +18,10 @@ export default function HomeV3() {
 
         {/* Static Features Section */}
         <div className="max-w-6xl mx-auto mb-12">
+          {/* Call-to-Action */}
+          <div className="flex justify-center mb-8">
+            <GoogleLoginButton triggerClassName="min-w-32" />
+          </div>
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
             Explore NextPostAI Features
           </h2>

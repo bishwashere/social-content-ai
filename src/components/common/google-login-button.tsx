@@ -37,7 +37,7 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className={triggerClassName}>Sign In</Button>
+        <Button className={triggerClassName}>Start Free</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogClose />
