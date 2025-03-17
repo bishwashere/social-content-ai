@@ -23,7 +23,7 @@ const Subscription = () => {
               ? "Trial"
               : "Pro"
           : "Subscribe"}
-        {data?.user?.remainingChatGenerations || 0}
+        {" "}{data?.user?.remainingChatGenerations || 0}
       </Button>
     </div>
   );
