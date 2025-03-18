@@ -1,6 +1,7 @@
 ### 03-17
 Credit limit + email welcome
 credit fix
+fix template
 
 ### 03-16
 Eslint fix + main page + larger responses
