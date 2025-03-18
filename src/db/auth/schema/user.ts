@@ -32,11 +32,16 @@ const UserSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
+    lastInformedAboutInactiveProject: {
+      type: Date,
+      required: false,
+      default: Date.now(),
+    },
   },
   {
     timestamps: true,
     collection: "users",
-  },
+  }
 );
 
 const UserModel =
