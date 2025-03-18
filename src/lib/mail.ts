@@ -45,6 +45,7 @@ class Mail {
     data: React.ComponentProps<(typeof EMAIL_TEMPLATES)[T]>
   ) {
     const Template = this.getTemplate(template);
+    // @ts-expect-error:  ......
     return render(React.createElement(Template, data));
   }
 
