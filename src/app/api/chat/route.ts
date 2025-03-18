@@ -83,6 +83,9 @@ export const POST = applyMiddleware(
         });
       }
 
+      user.remainingChatGenerations -= 1;
+      await user.save();
+
       return sendNextResponse({
         status: 200,
         message: "Chat generated successfully",
@@ -185,7 +188,7 @@ export const POST = applyMiddleware(
           },
           {
             returnDocument: "after",
-          },
+          }
         );
 
         if (!chat) {
@@ -221,5 +224,5 @@ export const POST = applyMiddleware(
         });
       }
     }
-  }),
+  })
 );
