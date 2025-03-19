@@ -65,7 +65,24 @@ export default function HomeV3() {
         {/* Community Wall Preview Section */}
         <div className="max-w-4xl mx-auto mb-12">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-            ✨ What others are sharing on NextPostAI ✨
+            ✨ Work with AI or generate your own content  ✨
+          </h2>
+          <div className="w-full">
+            <Image
+              src="/generator.png"
+              alt="Community Wall Full Preview"
+              width={1024}
+              height={576}
+              className="w-full h-auto"
+              loading="lazy"
+            />
+          </div>
+        </div>
+
+        {/* Community Wall Preview Section */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+            ✨ Get inspired by what others are sharing on NextPostAI ✨
           </h2>
           <div className="w-full">
             <Image
