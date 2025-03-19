@@ -94,16 +94,16 @@ export default function SocialFeed() {
 
           {wall.data?.pages?.[wall?.data?.pages?.length - 1]?.pagination
             ?.hasMore && (
-            <div className="w-full flex items-center justify-center ">
-              <Button
-                className="w-32 my-4"
-                onClick={() => wall.fetchNextPage()}
-                disabled={wall.isFetchingNextPage}
-              >
-                Load More
-              </Button>
-            </div>
-          )}
+              <div className="w-full flex items-center justify-center ">
+                <Button
+                  className="w-32 my-4"
+                  onClick={() => wall.fetchNextPage()}
+                  disabled={wall.isFetchingNextPage}
+                >
+                  Load More
+                </Button>
+              </div>
+            )}
         </div>
       </ScrollArea>
     </div>
@@ -116,18 +116,19 @@ const WallComp = ({
   post: WallResponsePaginated["posts"][number];
 }) => {
   useEffect(() => {
-    const fn = async () => {
-      const isViewed =
-        sessionStorage.getItem(`wall:viewed:${post._id}`) === "true";
+    // const fn = async () => {
+    //   const isViewed =
+    //     sessionStorage.getItem(`wall:viewed:${post._id}`) === "true";
 
-      if (!isViewed) {
-        const res = await viewWall(post._id);
-        if (res) {
-          sessionStorage.setItem(`wall:viewed:${post._id}`, "true");
-        }
-      }
-    };
-    fn();
+    //   if (!isViewed) {
+    //     const res = await viewWall(post._id);
+    //     if (res) {
+    //       sessionStorage.setItem(`wall:viewed:${post._id}`, "true");
+    //     }
+    //   }
+    // };
+    // fn();
+    viewWall(post._id)
   }, [post._id]);
 
   return (

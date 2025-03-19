@@ -16,6 +16,7 @@ import {
   useGetAllProjects,
 } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 // Import utilities
 import { randomizeOptions } from "./projectPageUtils/randomizeOptions";
@@ -67,7 +68,7 @@ export default function Home() {
 
       //@ts-expect-error: type is not defined
       setOutput(res.contents || {});
-    } catch {}
+    } catch { }
   };
 
   const handleCopyToClipboard = () => {
@@ -281,54 +282,60 @@ export default function Home() {
           <h2 className="text-xl font-semibold mb-4">Output</h2>
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <select
+              <Tabs
                 value={selectedPlatform}
-                onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="p-2 border rounded-lg"
+                onValueChange={setSelectedPlatform}
+                className="w-full"
               >
+                <TabsList>
+                  {PLATFORMS.map((platform) => (
+                    <TabsTrigger
+                      key={platform}
+                      value={platform}
+                      className="capitalize min-w-24"
+                    >
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 {PLATFORMS.map((platform) => (
-                  <option
-                    key={platform}
-                    value={platform}
-                    className="capitalize"
-                  >
-                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                  </option>
+                  <TabsContent key={platform} value={platform}>
+                    <div
+                      className="min-h-[500px] p-4 rounded-2xl bg-gray-50 relative"
+                      style={{
+                        border: "1px solid transparent",
+                        backgroundOrigin: "border-box",
+                        backgroundClip: "content-box, border-box",
+                        boxShadow: "0 0 10px rgba(120, 115, 245, 0.3)",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopyToClipboard}
+                        disabled={!output[selectedPlatform]}
+                        className="rounded-lg absolute top-4 right-4"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      {output[platform] ? (
+                        <Markdown>
+                          {output[platform]
+                            .split("\n")
+                            .map((line) => line.trim())
+                            .filter((line) => line.length > 0)
+                            .join("\n\n")}
+                        </Markdown>
+                      ) : (
+                        <p className="text-gray-500">
+                          Output will appear here once generated...
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
                 ))}
-              </select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyToClipboard}
-                disabled={!output[selectedPlatform]}
-                className="rounded-lg"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <div
-              className="min-h-[500px] p-4 rounded-2xl bg-gray-50"
-              style={{
-                border: "1px solid transparent",
-                backgroundOrigin: "border-box",
-                backgroundClip: "content-box, border-box",
-                boxShadow: "0 0 10px rgba(120, 115, 245, 0.3)",
-                whiteSpace: "pre-wrap", // Added to preserve newlines
-              }}
-            >
-              {output[selectedPlatform] ? (
-                <Markdown>
-                  {output[selectedPlatform]
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter((line) => line.length > 0)
-                    .join("\n\n")}
-                </Markdown>
-              ) : (
-                <p className="text-gray-500">
-                  Output will appear here once generated...
-                </p>
-              )}
+              </Tabs>
             </div>
           </div>
         </div>

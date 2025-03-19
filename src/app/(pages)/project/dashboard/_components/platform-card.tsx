@@ -39,7 +39,7 @@ export function PlatformCard({
       dates?.filter(
         (entry) =>
           (Date.now() - new Date(entry.date).getTime()) /
-            (1000 * 60 * 60 * 24) <=
+          (1000 * 60 * 60 * 24) <=
           30,
       ).length || 0
     );
@@ -132,7 +132,7 @@ export function PlatformCard({
                     });
                     setSelectedDate(null);
                     setInputValue("");
-                  } catch {}
+                  } catch { }
                 }
               }}
               className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition h-fit"
@@ -144,7 +144,7 @@ export function PlatformCard({
             type="url"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Enter URL (optional)"
+            placeholder="Enter URL "
             className="border rounded px-2 py-1 text-xs w-full"
           />
         </div>
