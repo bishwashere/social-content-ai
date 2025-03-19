@@ -1,6 +1,9 @@
 "use client"
 import { useState } from "react";
-import GoogleLoginButton from "@/components/common/google-login-button";
+// Dynamic import for non-critical components
+import dynamic from 'next/dynamic';
+const GoogleLoginButton = dynamic(() => import('@/components/common/google-login-button'), { ssr: false });
+
 import Image from "next/image";
 
 export default function HomeV3() {
@@ -72,6 +75,7 @@ export default function HomeV3() {
               width={1024}
               height={576}
               className="w-full h-auto"
+              loading="lazy"
             />
           </div>
         </div>
@@ -88,6 +92,7 @@ export default function HomeV3() {
               width={1024}
               height={576}
               className="w-full h-auto"
+              loading="lazy"
             />
           </div>
         </div>
