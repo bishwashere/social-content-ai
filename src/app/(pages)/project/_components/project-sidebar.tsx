@@ -64,7 +64,7 @@ export function ProjectSidebar() {
             href="/project/dashboard"
             className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
           >
-            📊 Project Dashboard
+            📊 Content Planner
           </Link>
           {/* Projects */}
           {isLoading

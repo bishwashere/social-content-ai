@@ -29,34 +29,34 @@ export default function HomeV3() {
           </div>
 
           {/* Single Box for Features */}
-          <div className="p-6 rounded-xl bg-teal-700/30 border border-teal-500">
+          <div className="p-6 rounded-2xl bg-teal-700/30 border border-teal-500">
             <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-              What NextPostAI provides?
+              Features
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
               {/* Feature 1: Content Generator */}
               <div className="text-center">
                 <h3 className="text-white font-semibold mb-2">
-                  1. AI Content Generator
+                  1. Viral Content Generator
                 </h3>
                 <p className="text-teal-100 text-sm mb-4">
-                  Creates viral content for Facebook, LinkedIn, X, and Instagram.
+                  AI that is tuned to generate viral content.
                 </p>
               </div>
 
-              {/* Feature 2: Strategy Board */}
+              {/* Feature 2: Content Planner */}
               <div className="text-center">
-                <h3 className="text-white font-semibold mb-2">2. Strategy Board</h3>
+                <h3 className="text-white font-semibold mb-2">2. Content Planner</h3>
                 <p className="text-teal-100 text-sm mb-4">
-                  Lets you manually track posting history and automatically alerts you when posts are due.
+                  Enter when you make posts, and get auto alert to post next time.
                 </p>
               </div>
 
               {/* Feature 3: Community Wall */}
               <div className="text-center">
-                <h3 className="text-white font-semibold mb-2">3. Community Wall</h3>
+                <h3 className="text-white font-semibold mb-2">3. Get Ideas</h3>
                 <p className="text-teal-100 text-sm mb-4">
-                  Lets you share projects with others, if you choose!
+                  Get inspiring ideas from other people's projects + content. Or share yours.
                 </p>
               </div>
             </div>
@@ -66,7 +66,7 @@ export default function HomeV3() {
         {/* Community Wall Preview Section */}
         <div className="max-w-4xl mx-auto mb-12">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-            ✨ Discover Content Created by Others with NextPostAI ✨
+            ✨ What others are sharing on NextPostAI ✨
           </h2>
           <div className="w-full">
             <Image
@@ -83,7 +83,7 @@ export default function HomeV3() {
         {/* Strategy Board Preview Section */}
         <div className="max-w-4xl mx-auto mb-12">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-            Explore the Strategy Board
+            📆 Content Planner 📆
           </h2>
           <div className="w-full">
             <Image
@@ -96,6 +96,38 @@ export default function HomeV3() {
             />
           </div>
         </div>
+
+        {/* old way - new way */}
+        <div className="w-full max-w-[450px] mx-auto mb-12">
+          <h3 className="text-white font-semibold mb-4 text-center text-2xl">Why use NextPostAI?</h3>
+          {/* Old Way in a Box */}
+          <div className="p-6 rounded-xl bg-teal-700/50 border border-teal-500 mb-8 mx-auto">
+            <h3 className="text-white font-semibold mb-4 text-left text-xl">Old Way</h3>
+            <ul className="text-teal-100 text-lg text-left">
+              <li><span className="text-red-500">❌</span> 5-10 hours analyzing trends</li>
+              <li><span className="text-red-500">❌</span> Inconsistent posting</li>
+              <li><span className="text-red-500">❌</span> Manual content creation</li>
+              <li><span className="text-red-500">❌</span> AI hallucinates</li>
+            </ul>
+          </div>
+
+          {/* New Way in a Box */}
+          <div className="p-6 rounded-xl bg-teal-700/50 border border-teal-500 mx-auto">
+            <h3 className="text-white font-semibold mb-4 text-left text-xl">New Way with NextPostAI</h3>
+            <ul className="text-teal-100 text-lg text-left">
+              <li><span className="text-green-500">✔️</span> Instant viral AI-generated content</li>
+              <li><span className="text-green-500">✔️</span> Automated reminders</li>
+              <li><span className="text-green-500">✔️</span> Community inspiration</li>
+              <li><span className="text-green-500">✔️</span> Effortless posting schedule</li>
+            </ul>
+          </div>
+        </div>
+
+
+
+
+
+
 
         {/* Call-to-Action */}
         <div className="flex justify-center mb-8">
