@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
-
+import { GoogleAnalytics } from "@next/third-parties/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -23,6 +23,9 @@ export default function RootLayout({
           {children}
           <Toaster richColors />
         </RootProvider>
+        <GoogleAnalytics
+          gaId={"G-GLPQVZ5H11"}
+        />
       </body>
     </html>
   );
