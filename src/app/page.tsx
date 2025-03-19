@@ -2,32 +2,8 @@
 import { useState } from "react";
 import GoogleLoginButton from "@/components/common/google-login-button";
 import Image from "next/image";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
 export default function HomeV3() {
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
-
-  const handleImageClick = (index: string) => {
-    setExpandedImage(index);
-  };
-
-  const handleCloseExpanded = () => {
-    setExpandedImage(null);
-  };
-
-  const handleNavigate = (direction: "left" | "right") => {
-    if (expandedImage !== null) {
-      const images = ["generator.png", "dashboard.png", "wall.png"];
-      const currentIndex = images.indexOf(expandedImage);
-      let newIndex;
-      if (direction === "left") {
-        newIndex = (currentIndex - 1 + images.length) % images.length;
-      } else {
-        newIndex = (currentIndex + 1) % images.length;
-      }
-      setExpandedImage(images[newIndex]);
-    }
-  };
 
   return (
     <div className="bg-gradient-to-t from-teal-600 to-cyan-500 min-h-screen flex flex-col justify-between">
