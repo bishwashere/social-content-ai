@@ -13,7 +13,7 @@ export default function HomeV3() {
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <header className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-md">
+          <h1 className="text-5xl text-white mb-4 drop-shadow-md">
             NextPostAI
           </h1>
           <p className="text-xl text-teal-100 max-w-lg mx-auto">
