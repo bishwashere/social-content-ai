@@ -37,7 +37,11 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className={triggerClassName}>Start Free</Button>
+        <Button
+          className={`py-3 px-10 h-12 text-lg font-semibold text-white rounded-lg hover:bg-gray-700 ${triggerClassName}`}
+        >
+          Start Free
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogClose />

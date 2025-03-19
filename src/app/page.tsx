@@ -5,20 +5,16 @@ import Image from "next/image";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
 export default function HomeV3() {
-  // State to manage which image is expanded, typed as string or null
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
-  // Handle image click to expand, with index typed as string
   const handleImageClick = (index: string) => {
     setExpandedImage(index);
   };
 
-  // Close expanded view when clicking outside
   const handleCloseExpanded = () => {
     setExpandedImage(null);
   };
 
-  // Handle navigation (optional, can remove if not needed)
   const handleNavigate = (direction: "left" | "right") => {
     if (expandedImage !== null) {
       const images = ["generator.png", "dashboard.png", "wall.png"];
@@ -42,8 +38,7 @@ export default function HomeV3() {
             NextPostAI
           </h1>
           <p className="text-xl text-teal-100 max-w-lg mx-auto">
-            <span className="bg-white text-teal-600 px-1 rounded">Build</span> and{" "}
-            <span className="bg-white text-teal-600 px-1 rounded">Grow</span> Your Brand Across Facebook, LinkedIn, Twitter(X), and Instagram
+            Generate ready-to-post Content for Facebook, LinkedIn, X, and Instagram.
           </p>
         </header>
 
@@ -53,71 +48,71 @@ export default function HomeV3() {
           <div className="flex justify-center mb-8">
             <GoogleLoginButton triggerClassName="min-w-32" />
           </div>
+
+          {/* Single Box for Features */}
+          <div className="p-6 rounded-xl bg-teal-700/30 border border-teal-500">
+            <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+              What NextPostAI provides?
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Feature 1: Content Generator */}
+              <div className="text-center">
+                <h3 className="text-white font-semibold mb-2">
+                  1. AI Content Generator
+                </h3>
+                <p className="text-teal-100 text-sm mb-4">
+                  Creates viral content for Facebook, LinkedIn, X, and Instagram.
+                </p>
+              </div>
+
+              {/* Feature 2: Strategy Board */}
+              <div className="text-center">
+                <h3 className="text-white font-semibold mb-2">2. Strategy Board</h3>
+                <p className="text-teal-100 text-sm mb-4">
+                  Lets you manually track posting history and automatically alerts you when posts are due.
+                </p>
+              </div>
+
+              {/* Feature 3: Community Wall */}
+              <div className="text-center">
+                <h3 className="text-white font-semibold mb-2">3. Community Wall</h3>
+                <p className="text-teal-100 text-sm mb-4">
+                  Lets you share projects with others, if you choose!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Community Wall Preview Section */}
+        <div className="max-w-4xl mx-auto mb-12">
           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-            What NextPostAI provides?
+            ✨ Discover Content Created by Others with NextPostAI ✨
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Feature 2: Content Generator */}
-            <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">
-                AI Content Generator
-              </h3>
-              <p className="text-teal-100 text-sm mb-4">
-                Generate posts instantly for Facebook, LinkedIn, Twitter(X), and Instagram.
-              </p>
-              <div
-                className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative cursor-pointer"
-                onClick={() => handleImageClick("generator.png")}
-              >
-                <Image
-                  src="/generator.png"
-                  alt="Content Generator Preview"
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
+          <div className="w-full">
+            <Image
+              src="/wall-preview.png"
+              alt="Community Wall Full Preview"
+              width={1024}
+              height={576}
+              className="w-full h-auto"
+            />
+          </div>
+        </div>
 
-            {/* Feature 3: Strategy Board */}
-            <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">Strategy Board</h3>
-              <p className="text-teal-100 text-sm mb-4">
-                Track the posted history and plan the next updates.
-              </p>
-              <div
-                className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative cursor-pointer"
-                onClick={() => handleImageClick("dashboard.png")}
-              >
-                <Image
-                  src="/dashboard.png"
-                  alt="Strategy Board Preview"
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Feature 1: Community Wall */}
-            <div className="bg-teal-700/50 p-6 rounded-xl shadow-lg transform hover:scale-105 transition">
-              <h3 className="text-white font-semibold mb-2">Community Wall</h3>
-              <p className="text-teal-100 text-sm mb-4">
-                Share your projects with others if you want!
-              </p>
-              <div
-                className="bg-teal-800/70 h-32 rounded-lg overflow-hidden relative cursor-pointer"
-                onClick={() => handleImageClick("wall.png")}
-              >
-                <Image
-                  src="/wall.png"
-                  alt="Community Wall Preview"
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
+        {/* Strategy Board Preview Section */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+            Explore the Strategy Board
+          </h2>
+          <div className="w-full">
+            <Image
+              src="/dashboard-preview.png"
+              alt="Strategy Board Full Preview"
+              width={1024}
+              height={576}
+              className="w-full h-auto"
+            />
           </div>
         </div>
 
@@ -125,81 +120,7 @@ export default function HomeV3() {
         <div className="flex justify-center mb-8">
           <GoogleLoginButton triggerClassName="min-w-32" />
         </div>
-
-          {/* Community Wall Preview Section */}
-         <div className="max-w-4xl mx-auto mb-12">
-           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-             Content generated by others
-           </h2>
-           <div className="w-full">
-             <Image
-               src="/wall-preview.png" // Replace with your actual image path
-               alt="Community Wall Full Preview"
-               width={1024} // Base width (adjust as needed)
-               height={576} // Base height (adjust to your image’s aspect ratio)
-               className="w-full h-auto"
-             />
-           </div>
-         </div>
-
-         {/* Strategy Board Preview Section */}
-         <div className="max-w-4xl mx-auto mb-12">
-         <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-           Explore the Strategy Board
-         </h2>
-         <div className="w-full">
-           <Image
-             src="/dashboard-preview.png" // Replace with your actual image path
-             alt="Strategy Board Full Preview"
-             width={1024} // Base width (adjust as needed)
-             height={576} // Base height (adjust to your image’s aspect ratio)
-             className="w-full h-auto"
-           />
-         </div>
-         </div>
-
       </div>
-
-      {/* Expanded Image Overlay */}
-      {expandedImage && (
-        <div
-          className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
-          onClick={handleCloseExpanded}
-        >
-          <div
-            className="relative max-w-[90%] max-h-[90%] flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-          >
-            <Image
-              src={`/${expandedImage}`}
-              alt={`${expandedImage.replace(".png", "")} Preview Expanded`}
-              width={1200}
-              height={800}
-              objectFit="contain"
-              className="rounded-lg shadow-xl"
-            />
-            {/* Optional Navigation Arrows */}
-            <div
-              className="absolute left-0 top-0 h-full w-1/2 flex items-center justify-start opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNavigate("left");
-              }}
-            >
-              <FaArrowLeft className="text-white text-4xl ml-4 drop-shadow-md" />
-            </div>
-            <div
-              className="absolute right-0 top-0 h-full w-1/2 flex items-center justify-end opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNavigate("right");
-              }}
-            >
-              <FaArrowRight className="text-white text-4xl mr-4 drop-shadow-md" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <div className="bg-teal-800/50 py-6 text-center">
