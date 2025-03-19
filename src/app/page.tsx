@@ -1,5 +1,4 @@
 "use client"
-import { useState } from "react";
 // Dynamic import for non-critical components
 import dynamic from 'next/dynamic';
 const GoogleLoginButton = dynamic(() => import('@/components/common/google-login-button'), { ssr: false });
@@ -56,7 +55,7 @@ export default function HomeV3() {
               <div className="text-center">
                 <h3 className="text-white font-semibold mb-2">3. Get Ideas</h3>
                 <p className="text-teal-100 text-sm mb-4">
-                  Get inspiring ideas from other people's projects + content. Or share yours.
+                  Get inspiring ideas from other peoples projects + content. Or share yours.
                 </p>
               </div>
             </div>
