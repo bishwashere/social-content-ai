@@ -32,6 +32,7 @@ const SessionProvider = ({ children }: Props) => {
   }, [isError, isLoading, path, router]);
 
   if (isLoading) {
+    if (path === "/") return <HomePage />;
     return <Loading className="h-screen" />;
   }
 
