@@ -8,7 +8,7 @@ export const PACKAGES = {
 export type Package = (typeof PACKAGES)[keyof typeof PACKAGES];
 
 export const PACKAGES_DATA = (
-  user: User,
+  user: User
 ): Record<Package, Stripe.Checkout.SessionCreateParams.LineItem> => ({
   [PACKAGES.BASIC]: {
     price_data: {

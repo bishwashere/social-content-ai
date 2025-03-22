@@ -139,14 +139,14 @@ const WallComp = ({
       <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10 border">
-            <AvatarImage src={post.userId.avatarUrl} alt={post.userId.name} />
+            <AvatarImage src={post.userId?.avatarUrl} alt={post.userId?.name} />
             <AvatarFallback>
-              {post.userId.name.substring(0, 2).toUpperCase()}
+              {post.userId?.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-1">
-              <span className="font-medium text-sm">{post.userId.name}</span>
+              <span className="font-medium text-sm">{post.userId?.name || "Unknown"}</span>
               <span className="text-muted-foreground text-xs">
                 {post.createdAt}
               </span>
