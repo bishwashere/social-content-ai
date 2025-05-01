@@ -13,7 +13,7 @@ import Link from "next/link";
 import { Project } from "@/db/projects/schema/project";
 
 import PostToWall from "@/components/common/post-to-wall";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 interface ContentGeneratorProps {
   project: Project;
@@ -43,7 +43,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
       <div className="flex items-center justify-between">
         <Label htmlFor="prompt">User Prompt:</Label>
         <div className="flex items-center space-x-2">
-          <Checkbox
+          <Switch
             checked={checked}
             onCheckedChange={(checked) => setChecked(checked as boolean)}
             id="checked" />
