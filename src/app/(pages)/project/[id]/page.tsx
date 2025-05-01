@@ -163,7 +163,7 @@ export default function ProjectPage() {
                               description: editedDescription,
                               platformUrls: platformUrls,
                             });
-                          } catch {}
+                          } catch { }
                           setIsEditing(false);
                         }}
                       >

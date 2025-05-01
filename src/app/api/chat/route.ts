@@ -62,6 +62,8 @@ export const POST = applyMiddleware(
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["createChat"];
 
+    console.log("body: ", body);
+
     if (!body.projectId && !body.projectName) {
       const ai = new AI();
 
@@ -72,6 +74,7 @@ export const POST = applyMiddleware(
         projectName: body.projectName,
         retry: body.retry,
         projectId: body.projectId || "",
+        projectRelated: body.projectRelated,
       });
 
       console.log("CHAT FROM AI: ", chatFromAI);
@@ -157,6 +160,7 @@ export const POST = applyMiddleware(
         options: body.options,
         retry: body.retry,
         projectId: projectId || "",
+        projectRelated: body.projectRelated,
       });
 
       if (!chatFromAI) {

@@ -72,12 +72,14 @@ class Prompt {
   generateCorePrompt(
     options: ProjectValidatorType["createChat"]["options"],
     projectOverview?: string,
+    isProjectRelated?: boolean | undefined | null
   ): string {
     const { verb, tone, style, goal, theme } =
       options || this.getRandomProperties();
 
+    console.log("PROJECT RELATED", isProjectRelated);
+
     let themeContent = "";
-    const isProjectRelated = projectOverview && Math.random() > 0.7;
 
     // Generate content for each theme
     switch (theme) {

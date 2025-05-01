@@ -31,7 +31,7 @@ class ProjectValidator {
       .optional()
       .nullable()
       .nullish(),
-
+    projectRelated: z.boolean().optional().nullable().nullish(),
     projectId: z.string().optional().nullable().nullish(),
     projectName: z.string().optional().nullable().nullish(),
     projectDescription: z.string().optional().nullable().nullish(),
@@ -45,7 +45,7 @@ class ProjectValidator {
   updateProject = this.createProject.partial().extend({
     platformUrls: z.record(
       commonValidator.availablePlatform(),
-      commonValidator.optionalString(),
+      commonValidator.optionalString()
     ),
   });
 
