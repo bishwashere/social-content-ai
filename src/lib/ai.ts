@@ -55,6 +55,7 @@ export class AI {
     projectName,
     userPrompt,
     options,
+    projectRelated,
   }: GenerateProjectContentProps) {
     const projectOverview =
       projectName && projectDescription
@@ -62,11 +63,11 @@ export class AI {
         : projectName || projectDescription;
 
     console.log("PROJECT OVERVIEW: ", projectOverview);
-
     console.log("PROJECT OVERVIEW: ", projectOverview);
     const corePrompt = prompt.generateCorePrompt(
       options,
       projectOverview || "",
+      projectRelated
     );
     console.log("\nCORE PROMPT: \n", corePrompt);
 
@@ -90,7 +91,7 @@ export class AI {
           });
           console.log(
             `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
-            platformSpecificPrompt,
+            platformSpecificPrompt
           );
           const result = await model.generateContent(platformSpecificPrompt);
           return { platform, content: result.response.text().trim() };
@@ -100,13 +101,13 @@ export class AI {
         const content = generatedContent.reduce(
           (
             acc: Record<(typeof PLATFORMS)[number], string>,
-            { platform, content },
+            { platform, content }
           ) => {
             acc[platform] = content;
 
             return acc;
           },
-          {} as Record<(typeof PLATFORMS)[number], string>,
+          {} as Record<(typeof PLATFORMS)[number], string>
         );
 
         return content;
@@ -115,7 +116,7 @@ export class AI {
         if (this.isErrorWithStatus(error) && error.status === 429) {
           console.warn(
             `Rate limit hit - with key index ${currentApiKeyIndex}:`,
-            error,
+            error
           );
           currentApiKeyIndex++;
           apiKey = this.apiKeys[currentApiKeyIndex];
@@ -127,7 +128,7 @@ export class AI {
         } else if (this.isErrorWithStatus(error) && error.status === 503) {
           console.warn(
             `[503 Service Unavailable] The service is currently unavailable - with key index ${currentApiKeyIndex}:`,
-            error,
+            error
           );
           currentApiKeyIndex++;
           apiKey = this.apiKeys[currentApiKeyIndex];

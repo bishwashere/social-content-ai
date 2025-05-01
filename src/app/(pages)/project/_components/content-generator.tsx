@@ -13,12 +13,14 @@ import Link from "next/link";
 import { Project } from "@/db/projects/schema/project";
 
 import PostToWall from "@/components/common/post-to-wall";
+import { Switch } from "@/components/ui/switch";
 
 interface ContentGeneratorProps {
   project: Project;
 }
 
 export function ContentGenerator({ project }: ContentGeneratorProps) {
+  const [checked, setChecked] = useState(true);
   const [prompt, setPrompt] = useState("");
   const generateProjectContent = useGenerateProjectContent();
   const copyToClipboard = useMemo(
@@ -38,7 +40,21 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
 
   return (
     <div className="space-y-4 w-full">
-      <Label htmlFor="prompt">User Prompt:</Label>
+      <div className="flex items-center justify-between">
+        <Label htmlFor="prompt">User Prompt:</Label>
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={checked}
+            onCheckedChange={(checked) => setChecked(checked as boolean)}
+            id="checked" />
+          <label
+            htmlFor="checked"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Related to product
+          </label>
+        </div>
+      </div>
       <Textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -49,6 +65,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
         onClick={() => {
           generateProjectContent.mutate({
             projectId: project._id,
+            projectRelated: checked,
             userPrompt: prompt,
             retry: generateProjectContent.data
               ? { chatId: generateProjectContent.data?._id }
