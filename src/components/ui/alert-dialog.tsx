@@ -1,145 +1,344 @@
 "use client";
-
-import * as React from "react";
+/**
+ * Alert Dialog component based on Radix UI
+ * Provides a modal dialog for important confirmations
+ */
+import React from "react";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
-
 import { cn } from "@/lib/cn";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "./button";
+import { cva } from "class-variance-authority";
+import { AlertTriangleIcon, CheckCircleIcon, InfoIcon } from "lucide-react";
+import { createRoot } from "react-dom/client";
 
+type AlertDialogVariants = "default" | "destructive" | "success" | "warning";
+
+/** Context to manage the state of the alert dialog */
+
+type AlertDialogContextProps = {
+  variant?: AlertDialogVariants;
+};
+
+const AlertDialogContext = React.createContext<AlertDialogContextProps | null>(
+  null
+);
+
+/** Hook to access the alert dialog context */
+function useAlertDialogContext() {
+  const context = React.useContext(AlertDialogContext);
+  if (!context) {
+    throw new Error(
+      "useAlertDialogContext must be used within an AlertDialogProvider"
+    );
+  }
+  return context;
+}
+
+/** Root component that manages the state of the alert dialog */
 function AlertDialog({
+  variant = "default",
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
-  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
-}
-
-function AlertDialogTrigger({
-  ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Root> &
+  AlertDialogContextProps) {
   return (
-    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
+    <AlertDialogContext.Provider value={{ variant }}>
+      <AlertDialogPrimitive.Root {...props} />
+    </AlertDialogContext.Provider>
   );
 }
 
-function AlertDialogPortal({
-  ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
-  return (
-    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
-  );
-}
+/** Button that triggers the alert dialog */
+const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
+/** Portal component that renders the dialog outside the DOM hierarchy */
+const AlertDialogPortal = AlertDialogPrimitive.Portal;
+
+/** Overlay component that covers the page behind the dialog */
 function AlertDialogOverlay({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
   return (
     <AlertDialogPrimitive.Overlay
-      data-slot="alert-dialog-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
-        className,
+        "fixed inset-0 z-50 bg-black/20 backdrop-blur-xs transition-opacity duration-300 data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+        className
       )}
       {...props}
     />
   );
 }
 
+const alertDialogVariants = cva(
+  [
+    "bg-background fixed z-50 grid max-h-[90vh] w-full gap-4 border p-6 shadow-lg duration-200 sm:max-w-lg",
+    "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+    "max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom max-sm:right-0 max-sm:bottom-0 max-sm:left-0 max-sm:rounded-t-lg",
+    "sm:data-[state=open]:animate-in sm:data-[state=closed]:animate-out",
+    "sm:data-[state=open]:fade-in-0 sm:data-[state=closed]:fade-out-0",
+    "sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95",
+    "sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg"
+  ].join(" "),
+  {
+    variants: {
+      variant: {
+        default: "",
+        destructive: "border border-destructive",
+        success: "border border-success",
+        warning: "border border-warning"
+      }
+    },
+    defaultVariants: {
+      variant: "default"
+    }
+  }
+);
+
+/** Content container for the alert dialog */
 function AlertDialogContent({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  const { variant } = useAlertDialogContext();
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
-        data-slot="alert-dialog-content"
-        className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
-          className,
-        )}
+        className={cn(alertDialogVariants({ variant }), className)}
         {...props}
       />
     </AlertDialogPortal>
   );
 }
 
+const alertDialogHeaderVariants = cva(
+  ["flex flex-col space-y-2 text-center sm:text-left"].join(" "),
+  {
+    variants: {
+      variant: {
+        default: "",
+        destructive: "",
+        success: "",
+        warning: ""
+      }
+    },
+    defaultVariants: {
+      variant: "default"
+    }
+  }
+);
+
+/** Header section for the alert dialog */
 function AlertDialogHeader({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const { variant } = useAlertDialogContext();
   return (
     <div
-      data-slot="alert-dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn(alertDialogHeaderVariants({ variant }), className)}
       {...props}
     />
   );
 }
 
+const alertDialogFooterVariants = cva(
+  ["flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"].join(" "),
+  {
+    variants: {
+      variant: {
+        default: "",
+        destructive: "",
+        success: "",
+        warning: ""
+      }
+    },
+    defaultVariants: {
+      variant: "default"
+    }
+  }
+);
+
+/** Footer section for the alert dialog */
 function AlertDialogFooter({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const { variant } = useAlertDialogContext();
   return (
     <div
-      data-slot="alert-dialog-footer"
-      className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
-        className,
-      )}
+      className={cn(alertDialogFooterVariants({ variant }), className)}
       {...props}
     />
   );
 }
 
+const alertDialogTitleVariants = cva(
+  ["text-lg font-semibold flex items-center gap-2 max-sm:justify-center"].join(
+    " "
+  ),
+  {
+    variants: {
+      variant: {
+        default: "",
+        destructive: "text-destructive",
+        success: "text-success",
+        warning: "text-warning"
+      }
+    },
+    defaultVariants: {
+      variant: "default"
+    }
+  }
+);
+
+/** Title component for the alert dialog */
 function AlertDialogTitle({
   className,
+  hideIcon,
+  children,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Title> & {
+  hideIcon?: boolean;
+}) {
+  const { variant } = useAlertDialogContext();
+  const icons = {
+    default: InfoIcon,
+    destructive: AlertTriangleIcon,
+    success: CheckCircleIcon,
+    warning: AlertTriangleIcon
+  };
+
+  const Icon = icons[variant || "default"];
+
   return (
     <AlertDialogPrimitive.Title
-      data-slot="alert-dialog-title"
-      className={cn("text-lg font-semibold", className)}
+      className={cn(alertDialogTitleVariants({ variant }), className)}
       {...props}
-    />
+    >
+      {!hideIcon && <Icon className="h-5 w-5" />}
+      {children}
+    </AlertDialogPrimitive.Title>
   );
 }
 
+const alertDialogDescriptionVariants = cva(
+  ["text-muted-foreground text-sm"].join(" "),
+  {
+    variants: {
+      variant: {
+        default: "",
+        destructive: "",
+        success: "",
+        warning: ""
+      }
+    },
+    defaultVariants: {
+      variant: "default"
+    }
+  }
+);
+
+/** Description component for the alert dialog */
 function AlertDialogDescription({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
+  const { variant } = useAlertDialogContext();
   return (
     <AlertDialogPrimitive.Description
-      data-slot="alert-dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn(alertDialogDescriptionVariants({ variant }), className)}
       {...props}
     />
   );
 }
 
+/** Action button for the alert dialog */
 function AlertDialogAction({
+  variant = "default",
   className,
+  children,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+}: React.ComponentProps<typeof Button>) {
+  const { variant: contextVariant } = useAlertDialogContext();
   return (
-    <AlertDialogPrimitive.Action
-      className={cn(buttonVariants(), className)}
-      {...props}
-    />
+    <AlertDialogPrimitive.Action asChild>
+      <Button
+        variant={contextVariant === "default" ? variant : contextVariant}
+        className={cn("min-w-32", className)}
+        {...props}
+      >
+        {children}
+      </Button>
+    </AlertDialogPrimitive.Action>
   );
 }
 
+/** Cancel button for the alert dialog */
 function AlertDialogCancel({
-  className,
+  variant = "ghost",
+  children,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
+}: React.ComponentProps<typeof Button>) {
   return (
-    <AlertDialogPrimitive.Cancel
-      className={cn(buttonVariants({ variant: "outline" }), className)}
-      {...props}
-    />
+    <AlertDialogPrimitive.Cancel asChild>
+      <Button variant={variant} {...props}>
+        {children}
+      </Button>
+    </AlertDialogPrimitive.Cancel>
   );
+}
+
+type ConfirmOptions = {
+  title?: string;
+  description: string;
+  cancel?: string;
+  confirm?: string;
+  variant?: AlertDialogVariants;
+};
+
+/** Shows a confirmation dialog and returns a promise that resolves with the user's choice */
+function confirm({
+  cancel = "Cancel",
+  confirm = "Yeah, Sure!",
+  title = "Are you sure?",
+  description,
+  variant = "default"
+}: ConfirmOptions): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const handleClose = (confirmed: boolean) => {
+      resolve(confirmed);
+      root.unmount();
+      container.remove();
+    };
+
+    root.render(
+      <AlertDialog
+        open={true}
+        onOpenChange={(open) => !open && handleClose(false)}
+        variant={variant}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
+            <AlertDialogDescription>{description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleClose(false)}>
+              {cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleClose(true)}>
+              {confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  });
 }
 
 export {
@@ -154,4 +353,5 @@ export {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
+  confirm
 };

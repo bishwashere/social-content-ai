@@ -24,11 +24,11 @@ const ProjectTrackingSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "project-trackings",
-  },
+  }
 );
 
 const ProjectTrackingModel =
-  mongoose.models.ProjectTrackingSchema ||
+  mongoose?.models?.ProjectTrackingSchema ||
   mongoose.model("ProjectTrackingSchema", ProjectTrackingSchema);
 export { ProjectTrackingSchema, ProjectTrackingModel };
 

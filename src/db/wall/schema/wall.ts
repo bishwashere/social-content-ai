@@ -33,11 +33,11 @@ const WallSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "wall",
-  },
+  }
 );
 
 const WallModel =
-  mongoose.models.WallSchema || mongoose.model("WallSchema", WallSchema);
+  mongoose?.models?.WallSchema || mongoose.model("WallSchema", WallSchema);
 export { WallSchema, WallModel };
 
 export type WallDoc = WithId<InferSchemaType<typeof WallSchema>>;

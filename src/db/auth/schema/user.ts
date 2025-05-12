@@ -45,7 +45,7 @@ const UserSchema = new mongoose.Schema(
 );
 
 const UserModel =
-  mongoose.models.UserSchema || mongoose.model("UserSchema", UserSchema);
+  mongoose?.models?.UserSchema || mongoose.model("UserSchema", UserSchema);
 export { UserSchema, UserModel };
 
 export type UserDoc = WithId<InferSchemaType<typeof UserSchema>>;

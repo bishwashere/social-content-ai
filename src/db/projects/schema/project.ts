@@ -27,11 +27,11 @@ const ProjectSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "projects",
-  },
+  }
 );
 
 const ProjectModel =
-  mongoose.models.ProjectSchema ||
+  mongoose?.models?.ProjectSchema ||
   mongoose.model("ProjectSchema", ProjectSchema);
 export { ProjectSchema, ProjectModel };
 
