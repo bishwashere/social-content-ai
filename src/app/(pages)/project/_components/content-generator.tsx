@@ -14,6 +14,7 @@ import { Project } from "@/db/projects/schema/project";
 
 import PostToWall from "@/components/common/post-to-wall";
 import { Switch } from "@/components/ui/switch";
+import AutoPost from "@/components/common/auto-post";
 
 interface ContentGeneratorProps {
   project: Project;
@@ -122,6 +123,11 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                           </Link>
                         </Button>
                       )}
+                      <AutoPost
+                        //@ts-expect-error:..........
+                        platform={platform}
+                        content={text}
+                      />
                     </div>
                   </CardHeader>
                   <CardContent
