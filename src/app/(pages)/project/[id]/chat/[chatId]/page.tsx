@@ -15,6 +15,7 @@ import { ProjectChat } from "@/db/projects/schema/chat";
 import { Project } from "@/db/projects/schema/project";
 
 import PostToWall from "@/components/common/post-to-wall";
+import AutoPost from "@/components/common/auto-post";
 
 export default function ChatPage() {
   const { id, chatId } = useParams() as { id: string; chatId: string };
@@ -102,6 +103,12 @@ export default function ChatPage() {
                         </Link>
                       </Button>
                     )}
+
+                    <AutoPost
+                      //@ts-expect-error:..........
+                      platform={platform}
+                      content={text}
+                    />
                   </div>
                 </div>
                 <div

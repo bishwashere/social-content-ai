@@ -37,11 +37,11 @@ const SubscriptionSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "subscriptions",
-  },
+  }
 );
 
 const SubscriptionModel =
-  mongoose.models.SubscriptionSchema ||
+  mongoose?.models?.SubscriptionSchema ||
   mongoose.model("SubscriptionSchema", SubscriptionSchema);
 export { SubscriptionSchema, SubscriptionModel };
 

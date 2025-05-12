@@ -27,11 +27,11 @@ const ProjectChatSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "project-chats",
-  },
+  }
 );
 
 const ProjectChatModel =
-  mongoose.models.ProjectChatSchema ||
+  mongoose?.models?.ProjectChatSchema ||
   mongoose.model("ProjectChatSchema", ProjectChatSchema);
 export { ProjectChatSchema, ProjectChatModel };
 

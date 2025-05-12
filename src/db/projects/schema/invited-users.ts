@@ -23,11 +23,11 @@ const InvitedUserSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "invited-users-to-projects",
-  },
+  }
 );
 
 const InvitedUserModel =
-  mongoose.models.InvitedUserSchema ||
+  mongoose?.models?.InvitedUserSchema ||
   mongoose.model("InvitedUserSchema", InvitedUserSchema);
 export { InvitedUserSchema, InvitedUserModel };
 
