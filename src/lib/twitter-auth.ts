@@ -47,8 +47,8 @@ export const refreshTwitterToken = async (
 ): Promise<RefreshedTokens> => {
   console.log("🔄 Starting Twitter token refresh process");
 
-  const clientId = process.env.TWITTER_CLIENT_ID;
-  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const clientId = process.env.AUTH_TWITTER_ID;
+  const clientSecret = process.env.AUTH_TWITTER_SECRET;
 
   if (!clientId || !clientSecret) {
     console.error("❌ Twitter API credentials missing");
