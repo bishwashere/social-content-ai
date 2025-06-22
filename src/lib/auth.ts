@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
+import Facebook from "next-auth/providers/facebook";
 import { UserModel } from "@/db/auth/schema/user";
 import { OauthProvidersModel } from "@/db/oauth-providers/schema";
 import connectToDb from "@/db/connect";
@@ -16,6 +17,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         url: "https://twitter.com/i/oauth2/authorize",
         params: {
           scope: "tweet.read tweet.write offline.access users.read",
+        },
+      },
+    }),
+    Facebook({
+      clientId: process.env.FACEBOOK_CLIENT_ID!,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "pages_manage_posts,email,public_profile,pages_show_list",
         },
       },
     }),
@@ -55,23 +65,86 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return false;
           }
 
+          const platform =
+            account.provider === "twitter" ? "twitter" : "facebook";
+
           console.log(
-            "Linking Twitter account to Google user:",
+            `Linking ${platform} account to Google user:`,
             googleUser.email
           );
 
-          // Store Twitter OAuth credentials for this user
+          // Prepare the update data
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const updateData: any = {
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at,
+          };
+
+          // If it's Facebook, get long-lived access token and page access token
+          if (account.provider === "facebook" && account.access_token) {
+            try {
+              // Step 1: Exchange short-lived token for long-lived token
+              const longLivedTokenResponse = await fetch(
+                `https://graph.facebook.com/v22.0/oauth/access_token?` +
+                  `grant_type=fb_exchange_token&` +
+                  `client_id=${process.env.FACEBOOK_CLIENT_ID}&` +
+                  `client_secret=${process.env.FACEBOOK_CLIENT_SECRET}&` +
+                  `fb_exchange_token=${account.access_token}`
+              );
+              const longLivedTokenData = await longLivedTokenResponse.json();
+
+              if (longLivedTokenData.access_token) {
+                console.log("Got long-lived access token", longLivedTokenData);
+
+                // Step 2: Get user's Facebook pages
+                const pagesResponse = await fetch(
+                  `https://graph.facebook.com/v22.0/me/accounts?access_token=${longLivedTokenData.access_token}`
+                );
+                const pagesData = await pagesResponse.json();
+
+                console.log("pagesData", pagesData);
+
+                if (pagesData.data && pagesData.data.length > 0) {
+                  // Step 3: Use the first page's access token (which is long-lived for pages)
+                  const firstPage = pagesData.data[0];
+                  updateData.accessToken = firstPage.access_token; // Page access token
+                  updateData.facebookPageId = firstPage.id;
+
+                  console.log(
+                    "Stored Facebook page access token for page:",
+                    firstPage.name
+                  );
+                  console.log("Page ID:", firstPage.id);
+                } else {
+                  console.log("No Facebook pages found for user");
+                  // Fallback to long-lived user token if no pages
+                  updateData.accessToken = longLivedTokenData.access_token;
+                }
+              } else {
+                console.error(
+                  "Failed to get long-lived token:",
+                  longLivedTokenData
+                );
+                updateData.accessToken = account.access_token; // Fallback to short-lived token
+              }
+            } catch (error) {
+              console.error("Error in Facebook token exchange:", error);
+              updateData.accessToken = account.access_token; // Fallback to short-lived token
+            }
+          } else {
+            // For Twitter, use the original access token
+            updateData.accessToken = account.access_token;
+          }
+
+          // Store OAuth credentials for this user
           await OauthProvidersModel.findOneAndUpdate(
             {
               userId: googleUser._id,
-              platform: "twitter",
+              platform: platform,
             },
             {
-              $set: {
-                accessToken: account.access_token,
-                refreshToken: account.refresh_token,
-                expiresAt: account.expires_at,
-              },
+              $set: updateData,
             },
             { upsert: true }
           );
@@ -79,7 +152,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Return true to allow the sign-in
           return true;
         } catch (error) {
-          console.error("Error linking Twitter account:", error);
+          console.error(`Error linking ${account.provider} account:`, error);
           return false;
         }
       }
@@ -97,6 +170,20 @@ export async function getTwitterTokensForUser(userId: string) {
   const tokens = await OauthProvidersModel.findOne({
     userId,
     platform: "twitter",
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Facebook tokens for a user
+ */
+export async function getFacebookTokensForUser(userId: string) {
+  await connectToDb();
+
+  const tokens = await OauthProvidersModel.findOne({
+    userId,
+    platform: "facebook",
   });
 
   return tokens;

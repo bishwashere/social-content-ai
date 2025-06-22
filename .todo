@@ -1,0 +1,4 @@
+[x] - twitter auto post working while connection initially
+[ ] - twitter auto post needs to check when access token is expired using refresh token
+
+[ ]- facebook pages are not showing
