@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
 import Facebook from "next-auth/providers/facebook";
+import Linkedin from "next-auth/providers/linkedin";
 import { UserModel } from "@/db/auth/schema/user";
 import { OauthProvidersModel } from "@/db/oauth-providers/schema";
 import connectToDb from "@/db/connect";
@@ -28,6 +29,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           scope: "pages_manage_posts,email,public_profile,pages_show_list",
         },
       },
+    }),
+    Linkedin({
+      clientId: process.env.LINKEDIN_CLIENT_ID!,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "openid profile w_member_social email"
+        }
+      }
     }),
   ],
   callbacks: {
@@ -65,8 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return false;
           }
 
-          const platform =
-            account.provider === "twitter" ? "twitter" : "facebook";
+          const platform = account.provider;
 
           console.log(
             `Linking ${platform} account to Google user:`,
@@ -87,10 +96,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               // Step 1: Exchange short-lived token for long-lived token
               const longLivedTokenResponse = await fetch(
                 `https://graph.facebook.com/v22.0/oauth/access_token?` +
-                  `grant_type=fb_exchange_token&` +
-                  `client_id=${process.env.FACEBOOK_CLIENT_ID}&` +
-                  `client_secret=${process.env.FACEBOOK_CLIENT_SECRET}&` +
-                  `fb_exchange_token=${account.access_token}`
+                `grant_type=fb_exchange_token&` +
+                `client_id=${process.env.FACEBOOK_CLIENT_ID}&` +
+                `client_secret=${process.env.FACEBOOK_CLIENT_SECRET}&` +
+                `fb_exchange_token=${account.access_token}`
               );
               const longLivedTokenData = await longLivedTokenResponse.json();
 
@@ -184,6 +193,20 @@ export async function getFacebookTokensForUser(userId: string) {
   const tokens = await OauthProvidersModel.findOne({
     userId,
     platform: "facebook",
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Linkedin tokens for a user
+ */
+export async function getLinkedinTokensForUser(userId: string) {
+  await connectToDb();
+
+  const tokens = await OauthProvidersModel.findOne({
+    userId,
+    platform: "linkedin",
   });
 
   return tokens;

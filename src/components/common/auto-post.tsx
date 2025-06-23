@@ -12,11 +12,12 @@ import { DateTimePickerDialog } from './date-picker'
 
 const ICONS = {
   x: "/x.svg",
-  facebook: "/fb.svg"
+  facebook: "/fb.svg",
+  linkedin: "/linkedin.png",
 }
 
 type Props = {
-  platform: "x" | "facebook"
+  platform: "x" | "facebook" | "linkedin"
   content: string
 }
 
@@ -88,6 +89,28 @@ const AutoPost = ({ platform, content }: Props) => {
         const res = await schedulePost({
           userId: data?.user?._id,
           platform: "facebook",
+          content: content,
+          date: new Date(date).getTime() / 1000
+        })
+
+        if (res) {
+          toast.success("Post scheduled!")
+        } else {
+          toast.error("Failed to schedule post")
+        }
+      }
+    } else if (platform === "linkedin") {
+      const hasTokens = await checkAuthTokens(data?.user?._id, platform, date)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Linkedin to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("linkedin")
+        }, 1000);
+      } else {
+        const res = await schedulePost({
+          userId: data?.user?._id,
+          platform: "linkedin",
           content: content,
           date: new Date(date).getTime() / 1000
         })
