@@ -3,7 +3,7 @@ import { ScheduledPostsModel } from "@/db/scheduled-posts/schema";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
-import { getFacebookTokensForUser } from "@/lib/auth";
+import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 
@@ -22,8 +22,10 @@ export const GET = applyMiddleware(
     console.log(`📊 Found ${pending.length} pending posts`);
     const twitterPosts = pending.filter((p) => p.platform === "twitter");
     const facebookPosts = pending.filter((p) => p.platform === "facebook");
+    const linkedinPosts = pending.filter((p) => p.platform === "linkedin");
     console.log(`🐦 Found ${twitterPosts.length} Twitter posts to process`);
     console.log(`📘 Found ${facebookPosts.length} Facebook posts to process`);
+    console.log(`📘 Found ${linkedinPosts.length} Linkedin posts to process`);
 
     const twitterResults = await Promise.all(
       twitterPosts.map(async (post) => {
@@ -153,7 +155,76 @@ export const GET = applyMiddleware(
       })
     );
 
-    const allResults = [...twitterResults, ...facebookResults];
+    const linkedinResults = await Promise.all(
+      linkedinPosts.map(async (post) => {
+        console.log(`🔄 Processing Linkedin post ID: ${post._id}`);
+        try {
+          const user = await UserModel.findById(post.userId);
+
+          if (!user) {
+            console.log(`❌ User not found for post ID: ${post._id}`);
+            await updatePostStatus(post._id, "failed", "User not found");
+            return { id: post._id, success: false, error: "User not found" };
+          }
+
+          console.log(`👤 Found user: ${user._id}`);
+
+          // Get Linkedin tokens
+          const tokens = await getLinkedinTokensForUser(user._id.toString());
+
+          if (!tokens || !tokens.accessToken) {
+            console.log(
+              `❌ Linkedin tokens not found for post ID: ${post._id}`
+            );
+            await updatePostStatus(
+              post._id,
+              "failed",
+              "Linkedin tokens not found"
+            );
+            return {
+              id: post._id,
+              success: false,
+              error: "Linkedin tokens not found",
+            };
+          }
+
+          // Post to Linkedin
+          const linkedinResult = await postToLinkedin(
+            tokens.accessToken,
+            post.content,
+          );
+
+          if (linkedinResult.success) {
+            console.log(
+              `✅ Successfully posted to Linkedin for post ID: ${post._id}`
+            );
+            await updatePostStatus(post._id, "success");
+            return { id: post._id, success: true };
+          } else {
+            console.log(
+              `❌ Failed to post to Linkedin for post ID: ${post._id}`
+            );
+            await updatePostStatus(post._id, "failed", linkedinResult.error);
+            return {
+              id: post._id,
+              success: false,
+              error: linkedinResult.error,
+            };
+          }
+        } catch (error) {
+          console.error(
+            `❌ Error processing Linkedin post ID: ${post._id}`,
+            error
+          );
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          await updatePostStatus(post._id, "failed", errorMessage);
+          return { id: post._id, success: false, error: errorMessage };
+        }
+      })
+    );
+
+    const allResults = [...twitterResults, ...facebookResults, ...linkedinResults];
 
     return sendNextResponse({
       status: 200,
@@ -171,6 +242,11 @@ export const GET = applyMiddleware(
           processed: facebookResults.length,
           successful: facebookResults.filter((r) => r.success).length,
           failed: facebookResults.filter((r) => !r.success).length,
+        },
+        linkedin: {
+          processed: linkedinResults.length,
+          successful: linkedinResults.filter((r) => r.success).length,
+          failed: linkedinResults.filter((r) => !r.success).length,
         },
         details: allResults,
       },
@@ -314,6 +390,96 @@ async function postToFacebook(
         error instanceof Error
           ? error.message
           : "Unknown error posting to Facebook",
+    };
+  }
+}
+
+/**
+ * Post content to Linkedin Page
+ */
+async function postToLinkedin(
+  accessToken: string,
+  content: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log("📘 Posting to Lindeding API");
+
+    // First, get the user id
+    const userDataResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!userDataResponse.ok) {
+      const errorData = await userDataResponse.json().catch(() => ({}));
+      console.error("❌ Linkedin Get User data error:", errorData);
+      return {
+        success: false,
+        error: `Failed to get user data: ${userDataResponse.status}`,
+      };
+    }
+
+    const userData = await userDataResponse.json();
+    const userId = userData.sub;
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "Failed to retrieve linkedin user id",
+      };
+    }
+
+    // Post to the Linkedin page
+    const response = await fetch(
+      `https://api.linkedin.com/v2/ugcPosts`,
+      {
+        method: "POST",
+        headers: {
+        'Authorization': `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "author": `urn:li:person:${userId}`,
+          "lifecycleState": "PUBLISHED",
+          "specificContent": {
+            "com.linkedin.ugc.ShareContent": {
+              "shareCommentary": {
+                "text": content
+              },
+              "shareMediaCategory": "NONE"
+            }
+          },
+          "visibility": {
+            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+          }
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("❌ Linkedin API error:", errorData);
+      return {
+        success: false,
+        error: `Linkedin API error: ${response.status} ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+    console.log("✅ Successfully posted to Linkedin:", data);
+
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Error posting to Linkedin:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unknown error posting to Linkedin",
     };
   }
 }
