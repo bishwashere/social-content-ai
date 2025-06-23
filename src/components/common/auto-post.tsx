@@ -11,11 +11,12 @@ import { schedulePost } from '@/server-actions/schedule-post'
 import { DateTimePickerDialog } from './date-picker'
 
 const ICONS = {
-  x: "/x.svg"
+  x: "/x.svg",
+  facebook: "/fb.svg"
 }
 
 type Props = {
-  platform: "x"
+  platform: "x" | "facebook"
   content: string
 }
 
@@ -75,6 +76,28 @@ const AutoPost = ({ platform, content }: Props) => {
           toast.error("Failed to schedule post")
         }
       }
+    } else if (platform === "facebook") {
+      const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Facebook to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("facebook")
+        }, 1000);
+      } else {
+        const res = await schedulePost({
+          userId: data?.user?._id,
+          platform: "facebook",
+          content: content,
+          date: new Date(date).getTime() / 1000
+        })
+
+        if (res) {
+          toast.success("Post scheduled!")
+        } else {
+          toast.error("Failed to schedule post")
+        }
+      }
     }
   }
 
@@ -82,7 +105,9 @@ const AutoPost = ({ platform, content }: Props) => {
   return (
     <>
       <DateTimePickerDialog
-        value={new Date()}
+        value={
+          new Date(new Date().getTime() + 60 * 60 * 1000)
+        }
         open={isDatePickerOpen}
         onOpenChange={setIsDatePickerOpen}
         onConfirm={onDone}

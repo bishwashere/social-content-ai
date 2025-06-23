@@ -24,6 +24,10 @@ const OauthProvidersSchema = new mongoose.Schema(
       type: Number,
       required: false,
     },
+    facebookPageId: {
+      type: String,
+      required: false,
+    },
   },
   {
     timestamps: true,
