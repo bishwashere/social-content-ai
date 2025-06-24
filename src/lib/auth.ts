@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
 import Facebook from "next-auth/providers/facebook";
+import LinkedIn from "next-auth/providers/linkedin";
+import Threads from "next-auth/providers/threads";
 import { UserModel } from "@/db/auth/schema/user";
 import { OauthProvidersModel } from "@/db/oauth-providers/schema";
 import connectToDb from "@/db/connect";
@@ -26,6 +28,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       authorization: {
         params: {
           scope: "pages_manage_posts,email,public_profile,pages_show_list",
+        },
+      },
+    }),
+    LinkedIn({
+      clientId: process.env.LINKEDIN_CLIENT_ID!,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "w_member_social r_liteprofile",
+        },
+      },
+    }),
+    Threads({
+      clientId: process.env.THREADS_CLIENT_ID!,
+      clientSecret: process.env.THREADS_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "threads_content_publish",
         },
       },
     }),
@@ -66,7 +86,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           const platform =
-            account.provider === "twitter" ? "twitter" : "facebook";
+            account.provider === "twitter"
+              ? "twitter"
+              : account.provider === "facebook"
+              ? "facebook"
+              : account.provider === "linkedin"
+              ? "linkedin"
+              : "threads";
 
           console.log(
             `Linking ${platform} account to Google user:`,
@@ -132,6 +158,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               console.error("Error in Facebook token exchange:", error);
               updateData.accessToken = account.access_token; // Fallback to short-lived token
             }
+          } else if (account.provider === "linkedin" && account.access_token) {
+            // For LinkedIn, the access token is already suitable for personal posting
+            console.log(
+              "Stored LinkedIn access token for personal account posting"
+            );
+            updateData.accessToken = account.access_token;
+          } else if (account.provider === "threads" && account.access_token) {
+            // For Threads, the access token is suitable for posting
+            console.log("Stored Threads access token for posting");
+            updateData.accessToken = account.access_token;
           } else {
             // For Twitter, use the original access token
             updateData.accessToken = account.access_token;
@@ -184,6 +220,34 @@ export async function getFacebookTokensForUser(userId: string) {
   const tokens = await OauthProvidersModel.findOne({
     userId,
     platform: "facebook",
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get LinkedIn tokens for a user
+ */
+export async function getLinkedInTokensForUser(userId: string) {
+  await connectToDb();
+
+  const tokens = await OauthProvidersModel.findOne({
+    userId,
+    platform: "linkedin",
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Threads tokens for a user
+ */
+export async function getThreadsTokensForUser(userId: string) {
+  await connectToDb();
+
+  const tokens = await OauthProvidersModel.findOne({
+    userId,
+    platform: "threads",
   });
 
   return tokens;
