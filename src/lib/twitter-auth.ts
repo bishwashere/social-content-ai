@@ -60,18 +60,13 @@ export const refreshTwitterToken = async (
   // Twitter OAuth 2.0 token endpoint
   const tokenUrl = "https://api.twitter.com/2/oauth2/token";
 
-  // Basic auth header required for token refresh
-  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString(
-    "base64"
-  );
-
   try {
     console.log("📤 Sending refresh token request to Twitter API");
     const response = await fetch(tokenUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${basicAuth}`,
+        Authorization: `Basic ${clientId}:${clientSecret}`,
       },
       body: new URLSearchParams({
         grant_type: "refresh_token",
@@ -93,6 +88,12 @@ export const refreshTwitterToken = async (
     console.log("📦 Received new token data from Twitter");
 
     const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
+
+    console.log(
+      `⏰ New token expires in: ${data.expires_in} seconds, data: ${JSON.stringify(
+        data
+      )}`
+    );
 
     return {
       accessToken: data.access_token,
