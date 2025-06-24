@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
 import Facebook from "next-auth/providers/facebook";
 import LinkedIn from "next-auth/providers/linkedin";
-import Threads from "next-auth/providers/threads";
 import { UserModel } from "@/db/auth/schema/user";
 import { OauthProvidersModel } from "@/db/oauth-providers/schema";
 import connectToDb from "@/db/connect";
@@ -36,16 +35,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "w_member_social r_liteprofile",
-        },
-      },
-    }),
-    Threads({
-      clientId: process.env.THREADS_CLIENT_ID!,
-      clientSecret: process.env.THREADS_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "threads_content_publish",
+          scope: "openid profile w_member_social email",
         },
       },
     }),
@@ -85,14 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return false;
           }
 
-          const platform =
-            account.provider === "twitter"
-              ? "twitter"
-              : account.provider === "facebook"
-              ? "facebook"
-              : account.provider === "linkedin"
-              ? "linkedin"
-              : "threads";
+          const platform = account.provider;
 
           console.log(
             `Linking ${platform} account to Google user:`,
@@ -163,10 +146,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             console.log(
               "Stored LinkedIn access token for personal account posting"
             );
-            updateData.accessToken = account.access_token;
-          } else if (account.provider === "threads" && account.access_token) {
-            // For Threads, the access token is suitable for posting
-            console.log("Stored Threads access token for posting");
             updateData.accessToken = account.access_token;
           } else {
             // For Twitter, use the original access token
@@ -248,6 +227,20 @@ export async function getThreadsTokensForUser(userId: string) {
   const tokens = await OauthProvidersModel.findOne({
     userId,
     platform: "threads",
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Linkedin tokens for a user
+ */
+export async function getLinkedinTokensForUser(userId: string) {
+  await connectToDb();
+
+  const tokens = await OauthProvidersModel.findOne({
+    userId,
+    platform: "linkedin",
   });
 
   return tokens;
