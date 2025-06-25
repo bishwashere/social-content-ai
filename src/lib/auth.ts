@@ -207,7 +207,7 @@ export async function getFacebookTokensForUser(userId: string) {
 /**
  * Helper function to get LinkedIn tokens for a user
  */
-export async function getLinkedInTokensForUser(userId: string) {
+export async function getLinkedinTokensForUser(userId: string) {
   await connectToDb();
 
   const tokens = await OauthProvidersModel.findOne({
@@ -227,20 +227,6 @@ export async function getThreadsTokensForUser(userId: string) {
   const tokens = await OauthProvidersModel.findOne({
     userId,
     platform: "threads",
-  });
-
-  return tokens;
-}
-
-/**
- * Helper function to get Linkedin tokens for a user
- */
-export async function getLinkedinTokensForUser(userId: string) {
-  await connectToDb();
-
-  const tokens = await OauthProvidersModel.findOne({
-    userId,
-    platform: "linkedin",
   });
 
   return tokens;
