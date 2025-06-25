@@ -1,11 +1,12 @@
 import RootProvider from "@/providers/root-provider";
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Roboto } from "next/font/google";
 import { Toaster } from "sonner";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import NextAuthProvider from "@/providers/next-auth-provider";
 const inter = Inter({ subsets: ["latin"] });
+const roboto = Roboto({ subsets: ["latin"], weight: ["300", "400", "500", "700", "900"] })
 
 export const metadata: Metadata = {
   title: "NextPostAI - AI-powered Social Media Content Generator",
@@ -19,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${roboto.className}`}>
         <NextAuthProvider>
           <RootProvider>
             {children}

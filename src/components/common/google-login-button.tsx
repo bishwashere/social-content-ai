@@ -13,9 +13,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
+import { MoveRight } from "lucide-react";
 
 type Props = {
-  triggerClassName?: string;
+  triggerClassName: string;
 };
 
 const GoogleLoginButton = ({ triggerClassName }: Props) => {
@@ -38,9 +39,10 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          className={`py-3 px-10 h-12 text-lg font-semibold text-white rounded-lg hover:bg-gray-700 ${triggerClassName}`}
+          className={triggerClassName}
         >
-          Start Free
+          Get Started Now
+          <MoveRight className="scale-125"/>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
