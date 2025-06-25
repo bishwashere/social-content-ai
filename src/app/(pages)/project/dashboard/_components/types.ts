@@ -6,4 +6,4 @@ export interface Project {
   postDates?: { [key: string]: { date: string; url?: string }[] }; // Updated to include URL
 }
 
-export const SOCIAL_PLATFORMS = ["Facebook", "Instagram", "X", "TikTok"];
+export const SOCIAL_PLATFORMS = ["Facebook", "Instagram", "X", "TikTok", "Threads"];

@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Button } from '../ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { confirm } from '../ui/alert-dialog'
@@ -17,7 +17,7 @@ const ICONS = {
 }
 
 type Props = {
-  platform: "x" | "facebook" | "linkedin"
+  platform: "x" | "facebook" | "linkedin" | "threads"
   content: string
 }
 
@@ -77,6 +77,28 @@ const AutoPost = ({ platform, content }: Props) => {
           toast.error("Failed to schedule post")
         }
       }
+    } else if (platform === "threads") {
+      // const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+
+      // if (!hasTokens) {
+      //   toast.loading("You need to sign in to Threads to post automatically, redirecting...")
+      //   setTimeout(() => {
+      //     signIn("threads")
+      //   }, 1000);
+      // } else {
+      //   const res = await schedulePost({
+      //     userId: data?.user?._id,
+      //     platform: "threads",
+      //     content: content,
+      //     date: new Date(date).getTime() / 1000
+      //   })
+
+      //   if (res) {
+      //     toast.success("Post scheduled!")
+      //   } else {
+      //     toast.error("Failed to schedule post")
+      //   }
+      // }
     } else if (platform === "facebook") {
       const hasTokens = await checkAuthTokens(data?.user?._id, platform)
 
@@ -123,6 +145,7 @@ const AutoPost = ({ platform, content }: Props) => {
       }
     }
   }
+  //@ts-expect-error:...
 
   if (!ICONS[platform]) return null
   return (
@@ -141,7 +164,13 @@ const AutoPost = ({ platform, content }: Props) => {
             <Button
               onClick={onClick}
               variant={"ghost"} size={"sm"}>
-              <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
+
+              {    // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  //@ts-expect-error:..........
+                  src={ICONS[platform]}
+                  alt={platform}
+                  className="w-4 h-4" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>

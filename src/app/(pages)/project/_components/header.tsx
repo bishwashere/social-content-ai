@@ -31,7 +31,7 @@ export function Header() {
         <div className="flex items-center gap-4">
           <Subscription />
           {!data?.user ? (
-            <GoogleLoginButton />
+            <GoogleLoginButton triggerClassName="py-3 px-10 h-12 text-lg font-semibold text-white rounded-lg hover:bg-gray-700" />
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

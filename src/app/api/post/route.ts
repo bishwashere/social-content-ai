@@ -191,7 +191,7 @@ export const GET = applyMiddleware(
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
             tokens.accessToken,
-            post.content,
+            post.content
           );
 
           if (linkedinResult.success) {
@@ -224,7 +224,11 @@ export const GET = applyMiddleware(
       })
     );
 
-    const allResults = [...twitterResults, ...facebookResults, ...linkedinResults];
+    const allResults = [
+      ...twitterResults,
+      ...facebookResults,
+      ...linkedinResults,
+    ];
 
     return sendNextResponse({
       status: 200,
@@ -311,6 +315,91 @@ async function postToTwitter(
     };
   }
 }
+
+/**
+ * Post content to Threads
+ */
+// async function postToThreads(
+//   accessToken: string,
+//   content: string
+// ): Promise<{ success: boolean; error?: string }> {
+//   try {
+//     console.log("🧵 Posting to Threads...");
+
+//     // First, create a media container
+//     const containerResponse = await fetch(
+//       `https://graph.threads.net/v1.0/me/threads`,
+//       {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//           media_type: "TEXT",
+//           text: content,
+//           access_token: accessToken,
+//         }),
+//       }
+//     );
+
+//     if (!containerResponse.ok) {
+//       const errorData = await containerResponse.json().catch(() => ({}));
+//       console.error("❌ Threads container creation error:", errorData);
+//       return {
+//         success: false,
+//         error: `Threads container error: ${containerResponse.status} ${containerResponse.statusText}`,
+//       };
+//     }
+
+//     const containerData = await containerResponse.json();
+//     const containerId = containerData.id;
+
+//     if (!containerId) {
+//       return {
+//         success: false,
+//         error: "Failed to create Threads media container",
+//       };
+//     }
+
+//     // Then, publish the container
+//     const publishResponse = await fetch(
+//       `https://graph.threads.net/v1.0/me/threads_publish`,
+//       {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//           creation_id: containerId,
+//           access_token: accessToken,
+//         }),
+//       }
+//     );
+
+//     if (!publishResponse.ok) {
+//       const errorData = await publishResponse.json().catch(() => ({}));
+//       console.error("❌ Threads publish error:", errorData);
+//       return {
+//         success: false,
+//         error: `Threads publish error: ${publishResponse.status} ${publishResponse.statusText}`,
+//       };
+//     }
+
+//     const publishData = await publishResponse.json();
+//     console.log("✅ Successfully posted to Threads:", publishData);
+
+//     return { success: true };
+//   } catch (error) {
+//     console.error("❌ Error posting to Threads:", error);
+//     return {
+//       success: false,
+//       error:
+//         error instanceof Error
+//           ? error.message
+//           : "Unknown error posting to Threads",
+//     };
+//   }
+// }
 
 /**
  * Post content to Facebook Page
@@ -405,13 +494,16 @@ async function postToLinkedin(
     console.log("📘 Posting to Lindeding API");
 
     // First, get the user id
-    const userDataResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+    const userDataResponse = await fetch(
+      "https://api.linkedin.com/v2/userinfo",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
       }
-    });
+    );
 
     if (!userDataResponse.ok) {
       const errorData = await userDataResponse.json().catch(() => ({}));
@@ -433,31 +525,28 @@ async function postToLinkedin(
     }
 
     // Post to the Linkedin page
-    const response = await fetch(
-      `https://api.linkedin.com/v2/ugcPosts`,
-      {
-        method: "POST",
-        headers: {
-        'Authorization': `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          "author": `urn:li:person:${userId}`,
-          "lifecycleState": "PUBLISHED",
-          "specificContent": {
-            "com.linkedin.ugc.ShareContent": {
-              "shareCommentary": {
-                "text": content
-              },
-              "shareMediaCategory": "NONE"
-            }
+    const response = await fetch(`https://api.linkedin.com/v2/ugcPosts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        author: `urn:li:person:${userId}`,
+        lifecycleState: "PUBLISHED",
+        specificContent: {
+          "com.linkedin.ugc.ShareContent": {
+            shareCommentary: {
+              text: content,
+            },
+            shareMediaCategory: "NONE",
           },
-          "visibility": {
-            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
-          }
-        }),
-      }
-    );
+        },
+        visibility: {
+          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+        },
+      }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

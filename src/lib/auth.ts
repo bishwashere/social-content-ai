@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
 import Facebook from "next-auth/providers/facebook";
-import Linkedin from "next-auth/providers/linkedin";
+import LinkedIn from "next-auth/providers/linkedin";
 import { UserModel } from "@/db/auth/schema/user";
 import { OauthProvidersModel } from "@/db/oauth-providers/schema";
 import connectToDb from "@/db/connect";
@@ -30,14 +30,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
-    Linkedin({
+    LinkedIn({
       clientId: process.env.LINKEDIN_CLIENT_ID!,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "openid profile w_member_social email"
-        }
-      }
+          scope: "openid profile w_member_social email",
+        },
+      },
     }),
   ],
   callbacks: {
@@ -96,10 +96,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               // Step 1: Exchange short-lived token for long-lived token
               const longLivedTokenResponse = await fetch(
                 `https://graph.facebook.com/v22.0/oauth/access_token?` +
-                `grant_type=fb_exchange_token&` +
-                `client_id=${process.env.FACEBOOK_CLIENT_ID}&` +
-                `client_secret=${process.env.FACEBOOK_CLIENT_SECRET}&` +
-                `fb_exchange_token=${account.access_token}`
+                  `grant_type=fb_exchange_token&` +
+                  `client_id=${process.env.FACEBOOK_CLIENT_ID}&` +
+                  `client_secret=${process.env.FACEBOOK_CLIENT_SECRET}&` +
+                  `fb_exchange_token=${account.access_token}`
               );
               const longLivedTokenData = await longLivedTokenResponse.json();
 
@@ -141,6 +141,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               console.error("Error in Facebook token exchange:", error);
               updateData.accessToken = account.access_token; // Fallback to short-lived token
             }
+          } else if (account.provider === "linkedin" && account.access_token) {
+            // For LinkedIn, the access token is already suitable for personal posting
+            console.log(
+              "Stored LinkedIn access token for personal account posting"
+            );
+            updateData.accessToken = account.access_token;
           } else {
             // For Twitter, use the original access token
             updateData.accessToken = account.access_token;
@@ -199,7 +205,7 @@ export async function getFacebookTokensForUser(userId: string) {
 }
 
 /**
- * Helper function to get Linkedin tokens for a user
+ * Helper function to get LinkedIn tokens for a user
  */
 export async function getLinkedinTokensForUser(userId: string) {
   await connectToDb();
@@ -207,6 +213,20 @@ export async function getLinkedinTokensForUser(userId: string) {
   const tokens = await OauthProvidersModel.findOne({
     userId,
     platform: "linkedin",
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Threads tokens for a user
+ */
+export async function getThreadsTokensForUser(userId: string) {
+  await connectToDb();
+
+  const tokens = await OauthProvidersModel.findOne({
+    userId,
+    platform: "threads",
   });
 
   return tokens;

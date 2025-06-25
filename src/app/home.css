@@ -1,0 +1,28 @@
+.homepage {
+    font-family: 'Roboto', sans-serif;
+}
+
+.bg-top-section {
+    background-position: 50% !important;
+    background-repeat: repeat !important;
+    background-size: cover !important;
+    opacity: .3;
+}
+
+@media (max-width: 480px) {
+    .bg-top-section {
+        background: url(https://images.leadconnectorhq.com/image/f_webp/q_80/r_480/u_https://assets.cdn.filesafe.space/FqtOpHiHDZoX8PKbx2C9/media/684be60a2809a948f00642e0.jpeg);
+    }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+    .bg-top-section {
+        background: url(https://images.leadconnectorhq.com/image/f_webp/q_80/r_768/u_https://assets.cdn.filesafe.space/FqtOpHiHDZoX8PKbx2C9/media/684be60a2809a948f00642e0.jpeg);
+    }
+}
+
+@media (min-width: 1025px) {
+    .bg-top-section {
+        background: url(https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_https://assets.cdn.filesafe.space/FqtOpHiHDZoX8PKbx2C9/media/684be60a2809a948f00642e0.jpeg);
+    }
+}
