@@ -402,9 +402,9 @@ export default function HomeV3() {
           <div>
             <p className="uppercase text-sm mb-4 tracking-widest">Stay In Touch</p>
             <ul className="space-y-2 text-sm">
-              <li>📧 info@digitalhareesh.com</li>
-              <li>📞 +91 90616 56506</li>
-              <li>📍</li>
+              <li>📧 bishwas@unclesamstech.com</li>
+              <li>📞 +1 (223) 279-9248</li>
+              <li>📍Mechanicsburg, PA, USA</li>
             </ul>
           </div>
         </div>
