@@ -1,4 +1,5 @@
 "use client"
+import { useState } from "react"
 // Dynamic import for non-critical components
 import dynamic from 'next/dynamic';
 const GoogleLoginButton = dynamic(() => import('@/components/common/google-login-button'), { ssr: false });
@@ -23,6 +24,24 @@ const LoaderIcon = () => (
 
 export default function HomeV3() {
 
+  const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  const faqs = [
+    {
+      question: "Is NextPostAI suitable for all social media platforms?",
+      answer: "Yes, it supports Facebook, LinkedIn, X, and Instagram."
+    },
+    {
+      question: "Can I customize the AI-generated content?",
+      answer: "Absolutely! You can edit and tailor the content to fit your brand voice"
+    },
+    {
+      question: "Is there a free trial available?",
+      answer: "A: Yes, we offer a free trial so you can experience the benefits firsthand."
+    }
+  ]
+
+
   return (
     <div className='homepage pb-10'>
 
@@ -41,7 +60,6 @@ export default function HomeV3() {
             <div className='flex flex-col gap-2 lg:gap-8 items-center lg:items-start p-3 lg:p-0'>
               <p className='text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold'>Create Viral Content in Minutes, Not Hours</p>
               <p className='text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider'>Struggling to keep up with the ever-changing social media landscape? NextPostAI simplifies your content creation process, helping you generate engaging posts effortlessly.</p>
-              {/* <button className='px-12 py-3 bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0'>Get Started Now</button> */}
               <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
             </div>
             <Image src="/tmpu3cg1514.webp" width={600} height={600} alt="image" className='max-w-96' />
@@ -127,170 +145,279 @@ export default function HomeV3() {
           <GoogleLoginButton triggerClassName='px-12 py-2 bg-white text-black text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
         </div>
       </section>
+
+      <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-10">
+        <div className="text-center">
+          <h2 className="text-3xl md:text-5xl font-light">
+            The <span className="text-[#FAA41B] font-semibold">NextPostAI</span> Advantage
+          </h2>
+          <hr className="border-t border-gray-600 mt-3 w-24 mx-auto" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 text-white">
+          {/* Traditional Approach */}
+          <div>
+            <h3 className="text-3xl font-bold mb-2 text-black">Traditional Approach</h3>
+            <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
+            <ul className="space-y-3 text-base font-light text-black">
+              <li className="flex items-start gap-2">
+                <span className="text-red-500">✖</span> Time-consuming trend analysis
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-500">✖</span> Inconsistent posting schedule
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-500">✖</span> Manual content creation
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-500">✖</span> Risk of AI-generated inaccuracies
+              </li>
+            </ul>
+          </div>
+
+          {/* With NextPostAI */}
+          <div>
+            <h3 className="text-3xl font-bold text-black mb-2 ">With NextPostAI</h3>
+            <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
+            <ul className="space-y-3 text-base font-light text-black">
+              <li className="flex items-start gap-2">
+                <span className="text-green-400">✔</span> Instant generation of viral content
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400">✔</span> Automated posting reminders
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400">✔</span> Access to a vibrant content community
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400">✔</span> Streamlined content planning
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
+        <div className="bg-[#0F1124] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-6 flex flex-col items-center gap-12">
+          <h2 className="text-4xl md:text-5xl text-[#FAA41B] font-medium text-center">Testimonials</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+            {[
+              {
+                name: "Alex R",
+                role: "Digital Marketer",
+                image: "/tmpdj5rdrob.webp",
+                quote: "NextPostAI transformed my social media strategy. Creating content is now a breeze!",
+              },
+              {
+                name: "Jamie L",
+                role: "Small Business Owner",
+                image: "/tmp6gymd1vw.webp",
+                quote: "The AI-generated posts are spot-on and save me so much time.",
+              },
+              {
+                name: "Morgan K",
+                role: "Content Creator",
+                image: "/tmph6iuxe9k.webp",
+                quote: "I love the community feature. It's great to see what others are posting and get inspired.",
+              },
+            ].map((user, idx) => (
+              <div key={idx} className="bg-white text-black rounded-2xl p-6 flex flex-col gap-4 items-start">
+                <img src={user.image} alt={user.name} className="w-10 h-10 rounded-full" />
+                <div className="text-yellow-500 text-lg">★★★★★</div>
+                <p className="text-sm font-normal">"{user.quote}"</p>
+                <div>
+                  <p className="font-bold">{user.name}</p>
+                  <p className="text-xs text-gray-500">({user.role})</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-white text-lg mb-4">Ready to get started?</p>
+            <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
+        {/* Mobile-Friendly Design */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-10 mb-16">
+          <img src="/mobile-icon.webp" alt="Mobile Design" className="w-40 md:w-60" />
+          <div className="flex flex-col max-w-xl">
+            <h3 className="text-3xl md:text-4xl font-bold text-[#0F1124]">
+              Mobile-Friendly <br />
+              <span className="text-[#FAA41B]">Design</span>
+            </h3>
+            <div className="w-10 h-1 bg-[#FAA41B] my-4" />
+            <p className="text-sm md:text-base text-[#0F1124]">
+              Access NextPostAI on any device. Whether you're on the go or at your desk,
+              your content creation tools are always within reach.
+            </p>
+          </div>
+        </div>
+
+        <hr className="border-t border-gray-300 mb-16" />
+
+        {/* Privacy & Security */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col max-w-xl order-2 md:order-1">
+            <h3 className="text-3xl md:text-4xl font-bold text-[#FAA41B]">
+              Privacy <span className="text-[#0F1124]">& Security</span>
+            </h3>
+            <div className="w-10 h-1 bg-[#FAA41B] my-4" />
+            <ul className="list-disc pl-5 space-y-2 text-[#0F1124] text-sm md:text-base">
+              <li>100% free to start - no credit card required</li>
+              <li>Upgrade later for pro features</li>
+              <li>Stay with the free version if that’s all you need</li>
+              <li>30-second signup, full productivity support</li>
+            </ul>
+          </div>
+          <img src="/privacy-icon.webp" alt="Privacy" className="w-40 md:w-60 order-1 md:order-2" />
+        </div>
+      </section>
+
+      <section className="w-full mt-24">
+        {/* Who Can Benefit */}
+        <div className="bg-[#FAA41B] text-white px-5 md:px-20 lg:px-36 py-16 skew-y-[-3deg]">
+          <div className="skew-y-[3deg] max-w-3xl mx-auto text-center">
+            <h2 className="text-4xl font-light mb-6">Who Can Benefit?</h2>
+            <ul className="text-left space-y-4 text-base font-light">
+              <li>
+                <span className="mr-2">🟡</span>
+                <span className="font-semibold">Entrepreneurs:</span> Build your brand with consistent, engaging content.
+              </li>
+              <li>
+                <span className="mr-2">🟡</span>
+                <span className="font-semibold">Marketers:</span> Streamline your content strategy and focus on growth.
+              </li>
+              <li>
+                <span className="mr-2">🟡</span>
+                <span className="font-semibold">Influencers:</span> Maintain a strong online presence with minimal effort.
+              </li>
+              <li>
+                <span className="mr-2">🟡</span>
+                <span className="font-semibold">Small Businesses:</span> Connect with your audience through compelling posts.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Get Started Today */}
+        <div className="bg-[#0F1124] text-white px-5 md:px-20 lg:px-36 py-16 rounded-t-[60px] text-center -mt-4">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">Get Started Today</h2>
+          <p className="text-sm md:text-base font-light max-w-xl mx-auto mb-8">
+            Experience the ease of AI-powered content creation. <br />
+            Sign up now and elevate your social media game.
+          </p>
+          <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
+        </div>
+      </section>
+
+      <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-4xl text-[#0F1124] font-light">Frequently</h2>
+              <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">Asked Questions</h3>
+            </div>
+
+            <div className="space-y-4">
+              {faqs.map((faq, idx) => (
+                <div key={idx} className="border rounded-md overflow-hidden">
+                  <button
+                    onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
+                    className="w-full bg-[#0F1124] text-white px-6 py-4 text-left font-semibold flex justify-between items-center"
+                  >
+                    <span>Question {idx + 1}: {faq.question}</span>
+                    <span className="text-lg">{openIndex === idx ? '▴' : '▾'}</span>
+                  </button>
+                  {openIndex === idx && (
+                    <div className="bg-white text-[#0F1124] px-6 py-4 text-sm">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="w-full bg-[#0F1124] px-5 md:px-20 lg:px-36 py-24">
+            <div
+              className="relative rounded-[30px] overflow-hidden text-white text-center px-6 py-16 md:px-16"
+              style={{
+                backgroundImage: "url('/cta-bg.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              <div className="absolute inset-0 bg-[#FAA41B]/90 z-0" />
+
+              <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center gap-6">
+                <p className="text-lg md:text-xl">Ready to revolutionize your social media content creation?</p>
+                <h2 className="text-2xl md:text-4xl font-semibold">
+                  Join the <span className="font-bold text-[#0F1124] bg-white px-1 rounded">NextPostAI</span> community today.
+                </h2>
+                <button className="bg-white text-[#0F1124] font-semibold px-6 py-3 rounded-full shadow-md hover:scale-105 transition-all">
+                  👉 Get Started Now
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <footer className="w-full bg-[#0F1124] text-white px-5 md:px-20 lg:px-36 pt-16 pb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+              {/* Left - Stay Up to Date Form */}
+              <div>
+                <p className="uppercase text-sm mb-4 tracking-widest">Stay Up To Date</p>
+                <form className="flex flex-col gap-4 max-w-sm">
+                  <div>
+                    <label htmlFor="email" className="text-sm font-medium">Email *</label>
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="Email"
+                      className="mt-1 w-full px-4 py-2 rounded border border-gray-300 text-black focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition-all"
+                  >
+                    SUBMIT
+                  </button>
+                </form>
+              </div>
+
+              {/* Right - Contact Info */}
+              <div>
+                <p className="uppercase text-sm mb-4 tracking-widest">Stay In Touch</p>
+                <ul className="space-y-2 text-sm">
+                  <li>📧 info@digitalhareesh.com</li>
+                  <li>📞 +91 90616 56506</li>
+                  <li>📍</li>
+                </ul>
+              </div>
+            </div>
+
+            <hr className="border-gray-600 mb-6" />
+
+            <div className="flex flex-col md:flex-row justify-between text-xs text-gray-400 gap-4">
+              <div className="flex gap-6">
+                <a href="#" className="hover:underline">Privacy Policy</a>
+                <a href="#" className="hover:underline">Terms & Conditions</a>
+              </div>
+              <div className="text-center md:text-left">
+                Copyright © 2025. All rights reserved. Haresh V's Account
+              </div>
+              <div className="flex gap-4 justify-center md:justify-end">
+                <a href="#"><i className="fab fa-facebook-f" /></a>
+                <a href="#"><i className="fab fa-instagram" /></a>
+                <a href="#"><i className="fab fa-youtube" /></a>
+              </div>
+            </div>
+          </footer>
+
     </div>
   )
 
-  // return (
-  //   <div className="bg-gradient-to-t from-teal-600 to-cyan-500 min-h-screen flex flex-col justify-between">
-  //     <div className="container mx-auto px-4 py-8">
-  //       {/* Hero Section */}
-  //       <header className="text-center mb-12">
-  //         <h1 className="text-5xl text-white mb-4 drop-shadow-md">
-  //           NextPostAI
-  //         </h1>
-  //         <p className="text-xl text-teal-100 max-w-lg mx-auto">
-  //           Generate ready-to-post Content for Facebook, LinkedIn, X, and Instagram.
-  //         </p>
-  //       </header>
-
-  //       {/* Static Features Section */}
-  //       <div className="max-w-6xl mx-auto mb-12">
-  //         {/* Call-to-Action */}
-  //         <div className="flex justify-center mb-8">
-  //           <GoogleLoginButton triggerClassName="min-w-32" />
-  //         </div>
-
-  //         {/* Single Box for Features */}
-  //         <div className="p-6 rounded-2xl bg-teal-700/30 border border-teal-500">
-  //           <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-  //             Features
-  //           </h2>
-  //           <div className="grid md:grid-cols-3 gap-6">
-  //             {/* Feature 1: Content Generator */}
-  //             <div className="text-center">
-  //               <h3 className="text-white font-semibold mb-2">
-  //                 1. Viral Content Generator
-  //               </h3>
-  //               <p className="text-teal-100 text-sm mb-4">
-  //                 AI that is tuned to generate viral content.
-  //               </p>
-  //             </div>
-
-  //             {/* Feature 2: Content Planner */}
-  //             <div className="text-center">
-  //               <h3 className="text-white font-semibold mb-2">2. Content Planner</h3>
-  //               <p className="text-teal-100 text-sm mb-4">
-  //                 Enter when you make posts, and get auto alert to post next time.
-  //               </p>
-  //             </div>
-
-  //             {/* Feature 3: Community Wall */}
-  //             <div className="text-center">
-  //               <h3 className="text-white font-semibold mb-2">3. Get Ideas</h3>
-  //               <p className="text-teal-100 text-sm mb-4">
-  //                 Get inspiring ideas from other peoples projects + content. Or share yours.
-  //               </p>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       {/* Community Wall Preview Section */}
-  //       <div className="max-w-4xl mx-auto mb-12">
-  //         <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-  //           ✨ Work with AI or generate your own content  ✨
-  //         </h2>
-  //         <div className="w-full">
-  //           <Image
-  //             src="/generator.png"
-  //             alt="Community Wall Full Preview"
-  //             width={1024}
-  //             height={576}
-  //             className="w-full h-auto"
-  //             loading="lazy"
-  //           />
-  //         </div>
-  //       </div>
-
-  //       {/* Community Wall Preview Section */}
-  //       <div className="max-w-4xl mx-auto mb-12">
-  //         <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-  //           ✨ Get inspired by what others are sharing on NextPostAI ✨
-  //         </h2>
-  //         <div className="w-full">
-  //           <Image
-  //             src="/wall-preview.png"
-  //             alt="Community Wall Full Preview"
-  //             width={1024}
-  //             height={576}
-  //             className="w-full h-auto"
-  //             loading="lazy"
-  //           />
-  //         </div>
-  //       </div>
-
-  //       {/* Strategy Board Preview Section */}
-  //       <div className="max-w-4xl mx-auto mb-12">
-  //         <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-  //           📆 Content Planner 📆
-  //         </h2>
-  //         <div className="w-full">
-  //           <Image
-  //             src="/dashboard-preview.png"
-  //             alt="Strategy Board Full Preview"
-  //             width={1024}
-  //             height={576}
-  //             className="w-full h-auto"
-  //             loading="lazy"
-  //           />
-  //         </div>
-  //       </div>
-
-  //       {/* old way - new way */}
-  //       <div className="w-full max-w-[450px] mx-auto mb-12">
-  //         <h3 className="text-white font-semibold mb-4 text-center text-2xl">Why use NextPostAI?</h3>
-  //         {/* Old Way in a Box */}
-  //         <div className="p-6 rounded-xl bg-teal-700/50 border border-teal-500 mb-8 mx-auto">
-  //           <h3 className="text-white font-semibold mb-4 text-left text-xl">Old Way</h3>
-  //           <ul className="text-teal-100 text-lg text-left">
-  //             <li><span className="text-red-500">❌</span> 5-10 hours analyzing trends</li>
-  //             <li><span className="text-red-500">❌</span> Inconsistent posting</li>
-  //             <li><span className="text-red-500">❌</span> Manual content creation</li>
-  //             <li><span className="text-red-500">❌</span> AI hallucinates</li>
-  //           </ul>
-  //         </div>
-
-  //         {/* New Way in a Box */}
-  //         <div className="p-6 rounded-xl bg-teal-700/50 border border-teal-500 mx-auto">
-  //           <h3 className="text-white font-semibold mb-4 text-left text-xl">New Way with NextPostAI</h3>
-  //           <ul className="text-teal-100 text-lg text-left">
-  //             <li><span className="text-green-500">✔️</span> Instant viral AI-generated content</li>
-  //             <li><span className="text-green-500">✔️</span> Automated reminders</li>
-  //             <li><span className="text-green-500">✔️</span> Community inspiration</li>
-  //             <li><span className="text-green-500">✔️</span> Effortless posting schedule</li>
-  //           </ul>
-  //         </div>
-  //       </div>
-
-
-
-
-
-
-
-  //       {/* Call-to-Action */}
-  //       <div className="flex justify-center mb-8">
-  //         <GoogleLoginButton triggerClassName="min-w-32" />
-  //       </div>
-  //     </div>
-
-  //     {/* Footer */}
-  //     <div className="bg-teal-800/50 py-6 text-center">
-  //       <p className="text-teal-200 text-sm">
-  //         © 2025 NextPostAI. All rights reserved.
-  //       </p>
-  //     </div>
-
-  //     {/* Inline Styles for Animation */}
-  //     <style>{`
-  //       @keyframes fadeIn {
-  //         from { opacity: 0; }
-  //         to { opacity: 1; }
-  //       }
-  //       .animate-fade-in {
-  //         animation: fadeIn 0.3s ease-out forwards;
-  //       }
-  //     `}</style>
-  //   </div>
-  // );
 }
