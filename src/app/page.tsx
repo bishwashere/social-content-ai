@@ -367,9 +367,7 @@ export default function HomeV3() {
             <h2 className="text-3xl md:text-5xl font-semibold">
               Join the <span className="font-bold text-[#0F1124] bg-white px-1 rounded">NextPostAI</span> community today.
             </h2>
-            <button className="bg-white text-[#0F1124] font-semibold px-6 py-3 rounded-full shadow-md hover:scale-105 transition-all">
-              👉 Get Started Now
-            </button>
+            <GoogleLoginButton triggerClassName="bg-white text-[#0F1124] font-semibold px-6 py-3 rounded-full shadow-md hover:scale-105 transition-all" />
           </div>
         </div>
       </section>
