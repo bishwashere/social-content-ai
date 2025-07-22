@@ -43,7 +43,7 @@ export default function HomeV3() {
 
 
   return (
-    <div className='homepage pb-10'>
+    <div className='homepage'>
 
       {/* Section 1 */}
       <div className='bg-[#000321] relative flex items-center justify-center py-20'>
@@ -154,7 +154,7 @@ export default function HomeV3() {
           <hr className="border-t border-gray-600 mt-3 w-24 mx-auto" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 text-white">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 text-white place-items-center">
           {/* Traditional Approach */}
           <div>
             <h3 className="text-3xl font-bold mb-2 text-black">Traditional Approach</h3>
@@ -198,7 +198,7 @@ export default function HomeV3() {
       </section>
 
       <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
-        <div className="bg-[#0F1124] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-6 flex flex-col items-center gap-12">
+        <div className="bg-[#222639] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-10 md:px-16 flex flex-col items-center gap-12">
           <h2 className="text-4xl md:text-5xl text-[#FAA41B] font-medium text-center">Testimonials</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
@@ -223,9 +223,9 @@ export default function HomeV3() {
               },
             ].map((user, idx) => (
               <div key={idx} className="bg-white text-black rounded-2xl p-6 flex flex-col gap-4 items-start">
-                <img src={user.image} alt={user.name} className="w-10 h-10 rounded-full" />
+                <Image width={40} height={40} src={user.image} alt={user.name} className="w-10 h-10 rounded-full" />
                 <div className="text-yellow-500 text-lg">★★★★★</div>
-                <p className="text-sm font-normal">"{user.quote}"</p>
+                <p className="text-sm font-normal">&quot;{user.quote}&quot;</p>
                 <div>
                   <p className="font-bold">{user.name}</p>
                   <p className="text-xs text-gray-500">({user.role})</p>
@@ -243,16 +243,16 @@ export default function HomeV3() {
 
       <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
         {/* Mobile-Friendly Design */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-10 mb-16">
-          <img src="/mobile-icon.webp" alt="Mobile Design" className="w-40 md:w-60" />
+        <div className="flex flex-col md:flex-row items-center justify-around gap-10 mb-16">
+          <Image width={200} height={200} src="/mobile-icon.webp" alt="Mobile Design" className="w-40 md:w-60" />
           <div className="flex flex-col max-w-xl">
-            <h3 className="text-3xl md:text-4xl font-bold text-[#0F1124]">
+            <h3 className="text-3xl md:text-5xl font-bold text-[#0F1124]">
               Mobile-Friendly <br />
               <span className="text-[#FAA41B]">Design</span>
             </h3>
             <div className="w-10 h-1 bg-[#FAA41B] my-4" />
-            <p className="text-sm md:text-base text-[#0F1124]">
-              Access NextPostAI on any device. Whether you're on the go or at your desk,
+            <p className="text-sm md:text-lg text-[#0F1124]">
+              Access NextPostAI on any device. Whether you&apos;re on the go or at your desk,
               your content creation tools are always within reach.
             </p>
           </div>
@@ -261,29 +261,41 @@ export default function HomeV3() {
         <hr className="border-t border-gray-300 mb-16" />
 
         {/* Privacy & Security */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+        <div className="flex flex-col md:flex-row items-center justify-around gap-10">
           <div className="flex flex-col max-w-xl order-2 md:order-1">
-            <h3 className="text-3xl md:text-4xl font-bold text-[#FAA41B]">
+            <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">
               Privacy <span className="text-[#0F1124]">& Security</span>
             </h3>
             <div className="w-10 h-1 bg-[#FAA41B] my-4" />
-            <ul className="list-disc pl-5 space-y-2 text-[#0F1124] text-sm md:text-base">
+            <ul className="list-disc pl-5 space-y-2 text-[#0F1124] text-sm md:text-lg">
               <li>100% free to start - no credit card required</li>
               <li>Upgrade later for pro features</li>
               <li>Stay with the free version if that’s all you need</li>
               <li>30-second signup, full productivity support</li>
             </ul>
           </div>
-          <img src="/privacy-icon.webp" alt="Privacy" className="w-40 md:w-60 order-1 md:order-2" />
+          <Image width={200} height={200} src="/privacy-icon.webp" alt="Privacy" className="w-40 md:w-60 order-1 md:order-2" />
         </div>
       </section>
 
-      <section className="w-full mt-24">
+      <section className="w-full mt-24 md:mt-48 px-4 md:px-8 lg:px-20 flex flex-col items-center">
         {/* Who Can Benefit */}
-        <div className="bg-[#FAA41B] text-white px-5 md:px-20 lg:px-36 py-16 skew-y-[-3deg]">
-          <div className="skew-y-[3deg] max-w-3xl mx-auto text-center">
-            <h2 className="text-4xl font-light mb-6">Who Can Benefit?</h2>
-            <ul className="text-left space-y-4 text-base font-light">
+        <div className="bg-[#FAA41B] text-white pt-24 skew-y-[-5deg] w-full relative pb-56">
+          <div
+            className="absolute left-0 -top-16 md:-top-[87px] inset-0 bg-[#222639] h-14 w-56 md:h-20 md:w-96"
+            style={{
+              clipPath: 'polygon(0 0, 21% 64%, 100% 100%, 0% 100%)',
+            }}
+          />
+          <div
+            className="absolute right-0 -bottom-8 bg-[#222639] h-7 w-24"
+            style={{
+              clipPath: 'polygon(0 0, 100% 0, 100% 100%, 100% 100%)',
+            }}
+          />
+          <div className="skew-y-[5deg] max-w-3xl mx-auto flex flex-col items-center pt-5">
+            <h2 className="text-3xl md:text-5xl font-light mb-6">Who Can Benefit?</h2>
+            <ul className="text-left space-y-4 text-base md:text-lg font-light px-5">
               <li>
                 <span className="mr-2">🟡</span>
                 <span className="font-semibold">Entrepreneurs:</span> Build your brand with consistent, engaging content.
@@ -305,9 +317,9 @@ export default function HomeV3() {
         </div>
 
         {/* Get Started Today */}
-        <div className="bg-[#0F1124] text-white px-5 md:px-20 lg:px-36 py-16 rounded-t-[60px] text-center -mt-4">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Get Started Today</h2>
-          <p className="text-sm md:text-base font-light max-w-xl mx-auto mb-8">
+        <div className="bg-[#222639] text-white w-full md:w-[70%] px-5 md:px-20 lg:px-36 py-20 rounded-[60px] text-center -mt-36 z-20">
+          <h2 className="text-4xl md:text-5xl font-bold mb-10">Get Started Today</h2>
+          <p className="text-sm md:text-base font-light max-w-xl mx-auto mb-10">
             Experience the ease of AI-powered content creation. <br />
             Sign up now and elevate your social media game.
           </p>
@@ -316,106 +328,104 @@ export default function HomeV3() {
       </section>
 
       <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-4xl text-[#0F1124] font-light">Frequently</h2>
-              <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">Asked Questions</h3>
-            </div>
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-4xl text-[#0F1124] font-light">Frequently</h2>
+          <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">Asked Questions</h3>
+        </div>
 
-            <div className="space-y-4">
-              {faqs.map((faq, idx) => (
-                <div key={idx} className="border rounded-md overflow-hidden">
-                  <button
-                    onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
-                    className="w-full bg-[#0F1124] text-white px-6 py-4 text-left font-semibold flex justify-between items-center"
-                  >
-                    <span>Question {idx + 1}: {faq.question}</span>
-                    <span className="text-lg">{openIndex === idx ? '▴' : '▾'}</span>
-                  </button>
-                  {openIndex === idx && (
-                    <div className="bg-white text-[#0F1124] px-6 py-4 text-sm">
-                      {faq.answer}
-                    </div>
-                  )}
+        <div className="space-y-4">
+          {faqs.map((faq, idx) => (
+            <div key={idx} className="border rounded-md overflow-hidden">
+              <button
+                onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
+                className="w-full bg-[#222639] text-white px-6 py-4 text-left font-semibold flex justify-between items-center"
+              >
+                <span>Question {idx + 1}: {faq.question}</span>
+                <span className="text-lg">{openIndex === idx ? '▴' : '▾'}</span>
+              </button>
+              {openIndex === idx && (
+                <div className="bg-white text-[#222639] px-6 py-4 text-sm">
+                  {faq.answer}
                 </div>
-              ))}
+              )}
             </div>
-          </section>
+          ))}
+        </div>
+      </section>
 
-          <section className="w-full bg-[#0F1124] px-5 md:px-20 lg:px-36 py-24">
-            <div
-              className="relative rounded-[30px] overflow-hidden text-white text-center px-6 py-16 md:px-16"
-              style={{
-                backgroundImage: "url('/cta-bg.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              <div className="absolute inset-0 bg-[#FAA41B]/90 z-0" />
+      <section className="w-full mt-20 flex items-center justify-center px-5 md:px-20 lg:px-36">
+        <div
+          className="relative rounded-[30px] overflow-hidden text-white text-center w-full px-6 py-10 md:py-16 md:px-16"
+          style={{
+            backgroundImage: "url('/tmp9wo0ngod.webp')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-10">
+            <p className="text-xl md:text-2xl">Ready to revolutionize your social media content creation?</p>
+            <h2 className="text-3xl md:text-5xl font-semibold">
+              Join the <span className="font-bold text-[#0F1124] bg-white px-1 rounded">NextPostAI</span> community today.
+            </h2>
+            <button className="bg-white text-[#0F1124] font-semibold px-6 py-3 rounded-full shadow-md hover:scale-105 transition-all">
+              👉 Get Started Now
+            </button>
+          </div>
+        </div>
+      </section>
 
-              <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center gap-6">
-                <p className="text-lg md:text-xl">Ready to revolutionize your social media content creation?</p>
-                <h2 className="text-2xl md:text-4xl font-semibold">
-                  Join the <span className="font-bold text-[#0F1124] bg-white px-1 rounded">NextPostAI</span> community today.
-                </h2>
-                <button className="bg-white text-[#0F1124] font-semibold px-6 py-3 rounded-full shadow-md hover:scale-105 transition-all">
-                  👉 Get Started Now
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <footer className="w-full bg-[#0F1124] text-white px-5 md:px-20 lg:px-36 pt-16 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-              {/* Left - Stay Up to Date Form */}
+      <footer className="w-full bg-[#0F1124] text-white -mt-40 px-5 md:px-20 lg:px-36 pt-52 pb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+          {/* Left - Stay Up to Date Form */}
+          <div>
+            <p className="uppercase text-sm mb-4 tracking-widest">Stay Up To Date</p>
+            <form className="flex flex-col gap-4 max-w-sm">
               <div>
-                <p className="uppercase text-sm mb-4 tracking-widest">Stay Up To Date</p>
-                <form className="flex flex-col gap-4 max-w-sm">
-                  <div>
-                    <label htmlFor="email" className="text-sm font-medium">Email *</label>
-                    <input
-                      id="email"
-                      type="email"
-                      placeholder="Email"
-                      className="mt-1 w-full px-4 py-2 rounded border border-gray-300 text-black focus:outline-none"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition-all"
-                  >
-                    SUBMIT
-                  </button>
-                </form>
+                <label htmlFor="email" className="text-sm font-medium">Email *</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Email"
+                  className="mt-1 w-full px-4 py-2 rounded border border-gray-300 text-black focus:outline-none"
+                />
               </div>
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition-all"
+              >
+                SUBMIT
+              </button>
+            </form>
+          </div>
 
-              {/* Right - Contact Info */}
-              <div>
-                <p className="uppercase text-sm mb-4 tracking-widest">Stay In Touch</p>
-                <ul className="space-y-2 text-sm">
-                  <li>📧 info@digitalhareesh.com</li>
-                  <li>📞 +91 90616 56506</li>
-                  <li>📍</li>
-                </ul>
-              </div>
-            </div>
+          {/* Right - Contact Info */}
+          <div>
+            <p className="uppercase text-sm mb-4 tracking-widest">Stay In Touch</p>
+            <ul className="space-y-2 text-sm">
+              <li>📧 info@digitalhareesh.com</li>
+              <li>📞 +91 90616 56506</li>
+              <li>📍</li>
+            </ul>
+          </div>
+        </div>
 
-            <hr className="border-gray-600 mb-6" />
+        <hr className="border-gray-600 mb-6" />
 
-            <div className="flex flex-col md:flex-row justify-between text-xs text-gray-400 gap-4">
-              <div className="flex gap-6">
-                <a href="#" className="hover:underline">Privacy Policy</a>
-                <a href="#" className="hover:underline">Terms & Conditions</a>
-              </div>
-              <div className="text-center md:text-left">
-                Copyright © 2025. All rights reserved. Haresh V's Account
-              </div>
-              <div className="flex gap-4 justify-center md:justify-end">
-                <a href="#"><i className="fab fa-facebook-f" /></a>
-                <a href="#"><i className="fab fa-instagram" /></a>
-                <a href="#"><i className="fab fa-youtube" /></a>
-              </div>
-            </div>
-          </footer>
+        <div className="flex flex-col md:flex-row justify-between text-xs text-gray-400 gap-4">
+          <div className="flex gap-6">
+            <a href="#" className="hover:underline">Privacy Policy</a>
+            <a href="#" className="hover:underline">Terms & Conditions</a>
+          </div>
+          <div className="text-center md:text-left">
+            Copyright © 2025. All rights reserved. NextPost AI
+          </div>
+          <div className="flex gap-4 justify-center md:justify-end">
+            <a href="#"><i className="fab fa-facebook-f" /></a>
+            <a href="#"><i className="fab fa-instagram" /></a>
+            <a href="#"><i className="fab fa-youtube" /></a>
+          </div>
+        </div>
+      </footer>
 
     </div>
   )
