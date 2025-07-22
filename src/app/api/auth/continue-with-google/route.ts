@@ -9,6 +9,7 @@ import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 import { requestValidator } from "@/middlewares/request-validator";
 import { authValidator, AuthValidatorType } from "@/validators/auth";
+import axios from "axios";
 
 /**
  * Continue with Google, create a new user or update the existing user
@@ -65,19 +66,25 @@ export const POST = applyMiddleware(
     }
 
     if (isNewUser) {
-      Promise.resolve(
-        mail.sendTemplate(
-          "WELCOME_ON_LOGIN",
+      console.log(`New user signup: ${savedUser.email}`);
+      try {
+        const res = await axios.post(
+          process.env.TRAXN_WORKFLOW_SIGNUP_INBOUND_WEBHOOK_URL as string,
           {
-            name: userProfile.name,
-            activationLink: process.env.NEXT_PUBLIC_FRONTEND_BASE_URL as string,
+            email: savedUser.email,
+            name: savedUser.name,
           },
           {
-            subject: `Welcome to NextPost AI, ${userProfile.name}!`,
-            to: [userProfile.email],
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
-        )
-      );
+        );
+        const data = await res.data;
+        console.log("✅ Signup email sent to Traxn successfully:", data);
+      } catch (error) {
+        console.error("❌ Error sending signup email to Traxn:", error);
+      }
     }
 
     console.log("🔑 Generating JWT token for user:", savedUser._id.toString());
