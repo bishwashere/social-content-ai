@@ -15,6 +15,7 @@ import { Project } from "@/db/projects/schema/project";
 import PostToWall from "@/components/common/post-to-wall";
 import { Switch } from "@/components/ui/switch";
 import AutoPost from "@/components/common/auto-post";
+import Image from "next/image";
 
 interface ContentGeneratorProps {
   project: Project;
@@ -84,8 +85,8 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
           </>
         ) : (
           <>
-            <Sparkle className="h-4 w-4 mr-2" />
-            Generate Content
+            <Image src="/flash.png" width={24} height={24} className="h-5 w-5 mr-1" alt="Thunder" />
+            Quick Generate
           </>
         )}
       </Button>
