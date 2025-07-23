@@ -85,6 +85,25 @@ export const POST = applyMiddleware(
       } catch (error) {
         console.error("❌ Error sending signup email to Traxn:", error);
       }
+
+      try {
+        const res = await axios.post(
+          process.env.TRAXN_WORKFLOW_ABANDON_INBOUND_WEBHOOK_URL as string,
+          {
+            email: savedUser.email,
+            name: savedUser.name,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const data = await res.data;
+        console.log("✅ Abandon email sent to Traxn successfully:", data);
+      } catch (error) {
+        console.error("❌ Error sending abandon email to Traxn:", error);
+      }
     }
 
     console.log("🔑 Generating JWT token for user:", savedUser._id.toString());
