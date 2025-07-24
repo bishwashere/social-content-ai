@@ -60,6 +60,15 @@ export default function AdvanceCustomization() {
     };
 
     useEffect(() => {
+        const lastStyle = localStorage.getItem("lastStyle");
+        const lastTone = localStorage.getItem("lastTone");
+        const lastTheme = localStorage.getItem("lastTheme");
+        if (lastStyle) setStyle(lastStyle);
+        if (lastTone) setTone(lastTone);
+        if (lastTheme) setTheme(lastTheme);
+    }, [])
+
+    useEffect(() => {
         console.log("output: ", output);
     }, [output]);
 
@@ -151,7 +160,7 @@ export default function AdvanceCustomization() {
                                     <label className="text-sm font-medium w-24">Style</label>
                                     <select
                                         value={style}
-                                        onChange={(e) => setStyle(e.target.value)}
+                                        onChange={(e) => { localStorage.setItem("lastStyle", e.target.value); setStyle(e.target.value) }}
                                         className="flex-1 p-2 border rounded-lg"
                                     >
                                         <option value="narrative">Narrative</option>
@@ -164,7 +173,7 @@ export default function AdvanceCustomization() {
                                     <label className="text-sm font-medium w-24">Tone</label>
                                     <select
                                         value={tone}
-                                        onChange={(e) => setTone(e.target.value)}
+                                        onChange={(e) => { localStorage.setItem("lastTone", e.target.value); setTone(e.target.value) }}
                                         className="flex-1 p-2 border rounded-lg"
                                     >
                                         <option value="neutral">Neutral</option>
@@ -203,7 +212,7 @@ export default function AdvanceCustomization() {
                                     <label className="text-sm font-medium w-24">Theme</label>
                                     <select
                                         value={theme}
-                                        onChange={(e) => setTheme(e.target.value)}
+                                        onChange={(e) => { localStorage.setItem("lastTheme", e.target.value); setTheme(e.target.value) }}
                                         className="flex-1 p-2 border rounded-lg"
                                     >
                                         <option value="technology">Technology</option>

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import { useCreateProject } from "@/backend-apis/projects/hooks";
+import FirstViewTooltip from "@/components/common/first-view-tooltip";
 
 export function AddProjectButton() {
   const [name, setName] = useState("");
@@ -29,16 +30,18 @@ export function AddProjectButton() {
       setOpen(false);
       setName("");
       setDescription("");
-    } catch {}
+    } catch { }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-48 h-10 text-sm md:w-40 md:h-9 lg:w-36 lg:h-8">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Project
-        </Button>
+        <FirstViewTooltip tooltipKey="addProject" content="You can create new projects from here." order={1}>
+          <Button className="w-48 h-10 text-sm md:w-40 md:h-9 lg:w-36 lg:h-8">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Project
+          </Button>
+        </FirstViewTooltip>
       </DialogTrigger>
       <DialogContent>
         <DialogClose />

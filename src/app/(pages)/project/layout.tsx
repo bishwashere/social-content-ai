@@ -3,6 +3,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
+import { TooltipManagerProvider } from "@/providers/first-view-tooltip-manager";
 
 export default function ProjectLayout({
   children,
@@ -10,12 +11,14 @@ export default function ProjectLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="h-screen overflow-auto w-full">
-        <ProjectSidebar />
-        <Main>{children}</Main>
-      </div>
-    </SidebarProvider>
+    <TooltipManagerProvider>
+      <SidebarProvider defaultOpen={true}>
+        <div className="h-screen overflow-auto w-full">
+          <ProjectSidebar />
+          <Main>{children}</Main>
+        </div>
+      </SidebarProvider>
+    </TooltipManagerProvider>
   );
 }
 
