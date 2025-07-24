@@ -3,6 +3,16 @@ import connectToDb from "@/db/connect";
 import { FirstViewTooltipModel, FirstViewTooltipType } from "@/db/first-view-tooltip/schema";
 import { Types } from "mongoose";
 
+function plainTooltipDoc(doc: any): FirstViewTooltipType {
+    return {
+        ...doc,
+        _id: doc._id.toString(),
+        userId: doc.userId.toString(),
+        createdAt: doc.createdAt?.toISOString(),
+        updatedAt: doc.updatedAt?.toISOString(),
+    };
+}
+
 export async function getFirstViewTooltip(userId: string): Promise<FirstViewTooltipType> {
     if (!Types.ObjectId.isValid(userId)) {
         throw new Error("Invalid userId");
@@ -21,10 +31,10 @@ export async function getFirstViewTooltip(userId: string): Promise<FirstViewTool
             quickGenerate: false,
         });
 
-        return created.toObject() as FirstViewTooltipType; // call .toObject() on Document
+        return created.toObject()
     }
 
-    return doc;
+    return plainTooltipDoc(doc);
 }
 
 export async function updateFirstViewTooltip(
@@ -47,5 +57,5 @@ export async function updateFirstViewTooltip(
         throw new Error("Unable to update or create tooltip document");
     }
 
-    return updatedDoc.toObject() as FirstViewTooltipType;
+    return plainTooltipDoc(updatedDoc.toObject());
 }
