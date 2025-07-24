@@ -3,6 +3,7 @@ import connectToDb from "@/db/connect";
 import { FirstViewTooltipModel, FirstViewTooltipType } from "@/db/first-view-tooltip/schema";
 import { Types } from "mongoose";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function plainTooltipDoc(doc: any): FirstViewTooltipType {
     return {
         ...doc,
