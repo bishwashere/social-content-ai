@@ -28,6 +28,7 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
+import FirstViewTooltip from "@/components/common/first-view-tooltip";
 
 export function ProjectSidebar() {
   const params = useParams();
@@ -59,12 +60,14 @@ export function ProjectSidebar() {
             👥 For You
           </Link>
           {/* Dashboard Link */}
-          <Link
-            href="/project/dashboard"
-            className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
-          >
-            📊 Content Planner
-          </Link>
+          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="Use this for analyzing and planning your future contents">
+            <Link
+              href="/project/dashboard"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
+            >
+              📊 Content Planner
+            </Link>
+          </FirstViewTooltip>
           {/* Projects */}
           <p className="text-sm font-semibold px-2">Projects</p>
           {isLoading

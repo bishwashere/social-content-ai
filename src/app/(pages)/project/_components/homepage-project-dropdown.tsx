@@ -1,5 +1,6 @@
 import { useGenerateProjectContent, useGetAllProjects } from "@/backend-apis/projects/hooks";
 import AutoPost from "@/components/common/auto-post";
+import FirstViewTooltip from "@/components/common/first-view-tooltip";
 import PostToWall from "@/components/common/post-to-wall";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, RefreshCcw } from "lucide-react";
@@ -89,24 +90,26 @@ export default function HomepageProjectDropdown() {
                         </select>
                     </div>
 
-                    <Button
-                        onClick={onGenerate}
-                        loading={chat.isPending}
-                        size={"lg"}
-                        className="w-full"
-                    >
-                        {chat.data ? (
-                            <>
-                                <RefreshCcw className="h-4 w-4 mr-2" />
-                                Regenerate Content
-                            </>
-                        ) : (
-                            <>
-                                <Image src="/flash.png" width={24} height={24} className="h-5 w-5 mr-1" alt="Thunder" />
-                                Quick Generate
-                            </>
-                        )}
-                    </Button>
+                    <FirstViewTooltip content="Use this to generate quick content without any customizations." order={2} tooltipKey="quickGenerate">
+                        <Button
+                            onClick={onGenerate}
+                            loading={chat.isPending}
+                            size={"lg"}
+                            className="w-full"
+                        >
+                            {chat.data ? (
+                                <>
+                                    <RefreshCcw className="h-4 w-4 mr-2" />
+                                    Regenerate Content
+                                </>
+                            ) : (
+                                <>
+                                    <Image src="/flash.png" width={24} height={24} className="h-5 w-5 mr-1" alt="Thunder" />
+                                    Quick Generate
+                                </>
+                            )}
+                        </Button>
+                    </FirstViewTooltip>
                 </div>
             </div>
 
