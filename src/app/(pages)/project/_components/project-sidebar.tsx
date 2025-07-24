@@ -43,7 +43,6 @@ export function ProjectSidebar() {
         : [...current, value],
     );
   };
-
   const { data: projects, isLoading } = useGetAllProjects();
 
   return (
@@ -70,17 +69,17 @@ export function ProjectSidebar() {
           <p className="text-sm font-semibold px-2">Projects</p>
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-8" />
-              ))
+              <Skeleton key={i} className="h-8" />
+            ))
             : projects?.map((project) => (
-                <ProjectItem
-                  key={project._id}
-                  project={project}
-                  isOpen={openSections.includes(project._id)}
-                  onToggle={() => handleSectionToggle(project._id)}
-                  currentPath={pathname}
-                />
-              ))}
+              <ProjectItem
+                key={project._id}
+                project={project}
+                isOpen={openSections.includes(project._id)}
+                onToggle={() => handleSectionToggle(project._id)}
+                currentPath={pathname}
+              />
+            ))}
         </SidebarContent>
       </ScrollArea>
     </Sidebar>
@@ -102,6 +101,12 @@ function ProjectItem({
 }: ProjectItemProps) {
   const router = useRouter();
   const { data } = useSession();
+
+  const activeProjectId = (path: string) => {
+    const match = path.match(/project\/([^/]+)/);
+    return match ? match[1] : null;
+  };
+
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <CollapsibleTrigger
@@ -111,8 +116,8 @@ function ProjectItem({
         <div
           className={cn(
             "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200",
-            currentPath === `/project/${project._id}` &&
-              "bg-accent text-accent-foreground",
+            activeProjectId(currentPath) === project._id &&
+            "bg-gray-200",
           )}
         >
           <div className="flex items-center gap-2 truncate">
@@ -142,7 +147,7 @@ function ProjectItem({
           className={cn(
             "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
             currentPath === `/project/${project._id}` &&
-              "bg-accent/50 text-accent-foreground",
+            "bg-accent text-accent-foreground",
           )}
         >
           Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
@@ -154,7 +159,7 @@ function ProjectItem({
             className={cn(
               "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
               currentPath === `/project/${project._id}/chat/${chat._id}` &&
-                "bg-accent/50 text-accent-foreground",
+              "bg-accent text-accent-foreground",
             )}
           >
             <div className="flex items-center gap-2">

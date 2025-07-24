@@ -4,7 +4,7 @@ import PostToWall from "@/components/common/post-to-wall";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, RefreshCcw } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import { toast } from "sonner";
 
@@ -46,6 +46,27 @@ export default function HomepageProjectDropdown() {
         );
     };
 
+    // set project id that was remembered last time
+    useEffect(() => {
+        if (projects.isLoading) return;
+        if (projects.data) {
+            const savedProjectId = localStorage.getItem("LastHomepageProjectSelect");
+            const project = projects.data.find(p => p._id === savedProjectId);
+            if (project) {
+                setSelectedProject(project._id);
+                return;
+            }
+            setSelectedProject("BLANK");
+        }
+    }, [projects.isLoading, projects.data])
+
+    const onProjectSelectChange = (value: string) => {
+        chat.reset();
+        setSelectedProject(value);
+        // Remeber last project used
+        localStorage.setItem("LastHomepageProjectSelect", value);
+    }
+
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
             <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
@@ -56,15 +77,15 @@ export default function HomepageProjectDropdown() {
                         <label className="text-sm font-medium w-24">Project</label>
                         <select
                             value={selectedProject}
-                            onChange={(e) => setSelectedProject(e.target.value)}
+                            onChange={(e) => onProjectSelectChange(e.target.value)}
                             className="flex-1 p-2 border rounded-lg"
                         >
+                            <option value="BLANK">Blank Project</option>
                             {(projects?.data?.length || 0) > 0 &&
                                 projects?.data?.map((project, i) => (
                                     <option value={project._id} key={project._id}>{project.name}</option>
                                 ))
                             }
-                            <option value="BLANK">Blank Project</option>
                         </select>
                     </div>
 
