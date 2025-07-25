@@ -41,7 +41,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
   );
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full mt-5">
       <div className="flex items-center justify-between">
         <Label htmlFor="prompt">User Prompt:</Label>
         <div className="flex items-center space-x-2">

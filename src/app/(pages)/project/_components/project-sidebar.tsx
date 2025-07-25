@@ -21,6 +21,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AddProjectButton } from "./add-project-button";
@@ -45,6 +46,7 @@ export function ProjectSidebar() {
     );
   };
   const { data: projects, isLoading } = useGetAllProjects();
+  const { toggleSidebar } = useSidebar()
 
   return (
     <Sidebar className="border-r">
@@ -54,6 +56,11 @@ export function ProjectSidebar() {
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <SidebarContent className="p-2">
           <Link
+            onClick={() => {
+              if (window.innerWidth <= 768) {
+                toggleSidebar()
+              }
+            }}
             href="/project/wall"
             className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
           >
@@ -62,6 +69,11 @@ export function ProjectSidebar() {
           {/* Dashboard Link */}
           <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="You can log what was posted here along with date. This helps you plan for future posts.">
             <Link
+              onClick={() => {
+                if (window.innerWidth <= 768) {
+                  toggleSidebar()
+                }
+              }}
               href="/project/dashboard"
               className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
             >
@@ -110,6 +122,8 @@ function ProjectItem({
     return match ? match[1] : null;
   };
 
+  const { toggleSidebar } = useSidebar()
+
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <CollapsibleTrigger
@@ -146,6 +160,11 @@ function ProjectItem({
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-1 px-3 py-2">
         <Link
+          onClick={() => {
+            if (window.innerWidth <= 768) {
+              toggleSidebar()
+            }
+          }}
           href={`/project/${project._id}`}
           className={cn(
             "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
@@ -157,6 +176,11 @@ function ProjectItem({
         </Link>
         {project.chats?.map((chat) => (
           <Link
+            onClick={() => {
+              if (window.innerWidth <= 768) {
+                toggleSidebar()
+              }
+            }}
             key={chat._id}
             href={`/project/${project._id}/chat/${chat._id}`}
             className={cn(
