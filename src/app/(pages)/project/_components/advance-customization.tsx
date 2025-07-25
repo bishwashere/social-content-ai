@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { randomizeOptions } from "../projectPageUtils/randomizeOptions";
 import { copyToClipboard } from "../projectPageUtils/clipboard";
 import { PLATFORMS } from "@/lib/prompt";
+import { Switch } from "@/components/ui/switch";
 
 export default function AdvanceCustomization() {
     const [isDetailsOpen, setIsDetailsOpen] = useState(true);
@@ -28,6 +29,7 @@ export default function AdvanceCustomization() {
     const [output, setOutput] = useState<Record<string, string>>({});
     const [selectedPlatform, setSelectedPlatform] = useState("facebook");
     const [selectedProject, setSelectedProject] = useState<string>("BLANK");
+    const [checked, setChecked] = useState(true);
 
     const chat = useGenerateProjectContent();
     const projects = useGetAllProjects();
@@ -47,8 +49,9 @@ export default function AdvanceCustomization() {
                 userPrompt: prompt,
                 options: { style, tone, verb, goal, theme },
                 projectName: projects.data && selectedProject !== "BLANK" ? projects.data.find(data => data._id === selectedProject)?.name : "",
-                projectDescription: description,
+                projectDescription: description || "Blank Project",
                 projectId: selectedProject === "BLANK" ? "" : selectedProject,
+                projectRelated: checked
             });
 
             //@ts-expect-error: type is not defined
@@ -130,7 +133,7 @@ export default function AdvanceCustomization() {
                                     <select
                                         value={selectedProject}
                                         onChange={(e) => onProjectSelectChange(e.target.value)}
-                                        className="flex-1 p-2 border rounded-lg"
+                                        className="flex-1 p-2 border rounded-lg w-full"
                                     >
                                         <option value="BLANK">Blank Project</option>
                                         {(projects?.data?.length || 0) > 0 &&
@@ -139,6 +142,18 @@ export default function AdvanceCustomization() {
                                             ))
                                         }
                                     </select>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        checked={checked}
+                                        onCheckedChange={(checked) => setChecked(checked as boolean)}
+                                        id="checked" />
+                                    <label
+                                        htmlFor="checked"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        Related to product
+                                    </label>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">
