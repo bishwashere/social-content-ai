@@ -29,17 +29,16 @@ export const useCampaignPlanner = () => {
 
 export const useGetCampaignPlanner = ({
   projectId,
-  campaignId,
 }: {
   projectId: string;
-  campaignId: string;
 }) => {
   return useQuery({
-    queryFn: () => getCampaignPlanner(projectId, campaignId),
-    enabled: Boolean(projectId) && Boolean(campaignId),
-    queryKey: ["campaignPlanner", projectId, campaignId],
+    queryFn: () => getCampaignPlanner(projectId),  // must call with only projectId
+    enabled: Boolean(projectId),
+    queryKey: ["campaignPlanner", projectId],
   });
 };
+
 
 export const useGenerateCampaignChat = () => {
   return useMutation({

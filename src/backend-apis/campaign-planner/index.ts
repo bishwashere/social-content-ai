@@ -52,13 +52,17 @@ export const startCampaignPlanner = async (
   return planner.toObject();
 };
 
-export const getCampaignPlanner = async (
-  projectId: string,
-  campaignId: string
-) => {
-  const planner = await CampaignPlannerModel.findOne({ projectId, campaignId });
-  return planner?.toObject();
+export const getCampaignPlanner = async (projectId: string) => {
+  const planners = await CampaignPlannerModel.find({ projectId }).lean();
+  return {
+    chatsGroupedByCampaign: planners.map(p => ({
+      campaignId: p.campaignId,
+      campaignTitle: p.campaignTitle,
+      chats: p.chats
+    }))
+  };
 };
+
 
 export const generateCampaignChat = async (props: {
   projectId: string;
