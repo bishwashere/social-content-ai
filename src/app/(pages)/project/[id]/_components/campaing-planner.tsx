@@ -16,6 +16,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
@@ -133,6 +134,25 @@ export default function CampaignPlannerPage({ project }: Props) {
             ))}
           </RadioGroup>
 
+          <div className="space-y-2">
+                    <Label className="font-medium">Target Audience Reach</Label>
+                    <div className="overflow-x-auto pb-2">
+                      <Slider
+                        min={1}
+                        max={3}
+                        step={1}
+                        defaultValue={[2]}
+                        className="w-full max-w-md"
+                        onValueChange={(val) => console.log("Selected intensity:", val[0])}
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground px-1 pt-1">
+                        <span>Light</span>
+                        <span>Moderate</span>
+                        <span>Aggressive</span>
+                      </div>
+                    </div>
+                  </div>
+
           <Button
             size="lg"
             className="w-full"
@@ -143,6 +163,10 @@ export default function CampaignPlannerPage({ project }: Props) {
             Quick Generate
           </Button>
         </div>
+
+
+
+
       </div>
 
       <div className="space-y-6 py-10 w-full max-w-2xl">
