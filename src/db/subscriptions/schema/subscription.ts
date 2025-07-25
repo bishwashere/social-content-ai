@@ -17,21 +17,24 @@ const SubscriptionSchema = new mongoose.Schema(
       required: true,
     },
     invoiceId: {
-      required: true,
+      required: false,
       type: String,
+      default: "",
     },
     status: {
       type: String,
       required: true, // eg. active, inactive, trialing etc
     },
     subscriptionIdFromStripe: {
+      required: false,
       type: String,
-      required: true,
+      default: "",
     },
     customerId: {
+      required: false,
       type: String,
-      required:
-        true /* Stripe customer ID, used to identify the customer in Stripe */,
+      default: "",
+      // Stripe customer ID, used to identify the customer in Stripe
     },
   },
   {

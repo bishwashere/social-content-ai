@@ -23,8 +23,11 @@ import {
 } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
 import { useLogout, useSession } from "@/backend-apis/auth/hooks";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
+import { claimFreeTrial } from "@/server-actions/claim-free-trial";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
   open: boolean;
@@ -37,14 +40,16 @@ export default function PricingModal({ open, setOpen }: Props) {
   const router = useRouter();
   const { data } = useSession();
   const logout = useLogout();
+  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  // only open the modal if the user doesn't have a subscription to give trial
+  // only open the modal if the user has not claimed the subscription
   useEffect(() => {
     // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
     if (
-      !data?.subscription ||
-      !data?.user?.hasClaimedFreeTrial ||
-      isSubscriptionExpired(data.subscription.endsAt).isExpired
+      (!data?.user?.hasClaimedFreeTrial) || (
+        data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
+      )
     ) {
       setOpen(true);
     } else {
@@ -125,34 +130,54 @@ export default function PricingModal({ open, setOpen }: Props) {
           </CardContent>
           <CardFooter>
             <Button
-              loading={payment.isPending || manage.isPending}
+              loading={payment.isPending || manage.isPending || isLoading}
               onClick={async () => {
                 try {
-                  if (
+
+                  if (!data?.user?.hasClaimedFreeTrial) {
+                    setIsLoading(true);
+                    const res = await claimFreeTrial(data?.user?._id || "")
+                    if (res.success) {
+                      toast.success(res.message);
+                      setOpen(false);
+                      queryClient.invalidateQueries({
+                        queryKey: ["session"],
+                      });
+                    } else {
+                      toast.error(res.message);
+                    }
+                    setIsLoading(false);
+                  } else if (
                     data?.subscription &&
                     isSubscriptionExpired(data.subscription.endsAt).isExpired
+                    && !data?.subscription?.customerId?.startsWith("trial__")
                   ) {
                     try {
                       const res = await manage.mutateAsync();
+                      console.log("Managaing subscription", res);
                       router.push(res.data.url);
                     } catch {
                       const res = await payment.mutateAsync();
                       router.push(res.data.redirectUrl);
+                      console.log("Creating checkout session", res);
                     }
                   } else {
                     const res = await payment.mutateAsync();
                     router.push(res.data.redirectUrl);
+                    console.log("Creating checkout session", res);
+
                   }
-                } catch {}
+                } catch { }
               }}
               className="w-full"
             >
               {payment.isSuccess || manage.isSuccess
                 ? "Redirecting..."
                 : data?.subscription &&
-                    !isSubscriptionExpired(data.subscription.endsAt).isExpired
-                  ? "Renew"
-                  : "Go Pro!"}
+                  !isSubscriptionExpired(data.subscription.endsAt).isExpired
+                  ? "Renew" :
+                  !data?.user?.hasClaimedFreeTrial ? "Claim Free Trial"
+                    : "Go Pro!"}
             </Button>
           </CardFooter>
         </Card>

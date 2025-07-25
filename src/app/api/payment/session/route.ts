@@ -26,6 +26,8 @@ export const POST = applyMiddleware(
     const subscriptions: SubscriptionDoc | null =
       await SubscriptionModel.findOne({
         userId: user._id,
+        // latest one
+        sort: { createdAt: -1 },
       });
 
     if (
@@ -42,11 +44,11 @@ export const POST = applyMiddleware(
       const session = await stripe.createSession(
         PACKAGES.BASIC,
         user.toJSON() as User,
-        !user.hasClaimedFreeTrial, // only give trial if user has not claimed it before
+        !user.hasClaimedFreeTrial // only give trial if user has not claimed it before
       );
 
       // delete old subscription
-      if (subscriptions) await subscriptions?.deleteOne();
+      // if (subscriptions) await subscriptions?.deleteOne();
 
       return sendNextResponse({
         message: "Checkout session created",
@@ -62,7 +64,7 @@ export const POST = applyMiddleware(
         message: "Failed to create checkout session",
       });
     }
-  }),
+  })
 );
 
 /**
@@ -97,5 +99,5 @@ export const GET = applyMiddleware(
         message: "Failed to get checkout session details",
       });
     }
-  }),
+  })
 );

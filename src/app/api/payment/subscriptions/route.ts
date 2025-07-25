@@ -30,7 +30,7 @@ export const GET = applyMiddleware(
       message: "Subscription details",
       data: subscription,
     });
-  }),
+  })
 );
 
 /**
@@ -49,7 +49,7 @@ export const PUT = applyMiddleware(
         userId: user._id,
       });
 
-    if (!subscription) {
+    if (!subscription || subscription?.customerId?.startsWith("trial__")) {
       return sendNextResponse({
         status: 400,
         message: "User is not subscribed",
@@ -57,7 +57,7 @@ export const PUT = applyMiddleware(
     }
 
     const portal = await stripe.stripe.billingPortal.sessions.create({
-      customer: subscription.customerId,
+      customer: subscription.customerId || "",
       return_url:
         process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/project/billing",
     });
@@ -69,5 +69,5 @@ export const PUT = applyMiddleware(
         url: portal.url,
       },
     });
-  }),
+  })
 );
