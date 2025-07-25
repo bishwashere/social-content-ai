@@ -3,6 +3,11 @@ import connectToDb from "@/db/connect";
 import { FirstViewTooltipModel, FirstViewTooltipType } from "@/db/first-view-tooltip/schema";
 import { Types } from "mongoose";
 
+export type UpdateFirstViewTooltipData = {
+    userId: string,
+    updateData: Partial<Pick<FirstViewTooltipType, "addProject" | "contentPlanner" | "quickGenerate">>
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function plainTooltipDoc(doc: any): FirstViewTooltipType {
     return {
@@ -38,10 +43,7 @@ export async function getFirstViewTooltip(userId: string): Promise<FirstViewTool
     return plainTooltipDoc(doc);
 }
 
-export async function updateFirstViewTooltip(
-    userId: string,
-    updateData: Partial<Pick<FirstViewTooltipType, "addProject" | "contentPlanner" | "quickGenerate">>
-): Promise<FirstViewTooltipType> {
+export async function updateFirstViewTooltip({ userId, updateData }: UpdateFirstViewTooltipData): Promise<FirstViewTooltipType> {
     if (!Types.ObjectId.isValid(userId)) {
         throw new Error("Invalid userId");
     }
@@ -51,6 +53,34 @@ export async function updateFirstViewTooltip(
     const updatedDoc = await FirstViewTooltipModel.findOneAndUpdate(
         { userId },
         { $set: updateData },
+        { new: true, upsert: true }
+    );
+
+    if (!updatedDoc) {
+        throw new Error("Unable to update or create tooltip document");
+    }
+
+    return plainTooltipDoc(updatedDoc.toObject());
+}
+
+export async function resetFirstViewTooltip(
+    userId: string,
+): Promise<FirstViewTooltipType> {
+    if (!Types.ObjectId.isValid(userId)) {
+        throw new Error("Invalid userId");
+    }
+
+    await connectToDb();
+
+    const resetData = {
+        addProject: false,
+        contentPlanner: false,
+        quickGenerate: false,
+    }
+
+    const updatedDoc = await FirstViewTooltipModel.findOneAndUpdate(
+        { userId },
+        { $set: resetData },
         { new: true, upsert: true }
     );
 

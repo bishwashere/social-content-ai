@@ -16,11 +16,16 @@ import { Logo } from "@/components/common/logo";
 import GoogleLoginButton from "@/components/common/google-login-button";
 import Subscription from "@/components/common/subscription";
 import { useRouter } from "next/navigation";
+import { FaRegQuestionCircle } from "react-icons/fa";
+import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
+
 
 export function Header() {
   const { data } = useSession();
   const logout = useLogout();
   const router = useRouter();
+  const resetTooltip = useResetFirstViewTooltip();
+
   return (
     <div className="w-full px-4 border-b h-fit relative md:ml-64 lg:ml-72 overflow-hidden">
       <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
@@ -30,6 +35,9 @@ export function Header() {
         </div>
         <div className="flex items-center gap-4">
           <Subscription />
+          <button onClick={() => resetTooltip.mutate(data?.user._id || "")}>
+            <FaRegQuestionCircle className="size-5" />
+          </button>
           {!data?.user ? (
             <GoogleLoginButton triggerClassName="py-3 px-10 h-12 text-lg font-semibold text-white rounded-lg hover:bg-gray-700" />
           ) : (
