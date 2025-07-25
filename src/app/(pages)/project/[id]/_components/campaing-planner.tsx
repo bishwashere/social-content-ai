@@ -120,7 +120,7 @@ export default function CampaignPlannerPage({ project }: Props) {
     <div className="flex flex-col gap-2 items-center justify-center">
       <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
         <div className="space-y-5">
-          <h2 className="text-xl font-semibold mb-4">Select a goal to create a new campaign</h2>
+          <h2 className="text-xl font-semibold mb-4">Select a goal:</h2>
           <RadioGroup
             className="flex flex-row gap-4 flex-wrap"
             value={selectedGoal || ""}
@@ -135,23 +135,23 @@ export default function CampaignPlannerPage({ project }: Props) {
           </RadioGroup>
 
           <div className="space-y-2">
-                    <Label className="font-medium">Target Audience Reach</Label>
-                    <div className="overflow-x-auto pb-2">
-                      <Slider
-                        min={1}
-                        max={3}
-                        step={1}
-                        defaultValue={[2]}
-                        className="w-full max-w-md"
-                        onValueChange={(val) => console.log("Selected intensity:", val[0])}
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground px-1 pt-1">
-                        <span>Light</span>
-                        <span>Moderate</span>
-                        <span>Aggressive</span>
-                      </div>
-                    </div>
-                  </div>
+            <h2 className="text-xl font-semibold mb-4">Target Audience:</h2>
+            <div className="overflow-x-auto pb-2">
+              <Slider
+                min={1}
+                max={3}
+                step={1}
+                defaultValue={[2]}
+                className="w-full max-w-md"
+                onValueChange={(val) => console.log("Selected intensity:", val[0])}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground px-1 pt-1">
+                <span>Light</span>
+                <span>Moderate</span>
+                <span>Aggressive</span>
+              </div>
+            </div>
+          </div>
 
           <Button
             size="lg"
