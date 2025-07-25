@@ -9,11 +9,14 @@ import { checkAuthTokens } from '@/server-actions/check-auth-tokens'
 import { useSession } from '@/backend-apis/auth/hooks'
 import { schedulePost } from '@/server-actions/schedule-post'
 import { DateTimePickerDialog } from './date-picker'
+import { Share2Icon, ShareIcon } from 'lucide-react'
 
 const ICONS = {
   x: "/x.svg",
   facebook: "/fb.svg",
   linkedin: "/linkedin.png",
+  instagram: "/instagram.svg",
+  threads: "/threads.svg"
 }
 
 type Props = {
@@ -145,7 +148,6 @@ const AutoPost = ({ platform, content }: Props) => {
       }
     }
   }
-  //@ts-expect-error:...
 
   if (!ICONS[platform]) return null
   return (
@@ -165,12 +167,7 @@ const AutoPost = ({ platform, content }: Props) => {
               onClick={onClick}
               variant={"ghost"} size={"sm"}>
 
-              {    // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  //@ts-expect-error:..........
-                  src={ICONS[platform]}
-                  alt={platform}
-                  className="w-4 h-4" />}
+              <Share2Icon />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

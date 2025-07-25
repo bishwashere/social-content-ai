@@ -14,6 +14,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectChat } from "@/db/projects/schema/chat";
 import { Project } from "@/db/projects/schema/project";
 
+const ICONS = {
+  x: "/x.svg",
+  facebook: "/fb.svg",
+  linkedin: "/linkedin.png",
+  instagram: "/instagram.svg",
+  threads: "/threads.svg"
+}
+
 import PostToWall from "@/components/common/post-to-wall";
 import AutoPost from "@/components/common/auto-post";
 
@@ -99,7 +107,11 @@ export default function ChatPage() {
                           href={currentProject?.platformUrls?.[platform] || "#"}
                           target="_blank"
                         >
-                          <Share2Icon />
+                          <img
+                            //@ts-expect-error:..........
+                            src={ICONS[platform]}
+                            alt={platform}
+                            className="w-4 h-4" />
                         </Link>
                       </Button>
                     )}

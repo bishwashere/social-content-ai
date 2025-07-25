@@ -161,7 +161,7 @@ const WallComp = ({
               <PlayIcon className="h-4 w-4 text-gray-600" />
               <span className="text-xs text-gray-600">{post.views || 1}</span>
               <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
-                {post.projectId.name}
+                {post.projectId?.name || "Unknown"}
               </span>
               <img
                 src={`/${post.platform}.svg`}
