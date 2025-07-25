@@ -193,7 +193,7 @@ export default function CampaignPlannerPage(
           ) : data.length > 0 && data.map((timeline, id) => {
             if (timeline.status !== "pending") {
               return (
-                <Dialog>
+                <Dialog key={id}>
                   <DialogTrigger asChild>
                     <div key={id} className="border p-4 rounded-lg mb-4 flex flex-col cursor-pointer">
                       <div className="flex flex-row gap-1">
