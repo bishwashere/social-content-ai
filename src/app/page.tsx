@@ -69,13 +69,13 @@ export default function HomeV3() {
               <p className='text-[#FAA41B] text-2xl'>Welcome To</p>
               <p className='text-6xl md:text-8xl xl:text-9xl font-[900] text-white mt-3 md:mt-0'>NextPostAI</p>
             </div>
-            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]'>Your AI-Powered Social Media Assistant</p>
+            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]'>Your AI-Powered Marketing Assistant for Apps & Products</p>
             {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
             <hr className='my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]' />
             <div className='flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5'>
               <div className='flex flex-col gap-2 lg:gap-8 items-center lg:items-start p-3 lg:p-0'>
-                <p className='text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold'>Create Viral Content in Minutes, Not Hours</p>
-                <p className='text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider'>Struggling to keep up with the ever-changing social media landscape? NextPostAI simplifies your content creation process, helping you generate engaging posts effortlessly.</p>
+                <p className='text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold'>Plan Smarter. Post Faster. Grow Consistently.</p>
+                <p className='text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider'>Building something amazing but not sure how to market it? NextPostAI helps you plan your launch, create engaging content, and stay consistent — so your product gets the attention it deserves.</p>
                 <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
               </div>
               <Image src="/tmpu3cg1514.webp" width={600} height={600} alt="image" className='max-w-96' />
@@ -97,16 +97,20 @@ export default function HomeV3() {
             {
               [
                 {
-                  title: "Smart Content Planner",
-                  content: "Schedule your posts and receive timely reminders to maintain a consistent online presence."
+                  title: "Marketing Strategy Assistant",
+                  content: "Go beyond posts — map out your entire promotional journey with timelines and goals tailored to your product."
                 },
                 {
-                  title: "AI-Driven Viral Content Generator",
-                  content: "Leverage our advanced AI to craft posts that resonate with your audience and have the potential to go viral."
+                  title: "Smart Content Planner",
+                  content: "Schedule content and get timely reminders to stay visible and consistent across platforms."
+                },
+                {
+                  title: "AI-Driven Post & Campaign Generator",
+                  content: "Generate posts, announcements, and promotional ideas that align with your marketing milestones."
                 },
                 {
                   title: "Community Inspiration",
-                  content: "Explore a diverse range of content from fellow creators to spark new ideas and share your own."
+                  content: "Explore real-world campaigns, see what others are doing, and gather fresh ideas from fellow builders."
                 }
               ].map((data, idx) => (
                 <div className='flex flex-row gap-1' key={idx}>
@@ -129,23 +133,23 @@ export default function HomeV3() {
               {
                 [
                   {
-                    title: "Input Your Ideas",
-                    content: "Input Your Ideas",
+                    title: "Input Your Goals",
+                    content: "Start with your product, launch stage, or marketing objective.",
                     image: "/tmp_jjomf91.webp"
                   },
                   {
-                    title: "Generate Content",
-                    content: "Let our AI create compelling posts tailored to your audience.",
+                    title: "Generate Campaign Content",
+                    content: "Let our AI create posts, content ideas, and timelines tailored to your audience.",
                     image: "/tmpj30ux4pp.webp"
                   },
                   {
                     title: "Plan & Schedule",
-                    content: "Use the content planner to organize and schedule your posts.",
+                    content: "Organize content with our visual planner — track launch dates, feature drops, and seasonal themes.",
                     image: "/tmpq7ttjaop.webp"
                   },
                   {
                     title: "Engage & Grow",
-                    content: "Share your content and watch your engagement soar.",
+                    content: "Put your strategy into action, post with consistency, and watch engagement grow.",
                     image: "/tmppzfdqeak.webp"
                   },
                 ].map((data, idx) => (
@@ -186,7 +190,7 @@ export default function HomeV3() {
                   <span className="text-red-500">✖</span> Manual content creation
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500">✖</span> Risk of AI-generated inaccuracies
+                  <span className="text-red-500">✖</span> No structure for long-term planning
                 </li>
               </ul>
             </div>
@@ -197,16 +201,16 @@ export default function HomeV3() {
               <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
               <ul className="space-y-3 text-base font-light text-black">
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Instant generation of viral content
+                  <span className="text-green-400">✔</span> Smart marketing plans built with AI
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Automated posting reminders
+                  <span className="text-green-400">✔</span> Instant post & promo content generation
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Access to a vibrant content community
+                  <span className="text-green-400">✔</span> Reminders to stay on track
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Streamlined content planning
+                  <span className="text-green-400">✔</span> Access to a supportive creator community
                 </li>
               </ul>
             </div>
@@ -223,19 +227,19 @@ export default function HomeV3() {
                   name: "Alex R",
                   role: "Digital Marketer",
                   image: "/tmpdj5rdrob.webp",
-                  quote: "NextPostAI transformed my social media strategy. Creating content is now a breeze!",
+                  quote: "NextPostAI transformed how I market my product. It’s like having a mini CMO in my pocket!",
                 },
                 {
                   name: "Jamie L",
                   role: "Small Business Owner",
                   image: "/tmp6gymd1vw.webp",
-                  quote: "The AI-generated posts are spot-on and save me so much time.",
+                  quote: "I stopped overthinking and just followed the AI’s plan. It works.",
                 },
                 {
                   name: "Morgan K",
                   role: "Content Creator",
                   image: "/tmph6iuxe9k.webp",
-                  quote: "I love the community feature. It's great to see what others are posting and get inspired.",
+                  quote: "The campaign timelines helped me organize my entire product launch.",
                 },
               ].map((user, idx) => (
                 <div key={idx} className="bg-white text-black rounded-2xl p-6 flex flex-col gap-4 items-start">
@@ -269,7 +273,7 @@ export default function HomeV3() {
               <div className="w-10 h-1 bg-[#FAA41B] my-4" />
               <p className="text-sm md:text-lg text-[#0F1124]">
                 Access NextPostAI on any device. Whether you&apos;re on the go or at your desk,
-                your content creation tools are always within reach.
+                your marketing tools are always within reach.
               </p>
             </div>
           </div>
@@ -314,19 +318,19 @@ export default function HomeV3() {
               <ul className="text-left space-y-4 text-base md:text-lg font-light px-5">
                 <li>
                   <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Entrepreneurs:</span> Build your brand with consistent, engaging content.
+                  <span className="font-semibold">Entrepreneurs:</span> Launch with confidence using AI-backed strategies
                 </li>
                 <li>
                   <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Marketers:</span> Streamline your content strategy and focus on growth.
+                  <span className="font-semibold">Marketers:</span> Plan campaigns, not just posts
                 </li>
                 <li>
                   <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Influencers:</span> Maintain a strong online presence with minimal effort.
+                  <span className="font-semibold">Influencers:</span> Promote offers, collabs, or content drops
                 </li>
                 <li>
                   <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Small Businesses:</span> Connect with your audience through compelling posts.
+                  <span className="font-semibold">Small Businesses:</span> Build brand presence with structured promotion
                 </li>
               </ul>
             </div>
@@ -336,8 +340,8 @@ export default function HomeV3() {
           <div className="bg-[#222639] text-white w-full md:w-[70%] px-5 md:px-20 lg:px-36 py-20 rounded-[60px] text-center -mt-36 z-20">
             <h2 className="text-4xl md:text-5xl font-bold mb-10">Get Started Today</h2>
             <p className="text-sm md:text-base font-light max-w-xl mx-auto mb-10">
-              Experience the ease of AI-powered content creation. <br />
-              Sign up now and elevate your social media game.
+              Experience the power of having a smart marketing assistant by your side. <br />
+              Sign up now and simplify your promotional strategy.
             </p>
             <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
           </div>
@@ -379,7 +383,7 @@ export default function HomeV3() {
             }}
           >
             <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-10">
-              <p className="text-xl md:text-2xl">Ready to revolutionize your social media content creation?</p>
+              <p className="text-xl md:text-2xl">Ready to revolutionize your product marketing?</p>
               <h2 className="text-3xl md:text-5xl font-semibold">
                 Join the <span className="font-bold text-[#0F1124] bg-white px-1 rounded">NextPostAI</span> community today.
               </h2>

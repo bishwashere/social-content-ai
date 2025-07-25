@@ -1,3 +1,4 @@
+import { ProjectTrackingResponse } from "@/backend-apis/projects/types";
 import { User } from "@/db/auth/schema/user";
 import {
   InvitedUserDoc,
@@ -43,7 +44,7 @@ export const GET = applyMiddleware(
 
     const projectIds = projects.map((p) => p._id.toString());
 
-    const trackings = await ProjectTrackingModel.find({
+    const trackings:ProjectTrackingResponse = await ProjectTrackingModel.find({
       projectId: { $in: projectIds },
     });
 
@@ -54,6 +55,9 @@ export const GET = applyMiddleware(
       count: trackings.filter(
         (t) => t.projectId.toString() === p._id.toString(),
       ).length,
+      trackings: trackings.filter(
+        (t) => t.projectId.toString() === p._id.toString(),
+      ),
     }));
 
     const mostActiveProject = totalPostsForEachProject.reduce(

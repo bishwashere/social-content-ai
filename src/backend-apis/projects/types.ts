@@ -39,7 +39,7 @@ export type ProjectSummary = {
   inactivePlatforms: number;
   totalPlatforms: number;
   mostActiveProject: { name: string; count: number } | null;
-  totalPostsForEachProject: { name: string; count: number }[];
+  totalPostsForEachProject: { name: string; count: number; trackings: ProjectTrackingResponse }[];
 };
 
 export type InviteUserProps = ProjectValidatorType["inviteUser"] & {
