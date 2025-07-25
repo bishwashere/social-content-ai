@@ -89,9 +89,12 @@ class Stripe {
       activeSubs.forEach(async (sub) => {
         sub.status = SUBSCRIPTION_STATUS.INACTIVE;
         await sub.save();
-        await this.stripe.subscriptions.update(sub.subscriptionIdFromStripe, {
-          cancel_at_period_end: true,
-        });
+        await this.stripe.subscriptions.update(
+          sub.subscriptionIdFromStripe || "",
+          {
+            cancel_at_period_end: true,
+          }
+        );
       });
     }
 
