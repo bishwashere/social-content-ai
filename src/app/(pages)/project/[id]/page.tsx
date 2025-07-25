@@ -59,7 +59,9 @@ export default function ProjectPage() {
             <TabsTrigger value="campaign">Campaign Planner</TabsTrigger>
           </TabsList>
           <TabsContent value="generate"><QuickGenerate /></TabsContent>
-          <TabsContent value="campaign"><CampaignPlannerPage /></TabsContent>
+          <TabsContent value="campaign"><CampaignPlannerPage
+
+          /></TabsContent>
         </Tabs>
       )}
     </div>
