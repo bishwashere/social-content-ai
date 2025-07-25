@@ -60,7 +60,7 @@ export function ProjectSidebar() {
             👥 For You
           </Link>
           {/* Dashboard Link */}
-          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="Use this for analyzing and planning your future contents">
+          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="You can log what was posted here along with date. This helps you plan for future posts.">
             <Link
               href="/project/dashboard"
               className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"

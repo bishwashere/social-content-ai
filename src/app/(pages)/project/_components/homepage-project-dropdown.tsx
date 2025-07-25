@@ -90,7 +90,7 @@ export default function HomepageProjectDropdown() {
                         </select>
                     </div>
 
-                    <FirstViewTooltip content="Use this to generate quick content without any customizations." order={2} tooltipKey="quickGenerate">
+                    <FirstViewTooltip content="Single click generation of content." order={2} tooltipKey="quickGenerate">
                         <Button
                             onClick={onGenerate}
                             loading={chat.isPending}
