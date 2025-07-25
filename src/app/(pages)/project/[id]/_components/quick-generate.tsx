@@ -70,8 +70,8 @@ export default function QuickGenerate() {
           <div className="relative w-full">
             {/* Settings Icon - Positioned Top Right */}
             {/* Title - Centered */}
-            <CardHeader className="flex items-center sm:flex-row justify-between gap-2 w-full px-0">
-              <CardTitle className="text-base sm:text-lg xl:text-xl font-bold break-all text-center sm:text-left">
+            <CardHeader className="flex items-center flex-row justify-between gap-2 w-full px-0">
+              <CardTitle className="text-base sm:text-lg xl:text-xl font-bold break-all ">
                 {project.name}
               </CardTitle>
               <div className="flex gap-1">

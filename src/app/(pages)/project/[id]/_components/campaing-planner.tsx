@@ -26,6 +26,16 @@ import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
 import { Project } from "@/db/projects/schema/project";
+
+const ICONS = {
+  x: "/x.svg",
+  facebook: "/fb.svg",
+  linkedin: "/linkedin.png",
+  instagram: "/instagram.svg",
+  threads: "/threads.svg"
+}
+
+
 const getPrompt = (str: string) => {
   return `
   Your role is to plan a campaign post for me based on the given description.
@@ -224,7 +234,11 @@ export default function CampaignPlannerPage(
                                       href={project.platformUrls[platform] || "#"}
                                       target="_blank"
                                     >
-                                      <Share2Icon />
+                                      <img
+                                        //@ts-expect-error:..........
+                                        src={ICONS[platform]}
+                                        alt={platform}
+                                        className="w-4 h-4" />
                                     </Link>
                                   </Button>
                                 )}
