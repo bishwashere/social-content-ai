@@ -15,7 +15,7 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // add if not imported
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +54,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const { data: session } = useSession();
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<any[]>([]);
+  const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -80,7 +81,6 @@ export default function CampaignPlannerPage({ project }: Props) {
       for (const chat of d.chats) {
         if (chat.status === "pending") {
           try {
-            console.log(`Generating post for ${chat.day} ${chat.campaignTitle}`);
             await generate.mutateAsync({
               projectId: projectId as string,
               campaignId: selectedGoal,
@@ -101,9 +101,6 @@ export default function CampaignPlannerPage({ project }: Props) {
       setAllCampaigns(campaignPlannerData.data.chatsGroupedByCampaign || []);
     }
   }, [campaignPlannerData?.isLoading, campaignPlannerData?.data]);
-
-  const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
-
 
   const copyToClipboard = useMemo(
     () => (text: string, platform: string) => {
@@ -154,25 +151,70 @@ export default function CampaignPlannerPage({ project }: Props) {
             <Loader2 className="animate-spin h-5 w-5" />
           </div>
         ) : (
-          allCampaigns.map((campaign, idx) => {
+          allCampaigns.map((campaign) => {
             const isOpen = openCampaigns[campaign.campaignId] || false;
-
             const toggleOpen = () => {
               setOpenCampaigns(prev => ({
                 ...prev,
-                [campaign.campaignId]: !isOpen
+                [campaign.campaignId]: !isOpen,
               }));
             };
 
             return (
               <div key={campaign.campaignId} className="border rounded-lg">
-                <button
-                  className="w-full text-left p-4 flex justify-between items-center font-semibold"
-                  onClick={toggleOpen}
-                >
-                  {campaign.campaignTitle}
-                  <span className="text-sm text-gray-500">{isOpen ? "Hide" : "Show"}</span>
-                </button>
+                <div className="flex justify-between items-center p-4">
+                  <button
+                    className="text-left font-semibold"
+                    onClick={toggleOpen}
+                  >
+                    {campaign.campaignTitle}
+                    <span className="ml-2 text-sm text-gray-500">{isOpen ? "Hide" : "Show"}</span>
+                  </button>
+                </div>
+
+                {isOpen && (
+                  <div className="p-4 space-y-4">
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const plan = campaignPlanner.find(g => g.id === campaign.campaignId);
+                            if (!plan) return toast.error("Plan not found");
+
+                            const d = await campaignPlannerMutation.mutateAsync({
+                              projectId: projectId as string,
+                              plan
+                            });
+
+                            for (const chat of d.chats) {
+                              if (chat.status === "pending") {
+                                await generate.mutateAsync({
+                                  projectId: projectId as string,
+                                  campaignId: campaign.campaignId,
+                                  prompt: getPrompt(`Day: ${chat.day} Title: ${chat.campaignTitle}`),
+                                  userId: session?.user?.id as string,
+                                  day: chat.day
+                                });
+                                await sleep(2000);
+                                campaignPlannerData.refetch();
+                              }
+                            }
+                          } catch {
+                            toast.error("Failed to regenerate campaign");
+                          }
+                        }}
+                      >
+                        <RefreshCcw className="h-4 w-4 mr-1" />
+                        Regenerate
+                      </Button>
+                    </div>
+
+
+                  </div>
+                )}
+
 
                 {isOpen && (
                   <div className="p-2 space-y-2">
@@ -190,7 +232,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                           </div>
                         </DialogTrigger>
                         <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
-                          {Array.from(timeline.contents).map(([platform, text]) => (
+                          {Object.entries(timeline.contents).map(([platform, text]) => (
                             <Card key={platform} className="rounded-lg border mb-5">
                               <CardHeader className="flex justify-between items-center mb-2 flex-row">
                                 <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
@@ -233,10 +275,8 @@ export default function CampaignPlannerPage({ project }: Props) {
               </div>
             );
           })
-
         )}
       </div>
-
     </div>
   );
 }
