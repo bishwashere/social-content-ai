@@ -5,6 +5,7 @@ import { Plus, Copy, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     useGenerateProjectContent,
+    useGetAllProjects,
 } from "@/backend-apis/projects/hooks";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -26,8 +27,10 @@ export default function AdvanceCustomization() {
     const [theme, setTheme] = useState("business");
     const [output, setOutput] = useState<Record<string, string>>({});
     const [selectedPlatform, setSelectedPlatform] = useState("facebook");
+    const [selectedProject, setSelectedProject] = useState<string>("BLANK");
 
     const chat = useGenerateProjectContent();
+    const projects = useGetAllProjects();
 
     const handleRandomizeOptions = () => {
         const randomOptions = randomizeOptions();
@@ -43,9 +46,9 @@ export default function AdvanceCustomization() {
             const res = await chat.mutateAsync({
                 userPrompt: prompt,
                 options: { style, tone, verb, goal, theme },
-                projectName,
+                projectName: projects.data && selectedProject !== "BLANK" ? projects.data.find(data => data._id === selectedProject)?.name : "",
                 projectDescription: description,
-                projectId: "",
+                projectId: selectedProject === "BLANK" ? "" : selectedProject,
             });
 
             //@ts-expect-error: type is not defined
@@ -58,6 +61,27 @@ export default function AdvanceCustomization() {
             copyToClipboard(output[selectedPlatform]);
         }
     };
+
+    // set project id that was remembered last time
+    useEffect(() => {
+        if (projects.isLoading) return;
+        if (projects.data) {
+            const savedProjectId = localStorage.getItem("LastHomepageProjectSelect");
+            const project = projects.data.find(p => p._id === savedProjectId);
+            if (project) {
+                setSelectedProject(project._id);
+                return;
+            }
+            setSelectedProject("BLANK");
+        }
+    }, [projects.isLoading, projects.data])
+
+    const onProjectSelectChange = (value: string) => {
+        chat.reset();
+        setSelectedProject(value);
+        // Remeber last project used
+        localStorage.setItem("LastHomepageProjectSelect", value);
+    }
 
     useEffect(() => {
         const lastStyle = localStorage.getItem("lastStyle");
@@ -103,13 +127,18 @@ export default function AdvanceCustomization() {
                                     <label className="block text-sm font-medium mb-1">
                                         Project Name
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={projectName}
-                                        onChange={(e) => setProjectName(e.target.value)}
-                                        className="w-full p-2 border rounded-lg"
-                                        placeholder="Enter project name"
-                                    />
+                                    <select
+                                        value={selectedProject}
+                                        onChange={(e) => onProjectSelectChange(e.target.value)}
+                                        className="flex-1 p-2 border rounded-lg"
+                                    >
+                                        <option value="BLANK">Blank Project</option>
+                                        {(projects?.data?.length || 0) > 0 &&
+                                            projects?.data?.map((project, i) => (
+                                                <option value={project._id} key={project._id}>{project.name}</option>
+                                            ))
+                                        }
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">
