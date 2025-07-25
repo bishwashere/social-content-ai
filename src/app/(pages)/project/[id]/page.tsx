@@ -60,7 +60,7 @@ export default function ProjectPage() {
           </TabsList>
           <TabsContent value="generate"><QuickGenerate /></TabsContent>
           <TabsContent value="campaign"><CampaignPlannerPage
-
+            project={project!}
           /></TabsContent>
         </Tabs>
       )}

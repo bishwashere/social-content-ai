@@ -10,6 +10,7 @@ const CampaignChatSchema = new mongoose.Schema(
     contents: {
       type: Map,
       of: String,
+      required: false,
       default: {},
     },
     status: {
