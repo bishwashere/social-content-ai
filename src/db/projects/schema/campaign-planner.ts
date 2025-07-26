@@ -6,7 +6,6 @@ const CampaignChatSchema = new mongoose.Schema(
     title: { type: String, required: false },
     prompt: { type: String, default: "" },
     day: { type: Number, required: true },
-    campaignTitle: { type: String, required: true },
     contents: {
       type: Map,
       of: String,
@@ -19,7 +18,7 @@ const CampaignChatSchema = new mongoose.Schema(
       default: "pending",
     },
   },
-  { timestamps: true } // This adds createdAt and updatedAt to each chat
+  { timestamps: true }
 );
 
 const CampaignPlannerSchema = new mongoose.Schema(
@@ -30,8 +29,9 @@ const CampaignPlannerSchema = new mongoose.Schema(
       required: true,
     },
     goal: { type: String, required: true },
+    targetAudience: { type: String, required: true },
     chats: [CampaignChatSchema],
-    campaignId: { type: String, required: true },
+    name: { type: String, required: false },
   },
   {
     timestamps: true,
@@ -40,15 +40,11 @@ const CampaignPlannerSchema = new mongoose.Schema(
 );
 
 const CampaignPlannerModel =
-  mongoose.models.CampaignPlannerSchema ||
-  mongoose.model("CampaignPlannerSchema", CampaignPlannerSchema);
+  mongoose.models.CampaignPlanner ||
+  mongoose.model("CampaignPlanner", CampaignPlannerSchema);
 
 export { CampaignPlannerSchema, CampaignPlannerModel };
 
 // Types
-export type CampaignPlannerDoc = WithId<
-  InferSchemaType<typeof CampaignPlannerSchema>
->;
-export type CampaignPlannerType = ForClient<
-  InferSchemaType<typeof CampaignPlannerSchema>
->;
+export type CampaignPlannerDoc = WithId<InferSchemaType<typeof CampaignPlannerSchema>>;
+export type CampaignPlannerType = ForClient<InferSchemaType<typeof CampaignPlannerSchema>>;
