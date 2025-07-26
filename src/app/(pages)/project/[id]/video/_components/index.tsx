@@ -81,7 +81,7 @@ export default function VideoSelectionPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <section>
-            <h2 className="text-2xl font-bold mb-4">Select a Video</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 1 of 3: Select a Video Template</h2>
 
             <Carousel className="w-full">
               <CarouselContent className="-ml-4 p-6">
@@ -89,7 +89,8 @@ export default function VideoSelectionPage() {
                 {
                   viralVideos?.isLoading ?
                     Array.from({ length: 6 }, (_, i) => (
-                      <CarouselItem key={i} className="pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                      <CarouselItem className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
+
                         <div className="space-y-4">
                           <Skeleton className="h-48 w-full" />
                           <Skeleton className="h-48 w-full" />
@@ -98,30 +99,32 @@ export default function VideoSelectionPage() {
                     )) : chunk(viralVideos?.data || [], 2, {
                       style: "repeat"
                     })?.map((videos, i) => {
-                      return <CarouselItem key={i.toString()} className="pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                      return <CarouselItem className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
+
                         <div className="space-y-4">
                           {
                             videos.map((video) => (
-                              <VideoCard
-                                key={video.name}
-                                video={{
-                                  src: video.url,
-                                  title: video.name,
-                                  selected: selectedVideo === video.name,
-                                }}
-                                onClick={() => {
-                                  setSelectedVideo(video.name)
-                                  setSelectedVideoUrl(video.url)
-                                }}
-                              />
+                              <div className="aspect-[9/16] w-full max-w-[160px] mx-auto overflow-hidden relative bg-black rounded-lg">
+
+                                <VideoCard
+                                  key={video.name}
+                                  video={{
+                                    src: video.url,
+                                    title: video.name,
+                                    selected: selectedVideo === video.name,
+                                  }}
+                                  onClick={() => {
+                                    setSelectedVideo(video.name)
+                                    setSelectedVideoUrl(video.url)
+                                  }}
+                                />
+                              </div>
                             ))
                           }
-
                         </div>
                       </CarouselItem>
                     })
                 }
-
               </CarouselContent>
               <div className="flex items-center justify-between px-16 mt-4">
                 <CarouselPrevious className="static" />
@@ -131,7 +134,7 @@ export default function VideoSelectionPage() {
           </section>
 
           <section className="bg-muted p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Engage Your Audience</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 2 of 3: Enter a Hook</h2>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="hook-text">Enter a compelling hook for your video</Label>
@@ -147,7 +150,7 @@ export default function VideoSelectionPage() {
           </section>
 
           <section className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8">
-            <h2 className="text-2xl font-bold mb-4">Upload Your Demo Video</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 3 of 3: Upload Your Demo Video</h2>
             {!uploadedVideo ? (
               <div className="space-y-4 text-center">
                 <div className="flex flex-col items-center justify-center">
@@ -172,7 +175,7 @@ export default function VideoSelectionPage() {
             ) : (
               <div className="space-y-4">
                 <div className="rounded-lg overflow-hidden bg-muted aspect-video">
-                  <video src={uploadedVideoUrl || undefined} controls className="w-full h-full">
+                  <video src={uploadedVideoUrl || undefined} controls className="w-full h-full object-cover absolute inset-0">
                     Your browser does not support the video tag.
                   </video>
                 </div>
@@ -207,7 +210,7 @@ export default function VideoSelectionPage() {
               <video
                 src={undefined}
                 controls
-                className="w-full h-full"
+                className="w-full h-full object-cover"
               >
                 Your browser does not support the video tag.
               </video>

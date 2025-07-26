@@ -64,11 +64,11 @@ export default function ProjectPage() {
           </Card>
         ) : (
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="mb-5">
+            <TabsList className="mb-5 flex gap-5 text-sm lg:gap-15 lg:text-base">
               <TabsTrigger value="generate" onClick={() => localStorage.setItem("projectTab", "generate")}>Quick Generate</TabsTrigger>
-              <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign Planner</TabsTrigger>
+              <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign </TabsTrigger>
               <TabsTrigger value="history" onClick={() => localStorage.setItem("projectTab", "history")}>History</TabsTrigger>
-              <TabsTrigger value="media" onClick={() => localStorage.setItem("projectTab", "media")}>Media Uploads</TabsTrigger>
+              <TabsTrigger value="media" onClick={() => localStorage.setItem("projectTab", "media")}>Media </TabsTrigger>
             </TabsList>
             <TabsContent value="generate"><QuickGenerate /></TabsContent>
             <TabsContent value="campaign"><CampaignPlannerPage project={project!} /></TabsContent>

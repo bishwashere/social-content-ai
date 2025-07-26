@@ -31,7 +31,11 @@ const CampaignVideoButton = ({
       <Link
         href={`/project/${projectId}/video/?campaignId=${campaign.id}&day=${timeline.day}`}
         className={cn(buttonVariants({ variant: "outline", size: "sm" }), "border-dashed border-primary")}>
-        <VideoIcon />
+        <span className="flex items-center gap-1 text-sm font-medium">
+          <span>+</span>
+          <VideoIcon className="w-4 h-4" />
+        </span>
+
       </Link>
     )
   }
