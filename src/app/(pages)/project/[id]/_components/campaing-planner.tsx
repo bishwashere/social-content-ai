@@ -41,9 +41,6 @@ const ICONS = {
 };
 
 const getPrompt = (str: string) => `
-Your role is to plan a campaign post for me based on the given description.
-CRITICAL RULE: just give me the post content assuming that the post will be directly shared to social media.
-Do not say here is your post like that, just give the content of the post.
 Description: ${str}
 `;
 
@@ -175,7 +172,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             onClick={onGenerate}
           >
             <Image src="/flash.png" width={24} height={24} className="h-5 w-5 mr-1" alt="Thunder" />
-            Quick Generate
+            Generate Campaign
           </Button>
         </div>
 
