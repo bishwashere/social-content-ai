@@ -1,6 +1,7 @@
 import { CampaignPlanner } from "@/lib/campaign-planner";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  changeCampaignName,
   generateCampaignChat,
   getCampaignPlanner,
   startCampaignPlanner,
@@ -10,12 +11,16 @@ import { toast } from "sonner";
 export const useCampaignPlanner = () => {
   return useMutation({
     mutationFn: ({
+      id,
       projectId,
+      campaignName,
       plan,
     }: {
+      id?: string;
       projectId: string;
+      campaignName: string;
       plan: CampaignPlanner;
-    }) => startCampaignPlanner(projectId, plan),
+    }) => startCampaignPlanner(id, projectId, campaignName, plan),
     onError: () => {
       toast.error("Failed to start campaign planner");
     },
@@ -44,20 +49,20 @@ export const useGenerateCampaignChat = () => {
   return useMutation({
     mutationFn: ({
       projectId,
-      campaignId,
+      id,
       prompt,
       userId,
       day,
     }: {
       projectId: string;
-      campaignId: string;
+      id: string;
       prompt: string;
       userId: string;
       day: string;
     }) =>
       generateCampaignChat({
         projectId,
-        campaignId,
+        id,
         prompt,
         userId,
         day,
@@ -68,3 +73,21 @@ export const useGenerateCampaignChat = () => {
     retry: false,
   });
 };
+
+export const useChangeCampaignName = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      changeCampaignName(id, name),
+
+    onSuccess: (projectId: string | boolean) => {
+      // variables contains the { id, name } object passed to mutationFn
+      if (projectId)
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", projectId], // Or use projectId if you have it
+        });
+    },
+  });
+};
+

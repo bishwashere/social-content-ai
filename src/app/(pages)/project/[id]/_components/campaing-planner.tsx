@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { CopyIcon, Loader2, RefreshCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, RefreshCcw } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -28,6 +28,9 @@ import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
 import { Project } from "@/db/projects/schema/project";
+import { Input } from "@/components/ui/input";
+import ChangeCampaignName from "./change-campaign-name";
+import { confirm } from "@/components/ui/alert-dialog";
 
 const ICONS = {
   x: "/x.svg",
@@ -54,28 +57,35 @@ export default function CampaignPlannerPage({ project }: Props) {
   const { id: projectId } = useParams();
   const { data: session } = useSession();
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
-  const [allCampaigns, setAllCampaigns] = useState<any[]>([]);
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
+  const [selectedTargetAudience, setSelectedTargetAudience] = useState<number>(2);   // 1=Light,   2=Moderate,   3=Aggresive
+  const [name, setName] = useState<string>('');
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
   });
 
   const onGenerate = async () => {
+    if (!name) {
+      toast.error("Please enter campaign name!");
+      return;
+    }
     if (!selectedGoal) {
       toast.error("Please select a goal!");
       return;
     }
-
-    const plan = campaignPlanner.find(goal => goal.id === selectedGoal);
-    if (!plan) {
+    const selectedCampaignPlanner = campaignPlanner.find(goal => goal.id === selectedGoal);
+    if (!selectedCampaignPlanner) {
       toast.error("Failed to find plan");
       return;
     }
+    const plan = { ...selectedCampaignPlanner.intensityPlans[selectedTargetAudience - 1], goal: selectedCampaignPlanner.goal };
+    console.log("PLAN : ", plan)
 
     try {
       const d = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
+        campaignName: name,
         plan
       });
 
@@ -84,24 +94,24 @@ export default function CampaignPlannerPage({ project }: Props) {
           try {
             await generate.mutateAsync({
               projectId: projectId as string,
-              campaignId: selectedGoal,
-              prompt: getPrompt(`Day: ${chat.day} Title: ${chat.campaignTitle}`),
+              id: d._id,
+              prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
               userId: session?.user?.id as string,
               day: chat.day
             });
             await sleep(2000);
             campaignPlannerData.refetch();
-          } catch {}
+          } catch { }
         }
       }
-    } catch {}
+    } catch { }
   };
 
-  useEffect(() => {
-    if (!campaignPlannerData?.isLoading && campaignPlannerData?.data) {
-      setAllCampaigns(campaignPlannerData.data.chatsGroupedByCampaign || []);
-    }
-  }, [campaignPlannerData?.isLoading, campaignPlannerData?.data]);
+  // useEffect(() => {
+  //   if (!campaignPlannerData?.isLoading && campaignPlannerData?.data) {
+  //     setAllCampaigns(campaignPlannerData.data.chatsGroupedByCampaign || []);
+  //   }
+  // }, [campaignPlannerData?.isLoading, campaignPlannerData?.data]);
 
   const copyToClipboard = useMemo(
     () => (text: string, platform: string) => {
@@ -120,7 +130,12 @@ export default function CampaignPlannerPage({ project }: Props) {
     <div className="flex flex-col gap-2 items-center justify-center">
       <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
         <div className="space-y-5">
-          <h2 className="text-xl font-semibold mb-4">Select a goal:</h2>
+          <div className="space-y-2">
+            <Label className="text-xl font-semibold">Campaign Name:</Label>
+            <Input type="text" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+
+          <h2 className="text-xl font-semibold mb-2">Select a goal:</h2>
           <RadioGroup
             className="flex flex-row gap-4 flex-wrap"
             value={selectedGoal || ""}
@@ -129,21 +144,21 @@ export default function CampaignPlannerPage({ project }: Props) {
             {campaignPlanner.map(goal => (
               <div className="flex items-center space-x-2" key={goal.id}>
                 <RadioGroupItem value={goal.id} id={goal.id} />
-                <Label htmlFor={goal.id}>{goal.title}</Label>
+                <Label htmlFor={goal.id}>{goal.goal}</Label>
               </div>
             ))}
           </RadioGroup>
 
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold mb-4">Target Audience:</h2>
-            <div className="overflow-x-auto pb-2">
+            <h2 className="text-xl font-semibold">Target Audience:</h2>
+            <div className="overflow-x-auto pt-3 pb-2 w-full">
               <Slider
                 min={1}
                 max={3}
                 step={1}
-                defaultValue={[2]}
-                className="w-full max-w-md"
-                onValueChange={(val) => console.log("Selected intensity:", val[0])}
+                value={[selectedTargetAudience]}
+                className="w-full"
+                onValueChange={(val) => setSelectedTargetAudience(val[0])}
               />
               <div className="flex justify-between text-xs text-muted-foreground px-1 pt-1">
                 <span>Light</span>
@@ -164,9 +179,6 @@ export default function CampaignPlannerPage({ project }: Props) {
           </Button>
         </div>
 
-
-
-
       </div>
 
       <div className="space-y-6 py-10 w-full max-w-2xl">
@@ -175,40 +187,69 @@ export default function CampaignPlannerPage({ project }: Props) {
             <Loader2 className="animate-spin h-5 w-5" />
           </div>
         ) : (
-          allCampaigns.map((campaign) => {
-            const isOpen = openCampaigns[campaign.campaignId] || false;
+          campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
+            const isOpen = openCampaigns[campaign.id] || false;
             const toggleOpen = () => {
               setOpenCampaigns(prev => ({
                 ...prev,
-                [campaign.campaignId]: !isOpen,
+                [campaign.id]: !isOpen,
               }));
             };
 
             return (
-              <div key={campaign.campaignId} className="border rounded-lg">
-                <div className="flex justify-between items-center p-4">
+              <div key={campaign.id} className="border rounded-lg">
+                <div className="w-full">
                   <button
-                    className="text-left font-semibold"
+                    className="w-full flex justify-between items-center p-4 font-semibold"
                     onClick={toggleOpen}
                   >
-                    {campaign.campaignTitle}
-                    <span className="ml-2 text-sm text-gray-500">{isOpen ? "Hide" : "Show"}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {campaign.name}
+                      <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
+                      <p className="text-sm">• {campaign.goal}</p>
+                      <p className="text-sm">• {campaign.targetAudience}</p>
+                      <p className="text-sm">•&nbsp;
+                        {new Date(campaign.date).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    <span className="ml-2 text-sm text-gray-500">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
                   </button>
                 </div>
 
                 {isOpen && (
-                  <div className="p-4 space-y-4">
+                  <div className="px-4 pb-4 space-y-4">
                     <div className="flex justify-end">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={async () => {
+                          const yes = await confirm({
+                            title: "Regenerate content for this day?",
+                            description: "Regenerating content will use your coins"
+                          });
+                          if (!yes) return;
                           try {
-                            const plan = campaignPlanner.find(g => g.id === campaign.campaignId);
-                            if (!plan) return toast.error("Plan not found");
+                            const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
+                            if (!selectedCampaignPlanner) {
+                              toast.error("Failed to find plan");
+                              return;
+                            }
+                            const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
+                            if (!intensityPlans) {
+                              toast.error("Failed to find plan");
+                              return;
+                            }
+
+                            const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
 
                             const d = await campaignPlannerMutation.mutateAsync({
+                              id: campaign.id,
                               projectId: projectId as string,
+                              campaignName: campaign.name || "",
                               plan
                             });
 
@@ -216,8 +257,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                               if (chat.status === "pending") {
                                 await generate.mutateAsync({
                                   projectId: projectId as string,
-                                  campaignId: campaign.campaignId,
-                                  prompt: getPrompt(`Day: ${chat.day} Title: ${chat.campaignTitle}`),
+                                  id: campaign.id,
+                                  prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
                                   userId: session?.user?.id as string,
                                   day: chat.day
                                 });
@@ -242,13 +283,13 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                 {isOpen && (
                   <div className="p-2 space-y-2">
-                    {campaign.chats.map((timeline: any, id: number) => (
+                    {campaign.chats.map((timeline, id) => (
                       <Dialog key={id}>
                         <DialogTrigger asChild>
                           <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50">
                             <div className="flex flex-row gap-1">
                               <p className="font-medium">Day {timeline.day}:</p>
-                              <p>{timeline.campaignTitle}</p>
+                              <p>{timeline.title}</p>
                               {timeline.status === "pending" && (
                                 <Loader2 className="animate-spin h-4 w-4 ml-auto" />
                               )}
@@ -256,7 +297,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                           </div>
                         </DialogTrigger>
                         <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
-                          {Object.entries(timeline.contents).map(([platform, text]) => (
+                          {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads", string][]).map(([platform, text]) => (
                             <Card key={platform} className="rounded-lg border mb-5">
                               <CardHeader className="flex justify-between items-center mb-2 flex-row">
                                 <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>

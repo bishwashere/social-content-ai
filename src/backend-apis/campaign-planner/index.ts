@@ -1,7 +1,7 @@
 "use server";
 
 import { UserModel } from "@/db/auth/schema/user";
-import { CampaignPlannerModel } from "@/db/projects/schema/campaign-planner";
+import { CampaignPlannerModel, CampaignPlannerType } from "@/db/projects/schema/campaign-planner";
 import { ProjectModel } from "@/db/projects/schema/project";
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
@@ -10,55 +10,78 @@ import { CampaignPlanner } from "@/lib/campaign-planner";
  *Create a campaign planner, update if already exits
  */
 export const startCampaignPlanner = async (
+  id: string | undefined,
   projectId: string,
+  campaignName: string,
   plan: CampaignPlanner
 ) => {
-  const existingPlanner = await CampaignPlannerModel.findOne({
+  // const existingPlanner = await CampaignPlannerModel.findOne({
+  //   projectId,
+  //   campaignId: plan.id,
+  // });
+
+  // // delete if exists
+  // if (existingPlanner) {
+  //   await CampaignPlannerModel.deleteOne({
+  //     projectId,
+  //     campaignId: plan.id,
+  //   });
+  // }
+
+  if (id) {
+    const planner = await CampaignPlannerModel.findOneAndUpdate(
+      { _id: id },
+      {
+        $set: {
+          chats: plan.data.map((d) => ({
+            title: d.task,
+            day: d.day,
+            prompt: "",
+            campaignTitle: d.task,
+            status: "pending",
+            contents: [],
+          })),
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
+
+    return planner ? JSON.parse(JSON.stringify(planner)) : null;
+  }
+  const planner = await CampaignPlannerModel.create({
+    goal: plan.goal,
+    targetAudience: plan.targetAudience,
+    name: campaignName,
     projectId,
-    campaignId: plan.id,
+    chats: plan.data.map((d) => ({
+      title: d.task,
+      day: d.day,
+      prompt: "",
+      status: "pending",
+      contents: [],
+    })),
   });
 
-  // delete if exists
-  if (existingPlanner) {
-    await CampaignPlannerModel.deleteOne({
-      projectId,
-      campaignId: plan.id,
-    });
-  }
-
-  const planner = await CampaignPlannerModel.findOneAndUpdate(
-    { projectId, campaignId: plan.id },
-    {
-      $set: {
-        campaignId: plan.id,
-        goal: plan.title,
-        projectId,
-        chats: plan.data.map((d) => ({
-          title: d.task,
-          day: d.day,
-          prompt: "",
-          campaignTitle: d.task,
-          status: "pending",
-          contents: [],
-        })),
-      },
-    },
-    {
-      new: true,
-      upsert: true,
-    }
-  );
-
-  return planner.toObject();
+  return planner ? JSON.parse(JSON.stringify(planner)) : null;
 };
 
 export const getCampaignPlanner = async (projectId: string) => {
-  const planners = await CampaignPlannerModel.find({ projectId }).lean();
+  // const planners = await CampaignPlannerModel.find({ projectId }).lean() as unknown as CampaignPlannerType[];
+  const planners = JSON.parse(JSON.stringify(
+    await CampaignPlannerModel.find({ projectId }).lean()
+  )) as CampaignPlannerType[];
+
   return {
     chatsGroupedByCampaign: planners.map(p => ({
-      campaignId: p.campaignId,
-      campaignTitle: p.campaignTitle,
-      chats: p.chats
+      id: p._id,
+      name: p.name,
+      chats: p.chats,
+      goal: p.goal,
+      targetAudience: p.targetAudience,
+      date: p.updatedAt,
     }))
   };
 };
@@ -66,7 +89,7 @@ export const getCampaignPlanner = async (projectId: string) => {
 
 export const generateCampaignChat = async (props: {
   projectId: string;
-  campaignId: string;
+  id: string;
   prompt: string;
   userId: string;
   day: string;
@@ -74,7 +97,7 @@ export const generateCampaignChat = async (props: {
   const project = await ProjectModel.findById(props.projectId);
   const projectCampaign = await CampaignPlannerModel.findOne({
     projectId: props.projectId,
-    campaignId: props.campaignId,
+    _id: props.id,
   });
 
   if (!projectCampaign) {
@@ -127,4 +150,26 @@ export const generateCampaignChat = async (props: {
   return {
     success: true,
   };
+};
+
+export const changeCampaignName = async (
+  id: string,
+  name: string
+) => {
+  try {
+    const planner = await CampaignPlannerModel.findOneAndUpdate(
+      { _id: id },
+      {
+        $set: {
+          name: name,
+        },
+      },
+      { new: true }
+    );
+
+    return planner.projectId.toString() as string;
+  } catch (error) {
+    console.error("Error changing campaign name:", error);
+    return false;
+  }
 };
