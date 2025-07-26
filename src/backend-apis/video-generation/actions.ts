@@ -59,15 +59,24 @@ export const saveVideoDataToDb = async ({
   folderId,
   text,
   userId,
+  projectId,
+  campaignPlannerId,
+  day,
 }: {
   folderId: string;
   text: string;
   userId: string;
+  projectId: string;
+  campaignPlannerId: string;
+  day: number;
 }) => {
   await UploadedVideosModel.create({
     folderId,
     text,
     userId: userId,
+    projectId,
+    campaignPlannerId,
+    day,
   });
 
   return true;
@@ -153,4 +162,40 @@ export const listAllViralMusics = async () => {
   } catch {
     return [];
   }
+};
+
+export const uploadMedia = async (
+  userId: string,
+  projectId: string,
+  filename: string
+) => {
+  return await s3.getPresignedUrlForVideoUpload(
+    `media-uploads/${userId}/${projectId}/${filename}`
+  );
+};
+
+export const listAllFilesByKey = async (key: string) => {
+  try {
+    return (await s3.listAllFilesByKey(key)) || [];
+  } catch {
+    return [];
+  }
+};
+
+export const getUploadedVideoUrl = async (
+  projectId: string,
+  campaignPlannerId: string,
+  day: string
+) => {
+  const data = await UploadedVideosModel.find({
+    where: {
+      projectId,
+      campaignPlannerId,
+      day: Number(day),
+    },
+  });
+
+  if (!data) return null;
+
+  return { url: "" };
 };

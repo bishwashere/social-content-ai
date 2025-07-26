@@ -5,10 +5,13 @@ import {
   generateCampaignChat,
   getCampaignPlanner,
   startCampaignPlanner,
+  toggleMarkAsComplete,
 } from ".";
 import { toast } from "sonner";
+import { useSession } from "../auth/hooks";
 
 export const useCampaignPlanner = () => {
+  const { data: session } = useSession();
   return useMutation({
     mutationFn: ({
       id,
@@ -20,11 +23,26 @@ export const useCampaignPlanner = () => {
       projectId: string;
       campaignName: string;
       plan: CampaignPlanner;
-    }) => startCampaignPlanner(id, projectId, campaignName, plan),
-    onError: () => {
-      toast.error("Failed to start campaign planner");
+    }) =>
+      startCampaignPlanner(
+        id,
+        projectId,
+        campaignName,
+        plan,
+        session?.user._id as string
+      ),
+    onError: (err) => {
+      toast.error(err?.message ?? "Failed to start campaign planner");
     },
     onSuccess: (data) => {
+      if (
+        typeof data === "object" &&
+        "message" in data &&
+        "success" in data &&
+        data.success === false
+      ) {
+        toast.error(data.message);
+      }
       if (!data) {
         toast.error("Failed to start campaign planner");
       }
@@ -32,18 +50,13 @@ export const useCampaignPlanner = () => {
   });
 };
 
-export const useGetCampaignPlanner = ({
-  projectId,
-}: {
-  projectId: string;
-}) => {
+export const useGetCampaignPlanner = ({ projectId }: { projectId: string }) => {
   return useQuery({
-    queryFn: () => getCampaignPlanner(projectId),  // must call with only projectId
+    queryFn: () => getCampaignPlanner(projectId), // must call with only projectId
     enabled: Boolean(projectId),
     queryKey: ["campaignPlanner", projectId],
   });
 };
-
 
 export const useGenerateCampaignChat = () => {
   return useMutation({
@@ -91,3 +104,8 @@ export const useChangeCampaignName = () => {
   });
 };
 
+export const useToggleMarkAsComplete = () => {
+  return useMutation({
+    mutationFn: toggleMarkAsComplete,
+  });
+};

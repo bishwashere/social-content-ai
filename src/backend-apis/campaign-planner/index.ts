@@ -1,7 +1,10 @@
 "use server";
 
 import { UserModel } from "@/db/auth/schema/user";
-import { CampaignPlannerModel, CampaignPlannerType } from "@/db/projects/schema/campaign-planner";
+import {
+  CampaignPlannerModel,
+  CampaignPlannerType,
+} from "@/db/projects/schema/campaign-planner";
 import { ProjectModel } from "@/db/projects/schema/project";
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
@@ -13,7 +16,8 @@ export const startCampaignPlanner = async (
   id: string | undefined,
   projectId: string,
   campaignName: string,
-  plan: CampaignPlanner
+  plan: CampaignPlanner,
+  userId: string
 ) => {
   // const existingPlanner = await CampaignPlannerModel.findOne({
   //   projectId,
@@ -27,6 +31,21 @@ export const startCampaignPlanner = async (
   //     campaignId: plan.id,
   //   });
   // }
+
+  const user = await UserModel.findById(userId);
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (user.remainingChatGenerations < 10) {
+    return {
+      success: false,
+      message: "You have not enough chat generations left.",
+    };
+  }
+  user.remainingChatGenerations -= 10;
+  await user.save();
 
   if (id) {
     const planner = await CampaignPlannerModel.findOneAndUpdate(
@@ -70,22 +89,21 @@ export const startCampaignPlanner = async (
 
 export const getCampaignPlanner = async (projectId: string) => {
   // const planners = await CampaignPlannerModel.find({ projectId }).lean() as unknown as CampaignPlannerType[];
-  const planners = JSON.parse(JSON.stringify(
-    await CampaignPlannerModel.find({ projectId }).lean()
-  )) as CampaignPlannerType[];
+  const planners = JSON.parse(
+    JSON.stringify(await CampaignPlannerModel.find({ projectId }).lean())
+  ) as CampaignPlannerType[];
 
   return {
-    chatsGroupedByCampaign: planners.map(p => ({
+    chatsGroupedByCampaign: planners.map((p) => ({
       id: p._id,
       name: p.name,
       chats: p.chats,
       goal: p.goal,
       targetAudience: p.targetAudience,
       date: p.updatedAt,
-    }))
+    })),
   };
 };
-
 
 export const generateCampaignChat = async (props: {
   projectId: string;
@@ -150,10 +168,7 @@ export const generateCampaignChat = async (props: {
   };
 };
 
-export const changeCampaignName = async (
-  id: string,
-  name: string
-) => {
+export const changeCampaignName = async (id: string, name: string) => {
   try {
     const planner = await CampaignPlannerModel.findOneAndUpdate(
       { _id: id },
@@ -170,4 +185,26 @@ export const changeCampaignName = async (
     console.error("Error changing campaign name:", error);
     return false;
   }
+};
+
+export const toggleMarkAsComplete = async ({
+  campaignId,
+  day,
+}: {
+  campaignId: string;
+  day: string;
+}) => {
+  const data = await CampaignPlannerModel.findById(campaignId);
+
+  if (!data) return null;
+
+  const chat = data.chats.find((c: any) => c.day === Number(day));
+
+  if (!chat) return null;
+
+  chat.completed = !chat.completed;
+
+  await data.save();
+
+  return Boolean(chat.completed);
 };

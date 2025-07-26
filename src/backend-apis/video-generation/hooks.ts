@@ -2,10 +2,13 @@ import {
   addMetadataToVideo,
   copyVideo,
   getPresignedUrlForDemoVideoUpload,
+  getUploadedVideoUrl,
+  listAllFilesByKey,
   listAllUploadedVideos,
   listAllViralMusics,
   listAllViralVideos,
   saveVideoDataToDb,
+  uploadMedia,
 } from "./actions";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,16 +57,8 @@ export const useGenerateVideo = () => {
         }
       } else {
         console.log("Copying video", data.video);
-
-        await copyVideo(
-          data.video,
-          data.video
-            ?.split("/")
-            .map((val, i) => {
-              return i === 1 ? uid : val;
-            })
-            .join("/")
-        );
+        const filename = data.video.split("/").pop();
+        await copyVideo(data.video, `rendering/${uid}/${filename}`);
       }
 
       await addMetadataToVideo({
@@ -78,6 +73,9 @@ export const useGenerateVideo = () => {
         folderId: uid,
         text: data.text,
         userId: session?.user?._id || "",
+        projectId: data.projectId,
+        campaignPlannerId: data.campaignPlannerId,
+        day: data.day,
       });
     },
 
@@ -93,13 +91,7 @@ export const useGenerateVideo = () => {
 };
 
 export const useQueryAllUploadedVideos = () => {
-  const queryClient = useQueryClient();
   const { data: session } = useSession();
-  Promise.resolve(() => {
-    queryClient.invalidateQueries({
-      queryKey: ["user-subscription"],
-    });
-  });
 
   return useQuery({
     queryKey: ["uploaded-videos", session?.user?._id],
@@ -111,5 +103,65 @@ export const useListAllViralMusics = () => {
   return useQuery({
     queryKey: ["viral-musics"],
     queryFn: () => listAllViralMusics(),
+  });
+};
+
+export const useUploadMedia = () => {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { projectId: string; file: File }) => {
+      const presignedUrl = await uploadMedia(
+        session?.user?._id || "",
+        data.projectId,
+        data.file.name
+      );
+
+      const res = await fetch(presignedUrl, {
+        method: "PUT",
+        body: data.file,
+        headers: {
+          "Content-Type": data.file.type,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload media");
+      }
+
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Media uploaded successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["uploaded-media"],
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
+export const useQueryAllUploadedMedia = (projectId: string) => {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ["uploaded-media", session?.user?._id, projectId],
+    queryFn: () =>
+      listAllFilesByKey(`media-uploads/${session?.user?._id}/${projectId}/`),
+    enabled: !!session?.user?._id && !!projectId,
+  });
+};
+
+export const useQueryUploadedVideoUrl = (
+  projectId: string,
+  campaignPlannerId: string,
+  day: string
+) => {
+  return useQuery({
+    queryKey: ["uploaded-video-url", projectId, campaignPlannerId, day],
+    queryFn: () => getUploadedVideoUrl(projectId, campaignPlannerId, day),
+    enabled: !!projectId && !!campaignPlannerId && !!day,
   });
 };

@@ -16,6 +16,7 @@ import { VideoCard } from "./video-card"
 import SelectVideoDialog from "./select-video-dialog"
 import { MediaSelectionDialog } from "./select-music-dialog"
 import VideoPreview from "./video-preview"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 
 
 export default function VideoSelectionPage() {
@@ -27,6 +28,19 @@ export default function VideoSelectionPage() {
   const [selectedMusic, setSelectedMusic] = useState<string | null>(null)
   const viralVideos = useQueryViralVideos()
   const generate = useGenerateVideo()
+  const { id } = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter()
+
+  useEffect(() => {
+    const day = searchParams.get("day")
+    const campaignId = searchParams.get("campaignId")
+
+    if (!day || !campaignId) {
+      router.push(`/project/${id}`)
+    }
+
+  }, [searchParams])
 
   const handleGenerate = () => {
 
@@ -54,6 +68,9 @@ export default function VideoSelectionPage() {
       video: uploadedVideo,
       text: hookText,
       musicId: selectedMusic?.split("/").pop() || "",
+      projectId: id as string,
+      campaignPlannerId: searchParams.get("campaignId") || "",
+      day: Number(searchParams.get("day") || 0),
     })
 
   }

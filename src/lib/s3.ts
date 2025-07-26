@@ -164,6 +164,38 @@ class S3 {
 
     return withSignedUrl || [];
   }
+
+  async listAllFilesByKey(key: string) {
+    const data = await this.s3.send(
+      new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: key,
+      })
+    );
+
+    const withSignedUrl = await Promise.all(
+      (data.Contents || []).map(async (file) => {
+        const url = await getSignedUrl(
+          this.s3,
+          new GetObjectCommand({
+            Bucket: this.bucket,
+            Key: file.Key!,
+          }),
+          {
+            expiresIn: 60 * 60, // 1 hour
+          }
+        );
+
+        return {
+          key: file.Key as string,
+          name: file.Key?.replace(key, "") as string,
+          url,
+        };
+      })
+    );
+
+    return withSignedUrl || [];
+  }
 }
 
 export const s3 = new S3();

@@ -32,6 +32,18 @@ const UploadedVideosSchema = new mongoose.Schema(
       required: true,
       default: "pending",
     },
+    projectId: {
+      type: String,
+      required: true,
+    },
+    campaignPlannerId: {
+      type: String,
+      required: true,
+    },
+    day: {
+      type: Number,
+      required: true,
+    },
   },
   {
     timestamps: true,

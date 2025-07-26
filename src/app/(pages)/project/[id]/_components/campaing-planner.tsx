@@ -5,11 +5,11 @@ import {
   useGenerateCampaignChat,
   useGetCampaignPlanner
 } from "@/backend-apis/campaign-planner/hooks";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, RefreshCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, RefreshCcw, VideoIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -31,6 +31,10 @@ import { Project } from "@/db/projects/schema/project";
 import { Input } from "@/components/ui/input";
 import ChangeCampaignName from "./change-campaign-name";
 import { confirm } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/cn";
+import { CampaignVideoButton } from "./campaign-video-button";
+import { CampaignCheckButton } from "./campaign-check-button";
 
 const ICONS = {
   x: "/x.svg",
@@ -319,17 +323,25 @@ export default function CampaignPlannerPage({ project }: Props) {
                   <div className="p-2 space-y-2">
                     {campaign.chats.map((timeline, id) => (
                       <Dialog key={id}>
-                        <DialogTrigger asChild>
-                          <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50">
-                            <div className="flex flex-row gap-1">
-                              <p className="font-medium">Day {timeline.day}:</p>
-                              <p>{timeline.title}</p>
-                              {timeline.status === "pending" && (
-                                <Loader2 className="animate-spin h-4 w-4 ml-auto" />
-                              )}
+                        <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50 gap-2 flex-row flex justify-between">
+                          <div className="flex gap-2 items-center">
+                            <div className="flex justify-end items-center gap-2">
+                              <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
                             </div>
+                            <DialogTrigger asChild>
+                              <div className="flex flex-row gap-1 flex-grow">
+                                <p className="font-medium">Day {timeline.day}:</p>
+                                <p>{timeline.title}</p>
+                                {timeline.status === "pending" && (
+                                  <Loader2 className="animate-spin h-4 w-4 ml-auto" />
+                                )}
+                              </div>
+                            </DialogTrigger>
                           </div>
-                        </DialogTrigger>
+                          <div className="flex justify-end">
+                            <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                          </div>
+                        </div>
                         <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
                           {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads", string][]).map(([platform, text]) => (
                             <Card key={platform} className="rounded-lg border mb-5">
