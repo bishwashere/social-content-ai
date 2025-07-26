@@ -17,6 +17,7 @@ import QuickGenerate from "./_components/quick-generate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CampaignPlannerPage from "./_components/campaing-planner";
 import History from "./_components/history";
+import { Media } from "./_components/media";
 
 export default function ProjectPage() {
   const { id } = useParams();
@@ -67,10 +68,12 @@ export default function ProjectPage() {
               <TabsTrigger value="generate" onClick={() => localStorage.setItem("projectTab", "generate")}>Quick Generate</TabsTrigger>
               <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign Planner</TabsTrigger>
               <TabsTrigger value="history" onClick={() => localStorage.setItem("projectTab", "history")}>History</TabsTrigger>
+              <TabsTrigger value="media" onClick={() => localStorage.setItem("projectTab", "media")}>Media Uploads</TabsTrigger>
             </TabsList>
             <TabsContent value="generate"><QuickGenerate /></TabsContent>
             <TabsContent value="campaign"><CampaignPlannerPage project={project!} /></TabsContent>
             <TabsContent value="history"><History project={project!} /></TabsContent>
+            <TabsContent value="media"><Media project={project!} /></TabsContent>
           </Tabs>
         )}
       </div>
