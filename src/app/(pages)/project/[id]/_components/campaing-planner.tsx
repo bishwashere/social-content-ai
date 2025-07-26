@@ -91,10 +91,10 @@ export default function CampaignPlannerPage({ project }: Props) {
             });
             await sleep(2000);
             campaignPlannerData.refetch();
-          } catch {}
+          } catch { }
         }
       }
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -135,14 +135,14 @@ export default function CampaignPlannerPage({ project }: Props) {
           </RadioGroup>
 
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold mb-4">Target Audience:</h2>
-            <div className="overflow-x-auto pb-2">
+            <h2 className="text-xl font-semibold">Target Audience:</h2>
+            <div className="overflow-x-auto pt-3 pb-2 w-full">
               <Slider
                 min={1}
                 max={3}
                 step={1}
                 defaultValue={[2]}
-                className="w-full max-w-md"
+                className="w-full"
                 onValueChange={(val) => console.log("Selected intensity:", val[0])}
               />
               <div className="flex justify-between text-xs text-muted-foreground px-1 pt-1">
@@ -164,9 +164,6 @@ export default function CampaignPlannerPage({ project }: Props) {
           </Button>
         </div>
 
-
-
-
       </div>
 
       <div className="space-y-6 py-10 w-full max-w-2xl">
@@ -175,7 +172,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             <Loader2 className="animate-spin h-5 w-5" />
           </div>
         ) : (
-          allCampaigns.map((campaign) => {
+          campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
             const isOpen = openCampaigns[campaign.campaignId] || false;
             const toggleOpen = () => {
               setOpenCampaigns(prev => ({
@@ -242,7 +239,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                 {isOpen && (
                   <div className="p-2 space-y-2">
-                    {campaign.chats.map((timeline: any, id: number) => (
+                    {campaign.chats.map((timeline, id) => (
                       <Dialog key={id}>
                         <DialogTrigger asChild>
                           <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50">
@@ -256,7 +253,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                           </div>
                         </DialogTrigger>
                         <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
-                          {Object.entries(timeline.contents).map(([platform, text]) => (
+                          {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads", string][]).map(([platform, text]) => (
                             <Card key={platform} className="rounded-lg border mb-5">
                               <CardHeader className="flex justify-between items-center mb-2 flex-row">
                                 <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>

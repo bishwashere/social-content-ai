@@ -49,6 +49,6 @@ export { CampaignPlannerSchema, CampaignPlannerModel };
 export type CampaignPlannerDoc = WithId<
   InferSchemaType<typeof CampaignPlannerSchema>
 >;
-export type CampaignPlanner = ForClient<
+export type CampaignPlannerType = ForClient<
   InferSchemaType<typeof CampaignPlannerSchema>
 >;

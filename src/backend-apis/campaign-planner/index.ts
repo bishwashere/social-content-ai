@@ -1,7 +1,7 @@
 "use server";
 
 import { UserModel } from "@/db/auth/schema/user";
-import { CampaignPlannerModel } from "@/db/projects/schema/campaign-planner";
+import { CampaignPlannerModel, CampaignPlannerType } from "@/db/projects/schema/campaign-planner";
 import { ProjectModel } from "@/db/projects/schema/project";
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
@@ -53,11 +53,11 @@ export const startCampaignPlanner = async (
 };
 
 export const getCampaignPlanner = async (projectId: string) => {
-  const planners = await CampaignPlannerModel.find({ projectId }).lean();
+  const planners = await CampaignPlannerModel.find({ projectId }).lean() as unknown as CampaignPlannerType[];
   return {
     chatsGroupedByCampaign: planners.map(p => ({
       campaignId: p.campaignId,
-      campaignTitle: p.campaignTitle,
+      campaignTitle: p.chats[0].campaignTitle,
       chats: p.chats
     }))
   };
