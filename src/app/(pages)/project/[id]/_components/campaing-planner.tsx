@@ -41,9 +41,6 @@ const ICONS = {
 };
 
 const getPrompt = (str: string) => `
-Your role is to plan a campaign post for me based on the given description.
-CRITICAL RULE: just give me the post content assuming that the post will be directly shared to social media.
-Do not say here is your post like that, just give the content of the post.
 Description: ${str}
 `;
 
@@ -97,7 +94,7 @@ export default function CampaignPlannerPage({ project }: Props) {
               id: d._id,
               prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
               userId: session?.user?.id as string,
-              day: chat.day
+              day: String(chat.day)
             });
             await sleep(2000);
             campaignPlannerData.refetch();
@@ -106,6 +103,33 @@ export default function CampaignPlannerPage({ project }: Props) {
       }
     } catch { }
   };
+
+  // Auto-generate pending chats for existing campaigns on initial page load
+  useEffect(() => {
+    if (!campaignPlannerData?.isLoading && campaignPlannerData?.data) {
+      (async () => {
+        for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
+          for (const chat of campaign.chats) {
+            if (chat.status === "pending") {
+              try {
+                await generate.mutateAsync({
+                  projectId: projectId as string,
+                  id: campaign.id,
+                  prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
+                  userId: session?.user?.id as string,
+                  day: String(chat.day)
+                });
+                await sleep(2000);
+                campaignPlannerData.refetch();
+              } catch (err) {
+                console.error(`Failed to generate Day ${chat.day} for campaign ${campaign.name}`);
+              }
+            }
+          }
+        }
+      })();
+    }
+  }, [campaignPlannerData?.isLoading]);
 
   // useEffect(() => {
   //   if (!campaignPlannerData?.isLoading && campaignPlannerData?.data) {
@@ -175,7 +199,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             onClick={onGenerate}
           >
             <Image src="/flash.png" width={24} height={24} className="h-5 w-5 mr-1" alt="Thunder" />
-            Quick Generate
+            Generate Campaign
           </Button>
         </div>
 

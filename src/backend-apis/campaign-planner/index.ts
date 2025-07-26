@@ -124,8 +124,6 @@ export const generateCampaignChat = async (props: {
     projectRelated: true,
   });
 
-  console.log("CHAT FROM AI: ", chatFromAI);
-
   if (!chatFromAI) {
     return {
       success: false,
