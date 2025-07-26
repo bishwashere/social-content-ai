@@ -1,12 +1,19 @@
-import React from 'react'
-import VideoSelectionPage from './_components'
+import React from 'react';
+import VideoSelectionPage from './_components';
 
 const Page = () => {
   return (
-    <div className="flex-grow mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6 -mt-[4.5rem]">
+    <main
+      className="
+        transition-all duration-300 px-4 py-6 space-y-6 -mt-[4.5rem]
+        ml-0
+        md:ml-[16rem]
+        data-[sidebar=collapsed]:md:ml-[4rem]
+      "
+    >
       <VideoSelectionPage />
-    </div>
-  )
-}
+    </main>
+  );
+};
 
-export default Page
+export default Page;

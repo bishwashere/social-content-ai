@@ -45,11 +45,19 @@ export function ProjectSidebar() {
         : [...current, value],
     );
   };
+
   const { data: projects, isLoading } = useGetAllProjects();
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, collapsed } = useSidebar();
 
   return (
-    <Sidebar className="border-r">
+    <Sidebar
+      className="border-r transition-all duration-300"
+      style={
+        {
+          "--sidebar-width": collapsed ? "80px" : "288px",
+        } as React.CSSProperties
+      }
+    >
       <SidebarHeader className="border-b p-4">
         <AddProjectButton />
       </SidebarHeader>
@@ -58,7 +66,7 @@ export function ProjectSidebar() {
           <Link
             onClick={() => {
               if (window.innerWidth <= 768) {
-                toggleSidebar()
+                toggleSidebar();
               }
             }}
             href="/project/wall"
@@ -66,12 +74,16 @@ export function ProjectSidebar() {
           >
             👥 For You
           </Link>
-          {/* Dashboard Link */}
-          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="You can log what was posted here along with date. This helps you plan for future posts.">
+
+          <FirstViewTooltip
+            tooltipKey="contentPlanner"
+            order={3}
+            content="You can log what was posted here along with date. This helps you plan for future posts."
+          >
             <Link
               onClick={() => {
                 if (window.innerWidth <= 768) {
-                  toggleSidebar()
+                  toggleSidebar();
                 }
               }}
               href="/project/dashboard"
@@ -80,21 +92,21 @@ export function ProjectSidebar() {
               📊 Content Planner
             </Link>
           </FirstViewTooltip>
-          {/* Projects */}
+
           <p className="text-sm font-semibold px-2">Projects</p>
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-8" />
-            ))
+                <Skeleton key={i} className="h-8" />
+              ))
             : projects?.map((project) => (
-              <ProjectItem
-                key={project._id}
-                project={project}
-                isOpen={openSections.includes(project._id)}
-                onToggle={() => handleSectionToggle(project._id)}
-                currentPath={pathname}
-              />
-            ))}
+                <ProjectItem
+                  key={project._id}
+                  project={project}
+                  isOpen={openSections.includes(project._id)}
+                  onToggle={() => handleSectionToggle(project._id)}
+                  currentPath={pathname}
+                />
+              ))}
         </SidebarContent>
       </ScrollArea>
     </Sidebar>
@@ -116,13 +128,12 @@ function ProjectItem({
 }: ProjectItemProps) {
   const router = useRouter();
   const { data } = useSession();
+  const { toggleSidebar } = useSidebar();
 
   const activeProjectId = (path: string) => {
     const match = path.match(/project\/([^/]+)/);
     return match ? match[1] : null;
   };
-
-  const { toggleSidebar } = useSidebar()
 
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
@@ -133,8 +144,7 @@ function ProjectItem({
         <div
           className={cn(
             "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200",
-            activeProjectId(currentPath) === project._id &&
-            "bg-gray-200",
+            activeProjectId(currentPath) === project._id && "bg-gray-200"
           )}
         >
           <div className="flex items-center gap-2 truncate">
@@ -162,23 +172,23 @@ function ProjectItem({
         <Link
           onClick={() => {
             if (window.innerWidth <= 768) {
-              toggleSidebar()
+              toggleSidebar();
             }
           }}
           href={`/project/${project._id}`}
           className={cn(
             "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
             currentPath === `/project/${project._id}` &&
-            "bg-accent text-accent-foreground",
+              "bg-accent text-accent-foreground"
           )}
         >
           Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
         </Link>
-        {project.chats?.slice(0,5).map((chat) => (
+        {project.chats?.slice(0, 5).map((chat) => (
           <Link
             onClick={() => {
               if (window.innerWidth <= 768) {
-                toggleSidebar()
+                toggleSidebar();
               }
             }}
             key={chat._id}
@@ -186,7 +196,7 @@ function ProjectItem({
             className={cn(
               "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
               currentPath === `/project/${project._id}/chat/${chat._id}` &&
-              "bg-accent text-accent-foreground",
+                "bg-accent text-accent-foreground"
             )}
           >
             <div className="flex items-center gap-2">
