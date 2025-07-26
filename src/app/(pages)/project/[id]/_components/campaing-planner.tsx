@@ -94,7 +94,7 @@ export default function CampaignPlannerPage({ project }: Props) {
               id: d._id,
               prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
               userId: session?.user?.id as string,
-              day: String(chat.day)
+              day: chat.day
             });
             await sleep(2000);
             campaignPlannerData.refetch();
@@ -117,7 +117,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                   id: campaign.id,
                   prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
                   userId: session?.user?.id as string,
-                  day: String(chat.day)
+                  day: chat.day
                 });
                 await sleep(2000);
                 campaignPlannerData.refetch();
@@ -219,10 +219,20 @@ export default function CampaignPlannerPage({ project }: Props) {
                 [campaign.id]: !isOpen,
               }));
             };
+            const totalChats = campaign.chats.length;
+            const completedChats = campaign.chats.filter(chat =>
+              chat.contents && Object.keys(chat.contents).length > 0
+            ).length;
+
+            const progress = totalChats > 0 ? (completedChats / totalChats) * 100 : 0;
 
             return (
               <div key={campaign.id} className="border rounded-lg">
                 <div className="w-full">
+                  <div
+                    className={`h-1 ${progress === 100 ? 'bg-gray-400' : 'bg-green-600'} transition-all duration-300`}
+                    style={{ width: `${progress}%` }}
+                  />
                   <button
                     className="w-full flex justify-between items-center p-4 font-semibold"
                     onClick={toggleOpen}
