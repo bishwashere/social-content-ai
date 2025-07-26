@@ -58,7 +58,7 @@ export const useGenerateCampaignChat = () => {
       id: string;
       prompt: string;
       userId: string;
-      day: string;
+      day: number;
     }) =>
       generateCampaignChat({
         projectId,

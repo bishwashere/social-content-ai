@@ -92,7 +92,7 @@ export const generateCampaignChat = async (props: {
   id: string;
   prompt: string;
   userId: string;
-  day: string;
+  day: number;
 }) => {
   const project = await ProjectModel.findById(props.projectId);
   const projectCampaign = await CampaignPlannerModel.findOne({

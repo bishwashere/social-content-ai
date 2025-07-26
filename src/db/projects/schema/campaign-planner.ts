@@ -6,6 +6,7 @@ const CampaignChatSchema = new mongoose.Schema(
     title: { type: String, required: false },
     prompt: { type: String, default: "" },
     day: { type: Number, required: true },
+    completed: { type: Boolean, required: true, default: false },
     contents: {
       type: Map,
       of: String,
