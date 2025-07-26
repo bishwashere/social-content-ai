@@ -26,7 +26,7 @@ const CampaignVideoButton = ({
     return <Loader2 className='size-4 animate-spin' />
   }
 
-  if (!data || !data?.url) {
+  if (!data || data === "no-data") {
     return (
       <Link
         href={`/project/${projectId}/video/?campaignId=${campaign.id}&day=${timeline.day}`}
@@ -36,11 +36,13 @@ const CampaignVideoButton = ({
     )
   }
 
+  if (data === "pending") return null;
+
   return (
     <Link
-      href={data.url}
+      href={data}
       target="_blank"
-      className={cn(buttonVariants({ variant: "secondary", size: "sm" }),)}>
+      className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "bg-gray-200")}>
       <VideoIcon />
     </Link>
   )

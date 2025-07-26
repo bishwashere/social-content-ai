@@ -187,15 +187,34 @@ export const getUploadedVideoUrl = async (
   campaignPlannerId: string,
   day: string
 ) => {
-  const data = await UploadedVideosModel.find({
-    where: {
-      projectId,
-      campaignPlannerId,
-      day: Number(day),
-    },
+  console.log(
+    "projectId",
+    projectId,
+    "campaignPlannerId",
+    campaignPlannerId,
+    "day",
+    day
+  );
+  const data = await UploadedVideosModel.findOne({
+    projectId,
+    campaignPlannerId,
+    day: Number(day),
   });
 
-  if (!data) return null;
+  console.log("data", data);
 
-  return { url: "" };
+  if (!data) return "no-data";
+
+  // find output.mp4 in the rendering folder
+  const files = await listAllFilesByKey(`rendering/${data.folderId}/`);
+  const output = files.find((file) => file.key?.endsWith("output.mp4"));
+  console.log("output", files);
+  if (!output) return "pending";
+
+  data.status = "completed";
+  await data.save();
+
+  const signedUrl = await s3.getSignedUrlForVideoDownload(output.key as string);
+
+  return signedUrl;
 };
