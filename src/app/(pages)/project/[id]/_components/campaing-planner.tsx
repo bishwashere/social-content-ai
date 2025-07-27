@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
 import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, Play, RefreshCcw, VideoIcon } from "lucide-react";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -38,6 +37,7 @@ import { CampaignVideoButton } from "./campaign-video-button";
 import { CampaignCheckButton } from "./campaign-check-button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 const ICONS = {
   x: "/x.svg",
@@ -104,7 +104,7 @@ export default function CampaignPlannerPage({ project }: Props) {
               projectId: projectId as string,
               id: d._id,
               prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-              userId: session?.user?.id as string,
+              userId: session?.user?._id as string,
               day: chat.day
             });
             await sleep(2000);
@@ -127,7 +127,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                   projectId: projectId as string,
                   id: campaign.id,
                   prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-                  userId: session?.user?.id as string,
+                  userId: session?.user?._id as string,
                   day: chat.day
                 });
                 await sleep(2000);
@@ -360,7 +360,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       projectId: projectId as string,
                                       id: campaign.id,
                                       prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-                                      userId: session?.user?.id as string,
+                                      userId: session?.user?._id as string,
                                       day: chat.day
                                     });
                                     await sleep(2000);
