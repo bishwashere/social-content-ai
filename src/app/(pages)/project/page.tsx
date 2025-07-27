@@ -29,7 +29,7 @@ export default function Home() {
   };
 
   return (
-    <div className="md:ml-64 lg:ml-72 p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div className="text-center">
         Welcome to NextPostAI!
         <br />
