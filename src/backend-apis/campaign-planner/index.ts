@@ -90,7 +90,11 @@ export const startCampaignPlanner = async (
 export const getCampaignPlanner = async (projectId: string) => {
   // const planners = await CampaignPlannerModel.find({ projectId }).lean() as unknown as CampaignPlannerType[];
   const planners = JSON.parse(
-    JSON.stringify(await CampaignPlannerModel.find({ projectId }).lean())
+    JSON.stringify(
+      await CampaignPlannerModel.find({ projectId })
+        .sort({ updatedAt: -1 })
+        .lean()
+    )
   ) as CampaignPlannerType[];
 
   return {
@@ -180,7 +184,7 @@ export const changeCampaignData = async (
     if (name !== undefined) updateFields.name = name;
     if (startDate !== undefined) updateFields.startDate = startDate;
     console.log({ id: id });
-    console.log(updateFields)
+    console.log(updateFields);
 
     const planner = await CampaignPlannerModel.findOneAndUpdate(
       { _id: id },
@@ -195,7 +199,6 @@ export const changeCampaignData = async (
     return false;
   }
 };
-
 
 export const toggleMarkAsComplete = async ({
   campaignId,
