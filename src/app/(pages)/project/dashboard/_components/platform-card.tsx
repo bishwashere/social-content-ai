@@ -11,17 +11,20 @@ import {
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 
 interface PlatformCardProps {
   projectId: string;
   isEditing: boolean;
   platform: string;
+  onClick: () => void;
 }
 
 export function PlatformCard({
   isEditing,
   projectId,
   platform,
+  onClick,
 }: PlatformCardProps) {
   const getDateColor = (dateString: string) => {
     const date = new Date(dateString);
@@ -64,7 +67,9 @@ export function PlatformCard({
   if (activity.isLoading) return null;
 
   return (
-    <div className="p-3 border rounded-lg shadow-sm bg-white">
+    <div
+      onClick={onClick}
+      className={cn("p-3 border rounded-lg shadow-sm bg-white cursor-pointer",)}>
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold capitalize">{platform}</h3>
         {getTrendIcon(

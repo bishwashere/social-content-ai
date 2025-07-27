@@ -9,9 +9,10 @@ import { PLATFORMS } from "@/lib/prompt";
 
 interface ProjectCardProps {
   project: ProjectWithChats;
+  onClick: ({ platform, projectId }: { platform: string; projectId: string }) => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onClick }: ProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { data } = useSession();
   return (
@@ -34,6 +35,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <div className="grid grid-cols-2 gap-4">
         {Object.values(PLATFORMS).map((platform) => (
           <PlatformCard
+            onClick={() => {
+              onClick({
+                platform,
+                projectId: project._id
+              })
+            }}
             key={platform}
             isEditing={isEditing}
             platform={platform}
