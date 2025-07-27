@@ -12,7 +12,15 @@ export const fetchRedditPostsData = async (
     if (!postId) continue;
 
     const res = await fetch(`https://www.reddit.com/comments/${postId}.json`);
-    if (!res.ok) continue;
+    if (!res.ok) {
+      console.error(
+        `Failed to fetch data from Reddit: ${url}`,
+        await res.text()
+      );
+      continue;
+    }
+
+    console.log("response received");
 
     const data = await res.json();
     const post = data?.[0]?.data?.children?.[0]?.data;
