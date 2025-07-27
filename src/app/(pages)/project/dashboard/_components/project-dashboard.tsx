@@ -5,18 +5,24 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ProjectCard } from "./project-card";
 import {
   useGetAllProjects,
   useGetProjectsSummary,
 } from "@/backend-apis/projects/hooks";
 import { SummarySection } from "./summary-section";
+import { Graph } from "./graph";
 
 export default function ProjectDashboard() {
   const [showSummary, setShowSummary] = useState(false);
   const projects = useGetAllProjects();
   const summary = useGetProjectsSummary();
+  const graphContainerRef = useRef<HTMLDivElement>(null);
+  const [activeGraph, setActiveGraph] = useState({
+    platform: "",
+    projectId: ""
+  })
 
   if (projects.isLoading) return null;
 
@@ -34,8 +40,33 @@ export default function ProjectDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
         {projects?.data?.map((project) => (
-          <ProjectCard key={project._id} project={project} />
+          <ProjectCard
+            key={project._id}
+            project={project}
+            onClick={(data) => {
+              setActiveGraph(data)
+              if (graphContainerRef?.current) {
+                graphContainerRef.current.style.minHeight = "500px";
+                setTimeout(() => {
+                  if (graphContainerRef?.current) {
+                    graphContainerRef.current?.scrollIntoView({
+                      behavior: "smooth"
+                    })
+                    graphContainerRef.current.style.minHeight = "none"
+                  }
+                }, 200);
+              }
+
+            }}
+          />
         ))}
+      </div>
+
+      <div ref={graphContainerRef} className="pb-12">
+        <Graph
+          platform={activeGraph.platform}
+          projectId={activeGraph.projectId}
+        />
       </div>
     </div>
   );

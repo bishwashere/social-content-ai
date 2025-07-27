@@ -1,6 +1,7 @@
 "use server";
 
 import { UserModel } from "@/db/auth/schema/user";
+import connectToDb from "@/db/connect";
 import {
   CampaignPlannerModel,
   CampaignPlannerType,
@@ -19,6 +20,7 @@ export const startCampaignPlanner = async (
   plan: CampaignPlanner,
   userId: string
 ) => {
+  await connectToDb();
   // const existingPlanner = await CampaignPlannerModel.findOne({
   //   projectId,
   //   campaignId: plan.id,
@@ -89,8 +91,14 @@ export const startCampaignPlanner = async (
 
 export const getCampaignPlanner = async (projectId: string) => {
   // const planners = await CampaignPlannerModel.find({ projectId }).lean() as unknown as CampaignPlannerType[];
+  await connectToDb();
+
   const planners = JSON.parse(
-    JSON.stringify(await CampaignPlannerModel.find({ projectId }).lean())
+    JSON.stringify(
+      await CampaignPlannerModel.find({ projectId })
+        .sort({ updatedAt: -1 })
+        .lean()
+    )
   ) as CampaignPlannerType[];
 
   return {
@@ -113,6 +121,8 @@ export const generateCampaignChat = async (props: {
   userId: string;
   day: number;
 }) => {
+  await connectToDb();
+
   const project = await ProjectModel.findById(props.projectId);
   const projectCampaign = await CampaignPlannerModel.findOne({
     projectId: props.projectId,
@@ -174,13 +184,14 @@ export const changeCampaignData = async (
   name?: string,
   startDate?: Date
 ) => {
+  await connectToDb();
   try {
     const updateFields: Record<string, any> = {};
 
     if (name !== undefined) updateFields.name = name;
     if (startDate !== undefined) updateFields.startDate = startDate;
     console.log({ id: id });
-    console.log(updateFields)
+    console.log(updateFields);
 
     const planner = await CampaignPlannerModel.findOneAndUpdate(
       { _id: id },
@@ -196,7 +207,6 @@ export const changeCampaignData = async (
   }
 };
 
-
 export const toggleMarkAsComplete = async ({
   campaignId,
   day,
@@ -204,6 +214,8 @@ export const toggleMarkAsComplete = async ({
   campaignId: string;
   day: string;
 }) => {
+  await connectToDb();
+
   const data = await CampaignPlannerModel.findById(campaignId);
 
   if (!data) return null;
