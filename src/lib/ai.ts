@@ -32,19 +32,32 @@ export class AI {
     content: string;
     prompt?: string;
   }): Promise<string> {
-    const model = this.genAI.getGenerativeModel({
-      model: "models/gemini-2.0-flash-001",
-    });
-
     const chatNamePrompt = `Generate a short, catchy title (max 5 words) for a social media content based on the following ${
       prompt ? "prompt" : "content"
     }:\n\n${
       prompt || JSON.stringify(content)
     }\n\nRespond with ONLY the title, nothing else.`;
 
-    const result = await model.generateContent(chatNamePrompt);
+    let attempt = 0;
 
-    return result.response.text().trim();
+    while (attempt < this.maxRetries) {
+      try {
+        const genAI = new GoogleGenerativeAI(this.apiKeys[attempt]);
+        const model = genAI.getGenerativeModel({
+          model: "models/gemini-2.0-flash-001",
+        });
+
+        const result = await model.generateContent(chatNamePrompt);
+        return result.response.text().trim();
+      } catch (error) {
+        console.warn(`Attempt ${attempt + 1} failed:`, error);
+        attempt++;
+      }
+    }
+
+    // All retries failed — return fallback
+    console.error("All retries failed for generateChatName");
+    return "New Chat";
   }
 
   /**
