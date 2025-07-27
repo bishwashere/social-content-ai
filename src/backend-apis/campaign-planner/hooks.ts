@@ -95,17 +95,23 @@ export const useChangeCampaignData = () => {
       changeCampaignData(id, name, startDate),
 
     onSuccess: (projectId: string | boolean) => {
-      // variables contains the { id, name } object passed to mutationFn
       if (projectId)
         queryClient.invalidateQueries({
-          queryKey: ["campaignPlanner", projectId], // Or use projectId if you have it
+          queryKey: ["campaignPlanner", projectId],
         });
     },
   });
 };
 
 export const useToggleMarkAsComplete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: toggleMarkAsComplete,
+    onSuccess: (projectId: string | boolean) => {
+      if (projectId)
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", projectId],
+        });
+    },
   });
 };
