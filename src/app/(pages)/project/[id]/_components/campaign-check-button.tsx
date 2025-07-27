@@ -1,4 +1,5 @@
 import { useToggleMarkAsComplete } from '@/backend-apis/campaign-planner/hooks'
+import { confirm } from '@/components/ui/alert-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import React, { useEffect, useState } from 'react'
 
@@ -24,6 +25,11 @@ const CampaignCheckButton = (props: Props) => {
       disabled={toggle.isPending}
       checked={isCompleted}
       onCheckedChange={async (checked) => {
+        const yes = await confirm({
+          title: `Do you want to mark this day as ${checked ? "done" : "undone"}?`,
+          description: ""
+        })
+        if (!yes) return;
         setIsCompleted(Boolean(checked))
         try {
           const data = await toggle.mutateAsync({
