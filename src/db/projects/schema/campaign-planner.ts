@@ -33,6 +33,7 @@ const CampaignPlannerSchema = new mongoose.Schema(
     targetAudience: { type: String, required: true },
     chats: [CampaignChatSchema],
     name: { type: String, required: false },
+    startDate: { type: Date, required: false },
   },
   {
     timestamps: true,

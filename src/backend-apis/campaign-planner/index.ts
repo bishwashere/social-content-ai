@@ -101,6 +101,7 @@ export const getCampaignPlanner = async (projectId: string) => {
       goal: p.goal,
       targetAudience: p.targetAudience,
       date: p.updatedAt,
+      startDate: p.startDate,
     })),
   };
 };
@@ -168,24 +169,33 @@ export const generateCampaignChat = async (props: {
   };
 };
 
-export const changeCampaignName = async (id: string, name: string) => {
+export const changeCampaignData = async (
+  id: string,
+  name?: string,
+  startDate?: Date
+) => {
   try {
+    const updateFields: Record<string, any> = {};
+
+    if (name !== undefined) updateFields.name = name;
+    if (startDate !== undefined) updateFields.startDate = startDate;
+    console.log({ id: id });
+    console.log(updateFields)
+
     const planner = await CampaignPlannerModel.findOneAndUpdate(
       { _id: id },
-      {
-        $set: {
-          name: name,
-        },
-      },
+      { $set: updateFields },
       { new: true }
     );
+    console.log("Updated planner:", planner);
 
-    return planner.projectId.toString() as string;
+    return planner?.projectId?.toString() || false;
   } catch (error) {
-    console.error("Error changing campaign name:", error);
+    console.error("Error changing campaign data:", error);
     return false;
   }
 };
+
 
 export const toggleMarkAsComplete = async ({
   campaignId,
