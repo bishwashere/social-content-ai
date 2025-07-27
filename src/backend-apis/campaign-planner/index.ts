@@ -216,5 +216,5 @@ export const toggleMarkAsComplete = async ({
 
   await data.save();
 
-  return Boolean(chat.completed);
+  return data.projectId.toString();
 };

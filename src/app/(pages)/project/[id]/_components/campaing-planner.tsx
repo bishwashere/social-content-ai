@@ -246,11 +246,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                   }));
                 };
                 const totalChats = campaign.chats.length;
-                const completedChats = campaign.chats.filter(chat =>
+                const loadedChats = campaign.chats.filter(chat =>
                   chat.contents && Object.keys(chat.contents).length > 0
                 ).length;
+                const completedChats = campaign.chats.filter(chat => chat.completed).length;
 
-                const progress = totalChats > 0 ? (completedChats / totalChats) * 100 : 0;
+                const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
+                const realProgress = totalChats > 0 ? (completedChats / totalChats) * 100 : 0;
 
                 const openCalendar = (campaignId: string) => {
                   if (!isCalenderOpen.includes(campaignId)) {
@@ -265,11 +267,17 @@ export default function CampaignPlannerPage({ project }: Props) {
                 return (
                   <div key={campaign.id} className="border rounded-lg">
 
-                    <div className="w-full">
+                    <div className="w-full relative">
                       <div
-                        className={`h-1 ${progress === 100 ? 'bg-gray-400' : 'bg-green-600'} transition-all duration-300`}
-                        style={{ width: `${progress}%` }}
+                        className={`h-1 ${loadingProgress === 100 ? 'bg-gray-400' : 'bg-green-600'} transition-all duration-300 absolute top-0 left-0 z-0`}
+                        style={{ width: `${loadingProgress}%` }}
                       />
+                      {realProgress > 0 && loadingProgress === 100 &&
+                        <div
+                          className={`h-1 bg-green-600 transition-all duration-300 absolute top-0 left-0 z-10`}
+                          style={{ width: `${realProgress}%` }}
+                        />
+                      }
                       <button
                         className="w-full flex justify-between items-center p-4 font-semibold"
                         onClick={toggleOpen}
