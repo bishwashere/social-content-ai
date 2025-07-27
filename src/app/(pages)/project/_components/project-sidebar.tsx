@@ -128,7 +128,12 @@ function ProjectItem({
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <CollapsibleTrigger
         className="w-[calc(var(--sidebar-width)-1rem)]"
-        onClick={() => router.push(`/project/${project._id}`)}
+        onClick={() => {
+          if (window.innerWidth <= 768) {
+            toggleSidebar()
+          }
+          router.push(`/project/${project._id}`)
+        }}
       >
         <div
           className={cn(
@@ -174,7 +179,7 @@ function ProjectItem({
         >
           Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
         </Link>
-        {project.chats?.slice(0,5).map((chat) => (
+        {project.chats?.slice(0, 5).map((chat) => (
           <Link
             onClick={() => {
               if (window.innerWidth <= 768) {
