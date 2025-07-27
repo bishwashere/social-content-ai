@@ -327,7 +327,6 @@ export default function CampaignPlannerPage({ project }: Props) {
                         }}
                       >
                         <RefreshCcw className="h-4 w-4 mr-1" />
-                        Regenerate
                       </Button>
                     </div>
 
