@@ -27,7 +27,7 @@ export function Header() {
   const resetTooltip = useResetFirstViewTooltip();
 
   return (
-    <div className="w-full px-4 border-b h-fit relative md:ml-64 lg:ml-72 overflow-hidden">
+    <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
       <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
         <div className="flex items-center gap-6">
           <SidebarTrigger className="min-w-[24px]" />

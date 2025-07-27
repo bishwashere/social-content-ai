@@ -40,6 +40,7 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  width: string;
 };
 
 const SidebarContext = React.createContext<SidebarContext | null>(null);
@@ -122,6 +123,7 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      width: isMobile ? SIDEBAR_WIDTH_MOBILE : SIDEBAR_WIDTH
     }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
   );

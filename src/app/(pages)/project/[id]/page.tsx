@@ -44,7 +44,7 @@ export default function ProjectPage() {
 
   if (defaultTab)
     return (
-      <div className="flex-grow max-w-3xl mx-auto items-center justify-center md:ml-64 lg:ml-72 p-6 space-y-6 -mt-10">
+      <div className="flex-grow max-w-3xl mx-auto items-center justify-center p-6 space-y-6 -mt-5">
         {loading || projects.isLoading ? (
           <div className="p-6 space-y-6 items-center justify-center">
             <Skeleton className="h-8 w-64" />

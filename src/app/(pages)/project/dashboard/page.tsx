@@ -13,7 +13,7 @@ export default function DashboardPage() {
 
   if (defaultTab)
     return (
-      <main className="flex  max-w-4xl mx-auto items-center justify-center w-full">
+      <main className="flex max-w-4xl mx-auto items-center justify-center w-full">
         <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList>
             <TabsTrigger value="dashboard" onClick={() => localStorage.setItem("contentPlannerTab", "dashboard")}>Dashboard</TabsTrigger>
