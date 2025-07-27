@@ -222,9 +222,12 @@ export default function CampaignPlannerPage({ project }: Props) {
 
       <div className="space-y-6 py-10 w-full max-w-2xl">
         {campaignPlannerData?.isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="animate-spin h-5 w-5" />
+          </div>
         ) : (
           <>
-            {campaignPlannerData.data?.chatsGroupedByCampaign?.length > 0 && (
+            {!!campaignPlannerData.data?.chatsGroupedByCampaign?.length && (
               <h2 className="text-xl font-bold mb-2">Active Campaigns:</h2>
             )}
             {

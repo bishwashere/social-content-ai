@@ -68,7 +68,7 @@ export default function ProjectPage() {
               <TabsTrigger value="generate" onClick={() => localStorage.setItem("projectTab", "generate")}>Quick Generate</TabsTrigger>
               <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign Planner</TabsTrigger>
               <TabsTrigger value="history" onClick={() => localStorage.setItem("projectTab", "history")}>History</TabsTrigger>
-              <TabsTrigger value="media" onClick={() => localStorage.setItem("projectTab", "media")}>Media Uploads</TabsTrigger>
+              <TabsTrigger value="media" onClick={() => localStorage.setItem("projectTab", "media")}>Media</TabsTrigger>
             </TabsList>
             <TabsContent value="generate"><QuickGenerate /></TabsContent>
             <TabsContent value="campaign"><CampaignPlannerPage project={project!} /></TabsContent>
