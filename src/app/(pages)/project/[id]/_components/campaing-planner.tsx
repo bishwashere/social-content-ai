@@ -61,6 +61,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
   const [selectedTargetAudience, setSelectedTargetAudience] = useState<number>(2);   // 1=Light,   2=Moderate,   3=Aggresive
   const [name, setName] = useState<string>('');
+  const [showCampaignForm, setShowCampaignForm] = useState(false);
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -156,10 +157,19 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
-      <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
+      {!showCampaignForm && (
+        <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
+          <Button className="w-full" onClick={() => setShowCampaignForm(true)}>
+            Plan Campaign
+          </Button>
+        </div>
+      )}
+
+      {showCampaignForm && (
+        <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-xl font-semibold">Campaign Name:</Label>
+            <h2 className="text-xl font-semibold mb-2">Campaign Name:</h2>
             <Input type="text" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
 
@@ -208,6 +218,7 @@ export default function CampaignPlannerPage({ project }: Props) {
         </div>
 
       </div>
+      )}
 
       <div className="space-y-6 py-10 w-full max-w-2xl">
         {campaignPlannerData?.isLoading ? (
@@ -215,7 +226,10 @@ export default function CampaignPlannerPage({ project }: Props) {
             <Loader2 className="animate-spin h-5 w-5" />
           </div>
         ) : (
-          campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
+          <>
+            <h2 className="text-xl font-bold mb-2">Active Campaigns:</h2>
+            {
+              campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
             const isOpen = openCampaigns[campaign.id] || false;
             const toggleOpen = () => {
               setOpenCampaigns(prev => ({
@@ -232,6 +246,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
             return (
               <div key={campaign.id} className="border rounded-lg">
+
                 <div className="w-full">
                   <div
                     className={`h-1 ${progress === 100 ? 'bg-gray-400' : 'bg-green-600'} transition-all duration-300`}
@@ -381,11 +396,12 @@ export default function CampaignPlannerPage({ project }: Props) {
                         </DialogContent>
                       </Dialog>
                     ))}
-                  </div>
-                )}
-              </div>
-            );
-          })
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
     </div>
