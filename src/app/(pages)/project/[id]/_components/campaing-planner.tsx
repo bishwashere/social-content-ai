@@ -38,6 +38,7 @@ import { CampaignVideoButton } from "./campaign-video-button";
 import { CampaignCheckButton } from "./campaign-check-button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import LoadingCard from "./campaign-loading-card";
 
 const ICONS = {
   x: "/x.svg",
@@ -161,6 +162,25 @@ export default function CampaignPlannerPage({ project }: Props) {
     []
   );
 
+  const [isInProgress, setIsInProgress] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!campaignPlannerData.data?.chatsGroupedByCampaign) return;
+
+    const anyLoading = campaignPlannerData.data.chatsGroupedByCampaign.some(campaign => {
+      const totalChats = campaign.chats.length;
+      const loadedChats = campaign.chats.filter(chat =>
+        chat.contents && Object.keys(chat.contents).length > 0
+      ).length;
+
+      const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
+
+      return loadingProgress > 0 && loadingProgress < 100;
+    });
+
+    setIsInProgress(anyLoading);
+  }, [campaignPlannerData.data?.chatsGroupedByCampaign]);
+
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
       {!showCampaignForm && (
@@ -226,7 +246,9 @@ export default function CampaignPlannerPage({ project }: Props) {
         </div>
       )}
 
-      <div className="space-y-6 py-10 w-full max-w-2xl">
+      <LoadingCard loading={isInProgress} />
+
+      <div className="space-y-6 w-full max-w-2xl py-6">
         {campaignPlannerData?.isLoading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="animate-spin h-5 w-5" />
