@@ -1,5 +1,6 @@
 "use server";
 
+import connectToDb from "@/db/connect";
 import { UploadedVideosModel } from "@/db/video-generation/schema";
 import { s3 } from "@/lib/s3";
 
@@ -70,6 +71,8 @@ export const saveVideoDataToDb = async ({
   campaignPlannerId: string;
   day: number;
 }) => {
+  await connectToDb();
+
   await UploadedVideosModel.create({
     folderId,
     text,
