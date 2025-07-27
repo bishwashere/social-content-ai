@@ -41,7 +41,8 @@ const ICONS = {
   facebook: "/fb.svg",
   linkedin: "/linkedin.png",
   instagram: "/instagram.svg",
-  threads: "/threads.svg"
+  threads: "/threads.svg",
+  reddit: "/reddit.svg"
 };
 
 const getPrompt = (str: string) => `
@@ -359,7 +360,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                           </div>
                         </div>
                         <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
-                          {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads", string][]).map(([platform, text]) => (
+                          {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
                             <Card key={platform} className="rounded-lg border mb-5">
                               <CardHeader className="flex justify-between items-center mb-2 flex-row">
                                 <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>

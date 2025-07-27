@@ -19,7 +19,8 @@ const ICONS = {
   facebook: "/fb.svg",
   linkedin: "/linkedin.png",
   instagram: "/instagram.svg",
-  threads: "/threads.svg"
+  threads: "/threads.svg",
+  reddit: "/reddit.svg"
 }
 
 import PostToWall from "@/components/common/post-to-wall";

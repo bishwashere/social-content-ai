@@ -16,11 +16,12 @@ const ICONS = {
   facebook: "/fb.svg",
   linkedin: "/linkedin.png",
   instagram: "/instagram.svg",
-  threads: "/threads.svg"
+  threads: "/threads.svg",
+  reddit: "/reddit.svg"
 }
 
 type Props = {
-  platform: "x" | "facebook" | "linkedin" | "threads"
+  platform: "x" | "facebook" | "linkedin" | "threads" | "reddit"
   content: string
 }
 
@@ -114,6 +115,28 @@ const AutoPost = ({ platform, content }: Props) => {
         const res = await schedulePost({
           userId: data?.user?._id,
           platform: "facebook",
+          content: content,
+          date: new Date(date).getTime() / 1000
+        })
+
+        if (res) {
+          toast.success("Post scheduled!")
+        } else {
+          toast.error("Failed to schedule post")
+        }
+      }
+    }else if (platform === "reddit") {
+      const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Reddit to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("reddit")
+        }, 1000);
+      } else {
+        const res = await schedulePost({
+          userId: data?.user?._id,
+          platform: "reddit",
           content: content,
           date: new Date(date).getTime() / 1000
         })

@@ -6,6 +6,7 @@ export const PLATFORM_CHARACTER_LIMITS = {
   x: 250,
   linkedin: 500,
   threads: 500,
+  reddit: 200,
 } as const;
 
 export const PLATFORM_CUSTOM_PROMPTS = {
@@ -18,6 +19,7 @@ export const PLATFORM_CUSTOM_PROMPTS = {
     "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   threads:
     "Use a conversational and engaging style. Keep it authentic and personal. Use short paragraphs (1-2 lines max). Add relevant emojis sparingly. Focus on community engagement and authentic storytelling. Include a clear call to action.",
+  reddit: "Make sure it's a personal story and doesn't use colon, dash, or etc."
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
@@ -26,6 +28,7 @@ export const AVAILABLE_PLATFORMS = {
   X: "x",
   LINKEDIN: "linkedin",
   THREADS: "threads",
+  REDDIT: "reddit"
 } as const;
 
 export const PLATFORMS = Object.values(AVAILABLE_PLATFORMS);
