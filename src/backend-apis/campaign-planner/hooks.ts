@@ -1,7 +1,7 @@
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  changeCampaignName,
+  changeCampaignData,
   generateCampaignChat,
   getCampaignPlanner,
   startCampaignPlanner,
@@ -87,12 +87,12 @@ export const useGenerateCampaignChat = () => {
   });
 };
 
-export const useChangeCampaignName = () => {
+export const useChangeCampaignData = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      changeCampaignName(id, name),
+    mutationFn: ({ id, name, startDate }: { id: string; name?: string, startDate?: Date }) =>
+      changeCampaignData(id, name, startDate),
 
     onSuccess: (projectId: string | boolean) => {
       // variables contains the { id, name } object passed to mutationFn

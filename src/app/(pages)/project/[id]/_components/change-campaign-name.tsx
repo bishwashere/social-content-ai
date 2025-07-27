@@ -1,4 +1,4 @@
-import { useChangeCampaignName } from "@/backend-apis/campaign-planner/hooks";
+import { useChangeCampaignData } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogContent, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { useState } from "react";
 export default function ChangeCampaignName({ campaignId, campaignName }: { campaignId: string, campaignName: string }) {
     const [name, setName] = useState<string>(campaignName);
     const [open, setOpen] = useState(false);
-    const update = useChangeCampaignName();
+    const update = useChangeCampaignData();
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
