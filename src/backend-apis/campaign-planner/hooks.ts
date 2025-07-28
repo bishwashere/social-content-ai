@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
 export const useCampaignPlanner = () => {
-const { data: session } = useSession();
-return useMutation({
+  const { data: session } = useSession();
+  return useMutation({
     mutationFn: ({
       id,
       projectId,
@@ -26,7 +26,7 @@ return useMutation({
       campaignName: string;
       plan: CampaignPlanner;
     }) =>
-      startCampaignPlanner({
+      startCampaignPlanner(
         id,
         projectId,
         campaignName,
@@ -80,8 +80,15 @@ export const useChangeCampaignData = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name, startDate }: { id: string; name?: string, startDate?: Date }) =>
-      changeCampaignData(id, name, startDate),
+    mutationFn: ({
+      id,
+      name,
+      startDate,
+    }: {
+      id: string;
+      name?: string;
+      startDate?: Date;
+    }) => changeCampaignData(id, name, startDate),
 
     onSuccess: (projectId: string | boolean) => {
       if (projectId)
