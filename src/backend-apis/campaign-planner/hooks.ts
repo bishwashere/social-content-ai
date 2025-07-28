@@ -2,10 +2,12 @@ import { CampaignPlanner } from "@/lib/campaign-planner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changeCampaignData,
+  deleteCampaign,
   generateCampaignChat,
   getCampaignPlanner,
   startCampaignPlanner,
   toggleMarkAsComplete,
+  toggleTickMark,
 } from ".";
 import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
@@ -113,5 +115,24 @@ export const useToggleMarkAsComplete = () => {
           queryKey: ["campaignPlanner", projectId],
         });
     },
+  });
+};
+
+export const useToggleTickMark = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: toggleTickMark,
+    onSuccess: (projectId: string | boolean) => {
+      if (projectId)
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", projectId],
+        });
+    },
+  });
+};
+
+export const useDeleteCampaign = () => {
+  return useMutation({
+    mutationFn: deleteCampaign,
   });
 };

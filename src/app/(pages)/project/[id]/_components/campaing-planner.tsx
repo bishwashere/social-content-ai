@@ -3,14 +3,16 @@
 import {
   useCampaignPlanner,
   useChangeCampaignData,
+  useDeleteCampaign,
   useGenerateCampaignChat,
-  useGetCampaignPlanner
+  useGetCampaignPlanner,
+  useToggleTickMark
 } from "@/backend-apis/campaign-planner/hooks";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, Play, RefreshCcw, VideoIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -39,6 +41,8 @@ import { CampaignCheckButton } from "./campaign-check-button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import LoadingCard from "./campaign-loading-card";
+import { useQueryClient } from "@tanstack/react-query";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const ICONS = {
   x: "/x.svg",
@@ -69,6 +73,9 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [isCalenderOpen, setIsCalenderOpen] = useState<string[]>([]);   // array of ids
   const updateCampaignData = useChangeCampaignData();
+  const deleteCampaignFromDb = useDeleteCampaign();
+  const queryClient = useQueryClient();
+  const toggleTickMark = useToggleTickMark();
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -143,6 +150,24 @@ export default function CampaignPlannerPage({ project }: Props) {
     }
   }, [campaignPlannerData?.isLoading]);
 
+  const deleteCampaign = async (campaignId: string, projectId: string) => {
+    const yes = await confirm({
+      title: "Do you really want to delete this campaign?",
+      description: ""
+    });
+    if (!yes) return;
+
+    const res = await deleteCampaignFromDb.mutateAsync(campaignId);
+    if (res) {
+      toast.success("Campaign Deleted !");
+      queryClient.invalidateQueries({
+        queryKey: ["campaignPlanner", projectId],
+      });
+    } else {
+      toast.error("Error while deleting campaign !")
+    }
+  }
+
   // useEffect(() => {
   //   if (!campaignPlannerData?.isLoading && campaignPlannerData?.data) {
   //     setAllCampaigns(campaignPlannerData.data.chatsGroupedByCampaign || []);
@@ -163,6 +188,18 @@ export default function CampaignPlannerPage({ project }: Props) {
   );
 
   const [isInProgress, setIsInProgress] = useState<boolean>(false);
+
+  //Open all campaigns that are saved in memory
+  useEffect(() => {
+    const openedCampaigns = localStorage.getItem("openedCampaigns");
+    if (openedCampaigns) {
+      const openedCampaignsArray = JSON.parse(openedCampaigns) as Record<string, boolean>;
+      setOpenCampaigns(openedCampaignsArray);
+    }
+  }, [])
+  //Save opened campaings when toggled
+  useEffect(() => {
+  }, [openCampaigns])
 
   useEffect(() => {
     if (!campaignPlannerData.data?.chatsGroupedByCampaign) return;
@@ -262,10 +299,10 @@ export default function CampaignPlannerPage({ project }: Props) {
               campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
                 const isOpen = openCampaigns[campaign.id] || false;
                 const toggleOpen = () => {
-                  setOpenCampaigns(prev => ({
-                    ...prev,
-                    [campaign.id]: !isOpen,
-                  }));
+                  const prevOpenedCampaigns = openCampaigns;
+                  const newOpenedCampaigns = { ...prevOpenedCampaigns, [campaign.id]: !isOpen };
+                  localStorage.setItem("openedCampaigns", JSON.stringify(newOpenedCampaigns));
+                  setOpenCampaigns(newOpenedCampaigns);
                 };
                 const totalChats = campaign.chats.length;
                 const loadedChats = campaign.chats.filter(chat =>
@@ -304,7 +341,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                         className="w-full flex justify-between items-center p-4 font-semibold"
                         onClick={toggleOpen}
                       >
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap justify-center items-center gap-2">
                           {campaign.name}
                           <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
                           <p className="text-sm">• {campaign.goal}</p>
@@ -316,6 +353,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                               day: "numeric",
                             })}
                           </p>
+                          <button onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}>
+                            <Trash className="size-[14px] stroke-red-500" />
+                          </button>
                         </div>
                         <span className="ml-2 text-sm text-gray-500">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
                       </button>
@@ -344,7 +384,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 Start
                               </Button>
                             }
-                            disabled={updateCampaignData.isPending}
+                            disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
                           />
                           <Button
                             variant="outline"
@@ -431,7 +471,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 <Card key={platform} className="rounded-lg border mb-5">
                                   <CardHeader className="flex justify-between items-center mb-2 flex-row">
                                     <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                    <div className="flex flex-row gap-2">
+                                    <div className="flex flex-row items-center gap-2">
                                       <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
                                         <CopyIcon />
                                       </Button>
@@ -449,6 +489,18 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         </Button>
                                       )}
                                       <AutoPost platform={platform} content={text} />
+                                      <Checkbox
+                                        checked={timeline.tickMark?.get(platform) === "true"}
+                                        onCheckedChange={async (checked) => {
+                                          toggleTickMark.mutateAsync({
+                                            campaignId: campaign.id,
+                                            day: timeline.day,
+                                            platform: platform,
+                                            tick: Boolean(checked)
+                                          })
+                                        }}
+                                        disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
+                                      />
                                     </div>
                                   </CardHeader>
                                   <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>

@@ -110,9 +110,15 @@ export const getCampaignPlanner = async (projectId: string) => {
       targetAudience: p.targetAudience,
       date: p.updatedAt,
       startDate: p.startDate,
+      projectId: p.projectId.toString(),
     })),
   };
 };
+
+
+type UseGetCampaignPlannerReturn = ReturnType<typeof getCampaignPlanner>;
+type CampaignPlannerData = Awaited<UseGetCampaignPlannerReturn>;
+export type ChatsGroupedByCampaign = CampaignPlannerData['chatsGroupedByCampaign'][0]
 
 export const generateCampaignChat = async (props: {
   projectId: string;
@@ -207,6 +213,22 @@ export const changeCampaignData = async (
   }
 };
 
+export const deleteCampaign = async (
+  id: string,
+): Promise<boolean> => {
+  await connectToDb();
+
+  try {
+    await CampaignPlannerModel.deleteOne({ _id: id });
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting campaign data:", error);
+    return false;
+  }
+};
+
+
 export const toggleMarkAsComplete = async ({
   campaignId,
   day,
@@ -230,3 +252,38 @@ export const toggleMarkAsComplete = async ({
 
   return data.projectId.toString();
 };
+
+export const toggleTickMark = async ({
+  campaignId,
+  day,
+  platform,
+  tick,
+}: {
+  campaignId: string;
+  day: number;
+  platform: string;
+  tick: boolean;
+}) => {
+  await connectToDb();
+
+  const campaign = await CampaignPlannerModel.findById(campaignId);
+
+  if (!campaign) return null;
+
+  // Find the chat by day
+  const chat = campaign.chats.find((c: any) => c.day === Number(day));
+  if (!chat) return null;
+
+  // Update the tickMark Map for the given platform
+  if (!chat.tickMark) {
+    chat.tickMark = new Map();
+  }
+
+  chat.tickMark.set(platform, tick.toString());
+  chat.markModified("tickMark");
+
+  await campaign.save();
+
+  return campaign.projectId.toString();
+};
+

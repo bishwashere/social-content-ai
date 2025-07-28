@@ -13,6 +13,12 @@ const CampaignChatSchema = new mongoose.Schema(
       required: false,
       default: {},
     },
+    tickMark: {
+      type: Map,
+      of: String,
+      required: false,
+      default: {},
+    },
     status: {
       type: String,
       enum: ["pending", "generated"],
