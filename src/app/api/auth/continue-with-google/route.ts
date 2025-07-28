@@ -1,12 +1,11 @@
-import { UserDoc, UserModel } from "@/db/auth/schema/user";
-import { SubscriptionModel } from "@/db/subscriptions/schema/subscription";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { GoogleOauth } from "@/lib/google-ouath";
 import { generateJWT } from "@/lib/jwt";
 import { mail } from "@/lib/mail";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { authValidator, AuthValidatorType } from "@/validators/auth";
 import axios from "axios";
@@ -16,7 +15,6 @@ import axios from "axios";
  * with the given data.
  */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   requestValidator.validateBody(authValidator.continueWithGoogle),
   catchApiAsyncError(async (req) => {
     //@ts-expect-error: credential is not defined
@@ -27,7 +25,9 @@ export const POST = applyMiddleware(
 
     const userProfile = await user.getUserProfile();
 
-    const existingUser = await UserModel.findOne({ email: userProfile.email });
+    const existingUser = await prisma.user.findFirst({
+      where: { email: userProfile.email },
+    });
     const isNewUser = !existingUser;
 
     /**
@@ -37,25 +37,23 @@ export const POST = applyMiddleware(
      * 3. Return the updated user.
      */
 
-    const savedUser: UserDoc = await UserModel.findOneAndUpdate(
-      { email: userProfile.email },
-      {
-        $set: {
-          avatarUrl: userProfile.picture,
-          email: userProfile.email,
-          name: userProfile.name,
-          idFromProvider: userProfile.id,
-          updatedAt: new Date(),
-        },
-        $setOnInsert: {
-          createdAt: new Date(),
-        },
+    const savedUser = await prisma.user.upsert({
+      where: { email: userProfile.email },
+      update: {
+        avatarUrl: userProfile.picture,
+        name: userProfile.name,
+        idFromProvider: userProfile.id,
+        updatedAt: new Date(),
       },
-      {
-        upsert: true,
-        returnDocument: "after",
-      }
-    );
+      create: {
+        email: userProfile.email,
+        avatarUrl: userProfile.picture,
+        name: userProfile.name,
+        idFromProvider: userProfile.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
 
     if (!savedUser) {
       console.error("❌ Error saving user to DB:");
@@ -106,16 +104,16 @@ export const POST = applyMiddleware(
       }
     }
 
-    console.log("🔑 Generating JWT token for user:", savedUser._id.toString());
+    console.log("🔑 Generating JWT token for user:", savedUser.id);
     const jwt = generateJWT(
-      { _id: savedUser._id.toString(), email: savedUser.email },
+      { id: savedUser.id, email: savedUser.email },
       process.env.JWT_SECRET as string
     );
 
     console.log("📤 Returning response with token:", jwt ? "Yes" : "No", jwt);
 
-    const subscription = await SubscriptionModel.find({
-      userId: savedUser._id,
+    const subscription = await prisma.subscription.findMany({
+      where: { userId: savedUser.id },
     });
 
     return sendNextResponse({

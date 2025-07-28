@@ -20,7 +20,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">{project.name}</h2>
         <div className="flex space-x-2">
-          {data?.user?._id !== project.userId && (
+          {data?.user?.id !== project.userId && (
             <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
           )}
           <button
@@ -38,14 +38,14 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             onClick={() => {
               onClick({
                 platform,
-                projectId: project._id
+                projectId: project.id
               })
             }}
             key={platform}
             isEditing={isEditing}
             platform={platform}
-            projectId={project._id}
-          />
+            projectId={project.id}
+           />
         ))}
       </div>
     </div>

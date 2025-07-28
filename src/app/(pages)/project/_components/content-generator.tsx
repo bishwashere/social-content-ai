@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
-import { Project } from "@/db/projects/schema/project";
+import { Projects as Project } from "@prisma/client";
 
 import PostToWall from "@/components/common/post-to-wall";
 import { Switch } from "@/components/ui/switch";
@@ -66,11 +66,11 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
       <Button
         onClick={() => {
           generateProjectContent.mutate({
-            projectId: project._id,
+            projectId: project.id,
             projectRelated: checked,
             userPrompt: prompt,
             retry: generateProjectContent.data
-              ? { chatId: generateProjectContent.data?._id }
+              ? { chatId: generateProjectContent.data?.id }
               : undefined,
           });
         }}
@@ -111,13 +111,13 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                       <PostToWall
                         content={text}
                         platform={platform}
-                        projectId={project._id}
+                        projectId={project.id}
                         prompt={prompt}
                       />
-                      {project.platformUrls[platform] && (
+                      {project.platformUrls && project.platformUrls[platform as keyof typeof project.platformUrls] && (
                         <Button variant="ghost" size="icon" asChild>
                           <Link
-                            href={project.platformUrls[platform] || "#"}
+                            href={project.platformUrls[platform as keyof typeof project.platformUrls] || "#"}
                             target="_blank"
                           >
                             <Share2Icon />

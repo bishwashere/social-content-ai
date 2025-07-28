@@ -1,22 +1,23 @@
-import { UserModel } from "@/db/auth/schema/user";
-import { ScheduledPostsModel } from "@/db/scheduled-posts/schema";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
 import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 
 /**
  * Process pending scheduled posts
  */
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   catchApiAsyncError(async () => {
     console.log("🔍 Finding pending scheduled posts");
-    const pending = await ScheduledPostsModel.find({
-      status: "pending",
-      date: { $lte: new Date() }, // Only process posts that are due
+    const pending = await prisma.scheduledPost.findMany({
+      where: {
+        status: "pending",
+        date: {
+          lte: new Date(),
+        },
+      },
     });
 
     console.log(`📊 Found ${pending.length} pending posts`);
@@ -29,31 +30,31 @@ export const GET = applyMiddleware(
 
     const twitterResults = await Promise.all(
       twitterPosts.map(async (post) => {
-        console.log(`🔄 Processing Twitter post ID: ${post._id}`);
+        console.log(`🔄 Processing Twitter post ID: ${post.id}`);
         try {
-          const user = await UserModel.findById(post.userId);
+          const user = await prisma.user.findUnique({
+            where: { id: post.userId },
+          });
 
           if (!user) {
-            console.log(`❌ User not found for post ID: ${post._id}`);
-            await updatePostStatus(post._id, "failed", "User not found");
-            return { id: post._id, success: false, error: "User not found" };
+            console.log(`❌ User not found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "User not found");
+            return { id: post.id, success: false, error: "User not found" };
           }
 
-          console.log(`👤 Found user: ${user._id}`);
+          console.log(`👤 Found user: ${user.id}`);
 
           // Check and refresh Twitter token if needed
-          const tokenResult = await checkAndRefreshTwitterToken(
-            user._id.toString()
-          );
+          const tokenResult = await checkAndRefreshTwitterToken(user.id);
 
           if (!tokenResult.success) {
-            console.log(`❌ Token refresh failed for post ID: ${post._id}`);
+            console.log(`❌ Token refresh failed for post ID: ${post.id}`);
             await updatePostStatus(
-              post._id,
+              post.id,
               "failed",
               tokenResult.error || "Token refresh failed"
             );
-            return { id: post._id, success: false, error: tokenResult.error };
+            return { id: post.id, success: false, error: tokenResult.error };
           }
 
           // Post to Twitter
@@ -64,55 +65,53 @@ export const GET = applyMiddleware(
 
           if (tweetResult.success) {
             console.log(
-              `✅ Successfully posted to Twitter for post ID: ${post._id}`
+              `✅ Successfully posted to Twitter for post ID: ${post.id}`
             );
-            await updatePostStatus(post._id, "success");
-            return { id: post._id, success: true };
+            await updatePostStatus(post.id, "success");
+            return { id: post.id, success: true };
           } else {
-            console.log(
-              `❌ Failed to post to Twitter for post ID: ${post._id}`
-            );
-            await updatePostStatus(post._id, "failed", tweetResult.error);
-            return { id: post._id, success: false, error: tweetResult.error };
+            console.log(`❌ Failed to post to Twitter for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", tweetResult.error);
+            return { id: post.id, success: false, error: tweetResult.error };
           }
         } catch (error) {
-          console.error(`❌ Error processing post ID: ${post._id}`, error);
+          console.error(`❌ Error processing post ID: ${post.id}`, error);
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
-          await updatePostStatus(post._id, "failed", errorMessage);
-          return { id: post._id, success: false, error: errorMessage };
+          await updatePostStatus(post.id, "failed", errorMessage);
+          return { id: post.id, success: false, error: errorMessage };
         }
       })
     );
 
     const facebookResults = await Promise.all(
       facebookPosts.map(async (post) => {
-        console.log(`🔄 Processing Facebook post ID: ${post._id}`);
+        console.log(`🔄 Processing Facebook post ID: ${post.id}`);
         try {
-          const user = await UserModel.findById(post.userId);
+          const user = await prisma.user.findUnique({
+            where: { id: post.userId },
+          });
 
           if (!user) {
-            console.log(`❌ User not found for post ID: ${post._id}`);
-            await updatePostStatus(post._id, "failed", "User not found");
-            return { id: post._id, success: false, error: "User not found" };
+            console.log(`❌ User not found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "User not found");
+            return { id: post.id, success: false, error: "User not found" };
           }
 
-          console.log(`👤 Found user: ${user._id}`);
+          console.log(`👤 Found user: ${user.id}`);
 
           // Get Facebook tokens
-          const tokens = await getFacebookTokensForUser(user._id.toString());
+          const tokens = await getFacebookTokensForUser(user.id.toString());
 
           if (!tokens || !tokens.accessToken) {
-            console.log(
-              `❌ Facebook tokens not found for post ID: ${post._id}`
-            );
+            console.log(`❌ Facebook tokens not found for post ID: ${post.id}`);
             await updatePostStatus(
-              post._id,
+              post.id,
               "failed",
               "Facebook tokens not found"
             );
             return {
-              id: post._id,
+              id: post.id,
               success: false,
               error: "Facebook tokens not found",
             };
@@ -122,67 +121,67 @@ export const GET = applyMiddleware(
           const facebookResult = await postToFacebook(
             tokens.accessToken,
             post.content,
-            tokens.facebookPageId
+            tokens.facebookPageId || ""
           );
 
           if (facebookResult.success) {
             console.log(
-              `✅ Successfully posted to Facebook for post ID: ${post._id}`
+              `✅ Successfully posted to Facebook for post ID: ${post.id}`
             );
-            await updatePostStatus(post._id, "success");
-            return { id: post._id, success: true };
+            await updatePostStatus(post.id, "success");
+            return { id: post.id, success: true };
           } else {
             console.log(
-              `❌ Failed to post to Facebook for post ID: ${post._id}`
+              `❌ Failed to post to Facebook for post ID: ${post.id}`
             );
-            await updatePostStatus(post._id, "failed", facebookResult.error);
+            await updatePostStatus(post.id, "failed", facebookResult.error);
             return {
-              id: post._id,
+              id: post.id,
               success: false,
               error: facebookResult.error,
             };
           }
         } catch (error) {
           console.error(
-            `❌ Error processing Facebook post ID: ${post._id}`,
+            `❌ Error processing Facebook post ID: ${post.id}`,
             error
           );
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
-          await updatePostStatus(post._id, "failed", errorMessage);
-          return { id: post._id, success: false, error: errorMessage };
+          await updatePostStatus(post.id, "failed", errorMessage);
+          return { id: post.id, success: false, error: errorMessage };
         }
       })
     );
 
     const linkedinResults = await Promise.all(
       linkedinPosts.map(async (post) => {
-        console.log(`🔄 Processing Linkedin post ID: ${post._id}`);
+        console.log(`🔄 Processing Linkedin post ID: ${post.id}`);
         try {
-          const user = await UserModel.findById(post.userId);
+          const user = await prisma.user.findUnique({
+            where: { id: post.userId },
+          });
 
           if (!user) {
-            console.log(`❌ User not found for post ID: ${post._id}`);
-            await updatePostStatus(post._id, "failed", "User not found");
-            return { id: post._id, success: false, error: "User not found" };
+            console.log(`❌ User not found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "User not found");
+            return { id: post.id, success: false, error: "User not found" };
           }
 
-          console.log(`👤 Found user: ${user._id}`);
+          console.log(`👤 Found user: ${user.id}`);
 
           // Get Linkedin tokens
-          const tokens = await getLinkedinTokensForUser(user._id.toString());
+          const tokens = await getLinkedinTokensForUser(user.id.toString());
 
           if (!tokens || !tokens.accessToken) {
-            console.log(
-              `❌ Linkedin tokens not found for post ID: ${post._id}`
-            );
+            console.log(`❌ Linkedin tokens not found for post ID: ${post.id}`);
             await updatePostStatus(
-              post._id,
+              post.id,
               "failed",
               "Linkedin tokens not found"
             );
             return {
-              id: post._id,
+              id: post.id,
               success: false,
               error: "Linkedin tokens not found",
             };
@@ -196,30 +195,30 @@ export const GET = applyMiddleware(
 
           if (linkedinResult.success) {
             console.log(
-              `✅ Successfully posted to Linkedin for post ID: ${post._id}`
+              `✅ Successfully posted to Linkedin for post ID: ${post.id}`
             );
-            await updatePostStatus(post._id, "success");
-            return { id: post._id, success: true };
+            await updatePostStatus(post.id, "success");
+            return { id: post.id, success: true };
           } else {
             console.log(
-              `❌ Failed to post to Linkedin for post ID: ${post._id}`
+              `❌ Failed to post to Linkedin for post ID: ${post.id}`
             );
-            await updatePostStatus(post._id, "failed", linkedinResult.error);
+            await updatePostStatus(post.id, "failed", linkedinResult.error);
             return {
-              id: post._id,
+              id: post.id,
               success: false,
               error: linkedinResult.error,
             };
           }
         } catch (error) {
           console.error(
-            `❌ Error processing Linkedin post ID: ${post._id}`,
+            `❌ Error processing Linkedin post ID: ${post.id}`,
             error
           );
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
-          await updatePostStatus(post._id, "failed", errorMessage);
-          return { id: post._id, success: false, error: errorMessage };
+          await updatePostStatus(post.id, "failed", errorMessage);
+          return { id: post.id, success: false, error: errorMessage };
         }
       })
     );
@@ -266,10 +265,15 @@ async function updatePostStatus(
   status: "success" | "failed",
   error?: string
 ) {
-  const update: { status: string; error?: string } = { status };
-  if (error) update.error = error;
-
-  await ScheduledPostsModel.findByIdAndUpdate(postId, { $set: update });
+  await prisma.scheduledPost.update({
+    where: { id: postId },
+    data: {
+      status,
+      error,
+      processedAt: new Date(),
+      
+    },
+  });
 }
 
 /**
@@ -370,7 +374,7 @@ async function postToTwitter(
 //           "Content-Type": "application/json",
 //         },
 //         body: JSON.stringify({
-//           creation_id: containerId,
+//           creationid: containerId,
 //           access_token: accessToken,
 //         }),
 //       }

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
@@ -12,7 +12,6 @@ import { projectValidator, ProjectValidatorType } from "@/validators/projects";
  * Get project by id
  */
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
     const { id: projectId } = params as { id: string };
@@ -41,9 +40,9 @@ export const GET = applyMiddleware(
     }
 
     // check if user has access to project
-    const isOwner = project.userId === user._id;
+    const isOwner = project.userId === user.id;
     const isInvited = project.invitedUsers.some(
-      (invite) => invite.userId === user._id
+      (invite) => invite.userId === user.id
     );
 
     if (!isOwner && !isInvited) {
@@ -65,7 +64,6 @@ export const GET = applyMiddleware(
  * Update project by id
  */
 export const PUT = applyMiddleware(
-  connectToDBMiddleware(),
   requestValidator.validateBody(projectValidator.updateProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
@@ -95,10 +93,10 @@ export const PUT = applyMiddleware(
     }
 
     // check if user has permission to update project
-    const isOwner = project.userId === user._id;
+    const isOwner = project.userId === user.id;
     const isEditor = project.invitedUsers.some(
       (invite) =>
-        invite.userId === user._id && invite.role === INVITED_USER_ROLES.EDITOR
+        invite.userId === user.id && invite.role === INVITED_USER_ROLES.EDITOR
     );
 
     if (!isOwner && !isEditor) {
@@ -127,7 +125,6 @@ export const PUT = applyMiddleware(
  * Delete project by id
  */
 export const DELETE = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
     const { id: projectId } = params as { id: string };
@@ -149,7 +146,7 @@ export const DELETE = applyMiddleware(
       });
     }
 
-    if (project.userId !== user._id) {
+    if (project.userId !== user.id) {
       return sendNextResponse({
         status: 403,
         message: "You do not have permission to delete this project",

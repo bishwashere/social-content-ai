@@ -1,6 +1,6 @@
 "use client";
 
-import { FirstViewTooltipType, TooltipKeysType } from "@/db/first-view-tooltip/schema";
+import { FirstViewTooltipType, TooltipKeysType } from "@/lib/types/first-view-tooltip";
 import { useSession } from '@/backend-apis/auth/hooks'
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useGetFirstViewTooltip, useUpdateFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
@@ -29,19 +29,19 @@ export const TooltipManagerProvider = ({ children }: { children: React.ReactNode
     const [currentTooltip, setCurrentTooltip] = useState<string | null>(null);
     const [firstViewTooltipKeys, setFirstViewTooltipKeys] = useState<FirstViewTooltipType | null>(null);
     const [isTooltipDataLoaded, setIsTooltipDataLoaded] = useState(false);
-    const getTooltipData = useGetFirstViewTooltip(data?.user?._id || "");
+    const getTooltipData = useGetFirstViewTooltip(data?.user?.id || "");
     const updateTooltipData = useUpdateFirstViewTooltip();
 
     // Fetch first-view tooltip data for user
     useEffect(() => {
-        if (!data?.user?._id || !getTooltipData.data) return;
+        if (!data?.user?.id || !getTooltipData.data) return;
         (async () => {
             if (getTooltipData.data) {
                 const { addProject, contentPlanner, quickGenerate } = getTooltipData.data;
                 setFirstViewTooltipKeys({ addProject, contentPlanner, quickGenerate });
                 setIsTooltipDataLoaded(true);
             }
-            // const tooltipData = await getFirstViewTooltip(data.user._id);
+            // const tooltipData = await getFirstViewTooltip(data.user.id);
         })();
     }, [getTooltipData.data]);
 
@@ -58,13 +58,13 @@ export const TooltipManagerProvider = ({ children }: { children: React.ReactNode
     // Mark tooltip as seen
     const markTooltipSeen = useCallback(
         async (tooltipKey: TooltipKeysType) => {
-            if (!data?.user?._id) return;
+            if (!data?.user?.id) return;
             if (!tooltipKey) return;
-            await updateTooltipData.mutateAsync({ userId: data.user._id, updateData: { [tooltipKey]: true } })
+            await updateTooltipData.mutateAsync({ userId: data.user.id, updateData: { [tooltipKey]: true } })
             setFirstViewTooltipKeys((prev) => (prev ? { ...prev, [tooltipKey]: true } : prev));
-            // await updateFirstViewTooltip(data.user._id, { [tooltipKey]: true });
+            // await updateFirstViewTooltip(data.user.id, { [tooltipKey]: true });
         },
-        [data?.user?._id]
+        [data?.user?.id]
     );
 
     // Sort tooltip keys by order

@@ -1,7 +1,6 @@
 "use server";
 
-import connectToDb from "@/db/connect";
-import { UploadedVideosModel } from "@/db/video-generation/schema";
+import { prisma } from "@/lib/prisma";
 import { s3 } from "@/lib/s3";
 
 export const listAllViralVideos = async () => {
@@ -71,22 +70,22 @@ export const saveVideoDataToDb = async ({
   campaignPlannerId: string;
   day: number;
 }) => {
-  await connectToDb();
-
-  await UploadedVideosModel.create({
-    folderId,
-    text,
-    userId: userId,
-    projectId,
-    campaignPlannerId,
-    day,
+  await prisma.uploadedVideo.create({
+    data: {
+      folderId,
+      text,
+      userId: userId,
+      projectId,
+      campaignPlannerId,
+      day,
+    },
   });
 
   return true;
 };
 
 export const listAllUploadedVideos = async (userId: string) => {
-  const videos = await UploadedVideosModel.find({
+  const videos = await prisma.uploadedVideo.findMany({
     where: {
       userId: userId,
     },
@@ -118,9 +117,9 @@ export const listAllUploadedVideos = async (userId: string) => {
         };
       } else {
         if (video.status !== "completed") {
-          await UploadedVideosModel.updateOne({
+          await prisma.uploadedVideo.update({
             where: {
-              _id: video._id,
+              id: video.id,
             },
             data: {
               status: "completed",
@@ -198,10 +197,12 @@ export const getUploadedVideoUrl = async (
     "day",
     day
   );
-  const data = await UploadedVideosModel.findOne({
-    projectId,
-    campaignPlannerId,
-    day: Number(day),
+  const data = await prisma.uploadedVideo.findFirst({
+    where: {
+      projectId,
+      campaignPlannerId,
+      day: Number(day),
+    },
   });
 
   console.log("data", data);
@@ -214,8 +215,14 @@ export const getUploadedVideoUrl = async (
   console.log("output", files);
   if (!output) return "pending";
 
-  data.status = "completed";
-  await data.save();
+  await prisma.uploadedVideo.update({
+    where: {
+      id: data.id,
+    },
+    data: {
+      status: "completed",
+    },
+  });
 
   const signedUrl = await s3.getSignedUrlForVideoDownload(output.key as string);
 

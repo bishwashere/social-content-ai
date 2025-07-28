@@ -2,27 +2,23 @@
  * Get subscription details.
  */
 
-import { UserDoc } from "@/db/auth/schema/user";
-import {
-  SubscriptionDoc,
-  SubscriptionModel,
-} from "@/db/subscriptions/schema/subscription";
+import { User, Subscription } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { stripe } from "@/lib/stripe";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { validateUserAuth } from "@/middlewares/validate-auth";
 
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
-    const user = req.parsed.user as UserDoc;
+    const user = req.parsed.user as User;
 
-    const subscription = await SubscriptionModel.findOne({
-      userId: user._id,
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: user.id },
     });
 
     return sendNextResponse({
@@ -38,16 +34,14 @@ export const GET = applyMiddleware(
  * Returns the stripe customer portal URL.
  */
 export const PUT = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
-    const user = req.parsed.user as UserDoc;
+    const user = req.parsed.user as User;
 
-    const subscription: SubscriptionDoc | null =
-      await SubscriptionModel.findOne({
-        userId: user._id,
-      });
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: user.id },
+    });
 
     if (!subscription || subscription?.customerId?.startsWith("trial__")) {
       return sendNextResponse({

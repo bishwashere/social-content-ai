@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
@@ -12,7 +12,6 @@ import { projectValidator, ProjectValidatorType } from "@/validators/projects";
  * Invite a user to a project
  */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   requestValidator.validateBody(projectValidator.inviteUser),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
@@ -39,7 +38,7 @@ export const POST = applyMiddleware(
       });
     }
 
-    if (project.userId !== user._id) {
+    if (project.userId !== user.id) {
       return sendNextResponse({
         status: 403,
         message: "You do not have permission for this action",
@@ -95,8 +94,7 @@ export const POST = applyMiddleware(
 /**
  * Get invited users by project id
  */
-export const GET = applyMiddleware(
-  connectToDBMiddleware(),
+export const DELETE = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (_req, { params }) => {
     const { id: projectId } = params as { id: string };

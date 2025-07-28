@@ -1,4 +1,4 @@
-import { User } from "@/db/auth/schema/user";
+import { User } from "@generated/prisma";
 import Stripe from "stripe";
 
 export const PACKAGES = {
@@ -20,7 +20,7 @@ export const PACKAGES_DATA = (
           "https://imgs.search.brave.com/_TzAQBr01Wop5N--emTUCD4iHbyjQNRjXkOMFjwIlgY/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/ZnJvbnQuZnJlZXBp/ay5jb20vaW1hZ2Vz/L2FpL2ltYWdlLWdl/bmVyYXRvci9hZHZh/bnRhZ2VzL2ltYWdl/LWdlbmVyYXRvci1m/cmVlcGlrLTcud2Vi/cD93PTM4NDAmaD0x/OTIwJnE9NzU",
         ],
         metadata: {
-          userId: user._id.toString(),
+          userId: user.id,
           name: user.name,
           email: user.email,
         },

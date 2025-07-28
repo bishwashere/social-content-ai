@@ -3,7 +3,7 @@ import { verifyJWT } from "@/lib/jwt";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { NextRequest } from "next/server";
 import { CALL_NEXT_FUNCTION } from "./apply-middleware";
-import { UserModel } from "@/db/auth/schema/user";
+import { prisma } from "@/lib/prisma";
 
 type Props = {
   errorIfNotAuthenticated: boolean;
@@ -29,7 +29,9 @@ export const validateUserAuth = ({ errorIfNotAuthenticated }: Props) => {
       return CALL_NEXT_FUNCTION;
     }
 
-    const user = await UserModel.findOne({ email: payload.email });
+    const user = await prisma.user.findUnique({
+      where: { email: payload.email }
+    });
 
     if (!user) {
       if (errorIfNotAuthenticated) {

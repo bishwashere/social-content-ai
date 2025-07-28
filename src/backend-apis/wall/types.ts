@@ -1,4 +1,4 @@
-import { Wall } from "@/db/wall/schema/wall";
+import { Wall } from "@prisma/client";
 import { wallValidatorType } from "@/validators/wall";
 
 export type CreateWallProps = wallValidatorType["post"];

@@ -2,14 +2,13 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { validateUserAuth } from "@/middlewares/validate-auth";
 
 /**
  * Get project chats by project id
  */
-export const GET = applyMiddleware(
-  connectToDBMiddleware(),
+export const POST = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     const projectId = req.nextUrl.pathname.split("/")[3];

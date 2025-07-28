@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
@@ -12,7 +12,6 @@ import { projectValidator, ProjectValidatorType } from "@/validators/projects";
  * Track a project
  */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   requestValidator.validateBody(projectValidator.trackProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
@@ -26,7 +25,7 @@ export const POST = applyMiddleware(
 
     const invitedProjects = await prisma.invitedUser.findMany({
       where: {
-        userId: user._id,
+        userId: user.id,
         role: INVITED_USER_ROLES.EDITOR,
       },
       select: {
@@ -52,7 +51,7 @@ export const POST = applyMiddleware(
     }
 
     if (
-      project.userId !== user._id &&
+      project.userId !== user.id &&
       !invitedProjects.some((p) => p.projectId === project.id)
     ) {
       return sendNextResponse({
@@ -80,7 +79,6 @@ export const POST = applyMiddleware(
  * Get project tracking data by project id
  */
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (_req, { params }) => {
     const { id: projectId } = params as { id: string };

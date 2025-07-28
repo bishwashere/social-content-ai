@@ -82,10 +82,10 @@ export default function SocialFeed() {
               .map((post) => {
                 return (
                   <WallComp
-                    key={post._id}
+                    key={post.id}
                     post={{
                       ...post,
-                      createdAt: formatRelativeTime(post.createdAt),
+                      createdAt: formatRelativeTime(post.createdAt.toString()) as any,
                     }}
                   />
                 );
@@ -118,22 +118,22 @@ const WallComp = ({
   useEffect(() => {
     // const fn = async () => {
     //   const isViewed =
-    //     sessionStorage.getItem(`wall:viewed:${post._id}`) === "true";
+    //     sessionStorage.getItem(`wall:viewed:${post.id}`) === "true";
 
     //   if (!isViewed) {
-    //     const res = await viewWall(post._id);
+    //     const res = await viewWall(post.id);
     //     if (res) {
-    //       sessionStorage.setItem(`wall:viewed:${post._id}`, "true");
+    //       sessionStorage.setItem(`wall:viewed:${post.id}`, "true");
     //     }
     //   }
     // };
     // fn();
-    viewWall(post._id)
-  }, [post._id]);
+    viewWall(post.id)
+  }, [post.id]);
 
   return (
     <Card
-      key={post._id}
+      key={post.id}
       className="rounded-none border-0 shadow-none border-b border-gray-200"
     >
       <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
@@ -148,7 +148,7 @@ const WallComp = ({
             <div className="flex items-center gap-1">
               <span className="font-medium text-sm">{post.userId?.name || "Unknown"}</span>
               <span className="text-muted-foreground text-xs">
-                {post.createdAt}
+                {post.createdAt?.toString()}
               </span>
             </div>
             <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">

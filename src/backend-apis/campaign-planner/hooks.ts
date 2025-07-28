@@ -31,7 +31,7 @@ export const useCampaignPlanner = () => {
         projectId,
         campaignName,
         plan,
-        session?.user._id as string
+        session?.user.id as string
       ),
     onError: (err) => {
       toast.error(err?.message ?? "Failed to start campaign planner");

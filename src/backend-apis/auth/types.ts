@@ -1,6 +1,5 @@
 import { AuthValidatorType } from "@/validators/auth";
-import { User } from "@/db/auth/schema/user";
-import { Subscription } from "@/db/subscriptions/schema/subscription";
+import { User, Subscription } from "@prisma/client";
 
 export type ContinueWithGoogleParams = AuthValidatorType["continueWithGoogle"];
 

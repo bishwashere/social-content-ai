@@ -11,8 +11,7 @@ import {
   useGetAllProjects,
 } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProjectChat } from "@/db/projects/schema/chat";
-import { Project } from "@/db/projects/schema/project";
+import { Projects as Project, ProjectChat } from "@prisma/client";
 
 const ICONS = {
   x: "/x.svg",
@@ -36,7 +35,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     const fetchProject = () => {
-      const currentProject = projects?.data?.find((p: Project) => p._id === id);
+      const currentProject = projects?.data?.find((p: Project) => p.id === id);
       setCurrentProject(currentProject || null);
     };
 
@@ -44,7 +43,7 @@ export default function ChatPage() {
   }, [id, projects.data]);
 
   useEffect(() => {
-    const chat = projectChats.data?.find((p) => p._id === chatId);
+    const chat = projectChats.data?.find((p) => p.id === chatId);
     setChat(chat || null);
   }, [id, chatId, projectChats.data]);
 
@@ -102,20 +101,23 @@ export default function ChatPage() {
                       projectId={id}
                       prompt={chat.prompt}
                     />
-                    {currentProject?.platformUrls?.[platform] && (
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link
-                          href={currentProject?.platformUrls?.[platform] || "#"}
-                          target="_blank"
-                        >
-                          <img
+                    {
+                      //@ts-expect-error:..........
+                      currentProject?.platformUrls && currentProject?.platformUrls?.[platform as any] && (
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link
                             //@ts-expect-error:..........
-                            src={ICONS[platform]}
-                            alt={platform}
-                            className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                    )}
+                            href={currentProject?.platformUrls?.[platform] || "#"}
+                            target="_blank"
+                          >
+                            <img
+                              //@ts-expect-error:..........
+                              src={ICONS[platform]}
+                              alt={platform}
+                              className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                      )}
 
                     <AutoPost
                       //@ts-expect-error:..........

@@ -72,7 +72,7 @@ export const useGenerateVideo = () => {
       await saveVideoDataToDb({
         folderId: uid,
         text: data.text,
-        userId: session?.user?._id || "",
+        userId: session?.user?.id || "",
         projectId: data.projectId,
         campaignPlannerId: data.campaignPlannerId,
         day: data.day,
@@ -94,8 +94,8 @@ export const useQueryAllUploadedVideos = () => {
   const { data: session } = useSession();
 
   return useQuery({
-    queryKey: ["uploaded-videos", session?.user?._id],
-    queryFn: () => listAllUploadedVideos(session?.user?._id || ""),
+    queryKey: ["uploaded-videos", session?.user?.id],
+    queryFn: () => listAllUploadedVideos(session?.user?.id || ""),
   });
 };
 
@@ -112,7 +112,7 @@ export const useUploadMedia = () => {
   return useMutation({
     mutationFn: async (data: { projectId: string; file: File }) => {
       const presignedUrl = await uploadMedia(
-        session?.user?._id || "",
+        session?.user?.id || "",
         data.projectId,
         data.file.name
       );
@@ -147,10 +147,10 @@ export const useQueryAllUploadedMedia = (projectId: string) => {
   const { data: session } = useSession();
 
   return useQuery({
-    queryKey: ["uploaded-media", session?.user?._id, projectId],
+    queryKey: ["uploaded-media", session?.user?.id, projectId],
     queryFn: () =>
-      listAllFilesByKey(`media-uploads/${session?.user?._id}/${projectId}/`),
-    enabled: !!session?.user?._id && !!projectId,
+      listAllFilesByKey(`media-uploads/${session?.user?.id}/${projectId}/`),
+    enabled: !!session?.user?.id && !!projectId,
   });
 };
 

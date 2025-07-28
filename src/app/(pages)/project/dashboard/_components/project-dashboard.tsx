@@ -41,7 +41,7 @@ export default function ProjectDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
         {projects?.data?.map((project) => (
           <ProjectCard
-            key={project._id}
+            key={project.id}
             project={project}
             onClick={(data) => {
               setActiveGraph(data)
