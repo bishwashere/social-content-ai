@@ -13,7 +13,6 @@ export const startCampaignPlanner = async (
   userId: string
 ) => {
 
-
   const chatData: {
     title: string;
     day: number;

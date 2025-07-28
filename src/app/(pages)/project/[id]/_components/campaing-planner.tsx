@@ -95,15 +95,32 @@ export default function CampaignPlannerPage({ project }: Props) {
       toast.error("Failed to find plan");
       return;
     }
-    const plan = { ...selectedCampaignPlanner.intensityPlans[selectedTargetAudience - 1], goal: selectedCampaignPlanner.goal };
+    const intensityPlan = selectedCampaignPlanner.intensityPlans[selectedTargetAudience - 1];
+    if (!intensityPlan) {
+      toast.error("Invalid audience level selected for this goal.");
+      return;
+    }
+
+    const plan = {
+      ...intensityPlan,
+      goal: selectedCampaignPlanner.goal
+    };
+
     console.log("PLAN : ", plan)
 
     try {
+      console.log("Submitting campaign:", {
+        projectId,
+        campaignName: name,
+        plan
+      });
+
       const d = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
         plan
       });
+
 
       for (const chat of d.chats) {
         if (chat.status === "PENDING") {
