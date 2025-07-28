@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
-import { Projects as Project } from "@prisma/client";
+import { Projects as Project } from "@generated/prisma";
 
 import PostToWall from "@/components/common/post-to-wall";
 import { Switch } from "@/components/ui/switch";

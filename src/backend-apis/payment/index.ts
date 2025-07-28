@@ -3,7 +3,7 @@ import { ApiError, ApiResponse } from "../types";
 import api from "../axios";
 import { apiRoutes } from "../routes";
 import Stripe from "stripe";
-import { Subscription } from "@prisma/client";
+import { Subscription } from "@generated/prisma";
 
 class PaymentService {
   async createSession() {
@@ -45,7 +45,7 @@ class PaymentService {
       async () => {
         const response = await api.get(apiRoutes.PAYMENT.SUBSCRIPTIONS());
         return response;
-      },
+      }
     );
 
     if (err) throw new Error(err.response?.data?.message);

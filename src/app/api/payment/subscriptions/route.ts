@@ -2,7 +2,7 @@
  * Get subscription details.
  */
 
-import { User, Subscription } from "@prisma/client";
+import { User, Subscription } from "@generated/prisma";
 import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";

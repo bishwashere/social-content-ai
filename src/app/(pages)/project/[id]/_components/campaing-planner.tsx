@@ -30,7 +30,7 @@ import PostToWall from "@/components/common/post-to-wall";
 import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
-import { Projects as Project } from "@prisma/client";
+import { Projects as Project } from "@generated/prisma";
 import { Input } from "@/components/ui/input";
 import ChangeCampaignName from "./change-campaign-name";
 import { confirm } from "@/components/ui/alert-dialog";

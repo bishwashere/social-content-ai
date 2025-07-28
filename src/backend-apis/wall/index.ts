@@ -1,7 +1,7 @@
 import { CreateWallProps, GetWallProps, WallResponsePaginated } from "./types";
 import tryCatchAsync from "@/lib/try-catch-async";
 import { ApiError, ApiResponse } from "../types";
-import { Wall } from "@prisma/client";
+import { Wall } from "@generated/prisma";
 import api from "../axios";
 import { apiRoutes } from "../routes";
 
@@ -14,7 +14,7 @@ class WallService {
       async () => {
         const response = await api.post(apiRoutes.WALL(), project);
         return response;
-      },
+      }
     );
     if (err) {
       throw new Error(err.response?.data?.message);
