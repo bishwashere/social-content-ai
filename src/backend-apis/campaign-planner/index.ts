@@ -11,13 +11,19 @@ import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { prisma } from "@/lib/prisma";
 
-export const startCampaignPlanner = async (
-  id: string | undefined,
-  projectId: string,
-  campaignName: string,
-  plan: CampaignPlanner,
-  userId: string
-) => {
+export const startCampaignPlanner = async ({
+    id,
+    projectId,
+    campaignName,
+    plan,
+    userId
+  }: {
+    id?: string;
+    projectId: string;
+    campaignName: string;
+    plan: CampaignPlanner;
+    userId: string;
+  }) => {
   // Fetch user
   // const user = await prisma.userSchema.findUnique({
   //   where: { id: userId },

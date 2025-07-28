@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
 export const useCampaignPlanner = () => {
-  const { data: session } = useSession();
-  return useMutation({
+const { data: session } = useSession();
+return useMutation({
     mutationFn: ({
       id,
       projectId,
@@ -26,29 +26,16 @@ export const useCampaignPlanner = () => {
       campaignName: string;
       plan: CampaignPlanner;
     }) =>
-      startCampaignPlanner(
+      startCampaignPlanner({
         id,
         projectId,
         campaignName,
         plan,
-        session?.user._id as string
-      ),
+        userId: session?.user._id as string,
+      }),
     onError: (err) => {
       toast.error(err?.message ?? "Failed to start campaign planner");
     },
-    // onSuccess: (data) => {
-    //   if (
-    //     typeof data === "object" &&
-    //     "message" in data &&
-    //     "success" in data &&
-    //     data.success === false
-    //   ) {
-    //     toast.error(data.message);
-    //   }
-    //   if (!data) {
-    //     toast.error("Failed to start campaign planner");
-    //   }
-    // },
   });
 };
 
