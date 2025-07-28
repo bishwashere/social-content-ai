@@ -36,19 +36,19 @@ export const useCampaignPlanner = () => {
     onError: (err) => {
       toast.error(err?.message ?? "Failed to start campaign planner");
     },
-    onSuccess: (data) => {
-      if (
-        typeof data === "object" &&
-        "message" in data &&
-        "success" in data &&
-        data.success === false
-      ) {
-        toast.error(data.message);
-      }
-      if (!data) {
-        toast.error("Failed to start campaign planner");
-      }
-    },
+    // onSuccess: (data) => {
+    //   if (
+    //     typeof data === "object" &&
+    //     "message" in data &&
+    //     "success" in data &&
+    //     data.success === false
+    //   ) {
+    //     toast.error(data.message);
+    //   }
+    //   if (!data) {
+    //     toast.error("Failed to start campaign planner");
+    //   }
+    // },
   });
 };
 
@@ -109,7 +109,7 @@ export const useToggleMarkAsComplete = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: toggleMarkAsComplete,
-    onSuccess: (projectId: string | boolean) => {
+    onSuccess: (projectId) => {
       if (projectId)
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner", projectId],
@@ -122,7 +122,7 @@ export const useToggleTickMark = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: toggleTickMark,
-    onSuccess: (projectId: string | boolean) => {
+    onSuccess: (projectId) => {
       if (projectId)
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner", projectId],

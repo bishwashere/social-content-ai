@@ -1,18 +1,16 @@
 "use server";
 
-import { UserModel } from "@/db/auth/schema/user";
-import connectToDb from "@/db/connect";
-import {
-  CampaignPlannerModel,
-  CampaignPlannerType,
-} from "@/db/projects/schema/campaign-planner";
-import { ProjectModel } from "@/db/projects/schema/project";
+// import { UserModel } from "@/db/auth/schema/user";
+// import connectToDb from "@/db/connect";
+// import {
+//   CampaignPlannerModel,
+//   CampaignPlannerType,
+// } from "@/db/projects/schema/campaign-planner";
+// import { ProjectModel } from "@/db/projects/schema/project";
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
+import { prisma } from "@/lib/prisma";
 
-/**
- *Create a campaign planner, update if already exits
- */
 export const startCampaignPlanner = async (
   id: string | undefined,
   projectId: string,
@@ -20,105 +18,117 @@ export const startCampaignPlanner = async (
   plan: CampaignPlanner,
   userId: string
 ) => {
-  await connectToDb();
-  // const existingPlanner = await CampaignPlannerModel.findOne({
-  //   projectId,
-  //   campaignId: plan.id,
+  // Fetch user
+  // const user = await prisma.userSchema.findUnique({
+  //   where: { id: userId },
   // });
 
-  // // delete if exists
-  // if (existingPlanner) {
-  //   await CampaignPlannerModel.deleteOne({
-  //     projectId,
-  //     campaignId: plan.id,
-  //   });
+  // if (!user) {
+  //   throw new Error("User not found");
   // }
 
-  const user = await UserModel.findById(userId);
+  // if (user.remainingChatGenerations < 10) {
+  //   return {
+  //     success: false,
+  //     message: "You have not enough chat generations left.",
+  //   };
+  // }
 
-  if (!user) {
-    throw new Error("User not found");
-  }
+  // Deduct 10 generations
+  // await prisma.userSchema.update({
+  //   where: { id: userId },
+  //   data: {
+  //     remainingChatGenerations: {
+  //       decrement: 10,
+  //     },
+  //   },
+  // });
 
-  if (user.remainingChatGenerations < 10) {
-    return {
-      success: false,
-      message: "You have not enough chat generations left.",
-    };
-  }
-  user.remainingChatGenerations -= 10;
-  await user.save();
+  const chatData: {
+    title: string;
+    day: number;
+    prompt: string;
+    status: "PENDING" | "GENERATED";
+    completed: boolean;
+    // plannerId: string;
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    contents: {};
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    tickMark: {};
+  }[] = plan.data.map((d) => ({
+    title: d.task,
+    day: d.day,
+    prompt: "",
+    status: "PENDING",
+    completed: false,
+    // plannerId: "sdf",
+    contents: {}, // JSON
+    tickMark: {}, // JSON
+  }));
 
   if (id) {
-    const planner = await CampaignPlannerModel.findOneAndUpdate(
-      { _id: id },
-      {
-        $set: {
-          chats: plan.data.map((d) => ({
-            title: d.task,
-            day: d.day,
-            prompt: "",
-            campaignTitle: d.task,
-            status: "pending",
-            contents: [],
-          })),
+    const updated = await prisma.campaignPlanner.update({
+      where: { id },
+      data: {
+        chats: {
+          deleteMany: {}, // remove existing chats
+          create: chatData,
         },
+        goal: plan.goal,
+        targetAudience: plan.targetAudience,
+        name: campaignName,
       },
-      {
-        new: true,
-        upsert: true,
-      }
-    );
+      include: {
+        chats: true,
+      },
+    });
 
-    return planner ? JSON.parse(JSON.stringify(planner)) : null;
+    return updated;
   }
-  const planner = await CampaignPlannerModel.create({
-    goal: plan.goal,
-    targetAudience: plan.targetAudience,
-    name: campaignName,
-    projectId,
-    chats: plan.data.map((d) => ({
-      title: d.task,
-      day: d.day,
-      prompt: "",
-      status: "pending",
-      contents: [],
-    })),
+
+  const created = await prisma.campaignPlanner.create({
+    data: {
+      projectId,
+      goal: plan.goal,
+      targetAudience: plan.targetAudience,
+      name: campaignName,
+      chats: {
+        create: chatData,
+      },
+    },
+    include: {
+      chats: true,
+    },
   });
 
-  return planner ? JSON.parse(JSON.stringify(planner)) : null;
+  return created;
 };
+
 
 export const getCampaignPlanner = async (projectId: string) => {
-  // const planners = await CampaignPlannerModel.find({ projectId }).lean() as unknown as CampaignPlannerType[];
-  await connectToDb();
 
-  const planners = JSON.parse(
-    JSON.stringify(
-      await CampaignPlannerModel.find({ projectId })
-        .sort({ updatedAt: -1 })
-        .lean()
-    )
-  ) as CampaignPlannerType[];
+  const planners = await prisma.campaignPlanner.findMany({
+    where: {
+      projectId: projectId
+    },
+    include: { chats: true }
+  })
 
-  return {
-    chatsGroupedByCampaign: planners.map((p) => ({
-      id: p._id,
-      name: p.name,
-      chats: p.chats,
-      goal: p.goal,
-      targetAudience: p.targetAudience,
-      date: p.updatedAt,
-      startDate: p.startDate,
-      projectId: p.projectId.toString(),
-    })),
-  };
+  if (planners)
+    return {
+      chatsGroupedByCampaign: planners.map((p) => ({
+        id: p.id,
+        name: p.name,
+        chats: p.chats,
+        goal: p.goal,
+        targetAudience: p.targetAudience,
+        date: p.updatedAt,
+        startDate: p.startDate,
+        projectId: p.projectId.toString(),
+      })),
+    };
 };
 
-
-type UseGetCampaignPlannerReturn = ReturnType<typeof getCampaignPlanner>;
-type CampaignPlannerData = Awaited<UseGetCampaignPlannerReturn>;
-export type ChatsGroupedByCampaign = CampaignPlannerData['chatsGroupedByCampaign'][0]
 
 export const generateCampaignChat = async (props: {
   projectId: string;
@@ -127,12 +137,27 @@ export const generateCampaignChat = async (props: {
   userId: string;
   day: number;
 }) => {
-  await connectToDb();
+  // Find project
+  const project = await prisma.projects.findFirst({
+    where: { id: props.projectId },
+  });
 
-  const project = await ProjectModel.findById(props.projectId);
-  const projectCampaign = await CampaignPlannerModel.findOne({
-    projectId: props.projectId,
-    _id: props.id,
+  if (!project) {
+    return {
+      success: false,
+      message: "Project not found",
+    };
+  }
+
+  // Find campaign planner with matching ID and projectId
+  const projectCampaign = await prisma.campaignPlanner.findFirst({
+    where: {
+      id: props.id,
+      projectId: props.projectId,
+    },
+    include: {
+      chats: true,
+    },
   });
 
   if (!projectCampaign) {
@@ -142,15 +167,9 @@ export const generateCampaignChat = async (props: {
     };
   }
 
-  if (!project) {
-    return {
-      success: false,
-      message: "Project not found",
-    };
-  }
-
   const ai = new AI();
-
+console.log("calling ai")
+console.log(projectCampaign)
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",
     projectDescription: project.description,
@@ -166,60 +185,70 @@ export const generateCampaignChat = async (props: {
     };
   }
 
-  const updatedChats = projectCampaign.chats.map((chat: any) => {
-    if (chat.day === props.day) {
-      return {
-        ...chat,
-        contents: chatFromAI,
-        status: "generated",
-      };
-    }
-    return chat;
-  });
+  // Find the specific chat for the given day
+  const chatToUpdate = projectCampaign.chats.find(
+    (chat) => chat.day === props.day
+  );
 
-  projectCampaign.chats = updatedChats;
-  await projectCampaign.save();
+  if (!chatToUpdate) {
+    return {
+      success: false,
+      message: `No chat found for day ${props.day}`,
+    };
+  }
+
+  await prisma.campaignChat.update({
+    where: {
+      id: chatToUpdate.id,
+    },
+    data: {
+      contents: chatFromAI,
+      status: "GENERATED",
+    },
+  });
 
   return {
     success: true,
   };
 };
 
+
 export const changeCampaignData = async (
   id: string,
   name?: string,
   startDate?: Date
-) => {
-  await connectToDb();
+): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
 
     if (name !== undefined) updateFields.name = name;
     if (startDate !== undefined) updateFields.startDate = startDate;
-    console.log({ id: id });
+
+    console.log({ id });
     console.log(updateFields);
 
-    const planner = await CampaignPlannerModel.findOneAndUpdate(
-      { _id: id },
-      { $set: updateFields },
-      { new: true }
-    );
+    const planner = await prisma.campaignPlanner.update({
+      where: { id },
+      data: updateFields,
+      include: {
+        Project: true, // optional, if you want to log project details
+      },
+    });
+
     console.log("Updated planner:", planner);
 
-    return planner?.projectId?.toString() || false;
+    return planner.projectId || false;
   } catch (error) {
     console.error("Error changing campaign data:", error);
     return false;
   }
 };
 
-export const deleteCampaign = async (
-  id: string,
-): Promise<boolean> => {
-  await connectToDb();
-
+export const deleteCampaign = async (id: string): Promise<boolean> => {
   try {
-    await CampaignPlannerModel.deleteOne({ _id: id });
+    await prisma.campaignPlanner.delete({
+      where: { id },
+    });
 
     return true;
   } catch (error) {
@@ -228,29 +257,37 @@ export const deleteCampaign = async (
   }
 };
 
-
 export const toggleMarkAsComplete = async ({
   campaignId,
   day,
 }: {
   campaignId: string;
   day: string;
-}) => {
-  await connectToDb();
+}): Promise<string | null> => {
+  const dayNumber = Number(day);
 
-  const data = await CampaignPlannerModel.findById(campaignId);
-
-  if (!data) return null;
-
-  const chat = data.chats.find((c: any) => c.day === Number(day));
+  // Find the chat record by campaign ID and day
+  const chat = await prisma.campaignChat.findFirst({
+    where: {
+      plannerId: campaignId,
+      day: dayNumber,
+    },
+  });
 
   if (!chat) return null;
 
-  chat.completed = !chat.completed;
+  // Toggle the completed field
+  const updated = await prisma.campaignChat.update({
+    where: { id: chat.id },
+    data: {
+      completed: !chat.completed,
+    },
+    include: {
+      planner: true,
+    },
+  });
 
-  await data.save();
-
-  return data.projectId.toString();
+  return updated.planner.projectId;
 };
 
 export const toggleTickMark = async ({
@@ -263,27 +300,29 @@ export const toggleTickMark = async ({
   day: number;
   platform: string;
   tick: boolean;
-}) => {
-  await connectToDb();
+}): Promise<string | null> => {
+  const chat = await prisma.campaignChat.findFirst({
+    where: {
+      plannerId: campaignId,
+      day: day,
+    },
+  });
 
-  const campaign = await CampaignPlannerModel.findById(campaignId);
-
-  if (!campaign) return null;
-
-  // Find the chat by day
-  const chat = campaign.chats.find((c: any) => c.day === Number(day));
   if (!chat) return null;
 
-  // Update the tickMark Map for the given platform
-  if (!chat.tickMark) {
-    chat.tickMark = new Map();
-  }
+  // Update the tickMark JSON
+  const currentTickMark = (chat.tickMark as Record<string, boolean>) || {};
+  currentTickMark[platform] = tick;
 
-  chat.tickMark.set(platform, tick.toString());
-  chat.markModified("tickMark");
+  const updated = await prisma.campaignChat.update({
+    where: { id: chat.id },
+    data: {
+      tickMark: currentTickMark,
+    },
+    include: {
+      planner: true,
+    },
+  });
 
-  await campaign.save();
-
-  return campaign.projectId.toString();
+  return updated.planner.projectId;
 };
-

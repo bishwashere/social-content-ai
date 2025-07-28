@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Projects {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  description  String            @default("")
+  userId       String            @db.ObjectId
+  platformUrls Json              @default("{}") // Map<string, string> → JSON
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  // User         UserSchema        @relation(fields: [userId], references: [id])
+  campaignPlanners CampaignPlanner[]
+  @@map("projects")
+}
+
+
+model CampaignPlanner {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  projectId      String           @db.ObjectId
+  goal           String
+  targetAudience String
+  name           String?
+  startDate      DateTime?
+  chats          CampaignChat[]   @relation("PlannerChats")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  Project        Projects    @relation(fields: [projectId], references: [id])
+}
+
+enum Status {
+  PENDING
+  GENERATED
+}
+
+model CampaignChat {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  plannerId  String   @db.ObjectId
+  title      String?
+  prompt     String   @default("")
+  day        Int
+  completed  Boolean  @default(false)
+  contents   Json     @default("{}") // Map<string, string> -> JSON
+  tickMark   Json     @default("{}") // Map<string, string> -> JSON
+  status     Status   @default(PENDING)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  planner    CampaignPlanner @relation("PlannerChats", fields: [plannerId], references: [id], onDelete: Cascade)
+}
