@@ -14,7 +14,7 @@ import {
 import api from "../axios";
 import { ApiError, ApiResponse } from "../types";
 import { QueryClient } from "@tanstack/react-query";
-import { Projects as Project, ProjectChat } from "@generated/prisma";
+import { Projects as Project, ProjectChat } from "@prisma/client";
 import { apiRoutes } from "../routes";
 import { GetUserSessionResponse } from "../auth/types";
 

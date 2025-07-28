@@ -1,7 +1,7 @@
 import { CreateWallProps, GetWallProps, WallResponsePaginated } from "./types";
 import tryCatchAsync from "@/lib/try-catch-async";
 import { ApiError, ApiResponse } from "../types";
-import { Wall } from "@generated/prisma";
+import { Wall } from "@prisma/client";
 import api from "../axios";
 import { apiRoutes } from "../routes";
 

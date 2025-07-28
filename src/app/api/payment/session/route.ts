@@ -7,7 +7,7 @@ import { isSubscriptionExpired } from "@/lib/sub";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 
 import { validateUserAuth } from "@/middlewares/validate-auth";
-import { User } from "../../../../../generated/prisma";
+import { User } from "@prisma/client";
 
 /**
  * Create a checkout session for the given package.

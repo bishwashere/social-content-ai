@@ -1,4 +1,4 @@
-import { FirstViewTooltip } from "@generated/prisma";
+import { FirstViewTooltip } from "@prisma/client";
 
 export type TooltipKeysType = keyof Pick<
   FirstViewTooltip,

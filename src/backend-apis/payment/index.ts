@@ -3,7 +3,7 @@ import { ApiError, ApiResponse } from "../types";
 import api from "../axios";
 import { apiRoutes } from "../routes";
 import Stripe from "stripe";
-import { Subscription } from "@generated/prisma";
+import { Subscription } from "@prisma/client";
 
 class PaymentService {
   async createSession() {
