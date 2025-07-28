@@ -1,19 +1,19 @@
 "use server";
 
-import { WallModel } from "@/db/wall/schema/wall";
+import { prisma } from "@/lib/prisma";
 
 export const viewWall = async (wallId: string) => {
   try {
-    await WallModel.findOneAndUpdate(
-      {
-        _id: wallId,
+    await prisma.wall.update({
+      where: {
+        id: wallId,
       },
-      {
-        $inc: {
-          views: 1,
+      data: {
+        views: {
+          increment: 1
         },
       },
-    );
+    });
     return true;
   } catch (e) {
     console.error("Error viewing wall", e);

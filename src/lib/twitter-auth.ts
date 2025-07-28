@@ -2,8 +2,7 @@
  * Library for handling Twitter authentication and token refresh
  */
 
-import { OauthProvidersModel } from "@/db/oauth-providers/schema";
-import mongoose from "mongoose";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Response from Twitter token refresh
@@ -90,9 +89,9 @@ export const refreshTwitterToken = async (
     const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
 
     console.log(
-      `⏰ New token expires in: ${data.expires_in} seconds, data: ${JSON.stringify(
-        data
-      )}`
+      `⏰ New token expires in: ${
+        data.expires_in
+      } seconds, data: ${JSON.stringify(data)}`
     );
 
     return {
@@ -119,9 +118,11 @@ export const checkAndRefreshTwitterToken = async (
   console.log(`🔍 Checking Twitter tokens for user: ${userId}`);
 
   try {
-    const oauthData = await OauthProvidersModel.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      platform: "twitter",
+    const oauthData = await prisma.oauthProvider.findFirst({
+      where: {
+        userId: userId,
+        platform: "twitter",
+      },
     });
 
     if (!oauthData) {
@@ -132,7 +133,7 @@ export const checkAndRefreshTwitterToken = async (
     console.log(`✅ Found Twitter OAuth data for user: ${userId}`);
 
     // Check if token is expired
-    if (isTokenExpired(oauthData.expiresAt)) {
+    if (isTokenExpired(oauthData.expiresAt || 0)) {
       console.log("⚠️ Twitter token expired, attempting to refresh");
 
       if (!oauthData.refreshToken) {
@@ -148,19 +149,16 @@ export const checkAndRefreshTwitterToken = async (
 
         // Update the tokens in the database
         console.log("💾 Updating tokens in database");
-        await OauthProvidersModel.findOneAndUpdate(
-          {
-            userId: new mongoose.Types.ObjectId(userId),
-            platform: "twitter",
+        await prisma.oauthProvider.update({
+          where: {
+            id: oauthData.id,
           },
-          {
-            $set: {
-              accessToken: refreshedTokens.accessToken,
-              refreshToken: refreshedTokens.refreshToken,
-              expiresAt: refreshedTokens.expiresAt,
-            },
-          }
-        );
+          data: {
+            accessToken: refreshedTokens.accessToken,
+            refreshToken: refreshedTokens.refreshToken,
+            expiresAt: refreshedTokens.expiresAt,
+          },
+        });
 
         console.log("✅ Twitter token refreshed and updated in database");
         return { success: true, accessToken: refreshedTokens.accessToken };

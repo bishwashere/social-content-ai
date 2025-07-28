@@ -1,4 +1,3 @@
-import { Document, Types } from "mongoose";
 import { z } from "zod";
 
 /**
@@ -10,23 +9,23 @@ export type InferValidators<T> = {
 };
 
 /**
- * Include the _id property in a type
- * @param T - Type to include _id in
+ * Include the id property in a type
+ * @param T - Type to include id in
  */
-export type WithId<T> = Document & T & { _id: Types.ObjectId };
+export type WithId<T> = T & { id: string };
 
 /**
- * Include the _id property in a type as a string, for client use
- * @param T - Type to include _id in
+ * Include the id property in a type as a string, for client use
+ * @param T - Type to include id in
  */
-export type WithIdAsString<T> = T & { _id: string };
+export type WithIdAsString<T> = T & { id: string };
 
 /**
- * Type to exclude Mongoose specific properties from a type like createdAt, updatedAt, and _id
- * @param T - Type to exclude Mongoose specific properties from
+ * Type to exclude database specific properties from a type like createdAt, updatedAt, and id
+ * @param T - Type to exclude database specific properties from
  */
-export type ForClient<T> = Omit<T, "createdAt" | "updatedAt" | "_id"> & {
-  _id: string;
+export type ForClient<T> = Omit<T, "createdAt" | "updatedAt" | "id"> & {
+  id: string;
   createdAt: string;
   updatedAt: string;
 };

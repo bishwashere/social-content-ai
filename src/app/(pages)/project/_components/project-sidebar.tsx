@@ -88,10 +88,10 @@ export function ProjectSidebar() {
             ))
             : projects?.map((project) => (
               <ProjectItem
-                key={project._id}
+                key={project.id}
                 project={project}
-                isOpen={openSections.includes(project._id)}
-                onToggle={() => handleSectionToggle(project._id)}
+                isOpen={openSections.includes(project.id)}
+                onToggle={() => handleSectionToggle(project.id)}
                 currentPath={pathname}
               />
             ))}
@@ -132,13 +132,13 @@ function ProjectItem({
           if (window.innerWidth <= 768) {
             toggleSidebar()
           }
-          router.push(`/project/${project._id}`)
+          router.push(`/project/${project.id}`)
         }}
       >
         <div
           className={cn(
             "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200",
-            activeProjectId(currentPath) === project._id &&
+            activeProjectId(currentPath) === project.id &&
             "bg-gray-200",
           )}
         >
@@ -152,7 +152,7 @@ function ProjectItem({
           </div>
 
           <div className="flex items-center gap-2">
-            {data?.user?._id !== project.userId && (
+            {data?.user?.id !== project.userId && (
               <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
             )}
             {isOpen ? (
@@ -170,27 +170,27 @@ function ProjectItem({
               toggleSidebar()
             }
           }}
-          href={`/project/${project._id}`}
+          href={`/project/${project.id}`}
           className={cn(
             "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
-            currentPath === `/project/${project._id}` &&
+            currentPath === `/project/${project.id}` &&
             "bg-accent text-accent-foreground",
           )}
         >
           Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
         </Link>
-        {project.chats?.slice(0, 5).map((chat) => (
+        {project.projectChats?.slice(0, 5).map((chat) => (
           <Link
             onClick={() => {
               if (window.innerWidth <= 768) {
                 toggleSidebar()
               }
             }}
-            key={chat._id}
-            href={`/project/${project._id}/chat/${chat._id}`}
+            key={chat.id}
+            href={`/project/${project.id}/chat/${chat.id}`}
             className={cn(
               "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
-              currentPath === `/project/${project._id}/chat/${chat._id}` &&
+              currentPath === `/project/${project.id}/chat/${chat.id}` &&
               "bg-accent text-accent-foreground",
             )}
           >

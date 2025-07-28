@@ -30,7 +30,7 @@ import PostToWall from "@/components/common/post-to-wall";
 import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
-import { Project } from "@/db/projects/schema/project";
+import { Projects as Project } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import ChangeCampaignName from "./change-campaign-name";
 import { confirm } from "@/components/ui/alert-dialog";
@@ -495,19 +495,19 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       <PostToWall
                                         content={text}
                                         platform={platform}
-                                        projectId={project._id}
+                                        projectId={project.id}
                                         prompt=""
                                       />
-                                      {project.platformUrls[platform] && (
+                                      {project.platformUrls && project.platformUrls[platform as keyof typeof project.platformUrls] && (
                                         <Button variant="ghost" size="icon" asChild>
-                                          <Link href={project.platformUrls[platform] || "#"} target="_blank">
+                                          <Link href={project.platformUrls[platform as keyof typeof project.platformUrls] || "#"} target="_blank">
                                             <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
                                           </Link>
                                         </Button>
                                       )}
                                       <AutoPost platform={platform} content={text} />
                                       <Checkbox
-                                      key={platform}
+                                        key={platform}
                                         checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
                                         onCheckedChange={async (checked) => {
                                           toggleTickMark.mutateAsync({

@@ -3,14 +3,10 @@ import {
   PACKAGES_DATA,
   TRIAL_PERIOD_IN_DAYS,
 } from "@/constants/packages";
-import { User, UserDoc, UserModel } from "@/db/auth/schema/user";
+import { User } from "@prisma/client";
 import consola from "consola";
 import StripeNative from "stripe";
-import mongoose from "mongoose";
-import {
-  SubscriptionDoc,
-  SubscriptionModel,
-} from "@/db/subscriptions/schema/subscription";
+import { prisma } from "./prisma";
 import { SUBSCRIPTION_STATUS } from "@/constants/subscription-status";
 import { CHAT_GENERATION_PER_MONTH_WHILE_TRIAL } from "@/constants/common";
 class Stripe {
@@ -35,7 +31,7 @@ class Stripe {
       subscription_data: {
         ...(trial ? { trial_period_days: TRIAL_PERIOD_IN_DAYS } : {}), // only give trial period if the user has not claimed the free trial
         metadata: {
-          userId: user._id.toString(),
+          userId: user.id,
           name: user.name,
           email: user.email,
         },
@@ -65,9 +61,9 @@ class Stripe {
       throw new Error(`User ID not found in metadata ${event.id}`);
     }
 
-    const user: UserDoc | null = await UserModel.findById(
-      new mongoose.Types.ObjectId(userId)
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     if (!user) {
       consola.error("❌ User not found", userId);
@@ -78,17 +74,23 @@ class Stripe {
      * if the user already has a active subscription, disable the old and create a new one
      */
 
-    const activeSubs: SubscriptionDoc[] = await SubscriptionModel.find({
-      userId: user._id,
-      active: true,
+    const activeSubs = await prisma.subscription.findMany({
+      where: {
+        userId: user.id,
+        active: true,
+      },
     });
 
     // disable the old subscription and cancel the subscription in stripe, in case the user has an active subscription
     // in ideal case, the user should not have an active subscription
     if (activeSubs && activeSubs.length > 0) {
       activeSubs.forEach(async (sub) => {
-        sub.status = SUBSCRIPTION_STATUS.INACTIVE;
-        await sub.save();
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: SUBSCRIPTION_STATUS.INACTIVE,
+          },
+        });
         await this.stripe.subscriptions.update(
           sub.subscriptionIdFromStripe || "",
           {
@@ -98,24 +100,30 @@ class Stripe {
       });
     }
 
-    await SubscriptionModel.create({
-      userId: user._id,
-      startedAt: new Date(
-        event.data.object.current_period_start * 1000
-      ).toISOString(),
-      endsAt: new Date(
-        event.data.object.current_period_end * 1000
-      ).toISOString(),
-      invoiceId: event.data.object.latest_invoice,
-      status: event.data.object.status,
-      subscriptionIdFromStripe: event.data.object.id,
-      active: true,
-      customerId: event.data.object.customer as string,
+    await prisma.subscription.create({
+      data: {
+        userId: user.id,
+        startedAt: new Date(
+          event.data.object.current_period_start * 1000
+        ).toISOString(),
+        endsAt: new Date(
+          event.data.object.current_period_end * 1000
+        ).toISOString(),
+        invoiceId: event.data.object.latest_invoice?.toString() || "",
+        status: event.data.object.status,
+        subscriptionIdFromStripe: event.data.object.id,
+        active: true,
+        customerId: event.data.object.customer as string,
+      },
     });
 
-    user.remainingChatGenerations = CHAT_GENERATION_PER_MONTH_WHILE_TRIAL;
-    user.hasClaimedFreeTrial = true;
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        remainingChatGenerations: CHAT_GENERATION_PER_MONTH_WHILE_TRIAL,
+        hasClaimedFreeTrial: true,
+      },
+    });
 
     return;
   }
@@ -127,8 +135,10 @@ class Stripe {
   ) {
     const customer = event.data.object.customer;
 
-    const subscription = await SubscriptionModel.findOne({
-      customerId: customer,
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        customerId: customer as string,
+      },
     });
 
     if (!subscription) {
@@ -136,9 +146,12 @@ class Stripe {
       throw new Error(`Subscription not found ${customer}`);
     }
 
-    subscription.status = SUBSCRIPTION_STATUS.CANCELLED;
-
-    await subscription.save();
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SUBSCRIPTION_STATUS.CANCELLED,
+      },
+    });
 
     return;
   }
@@ -149,8 +162,10 @@ class Stripe {
       | StripeNative.CustomerSubscriptionUpdatedEvent
   ) {
     // update the subscription status and start and end date
-    const subscription = await SubscriptionModel.findOne({
-      customerId: event.data.object.customer,
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        customerId: event.data.object.customer as string,
+      },
     });
 
     if (!subscription) {
@@ -158,19 +173,22 @@ class Stripe {
       throw new Error(`Subscription not found ${event.data.object.customer}`);
     }
 
-    subscription.status = event.data.object.status;
     const subscriptionFromStripe = await this.stripe.subscriptions.retrieve(
       subscription.subscriptionIdFromStripe
     );
 
-    subscription.startedAt = new Date(
-      subscriptionFromStripe.current_period_start * 1000
-    ).toISOString();
-    subscription.endsAt = new Date(
-      subscriptionFromStripe.current_period_end * 1000
-    ).toISOString();
-
-    await subscription.save();
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: event.data.object.status?.toString(),
+        startedAt: new Date(
+          subscriptionFromStripe.current_period_start * 1000
+        ).toISOString(),
+        endsAt: new Date(
+          subscriptionFromStripe.current_period_end * 1000
+        ).toISOString(),
+      },
+    });
 
     return;
   }
@@ -179,8 +197,10 @@ class Stripe {
     event: StripeNative.CustomerSubscriptionUpdatedEvent
   ) {
     // update the subscription status and start and end date
-    const subscription = await SubscriptionModel.findOne({
-      customerId: event.data.object.customer,
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        customerId: event.data.object.customer as string,
+      },
     });
 
     if (!subscription) {
@@ -189,8 +209,12 @@ class Stripe {
     }
 
     if (event.data.object.canceled_at) {
-      subscription.status = SUBSCRIPTION_STATUS.CANCELLED;
-      await subscription.save();
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: SUBSCRIPTION_STATUS.CANCELLED,
+        },
+      });
       return;
     }
 

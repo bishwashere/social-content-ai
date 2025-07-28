@@ -3,11 +3,10 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { stripe } from "@/lib/stripe";
 import tryCatchAsync from "@/lib/try-catch-async";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { consola } from "consola";
 
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   catchApiAsyncError(async (req) => {
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
     const sig = req.headers.get("stripe-signature") as string;

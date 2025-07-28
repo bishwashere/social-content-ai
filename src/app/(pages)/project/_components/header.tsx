@@ -35,7 +35,7 @@ export function Header() {
         </div>
         <div className="flex items-center gap-4">
           <Subscription />
-          <button onClick={() => resetTooltip.mutate(data?.user._id || "")}>
+          <button onClick={() => resetTooltip.mutate(data?.user.id || "")}>
             <FaRegQuestionCircle className="size-5" />
           </button>
           {!data?.user ? (

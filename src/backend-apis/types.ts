@@ -8,9 +8,3 @@ export type ApiResponse<T = null> = {
 };
 
 export type ApiError = AxiosError<{ message: string }>;
-
-export type MongooseBaseDocument<T> = T & {
-  _id: string;
-  createdAt: string;
-  updatedAt: string;
-};

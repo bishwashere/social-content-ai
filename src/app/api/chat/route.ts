@@ -1,36 +1,24 @@
 import { INVITED_USER_ROLES } from "@/constants/common";
-import { UserDoc } from "@/db/auth/schema/user";
-import { ProjectChatDoc, ProjectChatModel } from "@/db/projects/schema/chat";
-import {
-  InvitedUserDoc,
-  InvitedUserModel,
-} from "@/db/projects/schema/invited-users";
-import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
-import {
-  SubscriptionDoc,
-  SubscriptionModel,
-} from "@/db/subscriptions/schema/subscription";
+import { prisma } from "@/lib/prisma";
 import { AI } from "@/lib/ai";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
-import mongoose from "mongoose";
 
 /**
  * Create a chat or update an existing chat
  * */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   requestValidator.validateBody(projectValidator.createChat),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     // @ts-expect-error - user is not defined in Request type
-    const user = req.parsed.user as UserDoc;
+    const user = req.parsed.user;
 
     // check if the user has remaining chat generations
     if (user.remainingChatGenerations <= 0) {
@@ -41,8 +29,8 @@ export const POST = applyMiddleware(
     }
 
     // check if subscription is expired
-    const subs: SubscriptionDoc | null = await SubscriptionModel.findOne({
-      userId: user._id,
+    const subs = await prisma.subscription.findFirst({
+      where: { userId: user.id },
     });
 
     if (!subs) {
@@ -77,8 +65,6 @@ export const POST = applyMiddleware(
         projectRelated: body.projectRelated,
       });
 
-      console.log("CHAT FROM AI: ", chatFromAI);
-
       if (!chatFromAI) {
         return sendNextResponse({
           status: 400,
@@ -86,13 +72,15 @@ export const POST = applyMiddleware(
         });
       }
 
-      user.remainingChatGenerations -= 1;
-      await user.save();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { remainingChatGenerations: user.remainingChatGenerations - 1 },
+      });
 
       return sendNextResponse({
         status: 200,
         message: "Chat generated successfully",
-        data: { contents: chatFromAI },
+        data: { projectChats: chatFromAI },
       });
     } else {
       let projectId = body.projectId || "";
@@ -107,13 +95,15 @@ export const POST = applyMiddleware(
           });
         }
 
-        const project: ProjectDoc = await ProjectModel.create({
-          name: body.projectName,
-          description: body.projectDescription || "",
-          userId: user._id,
+        const project = await prisma.projects.create({
+          data: {
+            name: body.projectName,
+            description: body.projectDescription || "",
+            userId: user.id,
+          },
         });
 
-        projectId = project._id.toString();
+        projectId = project.id;
       }
 
       if (!projectId) {
@@ -123,15 +113,19 @@ export const POST = applyMiddleware(
         });
       }
 
-      const isInvited: InvitedUserDoc | null = await InvitedUserModel.findOne({
-        userId: user._id,
-        projectId: new mongoose.Types.ObjectId(projectId),
-        role: INVITED_USER_ROLES.EDITOR,
+      const isInvited = await prisma.invitedUser.findFirst({
+        where: {
+          userId: user.id,
+          projectId: projectId,
+          role: INVITED_USER_ROLES.EDITOR,
+        },
       });
 
       console.log("isInvited: ", isInvited);
 
-      const project: ProjectDoc | null = await ProjectModel.findById(projectId);
+      const project = await prisma.projects.findUnique({
+        where: { id: projectId },
+      });
 
       console.log("project: ", project);
 
@@ -142,7 +136,7 @@ export const POST = applyMiddleware(
         });
       }
 
-      if (!project.userId.equals(user._id) && !isInvited) {
+      if (project.userId !== user.id && !isInvited) {
         return sendNextResponse({
           status: 403,
           message: "You cannot create chat for this project!",
@@ -176,24 +170,18 @@ export const POST = applyMiddleware(
       });
 
       if (body.retry && body.retry.chatId) {
-        const chat = await ProjectChatModel.findOneAndUpdate(
-          {
-            _id: new mongoose.Types.ObjectId(body.retry.chatId as string),
-            projectId: new mongoose.Types.ObjectId(projectId),
+        const chat = await prisma.projectChat.update({
+          where: {
+            id: body.retry.chatId as string,
+            projectId: projectId,
           },
-          {
-            $set: {
-              updatedAt: new Date(),
-              contents: chatFromAI,
-              title: chatName || "Untitled",
-              prompt: body.userPrompt || "",
-              projectId: new mongoose.Types.ObjectId(projectId),
-            },
+          data: {
+            updatedAt: new Date(),
+            contents: chatFromAI,
+            title: chatName || "Untitled",
+            prompt: body.userPrompt || "",
           },
-          {
-            returnDocument: "after",
-          }
-        );
+        });
 
         if (!chat) {
           return sendNextResponse({
@@ -202,8 +190,10 @@ export const POST = applyMiddleware(
           });
         }
 
-        user.remainingChatGenerations -= 1;
-        await user.save();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { remainingChatGenerations: user.remainingChatGenerations - 1 },
+        });
 
         return sendNextResponse({
           status: 200,
@@ -211,15 +201,19 @@ export const POST = applyMiddleware(
           data: chat,
         });
       } else {
-        const projectChat: ProjectChatDoc = await ProjectChatModel.create({
-          contents: chatFromAI,
-          title: chatName || "Untitled",
-          prompt: body.userPrompt || "",
-          projectId: new mongoose.Types.ObjectId(projectId),
+        const projectChat = await prisma.projectChat.create({
+          data: {
+            contents: chatFromAI,
+            title: chatName || "Untitled",
+            prompt: body.userPrompt || "",
+            projectId: projectId,
+          },
         });
 
-        user.remainingChatGenerations -= 1;
-        await user.save();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { remainingChatGenerations: user.remainingChatGenerations - 1 },
+        });
 
         return sendNextResponse({
           status: 200,

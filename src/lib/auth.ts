@@ -2,9 +2,7 @@ import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
 import Facebook from "next-auth/providers/facebook";
 import LinkedIn from "next-auth/providers/linkedin";
-import { UserModel } from "@/db/auth/schema/user";
-import { OauthProvidersModel } from "@/db/oauth-providers/schema";
-import connectToDb from "@/db/connect";
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { verifyJWT } from "@/lib/jwt";
@@ -44,8 +42,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       if (account && user) {
         try {
-          await connectToDb();
-
           // Get the current user from your custom JWT token
           const cookieStore = cookies();
           const token = cookieStore.get(AUTH_TOKEN_COOKIE_NAME)?.value;
@@ -65,9 +61,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Find the Google-authenticated user
-          const googleUser = await UserModel.findOne({
-            _id: payload._id,
-            email: payload.email,
+          const googleUser = await prisma.user.findUnique({
+            where: {
+              id: payload.id,
+              email: payload.email,
+            },
           });
 
           if (!googleUser) {
@@ -153,16 +151,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Store OAuth credentials for this user
-          await OauthProvidersModel.findOneAndUpdate(
-            {
-              userId: googleUser._id,
+          // Find existing provider
+          const existingProvider = await prisma.oauthProvider.findFirst({
+            where: {
+              userId: googleUser.id,
               platform: platform,
             },
-            {
-              $set: updateData,
-            },
-            { upsert: true }
-          );
+          });
+
+          if (existingProvider) {
+            await prisma.oauthProvider.update({
+              where: { id: existingProvider.id },
+              data: updateData,
+            });
+          } else {
+            await prisma.oauthProvider.create({
+              data: {
+                userId: googleUser.id,
+                platform: platform,
+                ...updateData,
+              },
+            });
+          }
 
           // Return true to allow the sign-in
           return true;
@@ -180,11 +190,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
  * Helper function to get Twitter tokens for a user
  */
 export async function getTwitterTokensForUser(userId: string) {
-  await connectToDb();
-
-  const tokens = await OauthProvidersModel.findOne({
-    userId,
-    platform: "twitter",
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "twitter",
+    },
   });
 
   return tokens;
@@ -194,11 +204,11 @@ export async function getTwitterTokensForUser(userId: string) {
  * Helper function to get Facebook tokens for a user
  */
 export async function getFacebookTokensForUser(userId: string) {
-  await connectToDb();
-
-  const tokens = await OauthProvidersModel.findOne({
-    userId,
-    platform: "facebook",
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "facebook",
+    },
   });
 
   return tokens;
@@ -208,11 +218,11 @@ export async function getFacebookTokensForUser(userId: string) {
  * Helper function to get LinkedIn tokens for a user
  */
 export async function getLinkedinTokensForUser(userId: string) {
-  await connectToDb();
-
-  const tokens = await OauthProvidersModel.findOne({
-    userId,
-    platform: "linkedin",
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "linkedin",
+    },
   });
 
   return tokens;
@@ -222,11 +232,11 @@ export async function getLinkedinTokensForUser(userId: string) {
  * Helper function to get Threads tokens for a user
  */
 export async function getThreadsTokensForUser(userId: string) {
-  await connectToDb();
-
-  const tokens = await OauthProvidersModel.findOne({
-    userId,
-    platform: "threads",
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "threads",
+    },
   });
 
   return tokens;

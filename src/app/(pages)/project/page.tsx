@@ -82,7 +82,7 @@ export default function Home() {
                 <Button
                   key={i}
                   className="w-full rounded-lg"
-                  onClick={() => handleSelectProject(project._id)}
+                  onClick={() => handleSelectProject(project.id)}
                 >
                   {project.name}
                 </Button>

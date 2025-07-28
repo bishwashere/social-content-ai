@@ -1,21 +1,17 @@
 "use server";
 
-import { OauthProvidersModel } from "@/db/oauth-providers/schema";
-import connectToDb from "@/db/connect";
-import mongoose from "mongoose";
+import { prisma } from "@/lib/prisma";
 
 export const checkAuthTokens = async (userId: string, platform: string, postDate?: Date) => {
   try {
-    console.log("🔌 Connecting to database");
-    await connectToDb();
-    console.log("✅ Connected to database successfully");
-
     console.log(
       `🔍 Finding OAuth provider for userId: ${userId}, platform: ${platform}`
     );
-    const data = await OauthProvidersModel.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      platform: platform === "x" ? "twitter" : platform,
+    const data = await prisma.oauthProvider.findFirst({
+      where: {
+        userId: userId,
+        platform: platform === "x" ? "twitter" : platform,
+      },
     });
 
     if (!data) {

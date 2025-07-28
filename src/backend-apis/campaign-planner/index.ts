@@ -1,54 +1,17 @@
 "use server";
 
-// import { UserModel } from "@/db/auth/schema/user";
-// import connectToDb from "@/db/connect";
-// import {
-//   CampaignPlannerModel,
-//   CampaignPlannerType,
-// } from "@/db/projects/schema/campaign-planner";
-// import { ProjectModel } from "@/db/projects/schema/project";
+
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { prisma } from "@/lib/prisma";
 
-export const startCampaignPlanner = async ({
-    id,
-    projectId,
-    campaignName,
-    plan,
-    userId
-  }: {
-    id?: string;
-    projectId: string;
-    campaignName: string;
-    plan: CampaignPlanner;
-    userId: string;
-  }) => {
-  // Fetch user
-  // const user = await prisma.userSchema.findUnique({
-  //   where: { id: userId },
-  // });
-
-  // if (!user) {
-  //   throw new Error("User not found");
-  // }
-
-  // if (user.remainingChatGenerations < 10) {
-  //   return {
-  //     success: false,
-  //     message: "You have not enough chat generations left.",
-  //   };
-  // }
-
-  // Deduct 10 generations
-  // await prisma.userSchema.update({
-  //   where: { id: userId },
-  //   data: {
-  //     remainingChatGenerations: {
-  //       decrement: 10,
-  //     },
-  //   },
-  // });
+export const startCampaignPlanner = async (
+  id: string | undefined,
+  projectId: string,
+  campaignName: string,
+  plan: CampaignPlanner,
+  userId: string
+) => {
 
   const chatData: {
     title: string;
@@ -237,7 +200,7 @@ export const changeCampaignData = async (
       where: { id },
       data: updateFields,
       include: {
-        Project: true, // optional, if you want to log project details
+        project: true, // optional, if you want to log project details
       },
     });
 

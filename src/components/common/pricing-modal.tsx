@@ -136,7 +136,7 @@ export default function PricingModal({ open, setOpen }: Props) {
 
                   if (!data?.user?.hasClaimedFreeTrial) {
                     setIsLoading(true);
-                    const res = await claimFreeTrial(data?.user?._id || "")
+                    const res = await claimFreeTrial(data?.user?.id || "")
                     if (res.success) {
                       toast.success(res.message);
                       setOpen(false);

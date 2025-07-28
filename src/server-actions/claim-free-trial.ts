@@ -1,10 +1,11 @@
 "use server";
 
-import { UserModel } from "@/db/auth/schema/user";
-import { SubscriptionModel } from "@/db/subscriptions/schema/subscription";
+import { prisma } from "@/lib/prisma";
 
 export const claimFreeTrial = async (userId: string) => {
-  const userFromDb = await UserModel.findById(userId);
+  const userFromDb = await prisma.user.findUnique({
+    where: { id: userId },
+  });
 
   if (!userFromDb) {
     return {
@@ -21,18 +22,25 @@ export const claimFreeTrial = async (userId: string) => {
   }
 
   // give 7 days free trial with 50 tokens
-  userFromDb.hasClaimedFreeTrial = true;
-  userFromDb.remainingChatGenerations = 50;
-  await userFromDb.save();
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      hasClaimedFreeTrial: true,
+      remainingChatGenerations: 50,
+    },
+  });
 
-  await SubscriptionModel.create({
-    userId: userFromDb._id,
-    status: "trial",
-    startedAt: new Date(),
-    endsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    invoiceId: "trial__invoice",
-    subscriptionIdFromStripe: "trial__subscription",
-    customerId: "trial__customer",
+  await prisma.subscription.create({
+    data: {
+      userId: userFromDb.id,
+      status: "trial",
+      startedAt: new Date(),
+      endsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      invoiceId: "trial__invoice",
+      subscriptionIdFromStripe: "trial__subscription",
+      customerId: "trial__customer",
+      active: true,
+    },
   });
 
   return {

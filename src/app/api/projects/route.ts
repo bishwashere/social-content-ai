@@ -1,107 +1,86 @@
-import { User } from "@/db/auth/schema/user";
-import { ProjectChatModel } from "@/db/projects/schema/chat";
-import {
-  InvitedUserDoc,
-  InvitedUserModel,
-} from "@/db/projects/schema/invited-users";
-import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
-import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
-import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 
-/**
- * Create a new project
- */
-export const POST = applyMiddleware(
-  connectToDBMiddleware(),
-  validateUserAuth({ errorIfNotAuthenticated: true }),
-  requestValidator.validateBody(projectValidator.createProject),
-  catchApiAsyncError(async (req) => {
-    //@ts-expect-error: ................
-    const body = req.parsed.body as ProjectValidatorType["createProject"];
-
-    //@ts-expect-error: ................
-    const user = req.parsed.user as User;
-
-    const project: ProjectDoc = await ProjectModel.create({
-      name: body.name,
-      description: body.description,
-      userId: user._id,
-    });
-
-    if (!project) {
-      return sendNextResponse({
-        status: 500,
-        message: `Failed to create project!`,
-      });
-    }
-
-    return sendNextResponse({
-      status: 201,
-      data: project.toJSON(),
-      message: `Project ${project.name} created successfully!`,
-    });
-  }),
-);
-
-/**
- * Get all projects that belong to the user with chat titles.
- */
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
-    //@ts-expect-error: ................
-    const user = req.parsed.user as User;
+    //@ts-expect-error: user is not defined in Request type
+    const user = req.parsed.user;
 
-    const invitedProjects: Pick<InvitedUserDoc, "projectId">[] =
-      await InvitedUserModel.find({
-        userId: user._id,
-      }).select("projectId");
-
-    const projects: ProjectDoc[] = await ProjectModel.find({
-      $or: [
-        {
-          userId: user._id,
+    // Get all projects where user is owner or invited
+    const [ownedProjects, invitedProjects] = await Promise.all([
+      prisma.projects.findMany({
+        where: { userId: user.id },
+        include: {
+          projectTrackings: true,
+          projectChats: true,
+          invitedUsers: true,
         },
-        {
-          _id: {
-            $in: invitedProjects.map(
-              (invitedProject) => invitedProject.projectId,
-            ),
+      }),
+      prisma.invitedUser.findMany({
+        where: { userId: user.id },
+        include: {
+          project: {
+            include: {
+              projectTrackings: true,
+              projectChats: true,
+              invitedUsers: true,
+            },
           },
         },
-      ],
-    }).sort({ createdAt: -1 });
-
-    const projectsWithChats = await Promise.all(
-      projects.map(async (project) => {
-        const chats = await ProjectChatModel.find({
-          projectId: project._id,
-        }).sort({ createdAt: -1 });
-
-        return {
-          ...project.toJSON(),
-          chats: chats.map((chat) => chat.toJSON()),
-        };
       }),
-    );
+    ]);
 
-    if (!projectsWithChats) {
+    // Combine and format projects
+    const allProjects = [
+      ...ownedProjects,
+      ...invitedProjects.map((invite) => invite.project),
+    ];
+
+    return sendNextResponse({
+      status: 200,
+      message: "Projects retrieved successfully",
+      data: allProjects,
+    });
+  })
+);
+
+export const POST = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
+  catchApiAsyncError(async (req) => {
+    //@ts-expect-error: user is not defined in Request type
+    const user = req.parsed.user;
+
+    const { name, description } = await req.json();
+
+    if (!name) {
       return sendNextResponse({
-        status: 500,
-        message: `Failed to fetch projects!`,
+        status: 400,
+        message: "Project name is required",
       });
     }
 
+    // Create project
+    const project = await prisma.projects.create({
+      data: {
+        name,
+        description,
+        userId: user.id,
+      },
+      include: {
+        projectTrackings: true,
+        projectChats: true,
+        invitedUsers: true,
+      },
+    });
+
     return sendNextResponse({
       status: 201,
-      data: projectsWithChats,
-      message: `Project fetched successfully!`,
+      message: "Project created successfully",
+      data: project,
     });
-  }),
+  })
 );

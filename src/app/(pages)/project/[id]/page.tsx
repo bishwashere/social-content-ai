@@ -13,7 +13,7 @@ import {
   useGetAllProjects,
   useUpdateProject,
 } from "@/backend-apis/projects/hooks";
-import { Project } from "@/db/projects/schema/project";
+import { Projects as Project } from "@prisma/client";
 import QuickGenerate from "./_components/quick-generate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CampaignPlannerPage from "./_components/campaing-planner";
@@ -35,7 +35,7 @@ export default function ProjectPage() {
 
   useEffect(() => {
     const fetchProject = () => {
-      const currentProject = projects?.data?.find((p: Project) => p._id === id);
+      const currentProject = projects?.data?.find((p: Project) => p.id === id);
       setProject(currentProject || null);
       setLoading(false);
     };
@@ -68,7 +68,7 @@ export default function ProjectPage() {
 
   useEffect(() => {
     const fetchProject = () => {
-      const currentProject = projects?.data?.find((p: Project) => p._id === id);
+      const currentProject = projects?.data?.find((p: Project) => p.id === id);
       setProject(currentProject || null);
 
       if (project) {
@@ -76,8 +76,8 @@ export default function ProjectPage() {
         setEditedDescription(project.description);
         setPlatformUrls((prev) => {
           return {
-            ...prev,
-            ...project.platformUrls,
+            ...prev as any,
+            ...project.platformUrls as any,
           };
         });
       }
@@ -156,11 +156,11 @@ export default function ProjectPage() {
                             </Label>
                             <Input
                               type="text"
-                              value={platformUrls?.[platform]}
+                              value={platformUrls?.[platform as keyof typeof platformUrls] || ""}
                               onChange={(e) => {
                                 setPlatformUrls((prev) => {
                                   return {
-                                    ...prev,
+                                    ...prev as any,
                                     [platform]: e.target.value,
                                   };
                                 });
@@ -179,10 +179,10 @@ export default function ProjectPage() {
                           onClick={async () => {
                             try {
                               await updateProject.mutateAsync({
-                                _id: project._id,
+                                id: project.id,
                                 name: editedName,
                                 description: editedDescription,
-                                platformUrls: platformUrls,
+                                platformUrls: platformUrls as any,
                               });
                             } catch { }
                             setIsEditing(false);

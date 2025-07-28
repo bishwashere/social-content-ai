@@ -1,34 +1,28 @@
 import { PACKAGES } from "@/constants/packages";
-import { User, UserDoc } from "@/db/auth/schema/user";
-import {
-  SubscriptionDoc,
-  SubscriptionModel,
-} from "@/db/subscriptions/schema/subscription";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { stripe } from "@/lib/stripe";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { validateUserAuth } from "@/middlewares/validate-auth";
+import { User } from "../../../../../generated/prisma";
 
 /**
  * Create a checkout session for the given package.
  */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
-    const user = req.parsed.user as UserDoc;
+    const user = req.parsed.user;
 
     // if user is already subscribed, return an error
-    const subscriptions: SubscriptionDoc | null =
-      await SubscriptionModel.findOne({
-        userId: user._id,
-        // latest one
-        sort: { createdAt: -1 },
-      });
+    const subscriptions = await prisma.subscription.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    });
 
     if (
       subscriptions &&
@@ -43,7 +37,7 @@ export const POST = applyMiddleware(
     try {
       const session = await stripe.createSession(
         PACKAGES.BASIC,
-        user.toJSON() as User,
+        user as unknown as User,
         !user.hasClaimedFreeTrial // only give trial if user has not claimed it before
       );
 
@@ -72,7 +66,6 @@ export const POST = applyMiddleware(
  */
 
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     const sessionId = req.nextUrl.searchParams.get("sessionId");

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTooltipManager } from "@/providers/first-view-tooltip-manager";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { TooltipKeysType } from "@/db/first-view-tooltip/schema";
+import { TooltipKeysType } from "@/lib/types/first-view-tooltip";
 
 interface FirstViewtooltipProps {
     tooltipKey: TooltipKeysType;

@@ -1,27 +1,17 @@
 import { INVITED_USER_ROLES } from "@/constants/common";
-import { UserDoc } from "@/db/auth/schema/user";
-import {
-  InvitedUserDoc,
-  InvitedUserModel,
-} from "@/db/projects/schema/invited-users";
-import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
-import {
-  ProjectTrackingDoc,
-  ProjectTrackingModel,
-} from "@/db/projects/schema/tracking";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
-import mongoose from "mongoose";
+
 /**
  * Track a project
  */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
   requestValidator.validateBody(projectValidator.trackProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
@@ -31,18 +21,26 @@ export const POST = applyMiddleware(
     const body = req.parsed.body as ProjectValidatorType["trackProject"];
 
     //@ts-expect-error - user is not defined in Request type
-    const user = req.parsed.user as UserDoc;
+    const user = req.parsed.user;
 
-    const invitedProjects: Pick<InvitedUserDoc, "projectId">[] =
-      await InvitedUserModel.find({
-        userId: user._id,
+    const invitedProjects = await prisma.invitedUser.findMany({
+      where: {
+        userId: user.id,
         role: INVITED_USER_ROLES.EDITOR,
-      }).select("projectId");
+      },
+      select: {
+        projectId: true,
+      },
+    });
 
     console.log(invitedProjects, user);
 
     // either the user is the owner of the project or the user is invited to the project
-    const project: ProjectDoc | null = await ProjectModel.findById(projectId);
+    const project = await prisma.projects.findUnique({
+      where: {
+        id: projectId,
+      },
+    });
 
     if (!project) {
       return sendNextResponse({
@@ -53,8 +51,8 @@ export const POST = applyMiddleware(
     }
 
     if (
-      !project.userId.equals(user._id) &&
-      !invitedProjects.some((p) => p.projectId.equals(project._id))
+      project.userId !== user.id &&
+      !invitedProjects.some((p) => p.projectId === project.id)
     ) {
       return sendNextResponse({
         status: 403,
@@ -62,9 +60,11 @@ export const POST = applyMiddleware(
       });
     }
 
-    const activity = await ProjectTrackingModel.create({
-      projectId: new mongoose.Types.ObjectId(projectId),
-      ...body,
+    const activity = await prisma.projectTracking.create({
+      data: {
+        projectId: projectId,
+        ...body,
+      },
     });
 
     return sendNextResponse({
@@ -79,13 +79,14 @@ export const POST = applyMiddleware(
  * Get project tracking data by project id
  */
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (_req, { params }) => {
     const { id: projectId } = params as { id: string };
 
-    const activity: ProjectTrackingDoc[] = await ProjectTrackingModel.find({
-      projectId: new mongoose.Types.ObjectId(projectId),
+    const activity = await prisma.projectTracking.findMany({
+      where: {
+        projectId: projectId,
+      },
     });
 
     if (!activity) {

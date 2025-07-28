@@ -82,10 +82,10 @@ export default function SocialFeed() {
               .map((post) => {
                 return (
                   <WallComp
-                    key={post._id}
+                    key={post.id}
                     post={{
                       ...post,
-                      createdAt: formatRelativeTime(post.createdAt),
+                      createdAt: formatRelativeTime(post.createdAt.toString()) as any,
                     }}
                   />
                 );
@@ -118,37 +118,37 @@ const WallComp = ({
   useEffect(() => {
     // const fn = async () => {
     //   const isViewed =
-    //     sessionStorage.getItem(`wall:viewed:${post._id}`) === "true";
+    //     sessionStorage.getItem(`wall:viewed:${post.id}`) === "true";
 
     //   if (!isViewed) {
-    //     const res = await viewWall(post._id);
+    //     const res = await viewWall(post.id);
     //     if (res) {
-    //       sessionStorage.setItem(`wall:viewed:${post._id}`, "true");
+    //       sessionStorage.setItem(`wall:viewed:${post.id}`, "true");
     //     }
     //   }
     // };
     // fn();
-    viewWall(post._id)
-  }, [post._id]);
+    viewWall(post.id)
+  }, [post.id]);
 
   return (
     <Card
-      key={post._id}
+      key={post.id}
       className="rounded-none border-0 shadow-none border-b border-gray-200"
     >
       <CardHeader className="flex flex-row items-start space-y-0 p-4 pb-2">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10 border">
-            <AvatarImage src={post.userId?.avatarUrl} alt={post.userId?.name} />
+            <AvatarImage src={post.user?.avatarUrl} alt={post.user?.name} />
             <AvatarFallback>
-              {post.userId?.name.substring(0, 2).toUpperCase()}
+              {post.user?.name?.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-1">
-              <span className="font-medium text-sm">{post.userId?.name || "Unknown"}</span>
+              <span className="font-medium text-sm">{post.user?.name || "Unknown"}</span>
               <span className="text-muted-foreground text-xs">
-                {post.createdAt}
+                {post.createdAt?.toString()}
               </span>
             </div>
             <CardContent className="p-0 pt-1 text-sm whitespace-pre-line">
@@ -161,7 +161,7 @@ const WallComp = ({
               <PlayIcon className="h-4 w-4 text-gray-600" />
               <span className="text-xs text-gray-600">{post.views || 1}</span>
               <span className="bg-gray-100 p-1 rounded-lg text-sm text-gray-800">
-                {post.projectId?.name || "Unknown"}
+                {post.project?.name || "Unknown"}
               </span>
               <img
                 src={`/${post.platform}.svg`}

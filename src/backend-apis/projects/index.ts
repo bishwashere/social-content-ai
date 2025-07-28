@@ -14,8 +14,7 @@ import {
 import api from "../axios";
 import { ApiError, ApiResponse } from "../types";
 import { QueryClient } from "@tanstack/react-query";
-import { Project } from "@/db/projects/schema/project";
-import { ProjectChat } from "@/db/projects/schema/chat";
+import { Projects as Project, ProjectChat } from "@prisma/client";
 import { apiRoutes } from "../routes";
 import { GetUserSessionResponse } from "../auth/types";
 
@@ -28,7 +27,7 @@ class ProjectService {
       async () => {
         const response = await api.post(apiRoutes.PROJECTS(), project);
         return response;
-      },
+      }
     );
     if (err) {
       throw new Error(err.response?.data?.message);
@@ -63,14 +62,14 @@ class ProjectService {
    * Edit a project
    */
   async updateProject(
-    { _id, ...rest }: UpdateProjectProps,
-    queryClient: QueryClient,
+    { id, ...rest }: UpdateProjectProps,
+    queryClient: QueryClient
   ) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<Project>>(
       async () => {
-        const response = await api.patch(apiRoutes.PROJECTS.BY_ID(_id), rest);
+        const response = await api.patch(apiRoutes.PROJECTS.BY_ID(id), rest);
         return response;
-      },
+      }
     );
     if (err) {
       throw new Error(err.response?.data?.message);
@@ -80,7 +79,7 @@ class ProjectService {
       return data
         ? // update the project with the new data
           data?.map((project) => {
-            if (project._id === _id) {
+            if (project.id === id) {
               return { ...project, ...res.data.data };
             }
             return project;
@@ -96,7 +95,7 @@ class ProjectService {
    */
   async generateProjectContent(
     { projectId, userPrompt, retry, ...rest }: GenerateProjectContentProps,
-    queryClient: QueryClient,
+    queryClient: QueryClient
   ) {
     const [err, res] = await tryCatchAsync<ApiError, ApiResponse<ProjectChat>>(
       async () => {
@@ -107,34 +106,33 @@ class ProjectService {
           ...rest,
         });
         return response;
-      },
+      }
     );
     if (err) {
       throw new Error(err.response?.data?.message);
     }
 
-    await queryClient.invalidateQueries({
-      queryKey: ["projects"],
-    });
-
-    if (retry && retry.chatId) {
-      await queryClient.setQueryData<ProjectChat[]>(
-        ["project-chats", { projectId }],
-        (data) => {
-          return data
-            ? data.map((chat) =>
-                chat._id === retry.chatId ? res.data.data : chat,
-              )
-            : [res.data.data];
-        },
-      );
-    } else {
-      await queryClient.setQueryData<ProjectChat[]>(
-        ["project-chats", { projectId }],
-        (data) => {
-          return data ? [res.data.data, ...data] : [res.data.data];
-        },
-      );
+    // Only update project chats if we have a project
+    if (projectId) {
+      if (retry && retry.chatId) {
+        await queryClient.setQueryData<ProjectChat[]>(
+          ["project-chats", { projectId }],
+          (data) => {
+            return data
+              ? data.map((chat) =>
+                  chat.id === retry.chatId ? res.data.data : chat
+                )
+              : [res.data.data];
+          }
+        );
+      } else {
+        await queryClient.setQueryData<ProjectChat[]>(
+          ["project-chats", { projectId }],
+          (data) => {
+            return data ? [res.data.data, ...data] : [res.data.data];
+          }
+        );
+      }
     }
 
     await queryClient.setQueryData(
@@ -150,7 +148,7 @@ class ProjectService {
               },
             }
           : data;
-      },
+      }
     );
 
     return res.data.data;
@@ -192,7 +190,7 @@ class ProjectService {
       async () => {
         const response = await api.get(apiRoutes.PROJECTS.BY_ID(projectId));
         return response;
-      },
+      }
     );
     if (err) {
       return [];
@@ -202,7 +200,7 @@ class ProjectService {
 
   async trackProject(
     { projectId, ...data }: TrackProjectProps,
-    queryClient: QueryClient,
+    queryClient: QueryClient
   ) {
     const [err, res] = await tryCatchAsync<
       ApiError,
@@ -210,7 +208,7 @@ class ProjectService {
     >(async () => {
       const response = await api.post(
         apiRoutes.PROJECTS.TRACK(projectId),
-        data,
+        data
       );
       return response;
     });
@@ -221,7 +219,7 @@ class ProjectService {
     await queryClient.setQueryData(
       ["project-tracking", { projectId }],
       (prev: ProjectTrackingResponse) =>
-        prev && prev.length ? [res.data.data, ...prev] : [res.data.data],
+        prev && prev.length ? [res.data.data, ...prev] : [res.data.data]
     );
 
     await queryClient.invalidateQueries({
@@ -251,10 +249,10 @@ class ProjectService {
       async () => {
         const response = await api.post(
           apiRoutes.PROJECTS.INVITE(projectId),
-          rest,
+          rest
         );
         return response;
-      },
+      }
     );
     if (err) {
       throw new Error(err.response?.data?.message);

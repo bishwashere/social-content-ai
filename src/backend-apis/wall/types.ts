@@ -1,4 +1,4 @@
-import { Wall } from "@/db/wall/schema/wall";
+import { Wall } from "@prisma/client";
 import { wallValidatorType } from "@/validators/wall";
 
 export type CreateWallProps = wallValidatorType["post"];
@@ -9,11 +9,11 @@ export type GetWallProps = {
 
 export type WallResponsePaginated = {
   posts: (Omit<Wall, "userId" | "projectId"> & {
-    userId: {
+    user: {
       avatarUrl: string;
       name: string;
     };
-    projectId: {
+    project: {
       name: string;
     };
   })[];

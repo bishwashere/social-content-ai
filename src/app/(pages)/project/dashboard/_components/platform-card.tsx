@@ -26,7 +26,7 @@ export function PlatformCard({
   platform,
   onClick,
 }: PlatformCardProps) {
-  const getDateColor = (dateString: string) => {
+  const getDateColor = (dateString: string | Date) => {
     const date = new Date(dateString);
     const diffDays = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
 
@@ -77,7 +77,7 @@ export function PlatformCard({
             activity.data
               ?.filter((entry) => entry.platform === platform)
               ?.map((entry) => ({
-                date: entry.date,
+                date: entry.date.toString(),
                 url: entry.url,
               })) || [],
           ),

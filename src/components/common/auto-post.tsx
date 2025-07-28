@@ -60,7 +60,7 @@ const AutoPost = ({ platform, content }: Props) => {
     setIsDatePickerOpen(false)
 
     if (platform === "x") {
-      const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
 
       if (!hasTokens) {
         toast.loading("You need to sign in to Twitter to post automatically, redirecting...")
@@ -69,7 +69,7 @@ const AutoPost = ({ platform, content }: Props) => {
         }, 1000);
       } else {
         const res = await schedulePost({
-          userId: data?.user?._id,
+          userId: data?.user?.id,
           platform: "twitter",
           content: content,
           date: new Date(date).getTime() / 1000
@@ -82,7 +82,7 @@ const AutoPost = ({ platform, content }: Props) => {
         }
       }
     } else if (platform === "threads") {
-      // const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+      // const hasTokens = await checkAuthTokens(data?.user?.id, platform)
 
       // if (!hasTokens) {
       //   toast.loading("You need to sign in to Threads to post automatically, redirecting...")
@@ -91,7 +91,7 @@ const AutoPost = ({ platform, content }: Props) => {
       //   }, 1000);
       // } else {
       //   const res = await schedulePost({
-      //     userId: data?.user?._id,
+      //     userId: data?.user?.id,
       //     platform: "threads",
       //     content: content,
       //     date: new Date(date).getTime() / 1000
@@ -104,7 +104,7 @@ const AutoPost = ({ platform, content }: Props) => {
       //   }
       // }
     } else if (platform === "facebook") {
-      const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
 
       if (!hasTokens) {
         toast.loading("You need to sign in to Facebook to post automatically, redirecting...")
@@ -113,7 +113,7 @@ const AutoPost = ({ platform, content }: Props) => {
         }, 1000);
       } else {
         const res = await schedulePost({
-          userId: data?.user?._id,
+          userId: data?.user?.id,
           platform: "facebook",
           content: content,
           date: new Date(date).getTime() / 1000
@@ -125,8 +125,8 @@ const AutoPost = ({ platform, content }: Props) => {
           toast.error("Failed to schedule post")
         }
       }
-    }else if (platform === "reddit") {
-      const hasTokens = await checkAuthTokens(data?.user?._id, platform)
+    } else if (platform === "reddit") {
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
 
       if (!hasTokens) {
         toast.loading("You need to sign in to Reddit to post automatically, redirecting...")
@@ -135,7 +135,7 @@ const AutoPost = ({ platform, content }: Props) => {
         }, 1000);
       } else {
         const res = await schedulePost({
-          userId: data?.user?._id,
+          userId: data?.user?.id,
           platform: "reddit",
           content: content,
           date: new Date(date).getTime() / 1000
@@ -148,7 +148,7 @@ const AutoPost = ({ platform, content }: Props) => {
         }
       }
     } else if (platform === "linkedin") {
-      const hasTokens = await checkAuthTokens(data?.user?._id, platform, date)
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform, date)
 
       if (!hasTokens) {
         toast.loading("You need to sign in to Linkedin to post automatically, redirecting...")
@@ -157,7 +157,7 @@ const AutoPost = ({ platform, content }: Props) => {
         }, 1000);
       } else {
         const res = await schedulePost({
-          userId: data?.user?._id,
+          userId: data?.user?.id,
           platform: "linkedin",
           content: content,
           date: new Date(date).getTime() / 1000

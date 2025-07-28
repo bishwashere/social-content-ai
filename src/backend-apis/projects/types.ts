@@ -1,18 +1,18 @@
 import { ProjectValidatorType } from "@/validators/projects";
-import { Project } from "@/db/projects/schema/project";
-import { ProjectTracking } from "@/db/projects/schema/tracking";
+import { Projects } from "@generated/prisma";
+import { ProjectTracking } from "@prisma/client";
 
 export type CreateProjectProps = ProjectValidatorType["createProject"];
 
-export type ProjectWithChats = Project & {
-  chats?: {
-    _id: string;
+export type ProjectWithChats = Projects & {
+  projectChats?: {
+    id: string;
     title: string;
   }[];
 };
 
 export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {
-  _id: string;
+  id: string;
 };
 
 export type GenerateProjectContentProps = ProjectValidatorType["createChat"] & {
@@ -39,7 +39,11 @@ export type ProjectSummary = {
   inactivePlatforms: number;
   totalPlatforms: number;
   mostActiveProject: { name: string; count: number } | null;
-  totalPostsForEachProject: { name: string; count: number; trackings: ProjectTrackingResponse }[];
+  totalPostsForEachProject: {
+    name: string;
+    count: number;
+    trackings: ProjectTrackingResponse;
+  }[];
 };
 
 export type InviteUserProps = ProjectValidatorType["inviteUser"] & {

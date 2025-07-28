@@ -1,52 +1,46 @@
-import { UserDoc } from "@/db/auth/schema/user";
-import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
-import {
-  ProjectTrackingDoc,
-  ProjectTrackingModel,
-} from "@/db/projects/schema/tracking";
-import {
-  SubscriptionDoc,
-  SubscriptionModel,
-} from "@/db/subscriptions/schema/subscription";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { mail } from "@/lib/mail";
 import { PLATFORMS } from "@/lib/prompt";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { validateUserAuth } from "@/middlewares/validate-auth";
 
 /**
  * Retrieve the user session
  */
 export const GET = applyMiddleware(
-  connectToDBMiddleware(),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
-    const user = req.parsed.user as UserDoc;
+    const user = req.parsed.user;
 
     const now = new Date().getTime();
     const lastInformed = user.lastInformedAboutInactiveProject?.getTime() || 0;
 
     if (lastInformed && now - lastInformed > 3 * 24 * 60 * 60 * 1000) {
-      const allProjects: ProjectDoc[] = await ProjectModel.find({
-        userId: user._id,
+      const allProjects = await prisma.projects.findMany({
+        where: { userId: user.id },
       });
 
-      user.lastInformedAboutInactiveProject = new Date();
-      await user.save();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastInformedAboutInactiveProject: new Date() },
+      });
 
-      const trackings: ProjectTrackingDoc[] = await ProjectTrackingModel.find({
-        projectId: { $in: allProjects.map((p) => p._id) },
-        date: { $gte: new Date(now - 3 * 24 * 60 * 60 * 1000) },
+      const trackings = await prisma.projectTracking.findMany({
+        where: {
+          projectId: { in: allProjects.map((p) => p.id) },
+          date: { gte: new Date(now - 3 * 24 * 60 * 60 * 1000) },
+        },
       });
 
       const trackingGroupByProject = trackings.reduce((acc, t) => {
-        acc[t.projectId.toString()] = acc[t.projectId.toString()] || [];
-        acc[t.projectId.toString()].push(t);
+        acc[t.projectId] = acc[t.projectId] || [];
+        acc[t.projectId].push(t);
         return acc;
-      }, {} as Record<string, ProjectTrackingDoc[]>);
+      }, {} as Record<string, (typeof trackings)[0][]>);
 
       const activeProjects = Object.keys(trackingGroupByProject).filter(
         (projectId) => {
@@ -57,7 +51,7 @@ export const GET = applyMiddleware(
       );
 
       const inactiveProjects = allProjects.filter(
-        (p) => !activeProjects.includes(p._id.toString())
+        (p) => !activeProjects.includes(p.id)
       );
 
       if (inactiveProjects.length) {
@@ -68,7 +62,7 @@ export const GET = applyMiddleware(
 
         await Promise.all(
           inactiveProjects.map(async (p) => {
-            const trackings = trackingGroupByProject[p._id.toString()] || [];
+            const trackings = trackingGroupByProject[p.id] || [];
             const platforms = new Set(trackings.map((t) => t.platform));
             const inactivePlatforms = PLATFORMS.filter(
               (platform) => !platforms.has(platform)
@@ -102,10 +96,9 @@ export const GET = applyMiddleware(
       }
     }
 
-    const subscription: SubscriptionDoc | null =
-      await SubscriptionModel.findOne({
-        userId: user._id,
-      });
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: user.id },
+    });
 
     return sendNextResponse({
       message: "User Session",

@@ -8,33 +8,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Projects {
-  id           String            @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  description  String            @default("")
-  userId       String            @db.ObjectId
-  platformUrls Json              @default("{}") // Map<string, string> → JSON
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+model User {
+  id                               String    @id @default(auto()) @map("_id") @db.ObjectId
+  email                            String    @unique
+  avatarUrl                        String
+  name                             String
+  idFromProvider                   String
+  remainingChatGenerations         Int       @default(0)
+  hasClaimedFreeTrial              Boolean   @default(false)
+  lastInformedAboutInactiveProject DateTime? @default(now())
+  createdAt                        DateTime  @default(now())
+  updatedAt                        DateTime  @updatedAt
 
-  // User         UserSchema        @relation(fields: [userId], references: [id])
+  projects          Projects[]
+  invitedProjects   InvitedUser[]
+  oauthProviders    OauthProvider[]
+  scheduledPosts    ScheduledPost[]
+  subscriptions     Subscription[]
+  walls             Wall[]
+  firstViewTooltips FirstViewTooltip[]
+  uploadedVideos    UploadedVideo[]
+
+  @@map("users")
+}
+
+model Projects {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  description  String   @default("")
+  userId       String   @db.ObjectId
+  platformUrls Json     @default("{}") // Map<string, string> → JSON
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id])
   campaignPlanners CampaignPlanner[]
+  invitedUsers     InvitedUser[]
+  projectChats     ProjectChat[]
+  projectTrackings ProjectTracking[]
+  walls            Wall[]
+  uploadedVideos   UploadedVideo[]
+
   @@map("projects")
 }
 
+model InvitedUser {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  userId    String   @db.ObjectId
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Projects @relation(fields: [projectId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+
+  @@map("invited-users-to-projects")
+}
+
+model ProjectChat {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  title     String
+  prompt    String   @default("")
+  contents  Json     @default("{}") // Map<string, string> → JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Projects @relation(fields: [projectId], references: [id])
+
+  @@map("project-chats")
+}
+
+model ProjectTracking {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  date      DateTime
+  url       String
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Projects @relation(fields: [projectId], references: [id])
+
+  @@map("project-trackings")
+}
 
 model CampaignPlanner {
-  id             String           @id @default(auto()) @map("_id") @db.ObjectId
-  projectId      String           @db.ObjectId
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  projectId      String         @db.ObjectId
   goal           String
   targetAudience String
   name           String?
   startDate      DateTime?
-  chats          CampaignChat[]   @relation("PlannerChats")
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  chats          CampaignChat[] @relation("PlannerChats")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  Project        Projects    @relation(fields: [projectId], references: [id])
+  project Projects @relation(fields: [projectId], references: [id])
+
+  @@map("campaign-planners")
 }
 
 enum Status {
@@ -43,17 +116,118 @@ enum Status {
 }
 
 model CampaignChat {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  plannerId  String   @db.ObjectId
-  title      String?
-  prompt     String   @default("")
-  day        Int
-  completed  Boolean  @default(false)
-  contents   Json     @default("{}") // Map<string, string> -> JSON
-  tickMark   Json     @default("{}") // Map<string, string> -> JSON
-  status     Status   @default(PENDING)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  plannerId String   @db.ObjectId
+  title     String?
+  prompt    String   @default("")
+  day       Int
+  completed Boolean  @default(false)
+  contents  Json     @default("{}") // Map<string, string> -> JSON
+  tickMark  Json     @default("{}") // Map<string, string> -> JSON
+  status    Status   @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  planner    CampaignPlanner @relation("PlannerChats", fields: [plannerId], references: [id], onDelete: Cascade)
+  planner CampaignPlanner @relation("PlannerChats", fields: [plannerId], references: [id], onDelete: Cascade)
+}
+
+model OauthProvider {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  platform       String
+  accessToken    String
+  refreshToken   String?
+  expiresAt      Int?
+  facebookPageId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("oauth-providers")
+}
+
+model ScheduledPost {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  platform  String
+  content   String
+  date      DateTime
+  status    String   @default("pending")
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  processedAt DateTime?
+
+  @@map("scheduled-posts")
+}
+
+model Subscription {
+  id                       String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                   String   @db.ObjectId
+  startedAt                DateTime
+  endsAt                   DateTime
+  invoiceId                String   @default("")
+  status                   String
+  subscriptionIdFromStripe String   @default("")
+  customerId               String   @default("")
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  active                   Boolean?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model Wall {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  platform  String
+  projectId String   @db.ObjectId
+  prompt    String   @default("")
+  content   String
+  views     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User?     @relation(fields: [userId], references: [id])
+  project Projects? @relation(fields: [projectId], references: [id])
+
+  @@map("wall")
+}
+
+model FirstViewTooltip {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  addProject     Boolean  @default(false)
+  contentPlanner Boolean  @default(false)
+  quickGenerate  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("first-view-tooltip")
+}
+
+model UploadedVideo {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @db.ObjectId
+  projectId         String   @db.ObjectId
+  campaignPlannerId String   @db.ObjectId
+  folderId          String
+  text              String
+  day               Int
+  status            String   @default("pending")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  project Projects @relation(fields: [projectId], references: [id])
+
+  @@map("uploaded-videos")
 }

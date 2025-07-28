@@ -1,105 +1,124 @@
 import { INVITED_USER_ROLES } from "@/constants/common";
-import { UserDoc, UserModel } from "@/db/auth/schema/user";
-import {
-  InvitedUserDoc,
-  InvitedUserModel,
-} from "@/db/projects/schema/invited-users";
-import { ProjectDoc, ProjectModel } from "@/db/projects/schema/project";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
+
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
-import mongoose from "mongoose";
 
 /**
- * Invite a user to the project
+ * Invite a user to a project
  */
 export const POST = applyMiddleware(
-  connectToDBMiddleware(),
-  validateUserAuth({ errorIfNotAuthenticated: true }),
   requestValidator.validateBody(projectValidator.inviteUser),
+  validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
-    const { id: projectId } = params;
+    const { id: projectId } = params as { id: string };
 
-    //@ts-expect-error: ................
-    const user = req.parsed.user as UserDoc;
-
-    //@ts-expect-error: ................
+    //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["inviteUser"];
 
-    const project: ProjectDoc | null = await ProjectModel.findOne({
-      _id: new mongoose.Types.ObjectId(projectId),
+    //@ts-expect-error - user is not defined in Request type
+    const user = req.parsed.user;
+
+    // check if project exists and user is owner
+    const project = await prisma.projects.findUnique({
+      where: {
+        id: projectId,
+      },
     });
 
     if (!project) {
       return sendNextResponse({
-        status: 400,
-        message: `Project with id ${projectId} not found!`,
+        status: 404,
+        message:
+          "The project you are trying to invite to does not exist or has been deleted",
       });
     }
 
-    // check if the user has permission to invite users
-    let hasPermission = false;
-
-    if (project.userId.toString() === user._id.toString()) {
-      hasPermission = true;
-    }
-
-    if (!hasPermission) {
-      // check if the user has permission to invite users
-      const invitedUser: InvitedUserDoc | null = await InvitedUserModel.findOne(
-        {
-          projectId: new mongoose.Types.ObjectId(projectId),
-          userId: new mongoose.Types.ObjectId(user._id),
-          role: INVITED_USER_ROLES.EDITOR,
-        },
-      );
-
-      if (invitedUser) {
-        hasPermission = true;
-      }
-    }
-
-    if (!hasPermission) {
+    if (project.userId !== user.id) {
       return sendNextResponse({
         status: 403,
-        message: "You do not have permission to invite users!",
+        message: "You do not have permission for this action",
       });
     }
 
-    const userToInvite: UserDoc | null = await UserModel.findOne({
-      email: body.email,
+    // check if user exists
+    const invitedUser = await prisma.user.findFirst({
+      where: {
+        email: body.email,
+      },
     });
 
-    if (!userToInvite) {
+    if (!invitedUser) {
+      return sendNextResponse({
+        status: 404,
+        message: "User not found",
+      });
+    }
+
+    // check if user is already invited
+    const existingInvite = await prisma.invitedUser.findFirst({
+      where: {
+        projectId: projectId,
+        userId: invitedUser.id,
+      },
+    });
+
+    if (existingInvite) {
       return sendNextResponse({
         status: 400,
-        message: `User with email ${body.email} not found!`,
+        message: "User is already invited to this project",
       });
     }
 
-    // check if the user is already invited
-    const invitedUser = await InvitedUserModel.findOneAndUpdate(
-      {
-        projectId: new mongoose.Types.ObjectId(projectId),
-        userId: new mongoose.Types.ObjectId(userToInvite._id),
+    // create invite
+    const invite = await prisma.invitedUser.create({
+      data: {
+        projectId: projectId,
+        userId: invitedUser.id,
+        role: INVITED_USER_ROLES.EDITOR,
       },
-      {
-        role: body.role,
-      },
-      {
-        new: true,
-        upsert: true,
-      },
-    );
+    });
 
     return sendNextResponse({
-      status: 201,
-      data: invitedUser,
+      status: 200,
       message: "User invited successfully!",
+      data: invite,
     });
-  }),
+  })
+);
+
+/**
+ * Get invited users by project id
+ */
+export const DELETE = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
+  catchApiAsyncError(async (_req, { params }) => {
+    const { id: projectId } = params as { id: string };
+
+    const invitedUsers = await prisma.invitedUser.findMany({
+      where: {
+        projectId: projectId,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!invitedUsers) {
+      return sendNextResponse({
+        status: 404,
+        message: "No invited users found",
+      });
+    }
+
+    return sendNextResponse({
+      status: 200,
+      data: invitedUsers,
+      message: `Invited users fetched successfully!`,
+    });
+  })
 );

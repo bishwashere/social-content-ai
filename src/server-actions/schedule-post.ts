@@ -1,8 +1,6 @@
 "use server";
 
-import { ScheduledPostsModel } from "@/db/scheduled-posts/schema";
-import connectToDb from "@/db/connect";
-import mongoose from "mongoose";
+import { prisma } from "@/lib/prisma";
 
 type Props = {
   userId: string;
@@ -13,18 +11,17 @@ type Props = {
 
 export const schedulePost = async (props: Props) => {
   try {
-    console.log("🔌 Connecting to database");
-    await connectToDb();
-    console.log("✅ Connected to database successfully");
-
     console.log(
       `🔍 Scheduling post for userId: ${props.userId}, platform: ${props.platform}, date: ${props.date}`
     );
-    const data = await ScheduledPostsModel.create({
-      userId: new mongoose.Types.ObjectId(props.userId),
-      platform: props.platform,
-      content: props.content,
-      date: new Date(props.date * 1000),
+    const data = await prisma.scheduledPost.create({
+      data: {
+        userId: props.userId,
+        platform: props.platform,
+        content: props.content,
+        date: new Date(props.date * 1000),
+        status: "pending"
+      },
     });
 
     if (!data) {

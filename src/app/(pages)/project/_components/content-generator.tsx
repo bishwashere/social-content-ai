@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
-import { Project } from "@/db/projects/schema/project";
+import { Projects as Project } from "@prisma/client";
 
 import PostToWall from "@/components/common/post-to-wall";
 import { Switch } from "@/components/ui/switch";
@@ -66,11 +66,11 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
       <Button
         onClick={() => {
           generateProjectContent.mutate({
-            projectId: project._id,
+            projectId: project.id,
             projectRelated: checked,
             userPrompt: prompt,
             retry: generateProjectContent.data
-              ? { chatId: generateProjectContent.data?._id }
+              ? { chatId: generateProjectContent.data?.id }
               : undefined,
           });
         }}
@@ -111,40 +111,29 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                       <PostToWall
                         content={text}
                         platform={platform}
-                        projectId={project._id}
-                        prompt={prompt}
+                        projectId={project.id}
+                        prompt={generateProjectContent.data.prompt}
                       />
-                      {project.platformUrls[platform] && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link
-                            href={project.platformUrls[platform] || "#"}
-                            target="_blank"
-                          >
-                            <Share2Icon />
-                          </Link>
-                        </Button>
-                      )}
                       <AutoPost
-                        //@ts-expect-error:..........
+                        //@ts-expect-error:...........
                         platform={platform}
                         content={text}
                       />
                     </div>
                   </CardHeader>
-                  <CardContent
-                    className="text-sm text-muted-foreground"
-                    style={{ whiteSpace: "pre-wrap" }}
-                  >
-                    <Markdown>
-                      {(text as string)
-                        .split("\n")
-                        .map((line) => line.trim())
-                        .filter((line) => line.length > 0)
-                        .join("\n\n")}
-                    </Markdown>
+                  <CardContent>
+                    <div className="text-sm text-muted-foreground">
+                      <Markdown>
+                        {(text as string)
+                          .split("\n")
+                          .map((line) => line.trim())
+                          .filter((line) => line.length > 0)
+                          .join("\n\n")}
+                      </Markdown>
+                    </div>
                   </CardContent>
                 </Card>
-              ),
+              )
             )}
           </ScrollArea>
         </div>

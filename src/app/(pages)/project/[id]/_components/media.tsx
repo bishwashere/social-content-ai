@@ -1,7 +1,7 @@
 import { useQueryAllUploadedMedia, useUploadMedia } from '@/backend-apis/video-generation/hooks'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Project } from '@/db/projects/schema/project'
+import { Projects as Project } from '@prisma/client'
 import React, { useRef } from 'react'
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
 }
 
 const Media = ({ project }: Props) => {
-  const vids = useQueryAllUploadedMedia(project._id)
+  const vids = useQueryAllUploadedMedia(project.id)
   const upload = useUploadMedia()
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -27,7 +27,7 @@ const Media = ({ project }: Props) => {
           onChange={(e) => {
             if (e.target.files) {
               upload.mutate({
-                projectId: project._id,
+                projectId: project.id,
                 file: e.target.files[0],
               })
             }
