@@ -26,10 +26,16 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        await continueWithGoogle.mutateAsync({
+        const res = await continueWithGoogle.mutateAsync({
           credential: tokenResponse.access_token,
         });
+
+        if (res?.data?.bearerToken) {
+          localStorage.setItem("nextpostai_token", res.data.bearerToken);
+        }
+
         router.replace("/project");
+
       } catch {}
     },
     scope: "profile email",
