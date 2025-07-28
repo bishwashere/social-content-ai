@@ -231,7 +231,7 @@ export const changeCampaignData = async (
       where: { id },
       data: updateFields,
       include: {
-        Project: true, // optional, if you want to log project details
+        project: true, // optional, if you want to log project details
       },
     });
 

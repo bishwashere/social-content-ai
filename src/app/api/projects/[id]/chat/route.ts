@@ -1,10 +1,9 @@
-import { ProjectChatDoc, ProjectChatModel } from "@/db/projects/schema/chat";
+import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { connectToDBMiddleware } from "@/middlewares/connect-to-db";
 import { validateUserAuth } from "@/middlewares/validate-auth";
-import mongoose from "mongoose";
 
 /**
  * Get project chats by project id
@@ -14,9 +13,14 @@ export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     const projectId = req.nextUrl.pathname.split("/")[3];
-    const chats: ProjectChatDoc[] = await ProjectChatModel.find({
-      projectId: new mongoose.Types.ObjectId(projectId),
-    }).sort({ createdAt: -1 });
+    const chats = await prisma.projectChat.findMany({
+      where: {
+        projectId: projectId,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     if (!chats) {
       return sendNextResponse({
