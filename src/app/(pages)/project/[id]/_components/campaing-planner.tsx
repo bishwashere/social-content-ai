@@ -109,11 +109,18 @@ export default function CampaignPlannerPage({ project }: Props) {
     console.log("PLAN : ", plan)
 
     try {
+      console.log("Submitting campaign:", {
+        projectId,
+        campaignName: name,
+        plan
+      });
+
       const d = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
         plan
       });
+
 
       for (const chat of d.chats) {
         if (chat.status === "PENDING") {
