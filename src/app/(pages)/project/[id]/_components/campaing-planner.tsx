@@ -106,11 +106,11 @@ export default function CampaignPlannerPage({ project }: Props) {
       });
 
       for (const chat of d.chats) {
-        if (chat.status === "pending") {
+        if (chat.status === "PENDING") {
           try {
             await generate.mutateAsync({
               projectId: projectId as string,
-              id: d._id,
+              id: d.id,
               prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
               userId: session?.user?.id as string,
               day: chat.day
@@ -125,11 +125,12 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   // Auto-generate pending chats for existing campaigns on initial page load
   useEffect(() => {
-    if (!campaignPlannerData?.isLoading && campaignPlannerData?.data) {
-      (async () => {
+    if (campaignPlannerData.isLoading || !campaignPlannerData.data) return;
+    (async () => {
+      if (campaignPlannerData.data)
         for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
           for (const chat of campaign.chats) {
-            if (chat.status === "pending") {
+            if (chat.status === "PENDING") {
               try {
                 await generate.mutateAsync({
                   projectId: projectId as string,
@@ -146,8 +147,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             }
           }
         }
-      })();
-    }
+    })();
   }, [campaignPlannerData?.isLoading]);
 
   const deleteCampaign = async (campaignId: string, projectId: string) => {
@@ -417,7 +417,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 });
 
                                 for (const chat of d.chats) {
-                                  if (chat.status === "pending") {
+                                  if (chat.status === "PENDING") {
                                     await generate.mutateAsync({
                                       projectId: projectId as string,
                                       id: campaign.id,
@@ -456,7 +456,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   <div className="flex flex-row gap-1 flex-grow">
                                     <p className="font-medium">Day {timeline.day}:</p>
                                     <p>{timeline.title}</p>
-                                    {timeline.status === "pending" && (
+                                    {timeline.status === "PENDING" && (
                                       <Loader2 className="animate-spin h-4 w-4 ml-auto" />
                                     )}
                                   </div>
@@ -490,7 +490,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       )}
                                       <AutoPost platform={platform} content={text} />
                                       <Checkbox
-                                        checked={timeline.tickMark?.get(platform) === "true"}
+                                      key={platform}
+                                        checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
                                         onCheckedChange={async (checked) => {
                                           toggleTickMark.mutateAsync({
                                             campaignId: campaign.id,
