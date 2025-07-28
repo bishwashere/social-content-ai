@@ -57,13 +57,13 @@ export const GET = applyMiddleware(
       data: project,
       message: "Project fetched successfully!",
     });
-  }),
+  })
 );
 
 /**
  * Update project by id
  */
-export const PUT = applyMiddleware(
+export const PATCH = applyMiddleware(
   requestValidator.validateBody(projectValidator.updateProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req, { params }) => {
@@ -118,7 +118,7 @@ export const PUT = applyMiddleware(
       data: updatedProject,
       message: "Project updated successfully!",
     });
-  }),
+  })
 );
 
 /**
@@ -183,5 +183,5 @@ export const DELETE = applyMiddleware(
       status: 200,
       message: "Project deleted successfully!",
     });
-  }),
+  })
 );

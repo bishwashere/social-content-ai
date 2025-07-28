@@ -5,7 +5,7 @@ import { ProjectTracking } from "@prisma/client";
 export type CreateProjectProps = ProjectValidatorType["createProject"];
 
 export type ProjectWithChats = Projects & {
-  chats?: {
+  projectChats?: {
     id: string;
     title: string;
   }[];

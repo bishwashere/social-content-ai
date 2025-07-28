@@ -179,7 +179,7 @@ function ProjectItem({
         >
           Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
         </Link>
-        {project.chats?.slice(0, 5).map((chat) => (
+        {project.projectChats?.slice(0, 5).map((chat) => (
           <Link
             onClick={() => {
               if (window.innerWidth <= 768) {

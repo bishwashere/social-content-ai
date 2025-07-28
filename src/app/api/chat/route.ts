@@ -65,8 +65,6 @@ export const POST = applyMiddleware(
         projectRelated: body.projectRelated,
       });
 
-      console.log("CHAT FROM AI: ", chatFromAI);
-
       if (!chatFromAI) {
         return sendNextResponse({
           status: 400,
@@ -82,7 +80,7 @@ export const POST = applyMiddleware(
       return sendNextResponse({
         status: 200,
         message: "Chat generated successfully",
-        data: { contents: chatFromAI },
+        data: { projectChats: chatFromAI },
       });
     } else {
       let projectId = body.projectId || "";

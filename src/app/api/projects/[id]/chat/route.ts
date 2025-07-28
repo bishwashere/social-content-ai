@@ -8,7 +8,7 @@ import { validateUserAuth } from "@/middlewares/validate-auth";
 /**
  * Get project chats by project id
  */
-export const POST = applyMiddleware(
+export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     const projectId = req.nextUrl.pathname.split("/")[3];
@@ -17,8 +17,8 @@ export const POST = applyMiddleware(
         projectId: projectId,
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: "desc",
+      },
     });
 
     if (!chats) {
@@ -33,5 +33,5 @@ export const POST = applyMiddleware(
       data: chats,
       message: `Project chats fetched successfully!`,
     });
-  }),
+  })
 );

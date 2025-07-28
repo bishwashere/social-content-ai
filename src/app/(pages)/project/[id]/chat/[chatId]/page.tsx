@@ -101,29 +101,6 @@ export default function ChatPage() {
                       projectId={id}
                       prompt={chat.prompt}
                     />
-                    {
-                      //@ts-expect-error:..........
-                      currentProject?.platformUrls && currentProject?.platformUrls?.[platform as any] && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link
-                            //@ts-expect-error:..........
-                            href={currentProject?.platformUrls?.[platform] || "#"}
-                            target="_blank"
-                          >
-                            <img
-                              //@ts-expect-error:..........
-                              src={ICONS[platform]}
-                              alt={platform}
-                              className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                      )}
-
-                    <AutoPost
-                      //@ts-expect-error:..........
-                      platform={platform}
-                      content={text}
-                    />
                   </div>
                 </div>
                 <div

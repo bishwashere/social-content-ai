@@ -58,6 +58,7 @@ export const POST = applyMiddleware(
  * Get all posts by latest in pagination
  */
 export const GET = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
     const page = req.nextUrl.searchParams.get("page") || 1;
     const limit = req.nextUrl.searchParams.get("limit") || 10;
@@ -106,26 +107,21 @@ export const GET = applyMiddleware(
 );
 
 export const DELETE = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
-    const userId = req.headers.get("x-user-id");
-
-    if (!userId) {
-      return sendNextResponse({
-        status: 401,
-        message: "Unauthorized",
-      });
-    }
+    //@ts-expect-error: user is not defined in Request type
+    const user = req.parsed.user;
 
     // Get all projects where user is owner or invited
     const [ownedProjects, invitedProjects] = await Promise.all([
       prisma.projects.findMany({
-        where: { userId },
+        where: { userId: user.id },
         include: {
           walls: true,
         },
       }),
       prisma.invitedUser.findMany({
-        where: { userId },
+        where: { userId: user.id },
         include: {
           project: {
             include: {
@@ -159,14 +155,10 @@ export const DELETE = applyMiddleware(
 );
 
 export const PUT = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) {
-      return sendNextResponse({
-        status: 401,
-        message: "Unauthorized",
-      });
-    }
+    //@ts-expect-error: user is not defined in Request type
+    const user = req.parsed.user;
 
     const { projectId, content, platform } = await req.json();
 
@@ -182,11 +174,11 @@ export const PUT = applyMiddleware(
       where: {
         id: projectId,
         OR: [
-          { userId },
+          { userId: user.id },
           {
             invitedUsers: {
               some: {
-                userId,
+                userId: user.id,
               },
             },
           },
@@ -206,7 +198,7 @@ export const PUT = applyMiddleware(
       data: {
         content,
         projectId,
-        userId,
+        userId: user.id,
         platform,
       },
     });

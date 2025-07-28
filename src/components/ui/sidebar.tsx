@@ -54,7 +54,7 @@ function useSidebar() {
   return context;
 }
 
-function SidebarProvider({
+function  SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,

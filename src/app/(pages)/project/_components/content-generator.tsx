@@ -112,39 +112,28 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                         content={text}
                         platform={platform}
                         projectId={project.id}
-                        prompt={prompt}
+                        prompt={generateProjectContent.data.prompt}
                       />
-                      {project.platformUrls && project.platformUrls[platform as keyof typeof project.platformUrls] && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link
-                            href={project.platformUrls[platform as keyof typeof project.platformUrls] || "#"}
-                            target="_blank"
-                          >
-                            <Share2Icon />
-                          </Link>
-                        </Button>
-                      )}
                       <AutoPost
-                        //@ts-expect-error:..........
+                        //@ts-expect-error:...........
                         platform={platform}
                         content={text}
                       />
                     </div>
                   </CardHeader>
-                  <CardContent
-                    className="text-sm text-muted-foreground"
-                    style={{ whiteSpace: "pre-wrap" }}
-                  >
-                    <Markdown>
-                      {(text as string)
-                        .split("\n")
-                        .map((line) => line.trim())
-                        .filter((line) => line.length > 0)
-                        .join("\n\n")}
-                    </Markdown>
+                  <CardContent>
+                    <div className="text-sm text-muted-foreground">
+                      <Markdown>
+                        {(text as string)
+                          .split("\n")
+                          .map((line) => line.trim())
+                          .filter((line) => line.length > 0)
+                          .join("\n\n")}
+                      </Markdown>
+                    </div>
                   </CardContent>
                 </Card>
-              ),
+              )
             )}
           </ScrollArea>
         </div>

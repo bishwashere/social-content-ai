@@ -112,28 +112,27 @@ class ProjectService {
       throw new Error(err.response?.data?.message);
     }
 
-    await queryClient.invalidateQueries({
-      queryKey: ["projects"],
-    });
-
-    if (retry && retry.chatId) {
-      await queryClient.setQueryData<ProjectChat[]>(
-        ["project-chats", { projectId }],
-        (data) => {
-          return data
-            ? data.map((chat) =>
-                chat.id === retry.chatId ? res.data.data : chat
-              )
-            : [res.data.data];
-        }
-      );
-    } else {
-      await queryClient.setQueryData<ProjectChat[]>(
-        ["project-chats", { projectId }],
-        (data) => {
-          return data ? [res.data.data, ...data] : [res.data.data];
-        }
-      );
+    // Only update project chats if we have a project
+    if (projectId) {
+      if (retry && retry.chatId) {
+        await queryClient.setQueryData<ProjectChat[]>(
+          ["project-chats", { projectId }],
+          (data) => {
+            return data
+              ? data.map((chat) =>
+                  chat.id === retry.chatId ? res.data.data : chat
+                )
+              : [res.data.data];
+          }
+        );
+      } else {
+        await queryClient.setQueryData<ProjectChat[]>(
+          ["project-chats", { projectId }],
+          (data) => {
+            return data ? [res.data.data, ...data] : [res.data.data];
+          }
+        );
+      }
     }
 
     await queryClient.setQueryData(

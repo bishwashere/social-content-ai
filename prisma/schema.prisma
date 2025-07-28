@@ -176,7 +176,7 @@ model Subscription {
   customerId               String   @default("")
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
-  active                   Boolean
+  active                   Boolean?
 
   user User @relation(fields: [userId], references: [id])
 
@@ -194,8 +194,8 @@ model Wall {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id])
-  project Projects @relation(fields: [projectId], references: [id])
+  user    User?     @relation(fields: [userId], references: [id])
+  project Projects? @relation(fields: [projectId], references: [id])
 
   @@map("wall")
 }

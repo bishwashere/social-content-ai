@@ -9,11 +9,11 @@ export type GetWallProps = {
 
 export type WallResponsePaginated = {
   posts: (Omit<Wall, "userId" | "projectId"> & {
-    userId: {
+    user: {
       avatarUrl: string;
       name: string;
     };
-    projectId: {
+    project: {
       name: string;
     };
   })[];

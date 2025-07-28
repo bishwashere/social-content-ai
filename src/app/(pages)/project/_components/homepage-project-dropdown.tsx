@@ -28,8 +28,8 @@ export default function HomepageProjectDropdown() {
       chat.mutate({
         projectId: selectedProject || "",
         userPrompt: "",
-        retry: chat.data
-          ? { chatId: chat.data?.id }
+        retry: chat.data?.id
+          ? { chatId: chat.data.id }
           : undefined,
       });
     }
@@ -64,7 +64,7 @@ export default function HomepageProjectDropdown() {
   const onProjectSelectChange = (value: string) => {
     chat.reset();
     setSelectedProject(value);
-    // Remeber last project used
+    // Remember last project used
     localStorage.setItem("LastHomepageProjectSelect", value);
   }
 
@@ -132,19 +132,9 @@ export default function HomepageProjectDropdown() {
                   projectId={chat.data.projectId}
                   prompt={chat.data.prompt}
                 />}
-                {/* {currentProject?.platformUrls?.[platform] && (
-                                    <Button variant="ghost" size="icon" asChild>
-                                        <Link
-                                            href={currentProject?.platformUrls?.[platform] || "#"}
-                                            target="_blank"
-                                        >
-                                            <Share2Icon />
-                                        </Link>
-                                    </Button>
-                                )} */}
 
                 <AutoPost
-                  //@ts-expect-error:..........
+                  //@ts-expect-error:...........
                   platform={platform}
                   content={text}
                 />

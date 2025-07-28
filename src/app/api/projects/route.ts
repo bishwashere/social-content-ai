@@ -2,22 +2,18 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
+import { validateUserAuth } from "@/middlewares/validate-auth";
 
 export const GET = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
-    const userId = req.headers.get("x-user-id");
-
-    if (!userId) {
-      return sendNextResponse({
-        status: 401,
-        message: "Unauthorized",
-      });
-    }
+    //@ts-expect-error: user is not defined in Request type
+    const user = req.parsed.user;
 
     // Get all projects where user is owner or invited
     const [ownedProjects, invitedProjects] = await Promise.all([
       prisma.projects.findMany({
-        where: { userId },
+        where: { userId: user.id },
         include: {
           projectTrackings: true,
           projectChats: true,
@@ -25,7 +21,7 @@ export const GET = applyMiddleware(
         },
       }),
       prisma.invitedUser.findMany({
-        where: { userId },
+        where: { userId: user.id },
         include: {
           project: {
             include: {
@@ -53,14 +49,10 @@ export const GET = applyMiddleware(
 );
 
 export const POST = applyMiddleware(
+  validateUserAuth({ errorIfNotAuthenticated: true }),
   catchApiAsyncError(async (req) => {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) {
-      return sendNextResponse({
-        status: 401,
-        message: "Unauthorized",
-      });
-    }
+    //@ts-expect-error: user is not defined in Request type
+    const user = req.parsed.user;
 
     const { name, description } = await req.json();
 
@@ -76,7 +68,7 @@ export const POST = applyMiddleware(
       data: {
         name,
         description,
-        userId,
+        userId: user.id,
       },
       include: {
         projectTrackings: true,
