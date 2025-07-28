@@ -1,6 +1,6 @@
 "use client";
 
-import { Projects as Project } from "@prisma/client";
+import { Projects as Project } from "@generated/prisma";
 import { ContentGenerator } from "../../_components/content-generator";
 
 type QuickGenerateProps = {
