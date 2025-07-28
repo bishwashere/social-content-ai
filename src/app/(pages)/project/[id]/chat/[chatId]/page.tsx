@@ -11,7 +11,7 @@ import {
   useGetAllProjects,
 } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Projects as Project, ProjectChat } from "@generated/prisma";
+import { Projects as Project, ProjectChat } from "@prisma/client";
 
 const ICONS = {
   x: "/x.svg",

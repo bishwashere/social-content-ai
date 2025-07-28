@@ -1,6 +1,6 @@
 import { ProjectValidatorType } from "@/validators/projects";
-import { Projects } from "@generated/prisma";
-import { ProjectTracking } from "@generated/prisma";
+import { Projects } from "@prisma/client";
+import { ProjectTracking } from "@prisma/client"
 
 export type CreateProjectProps = ProjectValidatorType["createProject"];
 

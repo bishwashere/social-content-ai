@@ -1,11 +1,11 @@
 import { useQueryAllUploadedMedia, useUploadMedia } from '@/backend-apis/video-generation/hooks'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Projects as Project } from '@generated/prisma'
+import { Projects } from '@prisma/client'
 import React, { useRef } from 'react'
 
 type Props = {
-  project: Project
+  project: Projects
 }
 
 const Media = ({ project }: Props) => {

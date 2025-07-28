@@ -3,7 +3,7 @@ import {
   PACKAGES_DATA,
   TRIAL_PERIOD_IN_DAYS,
 } from "@/constants/packages";
-import { User } from "@generated/prisma";
+import { User } from "@prisma/client";
 import consola from "consola";
 import StripeNative from "stripe";
 import { prisma } from "./prisma";

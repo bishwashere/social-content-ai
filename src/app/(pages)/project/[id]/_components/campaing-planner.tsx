@@ -30,7 +30,6 @@ import PostToWall from "@/components/common/post-to-wall";
 import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
-import { Projects as Project } from "@generated/prisma";
 import { Input } from "@/components/ui/input";
 import ChangeCampaignName from "./change-campaign-name";
 import { confirm } from "@/components/ui/alert-dialog";
@@ -43,6 +42,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import LoadingCard from "./campaign-loading-card";
 import { useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Projects } from "@prisma/client";
 
 const ICONS = {
   x: "/x.svg",
@@ -58,7 +58,7 @@ Description: ${str}
 `;
 
 type Props = {
-  project: Project;
+  project: Projects;
 };
 
 export default function CampaignPlannerPage({ project }: Props) {
