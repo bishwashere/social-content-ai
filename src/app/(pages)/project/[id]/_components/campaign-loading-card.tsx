@@ -9,7 +9,7 @@ const messages = [
 ];
 
 type LoadingCardProps = {
-  loading: boolean;
+  loading: string;
 };
 
 const LoadingCard: React.FC<LoadingCardProps> = ({ loading }) => {
@@ -28,10 +28,10 @@ const LoadingCard: React.FC<LoadingCardProps> = ({ loading }) => {
   if (!loading) return null;
 
   return (
-    <Card className="w-full flex items-center justify-center py-2 mt-4 gap-4 flex-row">
+    <div className="w-full flex items-center justify-center pb-2 pt-4 gap-4 flex-row">
       <p className="text-lg font-medium">{messages[index]}</p>
       <Loader2 className="animate-spin h-5 w-5" />
-    </Card>
+    </div>
   );
 };
 
