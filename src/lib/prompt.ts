@@ -6,7 +6,7 @@ export const PLATFORM_CHARACTER_LIMITS = {
   x: 250,
   linkedin: 500,
   threads: 250,
-  reddit: 500,
+  reddit: 1500,
 } as const;
 
 export const PLATFORM_CUSTOM_PROMPTS = {
