@@ -95,6 +95,7 @@ export default function ChatPage() {
                     >
                       <CopyIcon />
                     </Button>
+                    <AutoPost platform={platform as any} content={text} />
                     <PostToWall
                       content={text}
                       platform={platform}

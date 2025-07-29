@@ -35,8 +35,71 @@ const AutoPost = ({ platform, content }: Props) => {
     })
 
     if (!shouldPost) return
+    const isAuthenticated = await checkIfAuthenticated()
+    if (!isAuthenticated) return
     setIsDatePickerOpen(true)
   }
+
+  const checkIfAuthenticated = async () => {
+
+    if (!data?.user?.id) {
+      toast.error("You need to sign in to post automatically")
+      return false
+    }
+
+    if (platform === "x") {
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Twitter to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("twitter")
+        }, 1000);
+        return false
+      } else {
+        return true
+      }
+    } else if (platform === "threads") {
+      return false
+    } else if (platform === "facebook") {
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Facebook to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("facebook")
+        }, 1000);
+        return false
+      } else {
+        return true
+      }
+    } else if (platform === "reddit") {
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Reddit to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("reddit")
+        }, 1000);
+        return false
+      } else {
+        return true
+      }
+    } else if (platform === "linkedin") {
+      const hasTokens = await checkAuthTokens(data?.user?.id, platform,)
+
+      if (!hasTokens) {
+        toast.loading("You need to sign in to Linkedin to post automatically, redirecting...")
+        setTimeout(() => {
+          signIn("linkedin")
+        }, 1000);
+        return false
+      } else {
+        return true
+      }
+    }
+  }
+
 
   const onDone = async (date: Date | undefined) => {
 
@@ -51,124 +114,27 @@ const AutoPost = ({ platform, content }: Props) => {
       return
     }
 
-    console.log("date: ", date)
-
     if (new Date(date) < new Date()) {
       toast.error("Date cannot be in the past")
       return
     }
     setIsDatePickerOpen(false)
 
+    let platformName = platform as string
     if (platform === "x") {
-      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
+      platformName = "twitter"
+    }
 
-      if (!hasTokens) {
-        toast.loading("You need to sign in to Twitter to post automatically, redirecting...")
-        setTimeout(() => {
-          signIn("twitter")
-        }, 1000);
-      } else {
-        const res = await schedulePost({
-          userId: data?.user?.id,
-          platform: "twitter",
-          content: content,
-          date: new Date(date).getTime() / 1000
-        })
-
-        if (res) {
-          toast.success("Post scheduled!")
-        } else {
-          toast.error("Failed to schedule post")
-        }
-      }
-    } else if (platform === "threads") {
-      // const hasTokens = await checkAuthTokens(data?.user?.id, platform)
-
-      // if (!hasTokens) {
-      //   toast.loading("You need to sign in to Threads to post automatically, redirecting...")
-      //   setTimeout(() => {
-      //     signIn("threads")
-      //   }, 1000);
-      // } else {
-      //   const res = await schedulePost({
-      //     userId: data?.user?.id,
-      //     platform: "threads",
-      //     content: content,
-      //     date: new Date(date).getTime() / 1000
-      //   })
-
-      //   if (res) {
-      //     toast.success("Post scheduled!")
-      //   } else {
-      //     toast.error("Failed to schedule post")
-      //   }
-      // }
-    } else if (platform === "facebook") {
-      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
-
-      if (!hasTokens) {
-        toast.loading("You need to sign in to Facebook to post automatically, redirecting...")
-        setTimeout(() => {
-          signIn("facebook")
-        }, 1000);
-      } else {
-        const res = await schedulePost({
-          userId: data?.user?.id,
-          platform: "facebook",
-          content: content,
-          date: new Date(date).getTime() / 1000
-        })
-
-        if (res) {
-          toast.success("Post scheduled!")
-        } else {
-          toast.error("Failed to schedule post")
-        }
-      }
-    } else if (platform === "reddit") {
-      const hasTokens = await checkAuthTokens(data?.user?.id, platform)
-
-      if (!hasTokens) {
-        toast.loading("You need to sign in to Reddit to post automatically, redirecting...")
-        setTimeout(() => {
-          signIn("reddit")
-        }, 1000);
-      } else {
-        const res = await schedulePost({
-          userId: data?.user?.id,
-          platform: "reddit",
-          content: content,
-          date: new Date(date).getTime() / 1000
-        })
-
-        if (res) {
-          toast.success("Post scheduled!")
-        } else {
-          toast.error("Failed to schedule post")
-        }
-      }
-    } else if (platform === "linkedin") {
-      const hasTokens = await checkAuthTokens(data?.user?.id, platform, date)
-
-      if (!hasTokens) {
-        toast.loading("You need to sign in to Linkedin to post automatically, redirecting...")
-        setTimeout(() => {
-          signIn("linkedin")
-        }, 1000);
-      } else {
-        const res = await schedulePost({
-          userId: data?.user?.id,
-          platform: "linkedin",
-          content: content,
-          date: new Date(date).getTime() / 1000
-        })
-
-        if (res) {
-          toast.success("Post scheduled!")
-        } else {
-          toast.error("Failed to schedule post")
-        }
-      }
+    const res = await schedulePost({
+      content,
+      platform: platformName,
+      userId: data.user.id,
+      date: date.toISOString()
+    })
+    if (!res) {
+      toast.error("Failed to schedule post")
+    } else {
+      toast.success("Post scheduled successfully")
     }
   }
 
@@ -189,7 +155,6 @@ const AutoPost = ({ platform, content }: Props) => {
             <Button
               onClick={onClick}
               variant={"ghost"} size={"sm"}>
-
               <Share2Icon />
             </Button>
           </TooltipTrigger>

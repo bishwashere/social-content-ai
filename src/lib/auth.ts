@@ -110,8 +110,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 );
                 const pagesData = await pagesResponse.json();
 
-                console.log("pagesData", pagesData);
-
                 if (pagesData.data && pagesData.data.length > 0) {
                   // Step 3: Use the first page's access token (which is long-lived for pages)
                   const firstPage = pagesData.data[0];
