@@ -18,7 +18,7 @@ class AuthService {
    */
   async continueWithGoogle(
     { credential }: ContinueWithGoogleParams,
-    queryClient: QueryClient,
+    queryClient: QueryClient
   ) {
     const [err, res] = await tryCatchAsync<
       ApiError,
@@ -32,7 +32,11 @@ class AuthService {
 
     if (err) throw new Error(err.response?.data?.message);
 
-    Cookies.set(AUTH_TOKEN_COOKIE_NAME, res?.data.data?.bearerToken || "");
+    Cookies.set(AUTH_TOKEN_COOKIE_NAME, res?.data.data?.bearerToken || "", {
+      expires: 30, // Cookie will expire in 30 days
+      secure: process.env.NODE_ENV === "production", // Only use secure in production
+      sameSite: "lax", // Protect against CSRF
+    });
 
     await queryClient.setQueryData(["session"], res?.data.data);
 
