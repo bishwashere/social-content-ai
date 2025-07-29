@@ -478,9 +478,17 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 {/* Content Cards Right Column */}
                                 <div className="w-full">
                                   <Dialog>
-                                    <div className={`border p-4 rounded-lg cursor-pointer ${timeline.completed ? 'bg-green-200' : 'hover:bg-gray-50'} gap-2 flex-row flex justify-between relative`}>
-                                      <div className="absolute rounded-s-lg w-1 h-full left-0 bg-primary top-0 opacity-30" />
-                                      <div className="flex gap-2 items-center">
+                                    <div
+                                      className={`border p-4 rounded-lg cursor-pointer gap-2 flex-row flex justify-between relative`}
+                                    >
+                                      {/* Background bar based on completion ratio */}
+                                      <div
+                                        className="absolute left-0 top-0 h-full bg-green-200 z-0 transition-all duration-300 rounded-s-lg"
+                                        style={{ width: timeline.completed ? '100%' : `${(Object.values(timeline.tickMark || {}).filter(Boolean).length / Object.keys(timeline.contents || {}).length) * 100}%` }}
+                                      />
+
+                                      {/* Main content stays above the background */}
+                                      <div className="relative z-10 flex gap-2 items-center w-full">
                                         <div className="flex justify-end items-center gap-2">
                                           <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
                                         </div>
