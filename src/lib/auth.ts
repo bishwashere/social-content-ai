@@ -111,19 +111,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const pagesData = await pagesResponse.json();
 
                 if (pagesData.data && pagesData.data.length > 0) {
-                  // Step 3: Use the first page's access token (which is long-lived for pages)
-                  const firstPage = pagesData.data[0];
-                  updateData.accessToken = firstPage.access_token; // Page access token
-                  updateData.facebookPageId = firstPage.id;
-
-                  console.log(
-                    "Stored Facebook page access token for page:",
-                    firstPage.name
-                  );
-                  console.log("Page ID:", firstPage.id);
+                  // Store the long-lived user token temporarily
+                  updateData.accessToken = longLivedTokenData.access_token;
+                  
+                  // Store pages data in a cookie for the client to handle page selection
+                  const cookieStore = cookies();
+                  cookieStore.set('fb_pages_data', JSON.stringify(pagesData.data), {
+                    maxAge: 300, // 5 minutes
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                  });
                 } else {
                   console.log("No Facebook pages found for user");
-                  // Fallback to long-lived user token if no pages
                   updateData.accessToken = longLivedTokenData.access_token;
                 }
               } else {
