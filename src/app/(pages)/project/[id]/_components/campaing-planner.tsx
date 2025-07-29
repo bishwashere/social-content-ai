@@ -43,6 +43,7 @@ import LoadingCard from "./campaign-loading-card";
 import { useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Projects } from "@prisma/client";
+import { SavePlatformCard } from "./save-platform-card";
 
 const ICONS = {
   x: "/x.svg",
@@ -346,7 +347,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                           style={{ width: `${realProgress}%` }}
                         />
                       }
-                      {isInProgress && isInProgress===campaign.id && <LoadingCard loading={isInProgress} />}
+                      {isInProgress && isInProgress === campaign.id && <LoadingCard loading={isInProgress} />}
                       <button
                         className="w-full flex justify-between items-center p-4 font-semibold"
                         onClick={toggleOpen}
@@ -476,7 +477,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 </div>
                                 {/* Content Cards Right Column */}
                                 <div className="w-full">
-                                  <Dialog key={id}>
+                                  <Dialog>
                                     <div className={`border p-4 rounded-lg cursor-pointer ${timeline.completed ? 'bg-green-200' : 'hover:bg-gray-50'} gap-2 flex-row flex justify-between relative`}>
                                       <div className="absolute rounded-s-lg w-1 h-full left-0 bg-primary top-0 opacity-30" />
                                       <div className="flex gap-2 items-center">
@@ -526,6 +527,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                   </Link>
                                                 </Button>
                                               )}
+                                              <SavePlatformCard
+                                                platform={platform}
+                                                projectId={project.id}
+                                                timelineDay={timeline.day}
+                                              />
                                               <AutoPost platform={platform} content={text} />
                                               <Checkbox
                                                 key={platform}
