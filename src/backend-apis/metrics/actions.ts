@@ -11,8 +11,21 @@ export const fetchRedditPostsData = async (
     const postId = extractPostId(url);
     if (!postId) continue;
 
-    const res = await fetch(`https://www.reddit.com/comments/${postId}.json`);
-    if (!res.ok) continue;
+    const res = await fetch(`https://www.reddit.com/comments/${postId}.json`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; SocialContentAI/1.0)",
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) {
+      console.log(
+        "Error fetching Reddit post data",
+        res.status,
+        res.statusText,
+        await res.text()
+      );
+      continue;
+    }
 
     const data = await res.json();
     const post = data?.[0]?.data?.children?.[0]?.data;

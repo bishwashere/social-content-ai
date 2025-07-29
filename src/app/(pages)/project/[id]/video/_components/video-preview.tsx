@@ -99,7 +99,7 @@ export default function VideoPreview({ videos, overlayText, autoPlay = true, mut
   // Preload the next video
   useEffect(() => {
     // Determine the next video index, looping back to 0 if at the end
-    const nextVideoIndex = (currentVideoIndex + 1) % videos.length
+    const nextVideoIndex = (currentVideoIndex + 1) % videos?.length
 
     if (preloadVideoRef.current && !isLoading) {
       // Only preload after current video is ready
@@ -120,7 +120,7 @@ export default function VideoPreview({ videos, overlayText, autoPlay = true, mut
       let newFontSize = 36 // max font size
 
       // Reduce font size until it fits
-      while (newFontSize > 12 && overlayText.length * newFontSize * 0.6 > containerWidth - 40) {
+      while (newFontSize > 12 && overlayText?.length * newFontSize * 0.6 > containerWidth - 40) {
         newFontSize -= 4
       }
 
@@ -135,7 +135,7 @@ export default function VideoPreview({ videos, overlayText, autoPlay = true, mut
     }
   }, [overlayText])
 
-  if (!videos || videos.length === 0) {
+  if (!videos || videos?.length === 0) {
     return <div className="text-center p-4">No videos available</div>
   }
 
