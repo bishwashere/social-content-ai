@@ -233,11 +233,9 @@ export default function CampaignPlannerPage({ project }: Props) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
       {!showCampaignForm && (
-        <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
-          <Button className="w-full" onClick={() => setShowCampaignForm(true)}>
-            Plan Campaign
-          </Button>
-        </div>
+        <Button size={"xl"} className="fixed bottom-8 right-8 !md:bg-primary/40 hover:bg-primary z-50 shadow-lg" onClick={() => setShowCampaignForm(true)}>
+          Plan Campaign
+        </Button>
       )}
 
       {showCampaignForm && (

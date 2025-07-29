@@ -15,7 +15,7 @@ export default function DashboardPage() {
     return (
       <main className="flex max-w-4xl mx-auto items-center justify-center w-full">
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList>
+          <TabsList className="mx-8">
             <TabsTrigger value="dashboard" onClick={() => localStorage.setItem("contentPlannerTab", "dashboard")}>Dashboard</TabsTrigger>
             <TabsTrigger value="calendar" onClick={() => localStorage.setItem("contentPlannerTab", "calendar")}>Calendar</TabsTrigger>
           </TabsList>

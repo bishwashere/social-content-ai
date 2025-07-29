@@ -80,10 +80,11 @@ export default function VideoSelectionPage() {
     <div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <section>
-            <h2 className="text-2xl font-bold mb-4">Select a Video</h2>
-
-            <Carousel className="w-full">
+          <section className="@container">
+            <h2 className="text-2xl font-bold mb-4">
+              Step 1 of 3 : Select a Template
+            </h2>
+            <Carousel className="w-full ">
               <CarouselContent className="-ml-4 p-6">
 
                 {
@@ -98,7 +99,7 @@ export default function VideoSelectionPage() {
                     )) : chunk(viralVideos?.data || [], 2, {
                       style: "repeat"
                     })?.map((videos, i) => {
-                      return <CarouselItem key={i.toString()} className="pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                      return <CarouselItem key={i.toString()} className="pl-4 basis-1/2 @sm:basis-1/3 @md:basis-1/4 @lg:basis-1/5 @xl:basis-1/6">
                         <div className="space-y-4">
                           {
                             videos.map((video) => (
@@ -131,7 +132,7 @@ export default function VideoSelectionPage() {
           </section>
 
           <section className="bg-muted p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Engage Your Audience</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 2 of 3 : Enter a Hook</h2>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="hook-text">Enter a compelling hook for your video</Label>
@@ -147,7 +148,7 @@ export default function VideoSelectionPage() {
           </section>
 
           <section className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8">
-            <h2 className="text-2xl font-bold mb-4">Upload Your Demo Video</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 3 of 3 : Upload Your Demo Video</h2>
             {!uploadedVideo ? (
               <div className="space-y-4 text-center">
                 <div className="flex flex-col items-center justify-center">

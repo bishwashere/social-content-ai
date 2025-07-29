@@ -15,9 +15,10 @@ import { useLogout, useSession } from "@/backend-apis/auth/hooks";
 import { Logo } from "@/components/common/logo";
 import GoogleLoginButton from "@/components/common/google-login-button";
 import Subscription from "@/components/common/subscription";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FaRegQuestionCircle } from "react-icons/fa";
 import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
+import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 
 
 export function Header() {
@@ -25,13 +26,19 @@ export function Header() {
   const logout = useLogout();
   const router = useRouter();
   const resetTooltip = useResetFirstViewTooltip();
+  const { id } = useParams();
+  const projects = useGetAllProjects();
 
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
       <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
         <div className="flex items-center gap-6">
           <SidebarTrigger className="min-w-[24px]" />
-          <Logo />
+          <span className="truncate">
+            {
+              projects?.data?.find((project) => project.id === id)?.name || "Dashboard"
+            }
+          </span>
         </div>
         <div className="flex items-center gap-4">
           <Subscription />

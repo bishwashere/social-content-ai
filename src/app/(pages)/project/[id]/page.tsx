@@ -108,10 +108,8 @@ export default function ProjectPage() {
           </Card>
         ) : (
           <div>
-            <Card className="flex flex-col gap-2 items-start p-4">
+            {/* <Card className="flex flex-col gap-2 items-start p-4">
               <div className="relative w-full">
-                {/* Settings Icon - Positioned Top Right */}
-                {/* Title - Centered */}
                 <CardHeader className="flex items-center flex-row justify-between gap-2 w-full px-0">
                   <CardTitle className="text-base sm:text-lg xl:text-xl font-bold break-all ">
                     {project.name}
@@ -129,7 +127,6 @@ export default function ProjectPage() {
                 </CardHeader>
               </div>
 
-              {/* Toggleable Description */}
               {showDescription && (
                 <CardDescription className="p-2 bg-gray-50 rounded-lg w-full">
                   {isEditing ? (
@@ -211,7 +208,7 @@ export default function ProjectPage() {
                   )}
                 </CardDescription>
               )}
-            </Card>
+            </Card> */}
             <Tabs defaultValue={defaultTab} className="w-full mt-5">
               <TabsList className="mb-5">
                 <TabsTrigger value="generate" onClick={() => localStorage.setItem("projectTab", "generate")}>Quick Generate</TabsTrigger>

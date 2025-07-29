@@ -16,14 +16,16 @@ const Subscription = () => {
         className="bg-yellow-400 capitalize border-yellow-500 hover:text-yellow-800 hover:bg-yellow-300 text-yellow-900 transition-colors"
       >
         <Coins />{" "}
-        {data?.subscription?.endsAt
-          ? isSubscriptionExpired(data?.subscription?.endsAt?.toString()).isExpired
-            ? "Expired"
-            : data?.subscription?.status === "trialing"
-              ? "Trial"
-              : "Pro"
-          : "Subscribe"}
-        {" "}{data?.user?.remainingChatGenerations || 0}
+        <span className="max-sm:hidden">
+          {data?.subscription?.endsAt
+            ? isSubscriptionExpired(data?.subscription?.endsAt?.toString()).isExpired
+              ? "Expired"
+              : data?.subscription?.status === "trialing"
+                ? "Trial"
+                : "Pro"
+            : "Subscribe"}
+          {" "}{data?.user?.remainingChatGenerations || 0}
+        </span>
       </Button>
     </div>
   );
