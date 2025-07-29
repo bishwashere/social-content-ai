@@ -302,7 +302,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
       <LoadingCard loading={isInProgress} />
 
-      <div className="space-y-6 w-full max-w-2xl py-6">
+      <div className="space-y-6 w-full py-6">
         {campaignPlannerData?.isLoading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="animate-spin h-5 w-5" />
@@ -341,7 +341,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                 }
 
                 return (
-                  <div key={campaign.id} className="border rounded-lg">
+                  <div key={campaign.id} className="border rounded-lg pb-5">
 
                     <div className="w-full relative">
                       <div
@@ -458,85 +458,117 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                       </div>
                     )}
+                    <div className="relative">
+                      {/* Vertical Line */}
+                      <div className="absolute hidden md:block left-5 top-0 bottom-0 w-1 bg-gray-300 z-0" />
 
+                      <div>
+                        {isOpen && (
+                          campaign.chats.map((timeline, id) => {
+                            const baseDate = campaign.startDate ? new Date(campaign.startDate) : new Date();
+                            const futureDate = new Date(baseDate.getTime() + timeline.day * 86400000);
 
-                    {isOpen && (
-                      <div className="p-2 space-y-2">
-                        {campaign.chats.map((timeline, id) => (
-                          <Dialog key={id}>
-                            <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50 gap-2 flex-row flex justify-between">
-                              <div className="flex gap-2 items-center">
-                                <div className="flex justify-end items-center gap-2">
-                                  <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
-                                </div>
-                                <DialogTrigger asChild>
-                                  <div className="flex flex-row gap-1 flex-grow">
-                                    <p className="font-medium">Day {timeline.day}:</p>
-                                    <p>{timeline.title}</p>
-                                    {timeline.status === "PENDING" && (
-                                      <Loader2 className="animate-spin h-4 w-4 ml-auto" />
-                                    )}
+                            return (
+                              <div className="flex items-center flex-grow px-4 py-2 gap-4" key={id}>
+                                <div className={`absolute hidden md:block left-3.5 h-4 w-4 rounded-full ${id === 0 ? "bg-primary" : "bg-gray-400"}`} />
+                                <div className="hidden md:flex items-center justify-end gap-4 min-w-28">
+                                  <div className="flex flex-col items-center justify-end">
+                                    <span className={`text-sm font-semibold ${id === 0 ? "text-primary" : "text-gray-600"}`}>
+                                      {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </span>
                                   </div>
-                                </DialogTrigger>
-                              </div>
-                              <div className="flex justify-end">
-                                <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
-                              </div>
-                            </div>
-                            <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
-                              {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
-                                <Card key={platform} className="rounded-lg border mb-5">
-                                  <CardHeader className="flex justify-between items-center mb-2 flex-row">
-                                    <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                    <div className="flex flex-row items-center gap-2">
-                                      <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
-                                        <CopyIcon />
-                                      </Button>
-                                      <PostToWall
-                                        content={text}
-                                        platform={platform}
-                                        projectId={project.id}
-                                        prompt=""
-                                      />
-                                      {project.platformUrls && project.platformUrls[platform as keyof typeof project.platformUrls] && (
-                                        <Button variant="ghost" size="icon" asChild>
-                                          <Link href={project.platformUrls[platform as keyof typeof project.platformUrls] || "#"} target="_blank">
-                                            <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
-                                          </Link>
-                                        </Button>
-                                      )}
-                                      <AutoPost platform={platform} content={text} />
-                                      <Checkbox
-                                        key={platform}
-                                        checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
-                                        onCheckedChange={async (checked) => {
-                                          toggleTickMark.mutateAsync({
-                                            campaignId: campaign.id,
-                                            day: timeline.day,
-                                            platform: platform,
-                                            tick: Boolean(checked)
-                                          })
-                                        }}
-                                        disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
-                                      />
+                                </div>
+                                {/* Content Cards Right Column */}
+                                <div className="w-full">
+                                  <Dialog key={id}>
+                                    <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50 gap-2 flex-row flex justify-between relative">
+                                      <div className="absolute rounded-s-lg w-1 h-full left-0 bg-primary top-0 opacity-30" />
+                                      <div className="flex gap-2 items-center">
+                                        <div className="flex justify-end items-center gap-2">
+                                          <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
+                                        </div>
+                                        <DialogTrigger asChild>
+                                          <div className="flex flex-row gap-1 flex-grow text-sm sm:text-base">
+                                            {/* <p className="font-medium">Day {timeline.day}:</p> */}
+                                            <p className="block md:hidden font-medium">
+                                              {futureDate.toLocaleDateString("en-US", {
+                                                year: "numeric",
+                                                month: "long",
+                                                day: "numeric",
+                                              })}:
+                                            </p>
+                                            <p>{timeline.title}</p>
+                                            {timeline.status === "PENDING" && (
+                                              <Loader2 className="animate-spin h-4 w-4 ml-auto" />
+                                            )}
+                                          </div>
+                                        </DialogTrigger>
+                                      </div>
+                                      <div className="flex justify-end">
+                                        <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                                      </div>
                                     </div>
-                                  </CardHeader>
-                                  <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
-                                    <Markdown>
-                                      {text
-                                        .split("\n")
-                                        .map(line => line.trim())
-                                        .filter(line => line.length > 0)
-                                        .join("\n\n")}
-                                    </Markdown>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </DialogContent>
-                          </Dialog>
-                        ))}
+                                    <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
+                                      {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
+                                        <Card key={platform} className="rounded-lg border mb-5">
+                                          <CardHeader className="flex justify-between items-center mb-2 flex-row">
+                                            <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
+                                            <div className="flex flex-row items-center gap-2">
+                                              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
+                                                <CopyIcon />
+                                              </Button>
+                                              <PostToWall
+                                                content={text}
+                                                platform={platform}
+                                                projectId={project.id}
+                                                prompt=""
+                                              />
+                                              {project.platformUrls && project.platformUrls[platform as keyof typeof project.platformUrls] && (
+                                                <Button variant="ghost" size="icon" asChild>
+                                                  <Link href={project.platformUrls[platform as keyof typeof project.platformUrls] || "#"} target="_blank">
+                                                    <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
+                                                  </Link>
+                                                </Button>
+                                              )}
+                                              <AutoPost platform={platform} content={text} />
+                                              <Checkbox
+                                                key={platform}
+                                                checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
+                                                onCheckedChange={async (checked) => {
+                                                  toggleTickMark.mutateAsync({
+                                                    campaignId: campaign.id,
+                                                    day: timeline.day,
+                                                    platform: platform,
+                                                    tick: Boolean(checked)
+                                                  })
+                                                }}
+                                                disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
+                                              />
+                                            </div>
+                                          </CardHeader>
+                                          <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
+                                            <Markdown>
+                                              {text
+                                                .split("\n")
+                                                .map(line => line.trim())
+                                                .filter(line => line.length > 0)
+                                                .join("\n\n")}
+                                            </Markdown>
+                                          </CardContent>
+                                        </Card>
+                                      ))}
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}

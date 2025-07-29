@@ -88,14 +88,14 @@ export default function ProjectPage() {
 
   if (defaultTab)
     return (
-      <div className="flex-grow max-w-3xl mx-auto items-center justify-center p-6 space-y-6 -mt-5">
+      <div className="flex-grow max-w-5xl mx-auto items-center justify-center py-6 px-6 md:px-14 xl:px-20 space-y-6 -mt-5">
         {loading || projects.isLoading ? (
           <div className="p-6 space-y-6 items-center justify-center">
             <Skeleton className="h-8 w-64" />
             <Skeleton className="h-48 w-full" />
           </div>
         ) : !project ? (
-          <Card className="flex flex-wrap gap-2 items-center ">
+          <Card className="flex flex-wrap gap-2 items-center">
             <CardHeader>
               <CardTitle className="text-destructive">
                 Project Not Found
@@ -107,7 +107,7 @@ export default function ProjectPage() {
             </CardHeader>
           </Card>
         ) : (
-          <>
+          <div>
             <Card className="flex flex-col gap-2 items-start p-4">
               <div className="relative w-full">
                 {/* Settings Icon - Positioned Top Right */}
@@ -212,7 +212,7 @@ export default function ProjectPage() {
                 </CardDescription>
               )}
             </Card>
-            <Tabs defaultValue={defaultTab} className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full mt-5">
               <TabsList className="mb-5">
                 <TabsTrigger value="generate" onClick={() => localStorage.setItem("projectTab", "generate")}>Quick Generate</TabsTrigger>
                 <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign Planner</TabsTrigger>
@@ -224,7 +224,7 @@ export default function ProjectPage() {
               <TabsContent value="history"><History project={project!} /></TabsContent>
               <TabsContent value="media"><Media project={project!} /></TabsContent>
             </Tabs>
-          </>
+          </div>
         )}
       </div>
     );
