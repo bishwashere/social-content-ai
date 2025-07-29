@@ -68,7 +68,10 @@ export function PlatformCard({
 
   return (
     <div
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className={cn("p-3 border rounded-lg shadow-sm bg-white cursor-pointer",)}>
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold capitalize">{platform}</h3>
@@ -90,6 +93,7 @@ export function PlatformCard({
           ?.map((entry, index) =>
             entry.url ? (
               <a
+                onClick={(e) => e.stopPropagation()}
                 key={`${entry.date}-${index}`}
                 href={entry.url || "#"}
                 target="_blank"
@@ -101,6 +105,7 @@ export function PlatformCard({
             ) : (
               <button
                 key={`${entry.date}-${index}`}
+                onClick={(e) => e.stopPropagation()}
                 rel="noopener noreferrer"
                 className={`px-2 py-1 rounded-full text-xs ${getDateColor(entry.date)} hover:underline`}
               >
@@ -111,7 +116,9 @@ export function PlatformCard({
       </div>
 
       {isEditing && (
-        <div className="space-y-2 mt-2">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="space-y-2 mt-2">
           <div className="flex items-center space-x-2">
             <DatePicker
               selected={selectedDate}
@@ -126,7 +133,8 @@ export function PlatformCard({
             <Button
               size={"sm"}
               disabled={trackProject.isPending}
-              onClick={async () => {
+              onClick={async (e) => {
+                e.stopPropagation();
                 if (selectedDate) {
                   try {
                     await trackProject.mutateAsync({
@@ -146,6 +154,7 @@ export function PlatformCard({
             </Button>
           </div>
           <Input
+            onClick={(e) => e.stopPropagation()}
             type="url"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}

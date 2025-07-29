@@ -355,8 +355,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                         <div className="flex flex-wrap justify-center items-center gap-2">
                           {campaign.name}
                           <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
-                          <p className="text-sm">• {campaign.goal}</p>
-                          <p className="text-sm">• {campaign.targetAudience}</p>
+                          <p className="text-sm max-md:hidden">• {campaign.goal}</p>
+                          <p className="text-sm max-md:hidden">• {campaign.targetAudience}</p>
                           <p className="text-sm">•&nbsp;
                             {new Date(campaign.startDate ? campaign.startDate : campaign.date).toLocaleDateString("en-US", {
                               year: "numeric",
@@ -368,90 +368,91 @@ export default function CampaignPlannerPage({ project }: Props) {
                             <Trash className="size-[14px] stroke-red-500" />
                           </button>
                         </div>
-                        <span className="ml-2 text-sm text-gray-500">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
+                        <div className="flex justify-end">
+                          {isOpen && (
+                            <div className="px-4 pb-4 space-y-4">
+                              <div className="flex gap-2 justify-end">
+
+                                <DatePicker
+                                  // selected={selectedDate}
+                                  onChange={(date) => {
+                                    if (date) {
+                                      updateCampaignData.mutate({ id: campaign.id, startDate: date })
+                                      closeCalendar(campaign.id);
+                                    }
+                                  }}
+                                  open={isCalenderOpen.includes(campaign.id)}
+                                  onFocus={() => openCalendar(campaign.id)}
+                                  onClickOutside={() => closeCalendar(campaign.id)}
+                                  showPopperArrow={true}
+                                  className="text-xs"
+                                  customInput={
+                                    <Button variant="outline" size="sm" className="w-fit text-xs">
+                                      <Play />
+                                      <span className="max-lg:hidden"> Start</span>
+                                    </Button>
+                                  }
+                                  disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    const yes = await confirm({
+                                      title: "Regenerate content for this day?",
+                                      description: "Regenerating content will use your coins"
+                                    });
+                                    if (!yes) return;
+                                    try {
+                                      const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
+                                      if (!selectedCampaignPlanner) {
+                                        toast.error("Failed to find plan");
+                                        return;
+                                      }
+                                      const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
+                                      if (!intensityPlans) {
+                                        toast.error("Failed to find plan");
+                                        return;
+                                      }
+
+                                      const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
+
+                                      const d = await campaignPlannerMutation.mutateAsync({
+                                        id: campaign.id,
+                                        projectId: projectId as string,
+                                        campaignName: campaign.name || "",
+                                        plan
+                                      });
+
+                                      for (const chat of d.chats) {
+                                        if (chat.status === "PENDING") {
+                                          await generate.mutateAsync({
+                                            projectId: projectId as string,
+                                            id: campaign.id,
+                                            prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
+                                            userId: session?.user?.id as string,
+                                            day: chat.day
+                                          });
+                                          await sleep(2000);
+                                          campaignPlannerData.refetch();
+                                        }
+                                      }
+                                    } catch {
+                                      toast.error("Failed to regenerate campaign");
+                                    }
+                                  }}
+                                >
+                                  <RefreshCcw className="h-4 w-4 mr-1" />
+                                </Button>
+                              </div>
+
+
+                            </div>
+                          )}
+                          <span className="ml-2 text-sm text-gray-500">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
+                        </div>
                       </button>
                     </div>
-
-                    {isOpen && (
-                      <div className="px-4 pb-4 space-y-4">
-                        <div className="flex gap-2 justify-end">
-
-                          <DatePicker
-                            // selected={selectedDate}
-                            onChange={(date) => {
-                              if (date) {
-                                updateCampaignData.mutate({ id: campaign.id, startDate: date })
-                                closeCalendar(campaign.id);
-                              }
-                            }}
-                            open={isCalenderOpen.includes(campaign.id)}
-                            onFocus={() => openCalendar(campaign.id)}
-                            onClickOutside={() => closeCalendar(campaign.id)}
-                            showPopperArrow={true}
-                            className="text-xs"
-                            customInput={
-                              <Button variant="outline" size="sm" className="w-fit text-xs">
-                                <Play />
-                                Start
-                              </Button>
-                            }
-                            disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              const yes = await confirm({
-                                title: "Regenerate content for this day?",
-                                description: "Regenerating content will use your coins"
-                              });
-                              if (!yes) return;
-                              try {
-                                const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
-                                if (!selectedCampaignPlanner) {
-                                  toast.error("Failed to find plan");
-                                  return;
-                                }
-                                const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
-                                if (!intensityPlans) {
-                                  toast.error("Failed to find plan");
-                                  return;
-                                }
-
-                                const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
-
-                                const d = await campaignPlannerMutation.mutateAsync({
-                                  id: campaign.id,
-                                  projectId: projectId as string,
-                                  campaignName: campaign.name || "",
-                                  plan
-                                });
-
-                                for (const chat of d.chats) {
-                                  if (chat.status === "PENDING") {
-                                    await generate.mutateAsync({
-                                      projectId: projectId as string,
-                                      id: campaign.id,
-                                      prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-                                      userId: session?.user?.id as string,
-                                      day: chat.day
-                                    });
-                                    await sleep(2000);
-                                    campaignPlannerData.refetch();
-                                  }
-                                }
-                              } catch {
-                                toast.error("Failed to regenerate campaign");
-                              }
-                            }}
-                          >
-                            <RefreshCcw className="h-4 w-4 mr-1" />
-                          </Button>
-                        </div>
-
-
-                      </div>
-                    )}
                     <div className="relative">
                       {/* Vertical Line */}
                       <div className="absolute hidden md:block left-5 top-0 bottom-0 w-1 bg-gray-300 z-0" />
