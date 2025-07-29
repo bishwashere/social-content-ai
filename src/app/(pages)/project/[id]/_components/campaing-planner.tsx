@@ -106,21 +106,15 @@ export default function CampaignPlannerPage({ project }: Props) {
       goal: selectedCampaignPlanner.goal
     };
 
-    console.log("PLAN : ", plan)
+    setShowCampaignForm(false);
 
     try {
-      console.log("Submitting campaign:", {
-        projectId,
-        campaignName: name,
-        plan
-      });
 
       const d = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
         plan
       });
-
 
       for (const chat of d.chats) {
         if (chat.status === "PENDING") {
@@ -204,7 +198,7 @@ export default function CampaignPlannerPage({ project }: Props) {
     []
   );
 
-  const [isInProgress, setIsInProgress] = useState<boolean>(false);
+  const [isInProgress, setIsInProgress] = useState<string | null>(null);
 
   //Open all campaigns that are saved in memory
   useEffect(() => {
@@ -221,7 +215,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   useEffect(() => {
     if (!campaignPlannerData.data?.chatsGroupedByCampaign) return;
 
-    const anyLoading = campaignPlannerData.data.chatsGroupedByCampaign.some(campaign => {
+    const anyLoading = campaignPlannerData.data.chatsGroupedByCampaign.find(campaign => {
       const totalChats = campaign.chats.length;
       const loadedChats = campaign.chats.filter(chat =>
         chat.contents && Object.keys(chat.contents).length > 0
@@ -229,10 +223,10 @@ export default function CampaignPlannerPage({ project }: Props) {
 
       const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
 
-      return loadingProgress > 0 && loadingProgress < 100;
+      return loadingProgress > 0 && loadingProgress < 100
     });
 
-    setIsInProgress(anyLoading);
+    setIsInProgress(anyLoading ? anyLoading.id : null);
   }, [campaignPlannerData.data?.chatsGroupedByCampaign]);
 
   return (
@@ -300,8 +294,6 @@ export default function CampaignPlannerPage({ project }: Props) {
         </div>
       )}
 
-      <LoadingCard loading={isInProgress} />
-
       <div className="space-y-6 w-full py-6">
         {campaignPlannerData?.isLoading ? (
           <div className="flex items-center justify-center py-6">
@@ -354,6 +346,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                           style={{ width: `${realProgress}%` }}
                         />
                       }
+                      {isInProgress && isInProgress===campaign.id && <LoadingCard loading={isInProgress} />}
                       <button
                         className="w-full flex justify-between items-center p-4 font-semibold"
                         onClick={toggleOpen}
@@ -484,7 +477,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 {/* Content Cards Right Column */}
                                 <div className="w-full">
                                   <Dialog key={id}>
-                                    <div className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50 gap-2 flex-row flex justify-between relative">
+                                    <div className={`border p-4 rounded-lg cursor-pointer ${timeline.completed ? 'bg-green-200' : 'hover:bg-gray-50'} gap-2 flex-row flex justify-between relative`}>
                                       <div className="absolute rounded-s-lg w-1 h-full left-0 bg-primary top-0 opacity-30" />
                                       <div className="flex gap-2 items-center">
                                         <div className="flex justify-end items-center gap-2">
