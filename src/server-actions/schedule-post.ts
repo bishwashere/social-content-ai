@@ -6,7 +6,7 @@ type Props = {
   userId: string;
   platform: string;
   content: string;
-  date: number;
+  date: string;
 };
 
 export const schedulePost = async (props: Props) => {
@@ -19,8 +19,8 @@ export const schedulePost = async (props: Props) => {
         userId: props.userId,
         platform: props.platform,
         content: props.content,
-        date: new Date(props.date * 1000),
-        status: "pending"
+        date: props.date,
+        status: "pending",
       },
     });
 

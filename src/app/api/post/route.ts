@@ -4,14 +4,12 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
 import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { validateUserAuth } from "@/middlewares/validate-auth";
 
 /**
  * Process pending scheduled posts
  */
 export const GET = applyMiddleware(
-  validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req) => {
+  catchApiAsyncError(async () => {
     console.log("🔍 Finding pending scheduled posts");
     const pending = await prisma.scheduledPost.findMany({
       where: {
@@ -273,7 +271,6 @@ async function updatePostStatus(
       status,
       error,
       processedAt: new Date(),
-      
     },
   });
 }
