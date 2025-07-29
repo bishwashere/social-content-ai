@@ -460,7 +460,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                         {isOpen && (
                           campaign.chats.map((timeline, id) => {
                             const baseDate = campaign.startDate ? new Date(campaign.startDate) : new Date();
-                            const futureDate = new Date(baseDate.getTime() + timeline.day * 86400000);
+                            const futureDate = new Date(baseDate.getTime() + (timeline.day - 1) * 86400000);
 
                             return (
                               <div className="flex items-center flex-grow px-4 py-2 gap-4" key={id}>
