@@ -5,8 +5,8 @@ export const PLATFORM_CHARACTER_LIMITS = {
   instagram: 500,
   x: 250,
   linkedin: 500,
-  threads: 500,
-  reddit: 200,
+  threads: 250,
+  reddit: 500,
 } as const;
 
 export const PLATFORM_CUSTOM_PROMPTS = {
@@ -19,7 +19,7 @@ export const PLATFORM_CUSTOM_PROMPTS = {
     "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   threads:
     "Use a conversational and engaging style. Keep it authentic and personal. Use short paragraphs (1-2 lines max). Add relevant emojis sparingly. Focus on community engagement and authentic storytelling. Include a clear call to action.",
-  reddit: "Make sure it's a personal story and doesn't use colon, dash, or etc."
+  reddit: "Take only 1 prompt between two OR (capital) text. OR Either share personal journey or lessons learned from multiple projects, OR A data-driven analysis of common failure patterns OR A personal journey about shifting focus from endless development to effective marketing or A step-by-step guide showing how to gain initial traction through community engagement, content creation, and consistent social presence, with practical tips anyone can implement regardless of budget OR Share a personal journey of streamlining social media management through automation tools and AI assistants OR Focus on practical tips that help beginners and students maximize results without spending money on premium tools OR Focuses on actionable patterns readers can implement immediately. OR"
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
