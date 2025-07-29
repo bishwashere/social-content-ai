@@ -58,7 +58,7 @@ export function PlatformCard({
 
   const activity = useGetTrackedProjects({ projectId: projectId });
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [isCalenderOpen, setIsCalenderOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
 

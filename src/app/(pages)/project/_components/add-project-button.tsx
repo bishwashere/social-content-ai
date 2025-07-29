@@ -37,7 +37,7 @@ export function AddProjectButton() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <FirstViewTooltip tooltipKey="addProject" content="Add project to save them permanently and see history of content generated." order={1}>
-          <Button className="w-48 h-10 text-sm md:w-40 md:h-9 lg:w-36 lg:h-8" onClick={() => setOpen(true)}>
+          <Button className="w-full h-10 text-sm md:h-9 lg:h-8" onClick={() => setOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Project
           </Button>

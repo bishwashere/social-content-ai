@@ -51,7 +51,7 @@ export const VideoCard = (
   return (
     <>
       <div
-        className={cn(`cursor-pointer relative transition-all rounded-md`, video.selected ? "ring-4 ring-primary ring-offset-2" : "hover:scale-105", className)}
+        className={cn(`cursor-pointer relative transition-all rounded-md  `, video.selected ? "ring-4 ring-primary ring-offset-2" : "hover:scale-105", className)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         {...props}
@@ -72,7 +72,7 @@ export const VideoCard = (
             muted={true}
             loop={true}
             className={cn(
-              "w-full h-[180px] object-cover",
+              "w-full h-[200px] object-cover",
               !isLoaded && "opacity-0"
             )}
             preload="metadata"

@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
 import FirstViewTooltip from "@/components/common/first-view-tooltip";
+import { Logo } from "@/components/common/logo";
 
 export function ProjectSidebar() {
   const params = useParams();
@@ -51,10 +52,11 @@ export function ProjectSidebar() {
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b p-4">
-        <AddProjectButton />
+        <Logo />
       </SidebarHeader>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <SidebarContent className="p-2">
+          <AddProjectButton />
           <Link
             onClick={() => {
               if (window.innerWidth <= 768) {
@@ -62,7 +64,7 @@ export function ProjectSidebar() {
               }
             }}
             href="/project/wall"
-            className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
+            className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200"
           >
             👥 For You
           </Link>
