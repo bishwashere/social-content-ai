@@ -182,12 +182,13 @@ const AutoPost = ({ platform, content }: Props) => {
             </AlertDialogCancel>
             <AlertDialogAction
               variant="outline"
+              onClick={() => handleAction('now')}>
+              Post Now
+            </AlertDialogAction>
+            <AlertDialogAction
               onClick={() => handleAction('schedule')}
             >
               Schedule
-            </AlertDialogAction>
-            <AlertDialogAction onClick={() => handleAction('now')}>
-              Post Now
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
