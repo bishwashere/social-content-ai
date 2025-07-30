@@ -18,7 +18,7 @@ export const PLATFORM_CUSTOM_PROMPTS = {
   linkedin:
     "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   threads:
-    "Use a conversational, engaging style with short, punchy phrasing. Keep the full message under 250 characters. Add emojis sparingly and include a simple CTA. Avoid storytelling—focus on clarity and brevity.",
+    "Use a conversational, engaging style with short, punchy phrasing. Add emojis sparingly and include a simple CTA. Avoid storytelling—focus on clarity and brevity. No multiple options.",
   reddit:
     "This is reddit post. Write one complete and direct answer. No greetings or filler. Use a personal tone. Avoid -, --, and :. Give a post title. Share either a personal journey, practical lessons, data-backed insights, beginner tips, or a clear step-by-step guide for gaining traction or simplifying social media with free or AI tools. Also mention a reason to share like helping others or going though the pain etc.",
 } as const;
@@ -78,12 +78,19 @@ class Prompt {
    * @param projectOverview - A brief overview of the project to make the prompt project-related
    */
   generateCorePrompt(
-    options: ProjectValidatorType["createChat"]["options"],
+    options: ProjectValidatorType["createChat"]["options"] | undefined,
     projectOverview?: string,
     isProjectRelated?: boolean | undefined | null
   ): string {
+    if (!options) {
+      return isProjectRelated
+        ? `Write a project-related content for: ${projectOverview}.`
+        : `Write a generic piece of content without project-specific details.`;
+    }
+
     const { verb, tone, style, goal, theme } =
       options || this.getRandomProperties();
+
 
     console.log("PROJECT RELATED", isProjectRelated);
 
@@ -148,12 +155,17 @@ class Prompt {
       PLATFORM_CUSTOM_PROMPTS[platform as keyof typeof PLATFORM_CUSTOM_PROMPTS]; // Fetch the custom prompt for the platform
 
     // Combine custom prompt with the core prompt
-    const isReddit = platform?.toLowerCase() === "reddit";
-    const finalPrompt = isReddit ? `${customPrompt}` : `${corePrompt}\n\n${customPrompt}`;
+    const finalPrompt = `${corePrompt}\n\n${customPrompt}`;
 
-    return `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. Direct one answer without choice. Never mention platform name. ${
-      userPrompt ? ` Also ${userPrompt}` : ""
-    }`;
+    const finalfinalPrompt = `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. Direct one answer without choice. Never mention platform name.${userPrompt ? ` Also ${userPrompt}` : ""}`;
+
+    console.log(
+      `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
+      finalfinalPrompt
+    );
+
+    return finalfinalPrompt;
+
   }
 }
 

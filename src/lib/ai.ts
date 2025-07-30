@@ -96,19 +96,25 @@ export class AI {
         });
 
         const contentPromises = PLATFORMS.map(async (platform) => {
+          const isReddit = platform === "reddit";
+
+          const corePrompt = prompt.generateCorePrompt(
+            isReddit ? undefined : options,
+            projectOverview || "",
+            projectRelated
+          );
+
           const platformSpecificPrompt = prompt.addPlatformSpecifics({
             characterLimit: PLATFORM_CHARACTER_LIMITS[platform],
             corePrompt,
-            platform: platform,
+            platform,
             userPrompt: userPrompt || "",
           });
-          console.log(
-            `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
-            platformSpecificPrompt
-          );
+
           const result = await model.generateContent(platformSpecificPrompt);
           return { platform, content: result.response.text().trim() };
         });
+
 
         const generatedContent = await Promise.all(contentPromises);
         const content = generatedContent.reduce(
