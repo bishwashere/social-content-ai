@@ -5,8 +5,8 @@ export const PLATFORM_CHARACTER_LIMITS = {
   instagram: 500,
   x: 250,
   linkedin: 500,
-  threads: 250,
   reddit: 1500,
+  threads: 250,
 } as const;
 
 export const PLATFORM_CUSTOM_PROMPTS = {
@@ -18,8 +18,9 @@ export const PLATFORM_CUSTOM_PROMPTS = {
   linkedin:
     "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   threads:
-    "Use a conversational and engaging style. Keep it authentic and personal. Use short paragraphs (1-2 lines max). Add relevant emojis sparingly. Focus on community engagement and authentic storytelling. Include a clear call to action.",
-  reddit: "Take only 1 prompt between two OR (capital) text. OR Either share personal journey or lessons learned from multiple projects, OR A data-driven analysis of common failure patterns OR A personal journey about shifting focus from endless development to effective marketing or A step-by-step guide showing how to gain initial traction through community engagement, content creation, and consistent social presence, with practical tips anyone can implement regardless of budget OR Share a personal journey of streamlining social media management through automation tools and AI assistants OR Focus on practical tips that help beginners and students maximize results without spending money on premium tools OR Focuses on actionable patterns readers can implement immediately. OR"
+    "Use a conversational, engaging style with short, punchy phrasing. Keep the full message under 250 characters. Add emojis sparingly and include a simple CTA. Avoid storytelling—focus on clarity and brevity.",
+  reddit:
+    "Write one complete and direct answer. No greetings or filler. Use a personal tone. Avoid -, --, and :. Share either a personal journey, practical lessons, data-backed insights, beginner tips, or a clear step-by-step guide for gaining traction or simplifying social media with free or AI tools.",
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
@@ -147,9 +148,10 @@ class Prompt {
       PLATFORM_CUSTOM_PROMPTS[platform as keyof typeof PLATFORM_CUSTOM_PROMPTS]; // Fetch the custom prompt for the platform
 
     // Combine custom prompt with the core prompt
-    const finalPrompt = `${corePrompt} ${customPrompt}`;
+    const isReddit = platform?.toLowerCase() === "reddit";
+    const finalPrompt = isReddit ? `${customPrompt}` : `${corePrompt}\n\n${customPrompt}`;
 
-    return `${finalPrompt} For ${platform}, ensure it fits within ${characterLimit} characters and aligns with the platform's style and audience. Do not give multiple options or choice. Also never mention the platform in the content, like: For ${platform}, or ${platform} (280 characters):, or any other heading, or footer other than the actual answer.${
+    return `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. Direct one answer without choice. Never mention platform name. ${
       userPrompt ? ` Also ${userPrompt}` : ""
     }`;
   }
