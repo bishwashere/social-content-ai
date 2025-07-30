@@ -134,7 +134,7 @@ export const PUT = async (req: Request) => {
       await prisma.projectsSubredditData.create({
         data: {
           projectId: project.id,
-          subreddit: (subredditData.data.subreddits as string[]).slice(0, 5),
+          subreddit: (subredditData.data.subreddits as string[]).slice(0, 10),
         },
       });
     }
