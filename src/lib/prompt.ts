@@ -20,7 +20,7 @@ export const PLATFORM_CUSTOM_PROMPTS = {
   threads:
     "Use a conversational, engaging style with short, punchy phrasing. Keep the full message under 250 characters. Add emojis sparingly and include a simple CTA. Avoid storytelling—focus on clarity and brevity.",
   reddit:
-    "Write one complete and direct answer. No greetings or filler. Use a personal tone. Avoid -, --, and :. Share either a personal journey, practical lessons, data-backed insights, beginner tips, or a clear step-by-step guide for gaining traction or simplifying social media with free or AI tools.",
+    "This is reddit post. Write one complete and direct answer. No greetings or filler. Use a personal tone. Avoid -, --, and :. Give a post title. Share either a personal journey, practical lessons, data-backed insights, beginner tips, or a clear step-by-step guide for gaining traction or simplifying social media with free or AI tools. Also mention a reason to share like helping others or going though the pain etc.",
 } as const;
 
 export const AVAILABLE_PLATFORMS = {
