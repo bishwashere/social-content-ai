@@ -2,6 +2,7 @@
 
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
+import { getRandomInRange } from "@/lib/getRandomInRange";
 import { prisma } from "@/lib/prisma";
 
 export const startCampaignPlanner = async (
@@ -161,6 +162,17 @@ export const generateCampaignChat = async (props: {
     };
   }
 
+  const subredditData = await prisma.projectsSubredditData.findFirst({
+    where: {
+      projectId: props.projectId,
+    },
+  });
+
+  const subredditIndex = getRandomInRange(
+    0,
+    subredditData?.subreddit.length ? subredditData?.subreddit.length - 1 : 0
+  );
+
   await prisma.campaignChat.update({
     where: {
       id: chatToUpdate.id,
@@ -168,6 +180,7 @@ export const generateCampaignChat = async (props: {
     data: {
       contents: chatFromAI,
       status: "GENERATED",
+      subreddit: subredditData?.subreddit[subredditIndex] || "",
     },
   });
 

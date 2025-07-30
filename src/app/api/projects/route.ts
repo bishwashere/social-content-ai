@@ -44,7 +44,9 @@ export const GET = applyMiddleware(
     return sendNextResponse({
       status: 200,
       message: "Projects retrieved successfully",
-      data: allProjects,
+      data: allProjects?.sort(
+        (a, b) => a.updatedAt.getTime() - b.updatedAt.getTime()
+      ),
     });
   })
 );
