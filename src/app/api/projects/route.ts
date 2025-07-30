@@ -44,7 +44,9 @@ export const GET = applyMiddleware(
     return sendNextResponse({
       status: 200,
       message: "Projects retrieved successfully",
-      data: allProjects,
+      data: allProjects?.sort(
+        (a, b) => a.updatedAt.getTime() - b.updatedAt.getTime()
+      ),
     });
   })
 );
@@ -134,7 +136,7 @@ export const PUT = async (req: Request) => {
       await prisma.projectsSubredditData.create({
         data: {
           projectId: project.id,
-          subreddit: (subredditData.data.subreddits as string[]).slice(0, 5),
+          subreddit: (subredditData.data.subreddits as string[]).slice(0, 10),
         },
       });
     }
