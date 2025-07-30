@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js" 
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -40,13 +40,14 @@ model Projects {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user             User              @relation(fields: [userId], references: [id])
-  campaignPlanners CampaignPlanner[]
-  invitedUsers     InvitedUser[]
-  projectChats     ProjectChat[]
-  projectTrackings ProjectTracking[]
-  walls            Wall[]
-  uploadedVideos   UploadedVideo[]
+  user                  User?                   @relation(fields: [userId], references: [id])
+  campaignPlanners      CampaignPlanner[]
+  invitedUsers          InvitedUser[]
+  projectChats          ProjectChat[]
+  projectTrackings      ProjectTracking[]
+  walls                 Wall[]
+  uploadedVideos        UploadedVideo[]
+  ProjectsSubredditData ProjectsSubredditData[]
 
   @@map("projects")
 }
@@ -60,7 +61,7 @@ model InvitedUser {
   updatedAt DateTime @updatedAt
 
   project Projects @relation(fields: [projectId], references: [id])
-  user    User     @relation(fields: [userId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
 
   @@map("invited-users-to-projects")
 }
@@ -74,7 +75,7 @@ model ProjectChat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  project Projects @relation(fields: [projectId], references: [id])
+  project Projects? @relation(fields: [projectId], references: [id])
 
   @@map("project-chats")
 }
@@ -88,7 +89,7 @@ model ProjectTracking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  project Projects @relation(fields: [projectId], references: [id])
+  project Projects? @relation(fields: [projectId], references: [id])
 
   @@map("project-trackings")
 }
@@ -104,7 +105,7 @@ model CampaignPlanner {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  project Projects @relation(fields: [projectId], references: [id])
+  project Projects? @relation(fields: [projectId], references: [id])
 
   @@map("campaign-planners")
 }
@@ -127,7 +128,7 @@ model CampaignChat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  planner CampaignPlanner @relation("PlannerChats", fields: [plannerId], references: [id], onDelete: Cascade)
+  planner CampaignPlanner? @relation("PlannerChats", fields: [plannerId], references: [id], onDelete: Cascade)
 }
 
 model OauthProvider {
@@ -141,7 +142,7 @@ model OauthProvider {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@map("oauth-providers")
 }
@@ -157,7 +158,7 @@ model ScheduledPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   processedAt DateTime?
 
@@ -177,7 +178,7 @@ model Subscription {
   updatedAt                DateTime @updatedAt
   active                   Boolean?
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@map("subscriptions")
 }
@@ -208,7 +209,7 @@ model FirstViewTooltip {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@map("first-view-tooltip")
 }
@@ -225,8 +226,20 @@ model UploadedVideo {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id])
-  project Projects @relation(fields: [projectId], references: [id])
+  user    User?     @relation(fields: [userId], references: [id])
+  project Projects? @relation(fields: [projectId], references: [id])
 
   @@map("uploaded-videos")
+}
+
+model ProjectsSubredditData {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  subreddit String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Projects? @relation(fields: [projectId], references: [id])
+
+  @@map("projects-subreddit-data")
 }
