@@ -1,6 +1,5 @@
 "use server";
 
-
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +11,6 @@ export const startCampaignPlanner = async (
   plan: CampaignPlanner,
   userId: string
 ) => {
-
   const chatData: {
     title: string;
     day: number;
@@ -73,15 +71,13 @@ export const startCampaignPlanner = async (
   return created;
 };
 
-
 export const getCampaignPlanner = async (projectId: string) => {
-
   const planners = await prisma.campaignPlanner.findMany({
     where: {
-      projectId: projectId
+      projectId: projectId,
     },
-    include: { chats: true }
-  })
+    include: { chats: true },
+  });
 
   if (planners)
     return {
@@ -97,7 +93,6 @@ export const getCampaignPlanner = async (projectId: string) => {
       })),
     };
 };
-
 
 export const generateCampaignChat = async (props: {
   projectId: string;
@@ -137,8 +132,8 @@ export const generateCampaignChat = async (props: {
   }
 
   const ai = new AI();
-console.log("calling ai")
-console.log(projectCampaign)
+  console.log("calling ai");
+  console.log(projectCampaign);
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",
     projectDescription: project.description,
@@ -180,7 +175,6 @@ console.log(projectCampaign)
     success: true,
   };
 };
-
 
 export const changeCampaignData = async (
   id: string,
@@ -256,7 +250,7 @@ export const toggleMarkAsComplete = async ({
     },
   });
 
-  return updated.planner.projectId;
+  return updated.planner?.projectId || "";
 };
 
 export const toggleTickMark = async ({
@@ -293,5 +287,5 @@ export const toggleTickMark = async ({
     },
   });
 
-  return updated.planner.projectId;
+  return updated.planner?.projectId || "";
 };

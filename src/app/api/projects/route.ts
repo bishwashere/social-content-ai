@@ -3,6 +3,7 @@ import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { validateUserAuth } from "@/middlewares/validate-auth";
+import axios from "axios";
 
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -77,6 +78,15 @@ export const POST = applyMiddleware(
       },
     });
 
+    try {
+      axios.put(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL}/api/projects/`,
+        {
+          projectId: project.id,
+        }
+      );
+    } catch {}
+
     return sendNextResponse({
       status: 201,
       message: "Project created successfully",
@@ -84,3 +94,60 @@ export const POST = applyMiddleware(
     });
   })
 );
+
+// put route to generate subreddit data
+export const PUT = async (req: Request) => {
+  const { projectId } = await req.json();
+  console.log("add subreddit data", projectId);
+  if (!projectId) {
+    return sendNextResponse({
+      status: 400,
+      message: "Project ID is required",
+    });
+  }
+
+  const project = await prisma.projects.findFirst({
+    where: { id: projectId },
+  });
+
+  if (!project) {
+    return sendNextResponse({
+      status: 404,
+      message: "Project not found",
+    });
+  }
+  try {
+    // Generate subreddit data
+    const subredditData = await axios.post(
+      `${process.env.OLIVEDRIFT_BASE_URL}/api/getKeywordsAndSubreddits`,
+      {
+        text: project.name + " " + project.description,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OLIVEDRIFT_API_KEY}`,
+        },
+      }
+    );
+
+    if (subredditData.data.success) {
+      await prisma.projectsSubredditData.create({
+        data: {
+          projectId: project.id,
+          subreddit: (subredditData.data.subreddits as string[]).slice(0, 5),
+        },
+      });
+    }
+    console.log("subredditData.data", subredditData.data);
+    return sendNextResponse({
+      status: 200,
+      message: "Subreddit data generated successfully",
+    });
+  } catch (error) {
+    console.log("error", error);
+    return sendNextResponse({
+      status: 500,
+      message: "Failed to generate subreddit data",
+    });
+  }
+};
