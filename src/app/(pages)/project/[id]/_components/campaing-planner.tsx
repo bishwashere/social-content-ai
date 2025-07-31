@@ -631,14 +631,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                   />
                                                 </div>
                                               </CardHeader>
-                                              {timeline.subreddit && platform === "reddit" && <div className="px-6 flex flex-col gap-1">
-                                                <a
-                                                  href={`https://www.reddit.com/r/${timeline.subreddit}`}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-sm text-primary underline">
+                                              {timeline.subreddit && platform === "reddit" && <div className="px-6 flex flex-col gap-0.5">
+                                                <span
+                                                  className="text-sm text-muted-foreground">
                                                   {`/r/${timeline.subreddit}`}
-                                                </a>
+                                                </span>
                                                 {timeline.referencePostContent && <span className="text-sm text-muted-foreground">
                                                   {timeline.referencePostContent ? `${timeline.referencePostContent}...` : ""}
                                                 </span>}
