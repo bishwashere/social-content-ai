@@ -19,14 +19,14 @@ export const GET = applyMiddleware(
           projectTrackings: true,
           projectChats: {
             orderBy: {
-              updatedAt: 'desc',
-            }
+              updatedAt: "desc",
+            },
           },
           invitedUsers: true,
         },
         orderBy: {
-          updatedAt: 'desc',
-        }
+          updatedAt: "desc",
+        },
       }),
       prisma.invitedUser.findMany({
         where: { userId: user.id },
@@ -52,7 +52,7 @@ export const GET = applyMiddleware(
       status: 200,
       message: "Projects retrieved successfully",
       data: allProjects?.sort(
-        (a, b) => a.updatedAt.getTime() - b.updatedAt.getTime()
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
       ),
     });
   })
@@ -94,7 +94,7 @@ export const POST = applyMiddleware(
           projectId: project.id,
         }
       );
-    } catch { }
+    } catch {}
 
     return sendNextResponse({
       status: 201,

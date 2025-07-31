@@ -570,66 +570,77 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
                                         {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
                                           <Card key={platform} className="rounded-lg border mb-5">
-                                            <CardHeader className="flex justify-between items-center mb-2 flex-row">
-                                              <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                              <div className="flex flex-row items-center gap-2">
-                                                <Button variant="ghost" size="icon"
-                                                  onClick={() => {
-                                                    setEditedContent({ ...editedContent, [platform]: text });
-                                                    setEditingPlatform(platform);
-                                                  }}
-                                                >
-                                                  <Pencil />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
-                                                  <CopyIcon />
-                                                </Button>
-                                                <PostToWall
-                                                  content={text}
-                                                  platform={platform}
-                                                  projectId={project.id}
-                                                  prompt=""
-                                                />
+                                            <div className="flex flex-col gap-0">
+                                              <CardHeader className="flex justify-between items-center flex-row">
+                                                <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
+                                                <div className="flex flex-row items-center gap-2">
+                                                  <Button variant="ghost" size="icon"
+                                                    onClick={() => {
+                                                      setEditedContent({ ...editedContent, [platform]: text });
+                                                      setEditingPlatform(platform);
+                                                    }}
+                                                  >
+                                                    <Pencil />
+                                                  </Button>
+                                                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
+                                                    <CopyIcon />
+                                                  </Button>
+                                                  <PostToWall
+                                                    content={text}
+                                                    platform={platform}
+                                                    projectId={project.id}
+                                                    prompt=""
+                                                  />
 
-                                                {
-                                                  (() => {
-                                                    const platformUrl = project.platformUrls?.[platform as keyof typeof project.platformUrls];
-                                                    const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
-                                                    const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
+                                                  {
+                                                    (() => {
+                                                      const platformUrl = project.platformUrls?.[platform as keyof typeof project.platformUrls];
+                                                      const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
+                                                      const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
 
-                                                    if (!finalUrl) return null;
+                                                      if (!finalUrl) return null;
 
-                                                    return (
-                                                      <Button variant="ghost" size="icon" asChild>
-                                                        <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
-                                                          <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
-                                                        </Link>
-                                                      </Button>
-                                                    );
-                                                  })()
-                                                }
+                                                      return (
+                                                        <Button variant="ghost" size="icon" asChild>
+                                                          <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
+                                                            <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
+                                                          </Link>
+                                                        </Button>
+                                                      );
+                                                    })()
+                                                  }
 
-                                                <SavePlatformCard
-                                                  platform={platform}
-                                                  projectId={project.id}
-                                                  timelineDay={timeline.day}
-                                                />
-                                                <AutoPost platform={platform} content={text} />
-                                                <Checkbox
-                                                  key={platform}
-                                                  checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
-                                                  onCheckedChange={async (checked) => {
-                                                    toggleTickMark.mutateAsync({
-                                                      campaignId: campaign.id,
-                                                      day: timeline.day,
-                                                      platform: platform,
-                                                      tick: Boolean(checked)
-                                                    })
-                                                  }}
-                                                  disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
-                                                />
-                                              </div>
-                                            </CardHeader>
+                                                  <SavePlatformCard
+                                                    platform={platform}
+                                                    projectId={project.id}
+                                                    timelineDay={timeline.day}
+                                                  />
+                                                  <AutoPost platform={platform} content={text} />
+                                                  <Checkbox
+                                                    key={platform}
+                                                    checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
+                                                    onCheckedChange={async (checked) => {
+                                                      toggleTickMark.mutateAsync({
+                                                        campaignId: campaign.id,
+                                                        day: timeline.day,
+                                                        platform: platform,
+                                                        tick: Boolean(checked)
+                                                      })
+                                                    }}
+                                                    disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
+                                                  />
+                                                </div>
+                                              </CardHeader>
+                                              {timeline.subreddit && platform === "reddit" && <div className="px-6 flex flex-col gap-0.5">
+                                                <span
+                                                  className="text-sm text-muted-foreground">
+                                                  {`/r/${timeline.subreddit}`}
+                                                </span>
+                                                {timeline.referencePostContent && <span className="text-sm text-muted-foreground">
+                                                  {timeline.referencePostContent ? `${timeline.referencePostContent}...` : ""}
+                                                </span>}
+                                              </div>}
+                                            </div>
                                             <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
                                               {editingPlatform === platform ? (
                                                 <div className="flex flex-col gap-2">
