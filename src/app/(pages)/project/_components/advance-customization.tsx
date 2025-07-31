@@ -313,7 +313,7 @@ export default function AdvanceCustomization() {
               onValueChange={setSelectedPlatform}
               className="w-full"
             >
-              <TabsList>
+              <TabsList className="flex flex-wrap gap-2 justify-start items-start w-full h-full">
                 {PLATFORMS.map((platform) => (
                   <TabsTrigger
                     key={platform}

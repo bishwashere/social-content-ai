@@ -13,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { ChevronDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -78,6 +78,8 @@ export default function CampaignPlannerPage({ project }: Props) {
   const deleteCampaignFromDb = useDeleteCampaign();
   const queryClient = useQueryClient();
   const toggleTickMark = useToggleTickMark();
+
+  const [showPast, setShowPast] = useState(false);
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -243,7 +245,7 @@ export default function CampaignPlannerPage({ project }: Props) {
       platform,
       content: editedContent[platform]
     })
-    .then(()=> toast.success(`Content edited for ${platform}`));
+      .then(() => toast.success(`Content edited for ${platform}`));
     setEditingPlatform(null);
   };
 
@@ -347,6 +349,18 @@ export default function CampaignPlannerPage({ project }: Props) {
                 const closeCalendar = (campaignId: string) => {
                   setIsCalenderOpen(isCalenderOpen.filter(id => id !== campaignId));
                 }
+
+                // To calculate next latest upcoming day to highlight the date
+                const baseDate = campaign.startDate ? new Date(campaign.startDate) : new Date();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const firstUpcomingTimeline = campaign.chats.find((timeline) => {
+                  const date = new Date(baseDate.getTime() + (timeline.day - 1) * 86400000);
+                  date.setHours(0, 0, 0, 0);
+                  return date >= today;
+                });
+                const firstUpcomingDay = firstUpcomingTimeline?.day;
+
 
                 return (
                   <div key={campaign.id} className="border rounded-lg pb-5">
@@ -466,163 +480,196 @@ export default function CampaignPlannerPage({ project }: Props) {
                         </div>
                       </button>
                     </div>
-                    <div className="relative">
-                      {/* Vertical Line */}
-                      <div className="absolute hidden md:block left-5 top-0 bottom-0 w-1 bg-gray-300 z-0" />
 
-                      <div>
-                        {isOpen && (
-                          campaign.chats.map((timeline, id) => {
-                            const baseDate = campaign.startDate ? new Date(campaign.startDate) : new Date();
-                            const futureDate = new Date(baseDate.getTime() + (timeline.day - 1) * 86400000);
+                    <div>
+                      {isOpen && (
+                        <>
+                          <div className="flex justify-end px-4">
+                            <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)}>
+                              {/* {showPast ? "Hide Past Days" : "Show Past Days"} */}
+                              <ChevronsUpDown />
+                            </Button>
+                          </div>
 
-                            return (
-                              <div className="flex items-center flex-grow px-4 py-2 gap-4" key={id}>
-                                <div className={`absolute hidden md:block left-3.5 h-4 w-4 rounded-full ${id === 0 ? "bg-primary" : "bg-gray-400"}`} />
-                                <div className="hidden md:flex items-center justify-end gap-4 min-w-28">
-                                  <div className="flex flex-col items-center justify-end">
-                                    <span className={`text-sm font-semibold ${id === 0 ? "text-primary" : "text-gray-600"}`}>
-                                      {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                    </span>
+                          <div className="relative">
+                            {/* Vertical Line */}
+                            <div className="absolute hidden md:block left-5 top-0 bottom-0 w-1 bg-gray-300 z-0" />
+
+                            {campaign.chats.map((timeline, id) => {
+                              const futureDate = new Date(baseDate.getTime() + (timeline.day - 1) * 86400000);
+                              futureDate.setHours(0, 0, 0, 0);
+
+                              const isToday = futureDate.toDateString() === today.toDateString();
+                              const isPast = futureDate < today;
+                              // To calculate next latest upcoming day to highlight the date
+                              const isFirstUpcoming = !isPast && timeline.day === firstUpcomingDay;
+                              const isHighlighted = isToday || isFirstUpcoming;
+
+                              if (isPast && !showPast) return null;
+
+                              return (
+                                <div className="flex items-center flex-grow px-4 py-2 gap-4" key={id}>
+                                  <div className={`absolute hidden md:block left-3.5 h-4 w-4 rounded-full ${isToday ? "bg-primary" : "bg-gray-400"}`} />
+                                  <div className="hidden md:flex items-center justify-end gap-4 min-w-28">
+                                    <div className="flex flex-col items-center justify-end">
+                                      <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
+                                        {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Content Cards Right Column */}
+                                  <div className="w-full">
+                                    <Dialog>
+                                      <div
+                                        className={`border p-4 rounded-lg cursor-pointer gap-2 flex-row flex justify-between relative`}
+                                      >
+                                        {/* Background bar based on completion ratio */}
+                                        <div
+                                          className="absolute left-0 top-0 h-full bg-green-200 z-0 transition-all duration-300 rounded-s-lg"
+                                          style={{ width: timeline.completed ? '100%' : `${(Object.values(timeline.tickMark || {}).filter(Boolean).length / Object.keys(timeline.contents || {}).length) * 100}%` }}
+                                        />
+
+                                        {/* Main content stays above the background */}
+                                        <div className="relative z-10 flex gap-2 items-center w-full">
+                                          <div className="flex justify-end items-center gap-2">
+                                            <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
+                                          </div>
+                                          <DialogTrigger asChild>
+                                            <div className="flex flex-row gap-1 flex-grow text-sm sm:text-base">
+                                              {/* <p className="font-medium">Day {timeline.day}:</p> */}
+                                              <p className="block md:hidden font-medium">
+                                                {futureDate.toLocaleDateString("en-US", {
+                                                  year: "numeric",
+                                                  month: "long",
+                                                  day: "numeric",
+                                                })}:
+                                              </p>
+                                              <p>{timeline.title}</p>
+                                              {timeline.status === "PENDING" && (
+                                                <Loader2 className="animate-spin h-4 w-4 ml-auto" />
+                                              )}
+                                            </div>
+                                          </DialogTrigger>
+                                        </div>
+                                        <div className="flex justify-end">
+                                          <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                                        </div>
+                                      </div>
+                                      <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
+                                        {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
+                                          <Card key={platform} className="rounded-lg border mb-5">
+                                            <CardHeader className="flex justify-between items-center mb-2 flex-row">
+                                              <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
+                                              <div className="flex flex-row items-center gap-2">
+                                                <Button variant="ghost" size="icon"
+                                                  onClick={() => {
+                                                    setEditedContent({ ...editedContent, [platform]: text });
+                                                    setEditingPlatform(platform);
+                                                  }}
+                                                >
+                                                  <Pencil />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
+                                                  <CopyIcon />
+                                                </Button>
+                                                <PostToWall
+                                                  content={text}
+                                                  platform={platform}
+                                                  projectId={project.id}
+                                                  prompt=""
+                                                />
+
+                                                {
+                                                  (() => {
+                                                    const platformUrl = project.platformUrls?.[platform as keyof typeof project.platformUrls];
+                                                    const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
+                                                    const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
+
+                                                    if (!finalUrl) return null;
+
+                                                    return (
+                                                      <Button variant="ghost" size="icon" asChild>
+                                                        <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
+                                                          <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
+                                                        </Link>
+                                                      </Button>
+                                                    );
+                                                  })()
+                                                }
+
+                                                <SavePlatformCard
+                                                  platform={platform}
+                                                  projectId={project.id}
+                                                  timelineDay={timeline.day}
+                                                />
+                                                <AutoPost platform={platform} content={text} />
+                                                <Checkbox
+                                                  key={platform}
+                                                  checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
+                                                  onCheckedChange={async (checked) => {
+                                                    toggleTickMark.mutateAsync({
+                                                      campaignId: campaign.id,
+                                                      day: timeline.day,
+                                                      platform: platform,
+                                                      tick: Boolean(checked)
+                                                    })
+                                                  }}
+                                                  disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
+                                                />
+                                              </div>
+                                            </CardHeader>
+                                            <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
+                                              {editingPlatform === platform ? (
+                                                <div className="flex flex-col gap-2">
+                                                  <textarea
+                                                    className="w-full border p-2 rounded text-black"
+                                                    rows={10}
+                                                    value={editedContent[platform] ?? text}
+                                                    onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
+                                                  />
+                                                  <div className="flex gap-2 justify-end">
+                                                    <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
+                                                      Cancel
+                                                    </Button>
+                                                    <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform)} loading={editContent.isPending}>
+                                                      Save
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <Markdown>
+                                                  {text
+                                                    .split("\n")
+                                                    .map(line => line.trim())
+                                                    .filter(line => line.length > 0)
+                                                    .join("\n\n")}
+                                                </Markdown>
+                                              )}
+                                            </CardContent>
+
+                                          </Card>
+                                        ))}
+                                      </DialogContent>
+                                    </Dialog>
                                   </div>
                                 </div>
-                                {/* Content Cards Right Column */}
-                                <div className="w-full">
-                                  <Dialog>
-                                    <div
-                                      className={`border p-4 rounded-lg cursor-pointer gap-2 flex-row flex justify-between relative`}
-                                    >
-                                      {/* Background bar based on completion ratio */}
-                                      <div
-                                        className="absolute left-0 top-0 h-full bg-green-200 z-0 transition-all duration-300 rounded-s-lg"
-                                        style={{ width: timeline.completed ? '100%' : `${(Object.values(timeline.tickMark || {}).filter(Boolean).length / Object.keys(timeline.contents || {}).length) * 100}%` }}
-                                      />
-
-                                      {/* Main content stays above the background */}
-                                      <div className="relative z-10 flex gap-2 items-center w-full">
-                                        <div className="flex justify-end items-center gap-2">
-                                          <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
-                                        </div>
-                                        <DialogTrigger asChild>
-                                          <div className="flex flex-row gap-1 flex-grow text-sm sm:text-base">
-                                            {/* <p className="font-medium">Day {timeline.day}:</p> */}
-                                            <p className="block md:hidden font-medium">
-                                              {futureDate.toLocaleDateString("en-US", {
-                                                year: "numeric",
-                                                month: "long",
-                                                day: "numeric",
-                                              })}:
-                                            </p>
-                                            <p>{timeline.title}</p>
-                                            {timeline.status === "PENDING" && (
-                                              <Loader2 className="animate-spin h-4 w-4 ml-auto" />
-                                            )}
-                                          </div>
-                                        </DialogTrigger>
-                                      </div>
-                                      <div className="flex justify-end">
-                                        <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
-                                      </div>
-                                    </div>
-                                    <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
-                                      {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
-                                        <Card key={platform} className="rounded-lg border mb-5">
-                                          <CardHeader className="flex justify-between items-center mb-2 flex-row">
-                                            <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                            <div className="flex flex-row items-center gap-2">
-                                              <Button variant="ghost" size="icon"
-                                                onClick={() => {
-                                                  setEditedContent({ ...editedContent, [platform]: text });
-                                                  setEditingPlatform(platform);
-                                                }}
-                                              >
-                                                <Pencil />
-                                              </Button>
-                                              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
-                                                <CopyIcon />
-                                              </Button>
-                                              <PostToWall
-                                                content={text}
-                                                platform={platform}
-                                                projectId={project.id}
-                                                prompt=""
-                                              />
-                                              {project.platformUrls && project.platformUrls[platform as keyof typeof project.platformUrls] && (
-                                                <Button variant="ghost" size="icon" asChild>
-                                                  <Link href={project.platformUrls[platform as keyof typeof project.platformUrls] || "#"} target="_blank">
-                                                    <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
-                                                  </Link>
-                                                </Button>
-                                              )}
-                                              <SavePlatformCard
-                                                platform={platform}
-                                                projectId={project.id}
-                                                timelineDay={timeline.day}
-                                              />
-                                              <AutoPost platform={platform} content={text} />
-                                              <Checkbox
-                                                key={platform}
-                                                checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
-                                                onCheckedChange={async (checked) => {
-                                                  toggleTickMark.mutateAsync({
-                                                    campaignId: campaign.id,
-                                                    day: timeline.day,
-                                                    platform: platform,
-                                                    tick: Boolean(checked)
-                                                  })
-                                                }}
-                                                disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
-                                              />
-                                            </div>
-                                          </CardHeader>
-                                          <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
-                                            {editingPlatform === platform ? (
-                                              <div className="flex flex-col gap-2">
-                                                <textarea
-                                                  className="w-full border p-2 rounded text-black"
-                                                  rows={10}
-                                                  value={editedContent[platform] ?? text}
-                                                  onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
-                                                />
-                                                <div className="flex gap-2 justify-end">
-                                                  <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
-                                                    Cancel
-                                                  </Button>
-                                                  <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform)} loading={editContent.isPending}>
-                                                    Save
-                                                  </Button>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <Markdown>
-                                                {text
-                                                  .split("\n")
-                                                  .map(line => line.trim())
-                                                  .filter(line => line.length > 0)
-                                                  .join("\n\n")}
-                                              </Markdown>
-                                            )}
-                                          </CardContent>
-
-                                        </Card>
-                                      ))}
-                                    </DialogContent>
-                                  </Dialog>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
                     </div>
+                    {/* </div> */}
                   </div>
                 );
               })}
           </>
-        )}
+        )
+        }
       </div>
     </div>
   );
