@@ -17,9 +17,16 @@ export const GET = applyMiddleware(
         where: { userId: user.id },
         include: {
           projectTrackings: true,
-          projectChats: true,
+          projectChats: {
+            orderBy: {
+              updatedAt: 'desc',
+            }
+          },
           invitedUsers: true,
         },
+        orderBy: {
+          updatedAt: 'desc',
+        }
       }),
       prisma.invitedUser.findMany({
         where: { userId: user.id },
@@ -87,7 +94,7 @@ export const POST = applyMiddleware(
           projectId: project.id,
         }
       );
-    } catch {}
+    } catch { }
 
     return sendNextResponse({
       status: 201,
