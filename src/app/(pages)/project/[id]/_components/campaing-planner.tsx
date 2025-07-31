@@ -4,6 +4,7 @@ import {
   useCampaignPlanner,
   useChangeCampaignData,
   useDeleteCampaign,
+  useEditChatContent,
   useGenerateCampaignChat,
   useGetCampaignPlanner,
   useToggleTickMark
@@ -12,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { ChevronDown, ChevronUp, CopyIcon, Loader2, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -230,6 +231,22 @@ export default function CampaignPlannerPage({ project }: Props) {
     setIsInProgress(anyLoading ? anyLoading.id : null);
   }, [campaignPlannerData.data?.chatsGroupedByCampaign]);
 
+  const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<Record<string, string>>({});
+  const editContent = useEditChatContent();
+  const handleSave = async (campaignId: string, day: number, platform: string) => {
+    // You can handle saving here
+    console.log("Saving for:", platform, "with content:", editedContent[platform]);
+    await editContent.mutateAsync({
+      campaignId,
+      day,
+      platform,
+      content: editedContent[platform]
+    })
+    .then(()=> toast.success(`Content edited for ${platform}`));
+    setEditingPlatform(null);
+  };
+
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
       {!showCampaignForm && (
@@ -435,9 +452,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                           campaignPlannerData.refetch();
                                         }
                                       }
-                                    } catch {
-                                      toast.error("Failed to regenerate campaign");
-                                    }
+                                    } catch { }
                                   }}
                                 >
                                   <RefreshCcw className="h-4 w-4 mr-1" />
@@ -518,6 +533,14 @@ export default function CampaignPlannerPage({ project }: Props) {
                                           <CardHeader className="flex justify-between items-center mb-2 flex-row">
                                             <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
                                             <div className="flex flex-row items-center gap-2">
+                                              <Button variant="ghost" size="icon"
+                                                onClick={() => {
+                                                  setEditedContent({ ...editedContent, [platform]: text });
+                                                  setEditingPlatform(platform);
+                                                }}
+                                              >
+                                                <Pencil />
+                                              </Button>
                                               <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
                                                 <CopyIcon />
                                               </Button>
@@ -556,14 +579,34 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             </div>
                                           </CardHeader>
                                           <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
-                                            <Markdown>
-                                              {text
-                                                .split("\n")
-                                                .map(line => line.trim())
-                                                .filter(line => line.length > 0)
-                                                .join("\n\n")}
-                                            </Markdown>
+                                            {editingPlatform === platform ? (
+                                              <div className="flex flex-col gap-2">
+                                                <textarea
+                                                  className="w-full border p-2 rounded text-black"
+                                                  rows={10}
+                                                  value={editedContent[platform] ?? text}
+                                                  onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
+                                                />
+                                                <div className="flex gap-2 justify-end">
+                                                  <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
+                                                    Cancel
+                                                  </Button>
+                                                  <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform)} loading={editContent.isPending}>
+                                                    Save
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <Markdown>
+                                                {text
+                                                  .split("\n")
+                                                  .map(line => line.trim())
+                                                  .filter(line => line.length > 0)
+                                                  .join("\n\n")}
+                                              </Markdown>
+                                            )}
                                           </CardContent>
+
                                         </Card>
                                       ))}
                                     </DialogContent>

@@ -34,13 +34,41 @@ export const startCampaignPlanner = async (
     tickMark: {}, // JSON
   }));
 
+  // Fetch user
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (user.remainingChatGenerations < 10) {
+    throw new Error("You donot have enough coins to generate chat.");
+  }
+
+  // Deduct 10 generations
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      remainingChatGenerations: {
+        decrement: 10,
+      },
+    },
+  });
+
   if (id) {
     const updated = await prisma.campaignPlanner.update({
       where: { id },
       data: {
         chats: {
-          deleteMany: {}, // remove existing chats
-          create: chatData,
+          updateMany: {
+            where: {},
+            data: {
+              contents: {},
+              status: "PENDING",
+            }
+          }
         },
         goal: plan.goal,
         targetAudience: plan.targetAudience,
@@ -294,6 +322,43 @@ export const toggleTickMark = async ({
     where: { id: chat.id },
     data: {
       tickMark: currentTickMark,
+    },
+    include: {
+      planner: true,
+    },
+  });
+
+  return updated.planner?.projectId || "";
+};
+
+export const editChatContent = async ({
+  campaignId,
+  day,
+  platform,
+  content
+}: {
+  campaignId: string;
+  day: number;
+  platform: string;
+  content: string;
+}): Promise<string | null> => {
+  const chat = await prisma.campaignChat.findFirst({
+    where: {
+      plannerId: campaignId,
+      day: day,
+    },
+  });
+
+  if (!chat) return null;
+
+  // Update the tickMark JSON
+  const currentContents = (chat.contents as Record<string, string>) || {};
+  currentContents[platform] = content;
+
+  const updated = await prisma.campaignChat.update({
+    where: { id: chat.id },
+    data: {
+      contents: currentContents,
     },
     include: {
       planner: true,

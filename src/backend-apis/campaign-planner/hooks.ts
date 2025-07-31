@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changeCampaignData,
   deleteCampaign,
+  editChatContent,
   generateCampaignChat,
   getCampaignPlanner,
   startCampaignPlanner,
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
 export const useCampaignPlanner = () => {
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
   return useMutation({
     mutationFn: ({
@@ -33,6 +35,11 @@ export const useCampaignPlanner = () => {
         plan,
         session?.user.id as string
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["session"],
+      });
+    },
     onError: (err) => {
       toast.error(err?.message ?? "Failed to start campaign planner");
     },
@@ -122,6 +129,21 @@ export const useToggleTickMark = () => {
           queryKey: ["campaignPlanner", projectId],
         });
     },
+    onError: () => toast.error("Some error occurred!")
+  });
+};
+
+export const useEditChatContent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: editChatContent,
+    onSuccess: (projectId) => {
+      if (projectId)
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", projectId],
+        });
+    },
+    onError: () => toast.error("Some error occurred!")
   });
 };
 

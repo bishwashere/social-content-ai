@@ -26,7 +26,7 @@ export const claimFreeTrial = async (userId: string) => {
     where: { id: userId },
     data: {
       hasClaimedFreeTrial: true,
-      remainingChatGenerations: 50,
+      remainingChatGenerations: 15,
     },
   });
 
