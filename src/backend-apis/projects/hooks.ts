@@ -62,6 +62,11 @@ export const useGenerateProjectContent = () => {
     mutationFn: async (data: GenerateProjectContentProps) => {
       return projectService.generateProjectContent(data, queryClient);
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+          queryKey: ["projects"],
+        });
+    },
     onError: (error) => {
       toast.error(error.message);
     },
