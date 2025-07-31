@@ -112,18 +112,18 @@ export default function CampaignPlannerPage({ project }: Props) {
 
     try {
 
-      const d = await campaignPlannerMutation.mutateAsync({
+      const { data: d } = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
         plan
       });
 
-      for (const chat of d.chats) {
+      for (const chat of (d?.chats || [])) {
         if (chat.status === "PENDING") {
           try {
             await generate.mutateAsync({
               projectId: projectId as string,
-              id: d.id,
+              id: d?.id || '',
               prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
               userId: session?.user?.id as string,
               day: chat.day
@@ -243,7 +243,7 @@ export default function CampaignPlannerPage({ project }: Props) {
       platform,
       content: editedContent[platform]
     })
-    .then(()=> toast.success(`Content edited for ${platform}`));
+      .then(() => toast.success(`Content edited for ${platform}`));
     setEditingPlatform(null);
   };
 
@@ -439,7 +439,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         plan
                                       });
 
-                                      for (const chat of d.chats) {
+                                      for (const chat of (d?.data?.chats || [])) {
                                         if (chat.status === "PENDING") {
                                           await generate.mutateAsync({
                                             projectId: projectId as string,
