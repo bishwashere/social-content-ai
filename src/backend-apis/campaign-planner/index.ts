@@ -40,11 +40,17 @@ export const startCampaignPlanner = async (
   });
 
   if (!user) {
-    throw new Error("User not found");
+    return {
+      success: false,
+      message: "User not found",
+    };
   }
 
   if (user.remainingChatGenerations < 10) {
-    throw new Error("You donot have enough coins to generate chat.");
+    return {
+      success: false,
+      message: "You donot have enough coins to generate chat.",
+    };
   }
 
   // Deduct 10 generations
@@ -67,8 +73,8 @@ export const startCampaignPlanner = async (
             data: {
               contents: {},
               status: "PENDING",
-            }
-          }
+            },
+          },
         },
         goal: plan.goal,
         targetAudience: plan.targetAudience,
@@ -79,7 +85,10 @@ export const startCampaignPlanner = async (
       },
     });
 
-    return updated;
+    return {
+      success: true,
+      data: updated,
+    };
   }
 
   const created = await prisma.campaignPlanner.create({
@@ -97,7 +106,10 @@ export const startCampaignPlanner = async (
     },
   });
 
-  return created;
+  return {
+    success: true,
+    data: created,
+  };
 };
 
 export const getCampaignPlanner = async (projectId: string) => {
@@ -130,6 +142,7 @@ export const generateCampaignChat = async (props: {
   userId: string;
   day: number;
 }) => {
+  console.log("Props", props);
   // Find project
   const project = await prisma.projects.findFirst({
     where: { id: props.projectId },
@@ -163,12 +176,61 @@ export const generateCampaignChat = async (props: {
   const ai = new AI();
   console.log("calling ai");
   console.log(projectCampaign);
+  console.log(`Day`, props.day);
+  const subredditData = await prisma.projectsSubredditData.findFirst({
+    where: {
+      projectId: props.projectId,
+    },
+  });
+
+  const subredditIndex = getRandomInRange(
+    0,
+    subredditData?.subreddit.length ? subredditData?.subreddit.length - 1 : 0
+  );
+
+  const subreddit =
+    subredditData?.subreddit[subredditIndex] ||
+    subredditData?.subreddit[0] ||
+    "";
+
+  const popularPosts = await prisma.subredditPopularPosts.findFirst({
+    where: {
+      subreddit: subreddit,
+    },
+  });
+
+  console.log("popularPosts", popularPosts);
+
+  let redditPopularPost = "";
+
+  if (popularPosts) {
+    const randomPost = (popularPosts.posts as Array<{ body: string }>)[
+      getRandomInRange(
+        0,
+        (popularPosts.posts as Array<{ body: string }>).length - 1
+      )
+    ];
+
+    if (randomPost.body) {
+      redditPopularPost = randomPost.body;
+    }
+  }
+  console.log("redditPopularPost", redditPopularPost);
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",
     projectDescription: project.description,
     projectName: project.name,
     projectId: props.projectId || "",
     projectRelated: true,
+    ...(redditPopularPost
+      ? {
+          extraInformation: {
+            reddit: {
+              popularPost: redditPopularPost,
+            },
+          },
+        }
+      : {}),
   });
 
   if (!chatFromAI) {
@@ -190,17 +252,6 @@ export const generateCampaignChat = async (props: {
     };
   }
 
-  const subredditData = await prisma.projectsSubredditData.findFirst({
-    where: {
-      projectId: props.projectId,
-    },
-  });
-
-  const subredditIndex = getRandomInRange(
-    0,
-    subredditData?.subreddit.length ? subredditData?.subreddit.length - 1 : 0
-  );
-
   await prisma.campaignChat.update({
     where: {
       id: chatToUpdate.id,
@@ -208,7 +259,7 @@ export const generateCampaignChat = async (props: {
     data: {
       contents: chatFromAI,
       status: "GENERATED",
-      subreddit: subredditData?.subreddit[subredditIndex] || "",
+      subreddit: subreddit,
     },
   });
 
@@ -335,7 +386,7 @@ export const editChatContent = async ({
   campaignId,
   day,
   platform,
-  content
+  content,
 }: {
   campaignId: string;
   day: number;

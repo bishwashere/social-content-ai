@@ -245,3 +245,11 @@ model ProjectsSubredditData {
 
   @@map("projects-subreddit-data")
 }
+
+model SubredditPopularPosts {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  subreddit String
+  posts     Json
+
+  @@map("subreddit-popular-posts")
+}

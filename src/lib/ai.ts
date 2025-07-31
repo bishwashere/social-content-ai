@@ -69,6 +69,7 @@ export class AI {
     userPrompt,
     options,
     projectRelated,
+    extraInformation,
   }: GenerateProjectContentProps) {
     const projectOverview =
       projectName && projectDescription
@@ -104,17 +105,17 @@ export class AI {
             projectRelated
           );
 
-          const platformSpecificPrompt = prompt.addPlatformSpecifics({
+          const platformSpecificPrompt = await prompt.addPlatformSpecifics({
             characterLimit: PLATFORM_CHARACTER_LIMITS[platform],
             corePrompt,
             platform,
             userPrompt: userPrompt || "",
+            extraInformation,
           });
 
           const result = await model.generateContent(platformSpecificPrompt);
           return { platform, content: result.response.text().trim() };
         });
-
 
         const generatedContent = await Promise.all(contentPromises);
         const content = generatedContent.reduce(

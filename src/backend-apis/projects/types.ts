@@ -1,6 +1,6 @@
 import { ProjectValidatorType } from "@/validators/projects";
 import { Projects } from "@prisma/client";
-import { ProjectTracking } from "@prisma/client"
+import { ProjectTracking } from "@prisma/client";
 
 export type CreateProjectProps = ProjectValidatorType["createProject"];
 
@@ -17,6 +17,11 @@ export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {
 
 export type GenerateProjectContentProps = ProjectValidatorType["createChat"] & {
   projectId: string;
+  extraInformation?: {
+    reddit?: {
+      popularPost?: string;
+    };
+  };
 };
 
 export type GetAllProjectChatsProps = {
