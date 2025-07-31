@@ -17,6 +17,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { Projects as Project, ProjectChat } from "@prisma/client";
 import { apiRoutes } from "../routes";
 import { GetUserSessionResponse } from "../auth/types";
+import { prisma } from "@/lib/prisma";
 
 class ProjectService {
   /**
@@ -78,12 +79,12 @@ class ProjectService {
     await queryClient.setQueryData<Project[]>(["projects"], (data) => {
       return data
         ? // update the project with the new data
-          data?.map((project) => {
-            if (project.id === id) {
-              return { ...project, ...res.data.data };
-            }
-            return project;
-          })
+        data?.map((project) => {
+          if (project.id === id) {
+            return { ...project, ...res.data.data };
+          }
+          return project;
+        })
         : [res.data.data];
     });
 
@@ -120,8 +121,8 @@ class ProjectService {
           (data) => {
             return data
               ? data.map((chat) =>
-                  chat.id === retry.chatId ? res.data.data : chat
-                )
+                chat.id === retry.chatId ? res.data.data : chat
+              )
               : [res.data.data];
           }
         );
@@ -140,13 +141,13 @@ class ProjectService {
       (data: GetUserSessionResponse) => {
         return data
           ? {
-              ...data,
-              user: {
-                ...data.user,
-                remainingChatGenerations:
-                  data.user.remainingChatGenerations - 1,
-              },
-            }
+            ...data,
+            user: {
+              ...data.user,
+              remainingChatGenerations:
+                data.user.remainingChatGenerations - 1,
+            },
+          }
           : data;
       }
     );
@@ -263,3 +264,43 @@ class ProjectService {
 }
 
 export const projectService = new ProjectService();
+
+
+export const deleteProject = async ({ projectId, userId }: { projectId: string, userId: string }) => {
+  // check if project exists and user has permission
+  const project = await prisma.projects.findUnique({
+    where: {
+      id: projectId,
+    },
+    include: {
+      invitedUsers: true,
+    },
+  });
+
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  // check if user has permission to update project
+  const isOwner = project.userId === userId;
+  if (!isOwner) {
+    throw new Error("You do not have permission to delete this project");
+  }
+
+  await Promise.all(
+    [
+      await prisma.projectTracking.deleteMany({ where: { projectId } }),
+      await prisma.projectChat.deleteMany({ where: { projectId } }),
+      await prisma.invitedUser.deleteMany({ where: { projectId } }),
+      await prisma.campaignPlanner.deleteMany({ where: { projectId } }),
+      await prisma.wall.deleteMany({ where: { projectId } }),
+      await prisma.uploadedVideo.deleteMany({ where: { projectId } }),
+      await prisma.projectsSubredditData.deleteMany({ where: { projectId } })
+    ]
+  )
+  await prisma.projects.delete({
+    where: { id: projectId }
+  });
+
+  return true;
+}
