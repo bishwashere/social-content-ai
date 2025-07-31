@@ -34,6 +34,29 @@ export const startCampaignPlanner = async (
     tickMark: {}, // JSON
   }));
 
+  // Fetch user
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (user.remainingChatGenerations < 10) {
+    throw new Error("You donot have enough coins to generate chat.");
+  }
+
+  // Deduct 10 generations
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      remainingChatGenerations: {
+        decrement: 10,
+      },
+    },
+  });
+
   if (id) {
     const updated = await prisma.campaignPlanner.update({
       where: { id },

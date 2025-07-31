@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
 export const useCampaignPlanner = () => {
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
   return useMutation({
     mutationFn: ({
@@ -34,6 +35,11 @@ export const useCampaignPlanner = () => {
         plan,
         session?.user.id as string
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["session"],
+      });
+    },
     onError: (err) => {
       toast.error(err?.message ?? "Failed to start campaign planner");
     },

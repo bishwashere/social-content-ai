@@ -452,9 +452,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                           campaignPlannerData.refetch();
                                         }
                                       }
-                                    } catch {
-                                      toast.error("Failed to regenerate campaign");
-                                    }
+                                    } catch { }
                                   }}
                                 >
                                   <RefreshCcw className="h-4 w-4 mr-1" />
