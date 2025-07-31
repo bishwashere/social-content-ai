@@ -324,6 +324,8 @@ export default function CampaignPlannerPage({ project }: Props) {
             )}
             {
               campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
+
+                // Toggle Open
                 const isOpen = openCampaigns[campaign.id] || false;
                 const toggleOpen = () => {
                   const prevOpenedCampaigns = openCampaigns;
@@ -331,21 +333,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                   localStorage.setItem("openedCampaigns", JSON.stringify(newOpenedCampaigns));
                   setOpenCampaigns(newOpenedCampaigns);
                 };
-                const totalChats = campaign.chats.length;
-                const loadedChats = campaign.chats.filter(chat =>
-                  chat.contents && Object.keys(chat.contents).length > 0
-                ).length;
-                const completedChats = campaign.chats.filter(chat => chat.completed).length;
 
-                const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
-                const realProgress = totalChats > 0 ? (completedChats / totalChats) * 100 : 0;
-
+                // Open / Close Calendar
                 const openCalendar = (campaignId: string) => {
                   if (!isCalenderOpen.includes(campaignId)) {
                     setIsCalenderOpen([...isCalenderOpen, campaignId]);
                   }
                 }
-
                 const closeCalendar = (campaignId: string) => {
                   setIsCalenderOpen(isCalenderOpen.filter(id => id !== campaignId));
                 }
@@ -360,6 +354,20 @@ export default function CampaignPlannerPage({ project }: Props) {
                   return date >= today;
                 });
                 const firstUpcomingDay = firstUpcomingTimeline?.day;
+
+                // Calculate Loading and real progress bar
+                const totalChats = campaign.chats.length;
+                const loadedChats = campaign.chats.filter(chat =>
+                  chat.contents && Object.keys(chat.contents).length > 0
+                ).length;
+                // const completedChats = campaign.chats.filter(chat => chat.completed).length;
+                const passedDays = campaign.chats.filter(chat => {
+                  const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
+                  chatDate.setHours(0, 0, 0, 0);
+                  return chatDate <= today;
+                }).length;
+                const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
+                const realProgress = totalChats > 0 ? (passedDays / totalChats) * 100 : 0;
 
 
                 return (
