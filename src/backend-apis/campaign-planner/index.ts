@@ -260,6 +260,7 @@ export const generateCampaignChat = async (props: {
       contents: chatFromAI,
       status: "GENERATED",
       subreddit: subreddit,
+      referencePostContent: redditPopularPost?.slice(0, 50) || "",
     },
   });
 

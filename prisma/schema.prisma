@@ -128,7 +128,8 @@ model CampaignChat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subreddit String?
+  subreddit            String?
+  referencePostContent String?
 
   planner CampaignPlanner? @relation("PlannerChats", fields: [plannerId], references: [id], onDelete: Cascade)
 }
