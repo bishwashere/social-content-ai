@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { Settings } from "lucide-react";
+import { Settings, Trash } from "lucide-react";
 import { InviteUserDialog } from "../_components/invite-user";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PLATFORMS } from "@/lib/prompt";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useUpdateProject } from "@/backend-apis/projects/hooks";
+import { useDeleteProject, useUpdateProject } from "@/backend-apis/projects/hooks";
 import { Projects as Project } from "@prisma/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
+import { confirm } from "@/components/ui/alert-dialog";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -18,13 +20,30 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
     const [platformUrls, setPlatformUrls] = useState<Project["platformUrls"]>(
         {} as Project["platformUrls"],
     );
+    const { data: session } = useSession();
     const updateProject = useUpdateProject();
+    const deleteProject = useDeleteProject();
+
     useEffect(() => {
         if (project) {
             setEditedName(project.name);
             setEditedDescription(project.description);
         }
     }, [project]);
+
+    const onDeleteProject = async () => {
+        if (!session?.user.id) return;
+        const yes = await confirm({
+            title: "Do you want to delete this project?",
+            description: ""
+        });
+        if (!yes) return;
+
+        await deleteProject.mutateAsync({
+            projectId: project.id,
+            userId: session?.user.id
+        });
+    }
 
     return (
         <Dialog>
@@ -80,29 +99,38 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
                                 ))}
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex justify-between gap-2">
+                                <div className="flex gap-2">
+                                    <Button
+                                        className=" w-28"
+                                        loading={updateProject.isPending}
+                                        onClick={async () => {
+                                            try {
+                                                await updateProject.mutateAsync({
+                                                    id: project.id,
+                                                    name: editedName,
+                                                    description: editedDescription,
+                                                    platformUrls: platformUrls as any,
+                                                });
+                                            } catch { }
+                                            setIsEditing(false);
+                                        }}
+                                    >
+                                        Save
+                                    </Button>
+                                    <Button
+                                        variant={"secondary"}
+                                        onClick={() => setIsEditing(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
                                 <Button
-                                    className=" w-28"
-                                    loading={updateProject.isPending}
-                                    onClick={async () => {
-                                        try {
-                                            await updateProject.mutateAsync({
-                                                id: project.id,
-                                                name: editedName,
-                                                description: editedDescription,
-                                                platformUrls: platformUrls as any,
-                                            });
-                                        } catch { }
-                                        setIsEditing(false);
-                                    }}
+                                    variant={"outline"}
+                                    onClick={onDeleteProject}
+                                    loading={deleteProject.isPending}
                                 >
-                                    Save
-                                </Button>
-                                <Button
-                                    variant={"secondary"}
-                                    onClick={() => setIsEditing(false)}
-                                >
-                                    Cancel
+                                    <Trash className="stroke-red-500" />
                                 </Button>
                             </div>
                         </div>
