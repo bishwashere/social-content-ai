@@ -302,3 +302,40 @@ export const toggleTickMark = async ({
 
   return updated.planner?.projectId || "";
 };
+
+export const editChatContent = async ({
+  campaignId,
+  day,
+  platform,
+  content
+}: {
+  campaignId: string;
+  day: number;
+  platform: string;
+  content: string;
+}): Promise<string | null> => {
+  const chat = await prisma.campaignChat.findFirst({
+    where: {
+      plannerId: campaignId,
+      day: day,
+    },
+  });
+
+  if (!chat) return null;
+
+  // Update the tickMark JSON
+  const currentContents = (chat.contents as Record<string, string>) || {};
+  currentContents[platform] = content;
+
+  const updated = await prisma.campaignChat.update({
+    where: { id: chat.id },
+    data: {
+      contents: currentContents,
+    },
+    include: {
+      planner: true,
+    },
+  });
+
+  return updated.planner?.projectId || "";
+};

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changeCampaignData,
   deleteCampaign,
+  editChatContent,
   generateCampaignChat,
   getCampaignPlanner,
   startCampaignPlanner,
@@ -122,6 +123,21 @@ export const useToggleTickMark = () => {
           queryKey: ["campaignPlanner", projectId],
         });
     },
+    onError: () => toast.error("Some error occurred!")
+  });
+};
+
+export const useEditChatContent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: editChatContent,
+    onSuccess: (projectId) => {
+      if (projectId)
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", projectId],
+        });
+    },
+    onError: () => toast.error("Some error occurred!")
   });
 };
 
