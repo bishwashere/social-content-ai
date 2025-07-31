@@ -62,8 +62,13 @@ export const startCampaignPlanner = async (
       where: { id },
       data: {
         chats: {
-          deleteMany: {}, // remove existing chats
-          create: chatData,
+          updateMany: {
+            where: {},
+            data: {
+              contents: {},
+              status: "PENDING",
+            }
+          }
         },
         goal: plan.goal,
         targetAudience: plan.targetAudience,
