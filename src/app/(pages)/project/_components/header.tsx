@@ -19,6 +19,7 @@ import { useParams, useRouter } from "next/navigation";
 import { FaRegQuestionCircle } from "react-icons/fa";
 import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
+import { ProjectEditModal } from "./project-edit-modal";
 
 
 export function Header() {
@@ -34,11 +35,17 @@ export function Header() {
       <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="min-w-[24px]" />
-          <span className="truncate">
-            {
-              projects?.data?.find((project) => project.id === id)?.name || "Dashboard"
-            }
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="truncate">
+              {
+                projects?.data?.find((project) => project.id === id)?.name || "Dashboard"
+              }
+            </span>
+            {(() => {
+              const project = projects?.data?.find((project) => project.id === id);
+              return project ? <ProjectEditModal project={project} /> : null;
+            })()}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <Subscription />
