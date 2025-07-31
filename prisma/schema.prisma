@@ -48,6 +48,7 @@ model Projects {
   walls                 Wall[]
   uploadedVideos        UploadedVideo[]
   ProjectsSubredditData ProjectsSubredditData[]
+  SubredditPopularPosts SubredditPopularPosts[]
 
   @@map("projects")
 }
@@ -244,4 +245,14 @@ model ProjectsSubredditData {
   project Projects? @relation(fields: [projectId], references: [id])
 
   @@map("projects-subreddit-data")
+}
+
+model SubredditPopularPosts {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  subreddit  String
+  posts      Json
+  Projects   Projects? @relation(fields: [projectsId], references: [id])
+  projectsId String?   @db.ObjectId
+
+  @@map("subreddit-popular-posts")
 }

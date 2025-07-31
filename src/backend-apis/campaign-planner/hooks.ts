@@ -35,10 +35,14 @@ export const useCampaignPlanner = () => {
         plan,
         session?.user.id as string
       ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["session"],
-      });
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({
+          queryKey: ["session"],
+        });
+      } else {
+        toast.error(data.message);
+      }
     },
     onError: (err) => {
       toast.error(err?.message ?? "Failed to start campaign planner");
@@ -129,7 +133,7 @@ export const useToggleTickMark = () => {
           queryKey: ["campaignPlanner", projectId],
         });
     },
-    onError: () => toast.error("Some error occurred!")
+    onError: () => toast.error("Some error occurred!"),
   });
 };
 
@@ -143,7 +147,7 @@ export const useEditChatContent = () => {
           queryKey: ["campaignPlanner", projectId],
         });
     },
-    onError: () => toast.error("Some error occurred!")
+    onError: () => toast.error("Some error occurred!"),
   });
 };
 

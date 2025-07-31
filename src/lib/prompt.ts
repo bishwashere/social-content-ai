@@ -29,7 +29,7 @@ export const AVAILABLE_PLATFORMS = {
   X: "x",
   LINKEDIN: "linkedin",
   THREADS: "threads",
-  REDDIT: "reddit"
+  REDDIT: "reddit",
 } as const;
 
 export const PLATFORMS = Object.values(AVAILABLE_PLATFORMS);
@@ -82,15 +82,20 @@ class Prompt {
     projectOverview?: string,
     isProjectRelated?: boolean | undefined | null
   ): string {
+    const role = `
+    You are a professional content creator. Your job is to generate content that is engaging, relevant, and unique.
+    RULES: 
+    - Only generate one piece of content, do not give multiple options, Only give the posts body
+    - Never ever use any placeholder for missing data, only use the data provided.
+     `;
     if (!options) {
-      return isProjectRelated
+      return role + isProjectRelated
         ? `Write a project-related content for: ${projectOverview}.`
         : `Write a generic piece of content without project-specific details.`;
     }
 
     const { verb, tone, style, goal, theme } =
       options || this.getRandomProperties();
-
 
     console.log("PROJECT RELATED", isProjectRelated);
 
@@ -130,42 +135,62 @@ class Prompt {
         break;
     }
 
-    return `${verb} a ${tone} and ${style} piece of content ${themeContent}, focused on ${goal}. ${
-      isProjectRelated
-        ? `For the project: ${projectOverview}.`
-        : `Create something universally engaging without specific reference to any project.`
-    }`;
+    return (
+      role +
+      `${verb} a ${tone} and ${style} piece of content ${themeContent}, focused on ${goal}. ${
+        isProjectRelated
+          ? `For the project: ${projectOverview}.`
+          : `Create something universally engaging without specific reference to any project.`
+      }`
+    );
   }
 
   /**
    *  Combine platform-specific custom prompts with the core prompt
    */
-  addPlatformSpecifics({
+  async addPlatformSpecifics({
     characterLimit,
     corePrompt,
     platform,
     userPrompt,
+    extraInformation,
   }: {
     characterLimit: number;
     corePrompt: string;
     platform: Platform;
     userPrompt?: string;
-  }): string {
+    extraInformation?: {
+      reddit?: {
+        popularPost?: string;
+      };
+    };
+  }): Promise<string> {
+    console.log("extraInformation", extraInformation);
+
     const customPrompt =
       PLATFORM_CUSTOM_PROMPTS[platform as keyof typeof PLATFORM_CUSTOM_PROMPTS]; // Fetch the custom prompt for the platform
 
     // Combine custom prompt with the core prompt
     const finalPrompt = `${corePrompt}\n\n${customPrompt}`;
 
-    const finalfinalPrompt = `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. Direct one answer without choice. Never mention platform name.${userPrompt ? ` Also ${userPrompt}` : ""}`;
+    let finalfinalPrompt = `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. Direct one answer without choice. Never mention platform name.${
+      userPrompt ? ` Also ${userPrompt}` : ""
+    }`;
 
     console.log(
       `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
       finalfinalPrompt
     );
 
-    return finalfinalPrompt;
+    if (
+      platform === AVAILABLE_PLATFORMS.REDDIT &&
+      extraInformation?.reddit?.popularPost
+    ) {
+      console.log("Adding popular post to prompt for reddit");
+      finalfinalPrompt += `[CRITICAL] Write this post in similar style as this post tasking as reference [POST]:  ${extraInformation?.reddit?.popularPost}`;
+    }
 
+    return finalfinalPrompt;
   }
 }
 
