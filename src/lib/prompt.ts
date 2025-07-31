@@ -16,7 +16,18 @@ export const PLATFORM_CUSTOM_PROMPTS = {
     "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
   x: "",
   linkedin:
-    "Use a PIER style, without mentioning it. Multiple paragarphas. 1-3 lines per paragraph max. Add data points where possible. Minor icons like arrow, rocket, something good ones only. And clear call to action at the end.",
+      `Write a social media post for the product below using a multi-paragraph structure (1–3 lines per paragraph). Follow PIER style implicitly: start with a strong hook, include a short relatable moment, explain what the product enables, and wrap with a reflective or motivating close.
+
+      Style Guide:
+        - 18–25 lines total
+        - 1–3 lines per paragraph for readability
+        - Include minor icons (e.g. ↳, •, 🚀, ✅) to highlight key ideas
+        - Use a numbered or bulleted list to show features or differentiators
+        - Add specific data points or time savings if available
+        - Keep the tone confident and conversational
+        - Avoid repeating “AI” or “content generator”—focus on outcomes and clarity
+        - End with a clear call to action or thought-provoking question
+      `,
   threads:
     "Use a conversational, engaging style with short, punchy phrasing. Add emojis sparingly and include a simple CTA. Avoid storytelling—focus on clarity and brevity. No multiple options.",
   reddit:
