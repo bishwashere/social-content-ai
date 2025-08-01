@@ -15,7 +15,7 @@ export const POST = applyMiddleware(
       return stripe.stripe.webhooks.constructEvent(
         await req.text(),
         sig,
-        endpointSecret,
+        endpointSecret
       );
     });
 
@@ -26,6 +26,8 @@ export const POST = applyMiddleware(
         status: 400,
       });
     }
+
+    consola.log("Stripe webhook event:", JSON.stringify(event, null, 2));
 
     switch (event.type) {
       case "customer.subscription.created":
@@ -61,6 +63,27 @@ export const POST = applyMiddleware(
         await stripe.endSubscription(event);
         break;
 
+      case "checkout.session.completed":
+        const session = event.data.object;
+        if (session.metadata?.type === "coins") {
+          consola.info("💰 Processing coins purchase");
+          consola.info("Session data:", {
+            id: session.id,
+            customer: session.customer,
+            amount_total: session.amount_total,
+            metadata: session.metadata,
+            payment_status: session.payment_status,
+          });
+          try {
+            await stripe.handleCoinsPayment(event);
+            consola.success("✅ Coins purchase processed successfully");
+          } catch (error) {
+            consola.error("❌ Error processing coins purchase:", error);
+            throw error; // Re-throw to trigger error response
+          }
+        }
+        break;
+
       default:
         consola.log(`Ignoring event: ${event.type}`);
     }
@@ -69,5 +92,5 @@ export const POST = applyMiddleware(
       message: "Stripe webhook",
       status: 200,
     });
-  }),
+  })
 );

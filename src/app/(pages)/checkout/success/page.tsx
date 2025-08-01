@@ -85,6 +85,9 @@ export default function PaymentSuccess() {
   if (session.isLoading) return <PaymentVerification />;
   if (session.isError || !session.data)
     return <PaymentErrorPage tid={searchParams.get("session_id") || ""} />;
+  const type = searchParams.get("type");
+  const isCoinsPayment = type === "coins";
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
       <Card className="w-full max-w-md">
@@ -96,14 +99,16 @@ export default function PaymentSuccess() {
             Payment Successful!
           </CardTitle>
           <CardDescription>
-            Your premium plan subscription has been activated
+            {isCoinsPayment
+              ? "Your coins have been added to your account"
+              : "Your premium plan subscription has been activated"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Plan</span>
-              <span className="font-medium">Basic</span>
+              <span className="text-muted-foreground">{isCoinsPayment ? "Package" : "Plan"}</span>
+              <span className="font-medium">{isCoinsPayment ? "500 Coins" : "Basic"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Amount</span>
@@ -126,15 +131,15 @@ export default function PaymentSuccess() {
                 })}
               </span>
             </div>
-            <div className="flex justify-between gap-4">
+            {!isCoinsPayment && <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Subscription ID</span>
               <span className="font-medium text-right">
                 {session?.data?.data?.subscription as string}
               </span>
-            </div>
+            </div>}
           </div>
 
-          <div className="space-y-2">
+          {!isCoinsPayment && <div className="space-y-2">
             <h3 className="font-semibold">Your premium benefits:</h3>
             <ul className="space-y-1.5">
               <li className="flex items-center gap-2">
@@ -154,7 +159,7 @@ export default function PaymentSuccess() {
                 <span>Unlimited completions</span>
               </li>
             </ul>
-          </div>
+          </div>}
         </CardContent>
         <Separator />
         <CardFooter className="flex flex-col sm:flex-row gap-3 pt-6">

@@ -22,12 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 const Subscription = () => {
   const { data: activeSubscription, isLoading } = useGetSubscription();
   const [clickedButton, setClickedButton] = useState<
     "manage-subscription" | "cancel-subscription"
   >();
+  const { setCoinsModalOpen } = usePricingModal()
   const payment = useCreateCheckoutSession();
   const manage = useManageSubscription();
   const router = useRouter();
@@ -118,12 +120,12 @@ const Subscription = () => {
                       console.log("Managaing subscription", res);
                       router.push(res.data.url);
                     } catch {
-                      const res = await payment.mutateAsync();
+                      const res = await payment.mutateAsync("subscription");
                       router.push(res.data.redirectUrl);
                       console.log("Creating checkout session", res);
                     }
                   } else {
-                    const res = await payment.mutateAsync();
+                    const res = await payment.mutateAsync("subscription");
                     router.push(res.data.redirectUrl);
                     console.log("Creating checkout session", res);
                   }
@@ -165,7 +167,11 @@ const Subscription = () => {
             >
               <Calendar1Icon className="mr-2 h-4 w-4" />
               Manage Subscription
-            </Button></>
+            </Button>
+            <Button onClick={() => setCoinsModalOpen(true)}>
+              Purchase Coins
+            </Button>
+          </>
         }
       </CardFooter>
     </Card>
