@@ -111,7 +111,7 @@ export default function PaymentSuccess() {
                 {session?.data?.data?.currency === "usd"
                   ? "$"
                   : session?.data?.data?.currency}
-                {(session?.data?.data?.amount_total || 0)?.toString()}.00
+                {(session?.data?.data?.amount_total || 0) / 100}.00
               </span>
             </div>
             <div className="flex justify-between">
@@ -154,13 +154,6 @@ export default function PaymentSuccess() {
                 <span>Unlimited completions</span>
               </li>
             </ul>
-          </div>
-
-          <div className="bg-primary/5 rounded-lg p-4">
-            <p className="text-sm">
-              Your 7-day free trial starts today. You won&apos;t be charged
-              until the trial period ends.
-            </p>
           </div>
         </CardContent>
         <Separator />
