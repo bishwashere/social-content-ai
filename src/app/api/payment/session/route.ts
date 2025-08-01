@@ -26,6 +26,7 @@ export const POST = applyMiddleware(
 
     if (
       subscriptions &&
+      subscriptions.status !== "trial" &&
       !isSubscriptionExpired(subscriptions.endsAt.toISOString()).isExpired
     ) {
       return sendNextResponse({
