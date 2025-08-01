@@ -261,46 +261,25 @@ class ProjectService {
 
     return res.data.message;
   }
+
+  async deleteProject(projectId: string, queryClient: QueryClient) {
+    const [err, res] = await tryCatchAsync<ApiError, ApiResponse<{status: number; message: string}>>(
+      async () => {
+        const response = await api.delete(apiRoutes.PROJECTS.BY_ID(projectId));
+        return response;
+      }
+    );
+    if (err) {
+      throw new Error(err.response?.data?.message);
+    }
+
+    await queryClient.invalidateQueries({
+      queryKey: ["projects"]
+    });
+
+    return res.data.message;
+  }
+
 }
 
 export const projectService = new ProjectService();
-
-
-export const deleteProject = async ({ projectId, userId }: { projectId: string, userId: string }) => {
-  // check if project exists and user has permission
-  const project = await prisma.projects.findUnique({
-    where: {
-      id: projectId,
-    },
-    include: {
-      invitedUsers: true,
-    },
-  });
-
-  if (!project) {
-    throw new Error("Project not found");
-  }
-
-  // check if user has permission to update project
-  const isOwner = project.userId === userId;
-  if (!isOwner) {
-    throw new Error("You do not have permission to delete this project");
-  }
-
-  await Promise.all(
-    [
-      await prisma.projectTracking.deleteMany({ where: { projectId } }),
-      await prisma.projectChat.deleteMany({ where: { projectId } }),
-      await prisma.invitedUser.deleteMany({ where: { projectId } }),
-      await prisma.campaignPlanner.deleteMany({ where: { projectId } }),
-      await prisma.wall.deleteMany({ where: { projectId } }),
-      await prisma.uploadedVideo.deleteMany({ where: { projectId } }),
-      await prisma.projectsSubredditData.deleteMany({ where: { projectId } })
-    ]
-  )
-  await prisma.projects.delete({
-    where: { id: projectId }
-  });
-
-  return true;
-}
