@@ -24,6 +24,7 @@ const CampaignCheckButton = (props: Props) => {
     <Checkbox
       disabled={toggle.isPending}
       checked={isCompleted}
+      className='data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500'
       onCheckedChange={async (checked) => {
         const yes = await confirm({
           title: `Do you want to mark this day as ${checked ? "done" : "undone"}?`,
