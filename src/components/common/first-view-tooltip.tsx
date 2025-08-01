@@ -82,9 +82,9 @@ export default function FirstViewTooltip({
                 <TooltipTrigger asChild>
                     {children}
                 </TooltipTrigger>
-                <TooltipContent className="max-w-72 p-6 text-base" side="right">
+                <TooltipContent className="max-w-60 md:max-w-72 p-4 md:p-6 text-base" side="bottom" collisionPadding={10}>
                     {content}
-                    <div className="text-right mt-3">
+                    <div className="text-right mt-2 md:mt-3">
                         <Button size="sm" onClick={handleGotIt}>Got it</Button>
                     </div>
                 </TooltipContent>

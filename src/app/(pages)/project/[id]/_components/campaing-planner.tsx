@@ -78,6 +78,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const deleteCampaignFromDb = useDeleteCampaign();
   const queryClient = useQueryClient();
   const toggleTickMark = useToggleTickMark();
+  const [chatLoading, setChatLoading] = useState<{ campaignId: string, day: number } | null>(null);
 
   const [showPast, setShowPast] = useState(false);
 
@@ -120,50 +121,68 @@ export default function CampaignPlannerPage({ project }: Props) {
         plan
       });
 
-      for (const chat of (d?.chats || [])) {
-        if (chat.status === "PENDING") {
-          try {
-            await generate.mutateAsync({
-              projectId: projectId as string,
-              id: d?.id || '',
-              prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-              userId: session?.user?.id as string,
-              day: chat.day
-            });
-            await sleep(2000);
-            campaignPlannerData.refetch();
-          } catch { }
-        }
-      }
+      //fetch only first day data by default
+      if (d?.chats && d?.chats[0])
+        await generateChat(projectId as string, d.id, d.chats[0].day, d.chats[0].title);
+
+      // for (const chat of (d?.chats || [])) {
+      //   if (chat.status === "PENDING") {
+      //     try {
+      //       await generate.mutateAsync({
+      //         projectId: projectId as string,
+      //         id: d?.id || '',
+      //         prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
+      //         userId: session?.user?.id as string,
+      //         day: chat.day
+      //       });
+      //       await sleep(2000);
+      //       campaignPlannerData.refetch();
+      //     } catch { }
+      //   }
+      // }
     } catch { }
   };
 
+  const generateChat = async (projectId: string, campaignId: string, day: number, title: string | null) => {
+    setChatLoading({ campaignId: campaignId, day: day });
+    try {
+      await generate.mutateAsync({
+        projectId: projectId,
+        id: campaignId,
+        prompt: getPrompt(`Day: ${day} Title: ${title}`),
+        day: day
+      });
+      campaignPlannerData.refetch();
+    } catch { }
+    setChatLoading(null);
+  }
+
   // Auto-generate pending chats for existing campaigns on initial page load
-  useEffect(() => {
-    if (campaignPlannerData.isLoading || !campaignPlannerData.data) return;
-    (async () => {
-      if (campaignPlannerData.data)
-        for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
-          for (const chat of campaign.chats) {
-            if (chat.status === "PENDING") {
-              try {
-                await generate.mutateAsync({
-                  projectId: projectId as string,
-                  id: campaign.id,
-                  prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-                  userId: session?.user?.id as string,
-                  day: chat.day
-                });
-                await sleep(2000);
-                campaignPlannerData.refetch();
-              } catch (err) {
-                console.error(`Failed to generate Day ${chat.day} for campaign ${campaign.name}`);
-              }
-            }
-          }
-        }
-    })();
-  }, [campaignPlannerData?.isLoading]);
+  // useEffect(() => {
+  //   if (campaignPlannerData.isLoading || !campaignPlannerData.data) return;
+  //   (async () => {
+  //     if (campaignPlannerData.data)
+  //       for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
+  //         for (const chat of campaign.chats) {
+  //           if (chat.status === "PENDING") {
+  //             try {
+  //               await generate.mutateAsync({
+  //                 projectId: projectId as string,
+  //                 id: campaign.id,
+  //                 prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
+  //                 userId: session?.user?.id as string,
+  //                 day: chat.day
+  //               });
+  //               await sleep(2000);
+  //               campaignPlannerData.refetch();
+  //             } catch (err) {
+  //               console.error(`Failed to generate Day ${chat.day} for campaign ${campaign.name}`);
+  //             }
+  //           }
+  //         }
+  //       }
+  //   })();
+  // }, [campaignPlannerData?.isLoading]);
 
   const deleteCampaign = async (campaignId: string, projectId: string) => {
     const yes = await confirm({
@@ -216,22 +235,22 @@ export default function CampaignPlannerPage({ project }: Props) {
   useEffect(() => {
   }, [openCampaigns])
 
-  useEffect(() => {
-    if (!campaignPlannerData.data?.chatsGroupedByCampaign) return;
+  // useEffect(() => {
+  //   if (!campaignPlannerData.data?.chatsGroupedByCampaign) return;
 
-    const anyLoading = campaignPlannerData.data.chatsGroupedByCampaign.find(campaign => {
-      const totalChats = campaign.chats.length;
-      const loadedChats = campaign.chats.filter(chat =>
-        chat.contents && Object.keys(chat.contents).length > 0
-      ).length;
+  //   const anyLoading = campaignPlannerData.data.chatsGroupedByCampaign.find(campaign => {
+  //     const totalChats = campaign.chats.length;
+  //     const loadedChats = campaign.chats.filter(chat =>
+  //       chat.contents && Object.keys(chat.contents).length > 0
+  //     ).length;
 
-      const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
+  //     const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
 
-      return loadingProgress > 0 && loadingProgress < 100
-    });
+  //     return loadingProgress > 0 && loadingProgress < 100
+  //   });
 
-    setIsInProgress(anyLoading ? anyLoading.id : null);
-  }, [campaignPlannerData.data?.chatsGroupedByCampaign]);
+  //   setIsInProgress(anyLoading ? anyLoading.id : null);
+  // }, [campaignPlannerData.data?.chatsGroupedByCampaign]);
 
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
@@ -384,14 +403,16 @@ export default function CampaignPlannerPage({ project }: Props) {
                           style={{ width: `${realProgress}%` }}
                         />
                       }
-                      {isInProgress && isInProgress === campaign.id && <LoadingCard loading={isInProgress} />}
+                      {/* {isInProgress && isInProgress === campaign.id && <LoadingCard loading={isInProgress} />} */}
                       <button
                         className="w-full flex justify-between items-center p-4 font-semibold"
                         onClick={toggleOpen}
                       >
                         <div className="flex flex-wrap justify-center items-center gap-2">
                           {campaign.name}
-                          <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
+                          </div>
                           <p className="text-sm max-md:hidden">• {campaign.goal}</p>
                           <p className="text-sm max-md:hidden">• {campaign.targetAudience}</p>
                           <p className="text-sm">•&nbsp;
@@ -410,27 +431,29 @@ export default function CampaignPlannerPage({ project }: Props) {
                             <div className="px-4 pb-4 space-y-4">
                               <div className="flex gap-2 justify-end">
 
-                                <DatePicker
-                                  // selected={selectedDate}
-                                  onChange={(date) => {
-                                    if (date) {
-                                      updateCampaignData.mutate({ id: campaign.id, startDate: date })
-                                      closeCalendar(campaign.id);
+                                <div onClick={(e) => e.stopPropagation()} className="z-[99999]">
+                                  <DatePicker
+                                    // selected={selectedDate}
+                                    onChange={(date) => {
+                                      if (date) {
+                                        updateCampaignData.mutate({ id: campaign.id, startDate: date })
+                                        closeCalendar(campaign.id);
+                                      }
+                                    }}
+                                    open={isCalenderOpen.includes(campaign.id)}
+                                    onFocus={() => openCalendar(campaign.id)}
+                                    onClickOutside={() => closeCalendar(campaign.id)}
+                                    showPopperArrow={true}
+                                    className="text-xs"
+                                    customInput={
+                                      <Button variant="outline" size="sm" className="w-fit text-xs">
+                                        <Play />
+                                        <span className="max-lg:hidden"> Start</span>
+                                      </Button>
                                     }
-                                  }}
-                                  open={isCalenderOpen.includes(campaign.id)}
-                                  onFocus={() => openCalendar(campaign.id)}
-                                  onClickOutside={() => closeCalendar(campaign.id)}
-                                  showPopperArrow={true}
-                                  className="text-xs"
-                                  customInput={
-                                    <Button variant="outline" size="sm" className="w-fit text-xs">
-                                      <Play />
-                                      <span className="max-lg:hidden"> Start</span>
-                                    </Button>
-                                  }
-                                  disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
-                                />
+                                    disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
+                                  />
+                                </div>
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -463,13 +486,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                                       for (const chat of (d?.data?.chats || [])) {
                                         if (chat.status === "PENDING") {
-                                          await generate.mutateAsync({
-                                            projectId: projectId as string,
-                                            id: campaign.id,
-                                            prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-                                            userId: session?.user?.id as string,
-                                            day: chat.day
-                                          });
+                                          await generateChat(projectId as string, campaign.id, chat.day, chat.title);
                                           await sleep(2000);
                                           campaignPlannerData.refetch();
                                         }
@@ -549,7 +566,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                           <DialogTrigger asChild>
                                             <div className="flex flex-row gap-1 flex-grow text-sm sm:text-base">
                                               {/* <p className="font-medium">Day {timeline.day}:</p> */}
-                                              <p className="block md:hidden font-medium">
+                                              <p className={`block md:hidden font-medium ${isHighlighted ? 'text-primary' : 'text-gray-600'}`}>
                                                 {futureDate.toLocaleDateString("en-US", {
                                                   year: "numeric",
                                                   month: "long",
@@ -557,14 +574,28 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 })}:
                                               </p>
                                               <p>{timeline.title}</p>
-                                              {timeline.status === "PENDING" && (
+                                              {/* {chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day && (
                                                 <Loader2 className="animate-spin h-4 w-4 ml-auto" />
-                                              )}
+                                              )} */}
                                             </div>
                                           </DialogTrigger>
                                         </div>
                                         <div className="flex justify-end">
-                                          <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                                          {
+                                            timeline.status === "PENDING" ?
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-dashed border-primary"
+                                                onClick={() => generateChat(projectId as string, campaign.id, timeline.day, timeline.title)}
+                                                loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
+                                                disabled={generate.isPending}
+                                              >
+                                                <Play />
+                                              </Button>
+                                              :
+                                              <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                                          }
                                         </div>
                                       </div>
                                       <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">

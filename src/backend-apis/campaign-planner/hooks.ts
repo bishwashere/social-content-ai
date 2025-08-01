@@ -37,9 +37,9 @@ export const useCampaignPlanner = () => {
       ),
     onSuccess: (data) => {
       if (data.success) {
-        queryClient.invalidateQueries({
-          queryKey: ["session"],
-        });
+        // queryClient.invalidateQueries({
+        //   queryKey: ["session"],
+        // });
       } else {
         toast.error(data.message);
       }
@@ -59,27 +59,33 @@ export const useGetCampaignPlanner = ({ projectId }: { projectId: string }) => {
 };
 
 export const useGenerateCampaignChat = () => {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
   return useMutation({
     mutationFn: ({
       projectId,
       id,
       prompt,
-      userId,
       day,
     }: {
       projectId: string;
       id: string;
       prompt: string;
-      userId: string;
       day: number;
     }) =>
       generateCampaignChat({
         projectId,
         id,
         prompt,
-        userId,
+        userId: session?.user?.id as string,
         day,
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["session"]
+      })
+    },
     onError: () => {
       toast.error("Failed to generate campaign chat");
     },

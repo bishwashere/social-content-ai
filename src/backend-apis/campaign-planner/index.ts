@@ -53,16 +53,6 @@ export const startCampaignPlanner = async (
     };
   }
 
-  // Deduct 10 generations
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      remainingChatGenerations: {
-        decrement: 10,
-      },
-    },
-  });
-
   if (id) {
     const updated = await prisma.campaignPlanner.update({
       where: { id },
@@ -143,6 +133,26 @@ export const generateCampaignChat = async (props: {
   day: number;
 }) => {
   console.log("Props", props);
+
+  // Fetch user
+  const user = await prisma.user.findFirst({
+    where: { id: props.userId },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      message: "User not found",
+    };
+  }
+
+  if (user.remainingChatGenerations < 5) {
+    return {
+      success: false,
+      message: "You donot have enough coins to generate chat.",
+    };
+  }
+
   // Find project
   const project = await prisma.projects.findFirst({
     where: { id: props.projectId },
@@ -224,12 +234,12 @@ export const generateCampaignChat = async (props: {
     projectRelated: true,
     ...(redditPopularPost
       ? {
-          extraInformation: {
-            reddit: {
-              popularPost: redditPopularPost,
-            },
+        extraInformation: {
+          reddit: {
+            popularPost: redditPopularPost,
           },
-        }
+        },
+      }
       : {}),
   });
 
@@ -261,6 +271,16 @@ export const generateCampaignChat = async (props: {
       status: "GENERATED",
       subreddit: subreddit,
       referencePostContent: redditPopularPost?.slice(0, 50) || "",
+    },
+  });
+
+  // Deduct 5 generations
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      remainingChatGenerations: {
+        decrement: 5,
+      },
     },
   });
 
