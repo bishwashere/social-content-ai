@@ -277,7 +277,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
       {!showCampaignForm && (
-        <Button size={"xl"} className="fixed bottom-8 right-8 !md:bg-primary/40 hover:bg-primary z-50 shadow-lg" onClick={() => setShowCampaignForm(true)}>
+        <Button size={"xl"} className={cn(!campaignPlannerData.data?.chatsGroupedByCampaign?.length ? "static w-full mt-5" : "fixed bottom-8 right-8 !md:bg-primary/40 hover:bg-primary z-50 shadow-lg")} onClick={() => setShowCampaignForm(true)}>
           Plan Campaign
         </Button>
       )}
@@ -594,12 +594,12 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 variant="outline"
                                                 size="sm"
                                                 className="border-dashed border-primary"
-                                                onClick={async() => {
+                                                onClick={async () => {
                                                   const yes = await confirm({
                                                     title: 'Generating content for this day will use 5 coins.',
                                                     description: ''
                                                   });
-                                                  if(!yes) return;
+                                                  if (!yes) return;
                                                   generateChat(projectId as string, campaign.id, timeline.day, timeline.title);
                                                 }}
                                                 loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
