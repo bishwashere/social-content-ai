@@ -175,12 +175,12 @@ export default function PricingModal({ open, setOpen }: Props) {
                       console.log("Managaing subscription", res);
                       router.push(res.data.url);
                     } catch {
-                      const res = await payment.mutateAsync();
+                      const res = await payment.mutateAsync("subscription");
                       router.push(res.data.redirectUrl);
                       console.log("Creating checkout session", res);
                     }
                   } else {
-                    const res = await payment.mutateAsync();
+                    const res = await payment.mutateAsync("subscription");
                     router.push(res.data.redirectUrl);
                     console.log("Creating checkout session", res);
                   }

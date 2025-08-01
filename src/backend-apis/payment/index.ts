@@ -6,14 +6,14 @@ import Stripe from "stripe";
 import { Subscription } from "@prisma/client";
 
 class PaymentService {
-  async createSession() {
+  async createSession(type: "subscription" | "coins" = "subscription") {
     const [err, res] = await tryCatchAsync<
       ApiError,
       ApiResponse<{
         redirectUrl: string;
       }>
     >(async () => {
-      const response = await api.post(apiRoutes.PAYMENT.SESSION());
+      const response = await api.post(apiRoutes.PAYMENT.SESSION(), { type });
       return response;
     });
 

@@ -45,6 +45,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Projects } from "@prisma/client";
 import { SavePlatformCard } from "./save-platform-card";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 const ICONS = {
   x: "/x.svg",
@@ -79,6 +80,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const queryClient = useQueryClient();
   const toggleTickMark = useToggleTickMark();
   const [chatLoading, setChatLoading] = useState<{ campaignId: string, day: number } | null>(null);
+  const { handleCoinsFinished } = usePricingModal()
 
   const [showPast, setShowPast] = useState(false);
 
@@ -152,7 +154,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const generateChat = async (projectId: string, campaignId: string, day: number, title: string | null) => {
     setChatLoading({ campaignId: campaignId, day: day });
     try {
-      const { success, message } = await generate.mutateAsync({
+      const { success, message, insufficientCoins } = await generate.mutateAsync({
         projectId: projectId,
         id: campaignId,
         prompt: getPrompt(`Day: ${day} Title: ${title}`),
@@ -160,6 +162,9 @@ export default function CampaignPlannerPage({ project }: Props) {
       });
       if (!success) {
         toast.error(message || "Failed to generate campaign chat");
+        if (insufficientCoins) {
+          handleCoinsFinished();
+        }
       }
       campaignPlannerData.refetch();
     } catch { }

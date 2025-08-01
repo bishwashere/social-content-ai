@@ -18,6 +18,95 @@ class Stripe {
     });
   }
 
+  async createCoinsSession(user: User) {
+    const session = await this.stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "500 Coins Package",
+              description: "Get 500 coins to use for content generation",
+            },
+            unit_amount: 5000, // $50.00
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url:
+        process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL +
+        "/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=coins",
+      cancel_url:
+        process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/checkout/cancel",
+      metadata: {
+        userId: user.id,
+        type: "coins",
+        coinsAmount: "500",
+      },
+    });
+
+    return session;
+  }
+
+  async handleCoinsPayment(event: StripeNative.CheckoutSessionCompletedEvent) {
+    const session = event.data.object;
+    const userId = session.metadata?.userId;
+    const coinsAmount = parseInt(session.metadata?.coinsAmount || "0");
+
+    consola.info("🔍 Processing coin payment with data:", {
+      userId,
+      coinsAmount,
+      sessionId: session.id,
+    });
+
+    if (!userId || !coinsAmount) {
+      consola.error("❌ Invalid coins payment metadata", session.id);
+      throw new Error(`Invalid coins payment metadata ${session.id}`);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        remainingChatGenerations: true,
+      },
+    });
+
+    if (!user) {
+      consola.error("❌ User not found", userId);
+      throw new Error(`User not found ${userId}`);
+    }
+
+    consola.info("👤 Found user current state:", {
+      userId: user.id,
+      currentChatGenerations: user.remainingChatGenerations,
+    });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        remainingChatGenerations: {
+          increment: coinsAmount,
+        },
+      },
+      select: {
+        id: true,
+        remainingChatGenerations: true,
+      },
+    });
+
+    consola.success("✅ Successfully updated user chat generations:", {
+      userId: updatedUser.id,
+      previousAmount: user.remainingChatGenerations,
+      addedAmount: coinsAmount,
+      newAmount: updatedUser.remainingChatGenerations,
+    });
+
+    return;
+  }
+
   async createSession(packageToBuy: Package, user: User, trial: boolean) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ["card"],

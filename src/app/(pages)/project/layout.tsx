@@ -4,6 +4,7 @@ import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
 import { TooltipManagerProvider } from "@/providers/first-view-tooltip-manager";
+import { PricingModalProvider } from "@/providers/pricing-modal-provider";
 
 export default function ProjectLayout({
   children,
@@ -13,7 +14,9 @@ export default function ProjectLayout({
   return (
     <TooltipManagerProvider>
       <SidebarProvider defaultOpen={true}>
-        <Main>{children}</Main>
+        <PricingModalProvider>
+          <Main>{children}</Main>
+        </PricingModalProvider>
       </SidebarProvider>
     </TooltipManagerProvider>
   );

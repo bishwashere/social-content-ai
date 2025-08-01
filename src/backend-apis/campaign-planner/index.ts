@@ -50,6 +50,7 @@ export const startCampaignPlanner = async (
     return {
       success: false,
       message: "You donot have enough coins to generate chat.",
+      insufficientCoins: true,
     };
   }
 
@@ -150,6 +151,7 @@ export const generateCampaignChat = async (props: {
     return {
       success: false,
       message: "You donot have enough coins to generate chat.",
+      insufficientCoins: true,
     };
   }
 
@@ -234,12 +236,12 @@ export const generateCampaignChat = async (props: {
     projectRelated: true,
     ...(redditPopularPost
       ? {
-        extraInformation: {
-          reddit: {
-            popularPost: redditPopularPost,
+          extraInformation: {
+            reddit: {
+              popularPost: redditPopularPost,
+            },
           },
-        },
-      }
+        }
       : {}),
   });
 
