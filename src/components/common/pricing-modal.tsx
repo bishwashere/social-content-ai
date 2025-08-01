@@ -22,7 +22,7 @@ import {
   useManageSubscription,
 } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
-import { useLogout, useSession } from "@/backend-apis/auth/hooks";
+import { useSession } from "@/backend-apis/auth/hooks";
 import { useEffect, useState } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { claimFreeTrial } from "@/server-actions/claim-free-trial";
@@ -46,6 +46,12 @@ export default function PricingModal({ open, setOpen }: Props) {
   useEffect(() => {
     // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
 
+    // if open in last 5 mins, don't open
+    const lastOpen = localStorage.getItem(`lastOpen__${data?.user?.id}`);
+    if (lastOpen && Date.now() - Number(lastOpen) < 5 * 60 * 1000) {
+      console.log("lastOpen", lastOpen);
+      return;
+    }
 
 
     if (
@@ -55,9 +61,10 @@ export default function PricingModal({ open, setOpen }: Props) {
     ) {
       setOpen(true);
     } else {
+      console.log("data.subscription", data.subscription);
       setOpen(false);
     }
-  }, [data?.subscription, data?.user?.hasClaimedFreeTrial, setOpen]);
+  }, [data?.subscription, data?.user?.hasClaimedFreeTrial, data?.user?.id, setOpen]);
 
   const claimTrial = async () => {
     try {
@@ -85,6 +92,7 @@ export default function PricingModal({ open, setOpen }: Props) {
         <DialogClose
           onClick={async () => {
             await claimTrial();
+            localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
             setOpen(false);
           }}
         />
@@ -193,7 +201,11 @@ export default function PricingModal({ open, setOpen }: Props) {
               !data?.user?.hasClaimedFreeTrial && (
                 <Button
                   loading={isLoading}
-                  onClick={claimTrial}
+                  onClick={async () => {
+                    await claimTrial();
+                    localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
+                    setOpen(false);
+                  }}
                   variant={"ghost"}
                   className="w-full text-muted-foreground"
                 >

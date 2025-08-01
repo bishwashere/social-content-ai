@@ -39,7 +39,7 @@ export const POST = applyMiddleware(
       const session = await stripe.createSession(
         PACKAGES.BASIC,
         user as unknown as User,
-        !user.hasClaimedFreeTrial // only give trial if user has not claimed it before
+        false
       );
 
       // delete old subscription
