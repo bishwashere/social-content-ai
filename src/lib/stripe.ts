@@ -8,7 +8,7 @@ import consola from "consola";
 import StripeNative from "stripe";
 import { prisma } from "./prisma";
 import { SUBSCRIPTION_STATUS } from "@/constants/subscription-status";
-import { CHAT_GENERATION_PER_MONTH_WHILE_TRIAL } from "@/constants/common";
+import { CHAT_GENERATION_PER_MONTH } from "@/constants/common";
 class Stripe {
   stripe: StripeNative;
 
@@ -120,7 +120,7 @@ class Stripe {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        remainingChatGenerations: CHAT_GENERATION_PER_MONTH_WHILE_TRIAL,
+        remainingChatGenerations: CHAT_GENERATION_PER_MONTH,
         hasClaimedFreeTrial: true,
       },
     });
@@ -187,6 +187,14 @@ class Stripe {
         endsAt: new Date(
           subscriptionFromStripe.current_period_end * 1000
         ).toISOString(),
+      },
+    });
+
+    // Reset remaining chat generations for the user
+    await prisma.user.update({
+      where: { id: subscription.userId },
+      data: {
+        remainingChatGenerations: CHAT_GENERATION_PER_MONTH,
       },
     });
 
