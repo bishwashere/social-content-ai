@@ -46,9 +46,9 @@ export default function PricingModal({ open, setOpen }: Props) {
   useEffect(() => {
     // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
 
-    // if open in last 5 mins, don't open
+    // if open in last 10 sec, don't open
     const lastOpen = localStorage.getItem(`lastOpen__${data?.user?.id}`);
-    if (lastOpen && Date.now() - Number(lastOpen) < 5 * 60 * 1000) {
+    if (lastOpen && Date.now() - Number(lastOpen) < 10 * 1000) {
       console.log("lastOpen", lastOpen);
       return;
     }

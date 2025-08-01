@@ -152,12 +152,15 @@ export default function CampaignPlannerPage({ project }: Props) {
   const generateChat = async (projectId: string, campaignId: string, day: number, title: string | null) => {
     setChatLoading({ campaignId: campaignId, day: day });
     try {
-      await generate.mutateAsync({
+      const { success, message } = await generate.mutateAsync({
         projectId: projectId,
         id: campaignId,
         prompt: getPrompt(`Day: ${day} Title: ${title}`),
         day: day
       });
+      if (!success) {
+        toast.error(message || "Failed to generate campaign chat");
+      }
       campaignPlannerData.refetch();
     } catch { }
     setChatLoading(null);
