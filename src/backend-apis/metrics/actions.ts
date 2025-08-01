@@ -1,6 +1,7 @@
 "use server";
 
 import { extractPostId, RedditPostData } from "./hooks";
+import { getFacebookPostMetrics, type FacebookMetrics } from "@/lib/facebook";
 
 export const fetchRedditPostsData = async (
   urls: string[]
@@ -42,4 +43,19 @@ export const fetchRedditPostsData = async (
   }
 
   return results;
+};
+
+export const fetchFacebookPostMetrics = async (
+  urls: string[],
+  userId: string
+): Promise<FacebookMetrics[] | null> => {
+  console.log("Fetching Facebook post metrics for URLs:", urls, userId);
+  const results: FacebookMetrics[] = [];
+  for (const url of urls) {
+    const metrics = await getFacebookPostMetrics(url, userId);
+    if (metrics) {
+      results.push(metrics);
+    }
+  }
+  return results.length > 0 ? results : [];
 };

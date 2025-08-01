@@ -44,20 +44,20 @@ export default function HomeV3() {
 
 
   return (
-    <>
-      <Script
-        src="https://link.msgsndr.com/js/am.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          try {
-            window.affiliateManager?.init(
-              'eUSmMicux5YGnmRl6263',
-              'https://backend.leadconnectorhq.com',
-              '.www.nextpostai.com'
-            );
-          } catch (e) { }
-        }}
-      />
+      <>
+       <Script
+         src="https://link.msgsndr.com/js/am.js"
+         strategy="afterInteractive"
+         onLoad={() => {
+           try {
+             window.affiliateManager?.init(
+               'eUSmMicux5YGnmRl6263',
+               'https://backend.leadconnectorhq.com',
+               '.www.nextpostai.com'
+             );
+           } catch (e) {}
+         }}
+       />
 
       <div className='homepage'>
 
@@ -66,17 +66,17 @@ export default function HomeV3() {
           <div className='absolute top-0 left-0 w-full h-full bg-top-section z-10 object-fill' />
           <div className='relative flex flex-col items-center justify-center z-20 w-[90%] md:w-[80%] gap-5'>
             <div className='flex flex-col items-center md:items-start'>
-              <p className='text-primary text-2xl'>Welcome To</p>
+              <p className='text-[#FAA41B] text-2xl'>Welcome To</p>
               <p className='text-6xl md:text-8xl xl:text-9xl font-[900] text-white mt-3 md:mt-0'>NextPostAI</p>
             </div>
-            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-blue-400'>Your AI-Powered Marketing Assistant for Apps & Products</p>
+            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]'>Your AI-Powered Marketing Assistant for Apps & Products</p>
             {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
             <hr className='my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]' />
             <div className='flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5'>
               <div className='flex flex-col gap-2 lg:gap-8 items-center lg:items-start p-3 lg:p-0'>
                 <p className='text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold'>Plan Smarter. Post Faster. Grow Consistently.</p>
                 <p className='text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider'>Building something amazing but not sure how to market it? NextPostAI helps you plan your launch, create engaging content, and stay consistent — so your product gets the attention it deserves.</p>
-                <GoogleLoginButton triggerClassName='px-12 py-3 text-primary-foreground bg-primary text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
+                <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
               </div>
               <Image src="/tmpu3cg1514.webp" width={600} height={600} alt="image" className='max-w-96' />
             </div>
@@ -88,8 +88,8 @@ export default function HomeV3() {
           <div className='flex w-full flex-col sm:flex-row gap-5 items-center justify-between'>
             <div className='flex flex-col justify-center'>
               <p className='text-5xl'>Why Choose</p>
-              <p className='text-5xl font-medium mt-2'><span className='text-primary mr-[2px] font-bold'>NextPostAI</span>?</p>
-              <hr className='bg-primary w-24 h-[6px] mt-5' />
+              <p className='text-5xl font-medium mt-2'><span className='text-[#FAA41B] mr-[2px] font-bold'>NextPostAI</span>?</p>
+              <hr className='bg-[#FAA41B] w-24 h-[6px] mt-5' />
             </div>
             <Image src="/tmp0u5_noks.webp" width={500} height={500} alt="image" className='max-w-72 -mt-5' />
           </div>
@@ -127,7 +127,7 @@ export default function HomeV3() {
 
         {/* Section 3 */}
         <section className='flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5'>
-          <div className='w-full h-full bg-primary rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16'>
+          <div className='w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16'>
             <p className='font-bold text-5xl md:text-5xl'>How It Works</p>
             <div className='grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-5 px-5 md:px-0'>
               {
@@ -155,8 +155,8 @@ export default function HomeV3() {
                 ].map((data, idx) => (
                   <div className='flex flex-col items-center justify-center' key={idx}>
                     <Image src={data.image} width={400} height={400} className='max-w-28 mb-5' alt="image" />
-                    <p className='text-lg font-semibold text-center text-white'>{data.title}</p>
-                    <p className='text-sm text-white/70 text-center'>{data.content}</p>
+                    <p className='text-lg font-semibold text-center'>{data.title}</p>
+                    <p className='text-sm text-white text-center'>{data.content}</p>
                   </div>
                 ))
               }
@@ -169,7 +169,7 @@ export default function HomeV3() {
         <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-5xl font-light">
-              The <span className="text-primary font-semibold">NextPostAI</span> Advantage
+              The <span className="text-[#FAA41B] font-semibold">NextPostAI</span> Advantage
             </h2>
             <hr className="border-t border-gray-600 mt-3 w-24 mx-auto" />
           </div>
@@ -178,7 +178,7 @@ export default function HomeV3() {
             {/* Traditional Approach */}
             <div>
               <h3 className="text-3xl font-bold mb-2 text-black">Traditional Approach</h3>
-              <div className="w-10 h-1 bg-primary mb-6" />
+              <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
               <ul className="space-y-3 text-base font-light text-black">
                 <li className="flex items-start gap-2">
                   <span className="text-red-500">✖</span> Time-consuming trend analysis
@@ -198,7 +198,7 @@ export default function HomeV3() {
             {/* With NextPostAI */}
             <div>
               <h3 className="text-3xl font-bold text-black mb-2 ">With NextPostAI</h3>
-              <div className="w-10 h-1 bg-primary mb-6" />
+              <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
               <ul className="space-y-3 text-base font-light text-black">
                 <li className="flex items-start gap-2">
                   <span className="text-green-400">✔</span> Smart marketing plans built with AI
@@ -219,7 +219,7 @@ export default function HomeV3() {
 
         <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
           <div className="bg-[#222639] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-10 md:px-16 flex flex-col items-center gap-12">
-            <h2 className="text-4xl md:text-5xl text-primary font-medium text-center">Testimonials</h2>
+            <h2 className="text-4xl md:text-5xl text-[#FAA41B] font-medium text-center">Testimonials</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
               {[
@@ -256,7 +256,7 @@ export default function HomeV3() {
 
             <div className="text-center mt-8">
               <p className="text-white text-lg mb-4">Ready to get started?</p>
-              <GoogleLoginButton triggerClassName='px-12 py-3 text-primary-foreground bg-primary text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
+              <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
             </div>
           </div>
         </section>
@@ -268,9 +268,9 @@ export default function HomeV3() {
             <div className="flex flex-col max-w-xl">
               <h3 className="text-3xl md:text-5xl font-bold text-[#0F1124]">
                 Mobile-Friendly <br />
-                <span className="text-primary">Design</span>
+                <span className="text-[#FAA41B]">Design</span>
               </h3>
-              <div className="w-10 h-1 bg-primary my-4" />
+              <div className="w-10 h-1 bg-[#FAA41B] my-4" />
               <p className="text-sm md:text-lg text-[#0F1124]">
                 Access NextPostAI on any device. Whether you&apos;re on the go or at your desk,
                 your marketing tools are always within reach.
@@ -283,10 +283,10 @@ export default function HomeV3() {
           {/* Privacy & Security */}
           <div className="flex flex-col md:flex-row items-center justify-around gap-10">
             <div className="flex flex-col max-w-xl order-2 md:order-1">
-              <h3 className="text-3xl md:text-5xl font-bold text-primary">
+              <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">
                 Privacy <span className="text-[#0F1124]">& Security</span>
               </h3>
-              <div className="w-10 h-1 bg-primary my-4" />
+              <div className="w-10 h-1 bg-[#FAA41B] my-4" />
               <ul className="list-disc pl-5 space-y-2 text-[#0F1124] text-sm md:text-lg">
                 <li>100% free to start - no credit card required</li>
                 <li>Upgrade later for pro features</li>
@@ -300,7 +300,7 @@ export default function HomeV3() {
 
         <section className="w-full mt-24 md:mt-48 px-4 md:px-8 lg:px-20 flex flex-col items-center">
           {/* Who Can Benefit */}
-          <div className="bg-primary text-white pt-24 skew-y-[-5deg] w-full relative pb-56">
+          <div className="bg-[#FAA41B] text-white pt-24 skew-y-[-5deg] w-full relative pb-56">
             <div
               className="absolute left-0 -top-16 md:-top-[87px] inset-0 bg-[#222639] h-14 w-56 md:h-20 md:w-96"
               style={{
@@ -343,14 +343,14 @@ export default function HomeV3() {
               Experience the power of having a smart marketing assistant by your side. <br />
               Sign up now and simplify your promotional strategy.
             </p>
-            <GoogleLoginButton triggerClassName='px-12 py-3 text-primary-foreground bg-primary text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
+            <GoogleLoginButton triggerClassName='px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
           </div>
         </section>
 
         <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-4xl text-[#0F1124] font-light">Frequently</h2>
-            <h3 className="text-3xl md:text-5xl font-bold text-primary">Asked Questions</h3>
+            <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">Asked Questions</h3>
           </div>
 
           <div className="space-y-4">
@@ -409,7 +409,7 @@ export default function HomeV3() {
                 </div>
                 <button
                   type="submit"
-                  className="bg-primary hover:bg-primary/90 text-white font-medium py-2 rounded transition-all"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition-all"
                 >
                   SUBMIT
                 </button>

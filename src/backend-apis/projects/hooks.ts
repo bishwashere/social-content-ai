@@ -85,6 +85,7 @@ export const useGetTrackedProjects = (data: GetProjectTrackingProps) => {
   return useQuery({
     queryFn: () => projectService.getTrackedProjects(data),
     queryKey: ["project-tracking", data],
+    enabled: !!data.projectId,
   });
 };
 
@@ -127,7 +128,7 @@ export const useDeleteProject = () => {
     onSuccess: (data) => {
       if (data) {
         queryClient.invalidateQueries({
-          queryKey: ["projects"]
+          queryKey: ["projects"],
         });
         toast.success("Projet Deleted !");
         router.push("/project");
@@ -135,6 +136,6 @@ export const useDeleteProject = () => {
     },
     onError: (err) => {
       toast.error(err.message ?? "Some error occurred");
-    }
+    },
   });
 };
