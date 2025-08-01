@@ -1,16 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Coins } from "lucide-react";
-import PricingModal from "./pricing-modal";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { isSubscriptionExpired } from "@/lib/sub";
+import { useRouter } from "next/navigation";
+import { useCreateCheckoutSession } from "@/backend-apis/payment/hooks";
+import PricingModal from "./pricing-modal";
 const Subscription = () => {
-  const [open, setOpen] = React.useState(false);
   const { data } = useSession();
+  const payment = useCreateCheckoutSession();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   return (
     <div>
       <PricingModal open={open} setOpen={setOpen} />
       <Button
+        onClick={async () => {
+          if (!data?.subscription || data?.subscription?.status === "trial") {
+            const res = await payment.mutateAsync();
+            router.push(res.data.redirectUrl);
+            console.log("Creating checkout session", res);
+          }
+        }}
         variant="outline"
         size="sm"
         className="bg-yellow-400 capitalize border-yellow-500 hover:text-yellow-800 hover:bg-yellow-300 text-yellow-900 transition-colors"
