@@ -39,17 +39,19 @@ export default function PricingModal({ open, setOpen }: Props) {
   const manage = useManageSubscription();
   const router = useRouter();
   const { data } = useSession();
-  const logout = useLogout();
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
   // only open the modal if the user has not claimed the subscription
   useEffect(() => {
     // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
+
+
+
     if (
       (!data?.user?.hasClaimedFreeTrial) || (
         data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
-      )
+      ) || data.subscription?.status === "trial"
     ) {
       setOpen(true);
     } else {
@@ -57,12 +59,33 @@ export default function PricingModal({ open, setOpen }: Props) {
     }
   }, [data?.subscription, data?.user?.hasClaimedFreeTrial, setOpen]);
 
+  const claimTrial = async () => {
+    try {
+      if (!data?.user?.hasClaimedFreeTrial) {
+        setIsLoading(true);
+        const res = await claimFreeTrial(data?.user?.id || "")
+        if (res.success) {
+          toast.success(res.message);
+          setOpen(false);
+          queryClient.invalidateQueries({
+            queryKey: ["session"],
+          });
+        } else {
+          toast.error(res.message);
+        }
+        setIsLoading(false);
+      }
+    } catch { }
+  }
+
+
   return (
     <Dialog open={open}>
       <DialogContent className="sm:max-w-md">
         <DialogClose
-          onClick={() => {
-            logout.mutate();
+          onClick={async () => {
+            await claimTrial();
+            setOpen(false);
           }}
         />
         <DialogHeader>
@@ -128,26 +151,13 @@ export default function PricingModal({ open, setOpen }: Props) {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col">
             <Button
-              loading={payment.isPending || manage.isPending || isLoading}
+              loading={payment.isPending || manage.isPending}
               onClick={async () => {
                 try {
 
-                  if (!data?.user?.hasClaimedFreeTrial) {
-                    setIsLoading(true);
-                    const res = await claimFreeTrial(data?.user?.id || "")
-                    if (res.success) {
-                      toast.success(res.message);
-                      setOpen(false);
-                      queryClient.invalidateQueries({
-                        queryKey: ["session"],
-                      });
-                    } else {
-                      toast.error(res.message);
-                    }
-                    setIsLoading(false);
-                  } else if (
+                  if (
                     data?.subscription &&
                     isSubscriptionExpired(data.subscription.endsAt).isExpired
                     && !data?.subscription?.customerId?.startsWith("trial__")
@@ -165,20 +175,32 @@ export default function PricingModal({ open, setOpen }: Props) {
                     const res = await payment.mutateAsync();
                     router.push(res.data.redirectUrl);
                     console.log("Creating checkout session", res);
-
                   }
                 } catch { }
               }}
               className="w-full"
             >
-              {payment.isSuccess || manage.isSuccess
-                ? "Redirecting..."
-                : data?.subscription &&
-                  !isSubscriptionExpired(data.subscription.endsAt).isExpired
-                  ? "Renew" :
-                  !data?.user?.hasClaimedFreeTrial ? "Claim Free Trial"
-                    : "Go Pro!"}
+              {
+                payment.isSuccess || manage.isSuccess
+                  ? "Redirecting..."
+                  : data?.subscription?.status === "trial"
+                    ? "Upgrade Plan"
+                    : data?.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
+                      ? "Upgrade Plan"
+                      : "Go Pro!"}
             </Button>
+            {
+              !data?.user?.hasClaimedFreeTrial && (
+                <Button
+                  loading={isLoading}
+                  onClick={claimTrial}
+                  variant={"ghost"}
+                  className="w-full text-muted-foreground"
+                >
+                  Claim Free Trial
+                </Button>
+              )
+            }
           </CardFooter>
         </Card>
       </DialogContent>

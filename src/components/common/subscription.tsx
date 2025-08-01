@@ -20,7 +20,7 @@ const Subscription = () => {
           {data?.subscription?.endsAt
             ? isSubscriptionExpired(data?.subscription?.endsAt?.toString()).isExpired
               ? "Expired"
-              : data?.subscription?.status === "trialing"
+              : data?.subscription?.status === "trial"
                 ? "Trial"
                 : "Pro"
             : "Subscribe"}

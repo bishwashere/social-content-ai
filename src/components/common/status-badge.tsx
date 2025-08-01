@@ -14,7 +14,7 @@ const StatusBadge = ({ children }: BadgeProps) => {
           {status}
         </Badge>
       );
-    case "trialing":
+    case "trial":
       return (
         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
           Trial
@@ -33,7 +33,7 @@ const StatusBadge = ({ children }: BadgeProps) => {
         </Badge>
       );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return <Badge variant="outline">{children}</Badge>;
   }
 };
 
