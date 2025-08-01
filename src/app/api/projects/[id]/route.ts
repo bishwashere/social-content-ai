@@ -153,31 +153,17 @@ export const DELETE = applyMiddleware(
       });
     }
 
-    // Delete all related data
-    await Promise.all([
-      prisma.invitedUser.deleteMany({
-        where: {
-          projectId: projectId,
-        },
-      }),
-      prisma.projectChat.deleteMany({
-        where: {
-          projectId: projectId,
-        },
-      }),
-      prisma.projectTracking.deleteMany({
-        where: {
-          projectId: projectId,
-        },
-      }),
+    // Delete related data
+    await prisma.$transaction([
+      prisma.projectTracking.deleteMany({ where: { projectId } }),
+      prisma.projectChat.deleteMany({ where: { projectId } }),
+      prisma.invitedUser.deleteMany({ where: { projectId } }),
+      prisma.campaignPlanner.deleteMany({ where: { projectId } }),
+      prisma.wall.deleteMany({ where: { projectId } }),
+      prisma.uploadedVideo.deleteMany({ where: { projectId } }),
+      prisma.projectsSubredditData.deleteMany({ where: { projectId } }),
+      prisma.projects.delete({ where: { id: projectId } }),
     ]);
-
-    // Delete the project
-    await prisma.projects.delete({
-      where: {
-        id: projectId,
-      },
-    });
 
     return sendNextResponse({
       status: 200,
