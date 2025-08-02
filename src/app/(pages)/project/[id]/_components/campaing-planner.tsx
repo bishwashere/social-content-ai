@@ -45,6 +45,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Projects } from "@prisma/client";
 import { SavePlatformCard } from "./save-platform-card";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 const ICONS = {
   x: "/x.svg",
@@ -79,6 +80,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const queryClient = useQueryClient();
   const toggleTickMark = useToggleTickMark();
   const [chatLoading, setChatLoading] = useState<{ campaignId: string, day: number } | null>(null);
+  const { handleCoinsFinished } = usePricingModal()
 
   const [showPast, setShowPast] = useState(false);
 
@@ -105,6 +107,12 @@ export default function CampaignPlannerPage({ project }: Props) {
       toast.error("Invalid audience level selected for this goal.");
       return;
     }
+
+    const yes = await confirm({
+      title: 'Do you want to generate campaign?',
+      description: 'Generating Campaign will use 5 coins initially.'
+    })
+    if (!yes) return;
 
     const plan = {
       ...intensityPlan,
@@ -146,12 +154,18 @@ export default function CampaignPlannerPage({ project }: Props) {
   const generateChat = async (projectId: string, campaignId: string, day: number, title: string | null) => {
     setChatLoading({ campaignId: campaignId, day: day });
     try {
-      await generate.mutateAsync({
+      const { success, message, insufficientCoins } = await generate.mutateAsync({
         projectId: projectId,
         id: campaignId,
         prompt: getPrompt(`Day: ${day} Title: ${title}`),
         day: day
       });
+      if (!success) {
+        toast.error(message || "Failed to generate campaign chat");
+        if (insufficientCoins) {
+          handleCoinsFinished();
+        }
+      }
       campaignPlannerData.refetch();
     } catch { }
     setChatLoading(null);
@@ -221,7 +235,7 @@ export default function CampaignPlannerPage({ project }: Props) {
     []
   );
 
-  const [isInProgress, setIsInProgress] = useState<string | null>(null);
+  // const [isInProgress, setIsInProgress] = useState<string | null>(null);
 
   //Open all campaigns that are saved in memory
   useEffect(() => {
@@ -271,7 +285,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
       {!showCampaignForm && (
-        <Button size={"xl"} className="fixed bottom-8 right-8 !md:bg-primary/40 hover:bg-primary z-50 shadow-lg" onClick={() => setShowCampaignForm(true)}>
+        <Button size={"xl"} className={cn(!campaignPlannerData.data?.chatsGroupedByCampaign?.length ? "static w-full mt-5" : "fixed bottom-8 right-8 !md:bg-primary/40 hover:bg-primary z-50 shadow-lg")} onClick={() => setShowCampaignForm(true)}>
           Plan Campaign
         </Button>
       )}
@@ -431,7 +445,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                             <div className="px-4 pb-4 space-y-4">
                               <div className="flex gap-2 justify-end">
 
-                                <div onClick={(e) => e.stopPropagation()} className="z-[99999]">
+                                <div onClick={(e) => e.stopPropagation()} className="z-50">
                                   <DatePicker
                                     // selected={selectedDate}
                                     onChange={(date) => {
@@ -457,12 +471,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={async () => {
-                                    const yes = await confirm({
-                                      title: "Regenerate content for this day?",
-                                      description: "Regenerating content will use your coins"
-                                    });
-                                    if (!yes) return;
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
                                     try {
                                       const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
                                       if (!selectedCampaignPlanner) {
@@ -474,6 +484,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         toast.error("Failed to find plan");
                                         return;
                                       }
+                                      const yes = await confirm({
+                                        title: "Regenerate all contents for this campaign?",
+                                        description: `Regenerating content will use your ${intensityPlans.data.length * 5} coins`
+                                      });
+                                      if (!yes) return;
 
                                       const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
 
@@ -587,7 +602,14 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 variant="outline"
                                                 size="sm"
                                                 className="border-dashed border-primary"
-                                                onClick={() => generateChat(projectId as string, campaign.id, timeline.day, timeline.title)}
+                                                onClick={async () => {
+                                                  const yes = await confirm({
+                                                    title: 'Generating content for this day will use 5 coins.',
+                                                    description: ''
+                                                  });
+                                                  if (!yes) return;
+                                                  generateChat(projectId as string, campaign.id, timeline.day, timeline.title);
+                                                }}
                                                 loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
                                                 disabled={generate.isPending}
                                               >

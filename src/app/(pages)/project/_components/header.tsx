@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { useLogout, useSession } from "@/backend-apis/auth/hooks";
 import { Logo } from "@/components/common/logo";
 import GoogleLoginButton from "@/components/common/google-login-button";
@@ -20,6 +20,7 @@ import { FaRegQuestionCircle } from "react-icons/fa";
 import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectEditModal } from "./project-edit-modal";
+import Image from "next/image";
 
 
 export function Header() {
@@ -29,12 +30,14 @@ export function Header() {
   const resetTooltip = useResetFirstViewTooltip();
   const { id } = useParams();
   const projects = useGetAllProjects();
+  const sidebar = useSidebar();
 
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
-      <div className="flex h-16 items-center justify-between bg-background w-full px-4 md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
+      <div className="flex h-16 items-center justify-between bg-background w-full md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="min-w-[24px]" />
+          {!sidebar.open && <Image src="/logo.png" width="100" height="100" alt="NextPostAi" className="size-6" />}
           <div className="flex items-center gap-1">
             <span className="truncate">
               {

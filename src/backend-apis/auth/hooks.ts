@@ -51,6 +51,7 @@ export const useLogout = () => {
     },
     onSuccess: (data) => {
       toast.success(data);
+      localStorage.clear();
     },
   });
 };

@@ -127,8 +127,8 @@ export default function HomeV3() {
 
         {/* Section 3 */}
         <section className='flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5'>
-          <div className='w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16'>
-            <p className='font-bold text-5xl md:text-5xl'>How It Works</p>
+          <div className='w-full h-full bg-primary rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16'>
+            <p className='font-bold text-5xl md:text-5xl text-white'>How It Works</p>
             <div className='grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-5 px-5 md:px-0'>
               {
                 [
@@ -219,7 +219,7 @@ export default function HomeV3() {
 
         <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
           <div className="bg-[#222639] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-10 md:px-16 flex flex-col items-center gap-12">
-            <h2 className="text-4xl md:text-5xl text-[#FAA41B] font-medium text-center">Testimonials</h2>
+            <h2 className="text-4xl md:text-5xl text-primary font-medium text-center text-white">Testimonials</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
               {[

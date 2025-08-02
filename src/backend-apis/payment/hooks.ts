@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 export const useCreateCheckoutSession = () => {
   return useMutation({
-    mutationFn: paymentService.createSession,
+    mutationFn: async (type?: "subscription" | "coins") =>
+      paymentService.createSession(type),
     onError: (error) => {
       toast.error(error.message);
     },

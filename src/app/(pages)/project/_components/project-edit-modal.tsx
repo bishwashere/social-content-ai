@@ -39,10 +39,7 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
         });
         if (!yes) return;
 
-        await deleteProject.mutateAsync({
-            projectId: project.id,
-            userId: session?.user.id
-        });
+        await deleteProject.mutateAsync(project.id);
     }
 
     return (

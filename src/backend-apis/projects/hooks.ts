@@ -7,7 +7,7 @@ import {
   TrackProjectProps,
   UpdateProjectProps,
 } from "./types";
-import { deleteProject, projectService } from ".";
+import { projectService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -124,18 +124,15 @@ export const useDeleteProject = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
   return useMutation({
-    mutationFn: deleteProject,
-    onSuccess: (data) => {
-      if (data) {
-        queryClient.invalidateQueries({
-          queryKey: ["projects"],
-        });
-        toast.success("Projet Deleted !");
-        router.push("/project");
-      }
+    mutationFn: async (projectId: string) => {
+      return projectService.deleteProject(projectId, queryClient);
     },
-    onError: (err) => {
-      toast.error(err.message ?? "Some error occurred");
+    onSuccess: (message) => {
+      toast.success(message);
+      router.push("/project");
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 };

@@ -1,4 +1,5 @@
 import {
+  useCreateCheckoutSession,
   useGetSubscription,
   useManageSubscription,
 } from "@/backend-apis/payment/hooks";
@@ -19,13 +20,20 @@ import { Button } from "@/components/ui/button";
 import Loading from "@/components/common/loading";
 import { Badge } from "@/components/ui/badge";
 import { isSubscriptionExpired } from "@/lib/sub";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/backend-apis/auth/hooks";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 const Subscription = () => {
   const { data: activeSubscription, isLoading } = useGetSubscription();
   const [clickedButton, setClickedButton] = useState<
     "manage-subscription" | "cancel-subscription"
   >();
-
+  const { setCoinsModalOpen } = usePricingModal()
+  const payment = useCreateCheckoutSession();
+  const manage = useManageSubscription();
+  const router = useRouter();
+  const { data } = useSession();
   const mangeSubs = useManageSubscription();
 
   if (isLoading) return <Loading className="h-[70vh]" />;
@@ -58,7 +66,9 @@ const Subscription = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Plan</p>
-            <p className="font-medium">Premium</p>
+            <p className="font-medium">
+              <StatusBadge>{activeSubscription?.status}</StatusBadge>
+            </p>
           </div>
           <div className="space-y-1"></div>
           <div className="space-y-1">
@@ -81,7 +91,7 @@ const Subscription = () => {
           </div>
         </div>
 
-        <div className="rounded-md bg-muted p-4">
+        {activeSubscription.status !== "trial" && <div className="rounded-md bg-muted p-4">
           <div className="flex items-center gap-3">
             <ShieldCheckIcon className="h-5 w-5 text-primary" />
             <div>
@@ -91,38 +101,78 @@ const Subscription = () => {
               </p>
             </div>
           </div>
-        </div>
+        </div>}
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button
-          loading={
-            mangeSubs.isPending && clickedButton === "manage-subscription"
-          }
-          onClick={() => {
-            setClickedButton("manage-subscription");
-            mangeSubs.mutate();
-          }}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          <CreditCardIcon className="mr-2 h-4 w-4" />
-          Update Payment Method
-        </Button>
+        {
+          activeSubscription?.status === "trial" ? <>
+            <Button
+              loading={payment.isPending || manage.isPending}
+              onClick={async () => {
+                try {
+                  if (
+                    data?.subscription &&
+                    isSubscriptionExpired(data.subscription.endsAt).isExpired
+                    && !data?.subscription?.customerId?.startsWith("trial__")
+                  ) {
+                    try {
+                      const res = await manage.mutateAsync();
+                      console.log("Managaing subscription", res);
+                      router.push(res.data.url);
+                    } catch {
+                      const res = await payment.mutateAsync("subscription");
+                      router.push(res.data.redirectUrl);
+                      console.log("Creating checkout session", res);
+                    }
+                  } else {
+                    const res = await payment.mutateAsync("subscription");
+                    router.push(res.data.redirectUrl);
+                    console.log("Creating checkout session", res);
+                  }
+                } catch { }
+              }}
+              className="w-full"
+            >
+              {
+                payment.isSuccess || manage.isSuccess
+                  ? "Redirecting..."
+                  : "Upgrade Plan"}
+            </Button>
+          </> : <>
+            <Button
+              loading={
+                mangeSubs.isPending && clickedButton === "manage-subscription"
+              }
+              onClick={() => {
+                setClickedButton("manage-subscription");
+                mangeSubs.mutate();
+              }}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              <CreditCardIcon className="mr-2 h-4 w-4" />
+              Update Payment Method
+            </Button>
 
-        <Button
-          loading={
-            mangeSubs.isPending && clickedButton === "cancel-subscription"
-          }
-          onClick={() => {
-            setClickedButton("cancel-subscription");
-            mangeSubs.mutate();
-          }}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          <Calendar1Icon className="mr-2 h-4 w-4" />
-          Manage Subscription
-        </Button>
+            <Button
+              loading={
+                mangeSubs.isPending && clickedButton === "cancel-subscription"
+              }
+              onClick={() => {
+                setClickedButton("cancel-subscription");
+                mangeSubs.mutate();
+              }}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              <Calendar1Icon className="mr-2 h-4 w-4" />
+              Manage Subscription
+            </Button>
+            <Button onClick={() => setCoinsModalOpen(true)}>
+              Purchase Coins
+            </Button>
+          </>
+        }
       </CardFooter>
     </Card>
   );

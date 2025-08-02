@@ -17,29 +17,36 @@ export const POST = applyMiddleware(
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
     const user = req.parsed.user;
+    const { type = "subscription" } = await req.json();
 
-    // if user is already subscribed, return an error
-    const subscriptions = await prisma.subscription.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (
-      subscriptions &&
-      !isSubscriptionExpired(subscriptions.endsAt.toISOString()).isExpired
-    ) {
-      return sendNextResponse({
-        status: 400,
-        message: "User is already subscribed and subscription is not expired",
+    // Only check subscription status for subscription purchases
+    if (type === "subscription") {
+      const subscriptions = await prisma.subscription.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
       });
+
+      if (
+        subscriptions &&
+        subscriptions.status !== "trial" &&
+        !isSubscriptionExpired(subscriptions.endsAt.toISOString()).isExpired
+      ) {
+        return sendNextResponse({
+          status: 400,
+          message: "User is already subscribed and subscription is not expired",
+        });
+      }
     }
 
     try {
-      const session = await stripe.createSession(
-        PACKAGES.BASIC,
-        user as unknown as User,
-        !user.hasClaimedFreeTrial // only give trial if user has not claimed it before
-      );
+      const session =
+        type === "coins"
+          ? await stripe.createCoinsSession(user as unknown as User)
+          : await stripe.createSession(
+              PACKAGES.BASIC,
+              user as unknown as User,
+              false
+            );
 
       // delete old subscription
       // if (subscriptions) await subscriptions?.deleteOne();
