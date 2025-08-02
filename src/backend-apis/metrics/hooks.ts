@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchRedditPostsData } from "./actions";
+import { fetchRedditPostsData, fetchFacebookPostMetrics } from "./actions";
+import { useSession } from "../auth/hooks";
 
 export type RedditPostData = {
   url: string;
@@ -15,10 +16,25 @@ export const extractPostId = (url: string): string | null => {
 };
 
 export const useRedditPostsData = (urls: string[]) => {
-  console.log("urls", urls);
   return useQuery({
     queryKey: ["reddit-posts", urls],
     queryFn: () => fetchRedditPostsData(urls),
     enabled: urls?.length > 0,
+  });
+};
+
+export const useFacebookPostMetrics = ({
+  urls,
+  userId,
+}: {
+  urls: string[];
+  userId: string;
+}) => {
+  console.log("Fetching Facebook post metrics for URLs:", urls, userId);
+  const facebookUrls = urls?.filter((url) => url.includes("facebook.com"));
+  return useQuery({
+    queryKey: ["facebook-metrics", facebookUrls, userId],
+    queryFn: () => fetchFacebookPostMetrics(facebookUrls, userId),
+    enabled: facebookUrls?.length > 0 && !!userId,
   });
 };

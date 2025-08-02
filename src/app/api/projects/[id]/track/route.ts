@@ -72,7 +72,7 @@ export const POST = applyMiddleware(
       message: "Project tracked successfully!",
       data: activity,
     });
-  }),
+  })
 );
 
 /**
@@ -101,5 +101,5 @@ export const GET = applyMiddleware(
       data: activity,
       message: `Project tracking fetched successfully!`,
     });
-  }),
+  })
 );

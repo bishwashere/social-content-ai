@@ -85,6 +85,7 @@ export const useGetTrackedProjects = (data: GetProjectTrackingProps) => {
   return useQuery({
     queryFn: () => projectService.getTrackedProjects(data),
     queryKey: ["project-tracking", data],
+    enabled: !!data.projectId,
   });
 };
 

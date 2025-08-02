@@ -15,8 +15,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { useRedditPostsData } from '@/backend-apis/metrics/hooks'
-import { useEffect } from 'react'
+import { useFacebookPostMetrics, useRedditPostsData } from '@/backend-apis/metrics/hooks'
+import { useEffect, useState } from 'react'
+import { useSession } from '@/backend-apis/auth/hooks'
 
 
 const chartConfig = {
@@ -38,18 +39,55 @@ type Props = {
 }
 
 const Graph = ({ platform, projectId }: Props) => {
+  const { data: session } = useSession()
   const activity = useGetTrackedProjects({ projectId: projectId });
-
-  const { data: postsData, isLoading } = useRedditPostsData(activity.data?.
-    filter((item) => item.platform === platform)?.
+  const [postsData, setPostsData] = useState<{
+    id: string
+    metrics: {
+      upvotes: number
+      comments: number
+      title: string
+    }
+  }[]>([])
+  const fb = useFacebookPostMetrics({
+    urls: activity.data?.
+      filter((item) => item.platform === "facebook")?.
+      map((item) => item.url)?.filter((item) => item !== null) as string[] || [],
+    userId: session?.user?.id || ""
+  })
+  const reddit = useRedditPostsData(activity.data?.
+    filter((item) => item.platform === "reddit")?.
     map((item) => item.url)?.filter((item) => item !== null) as string[] || [])
+
+  useEffect(() => {
+    // set post data according to platform
+    if (platform === "facebook") {
+      setPostsData(fb.data?.map((item) => ({
+        id: item.id,
+        metrics: {
+          upvotes: item.likeCount || 0,
+          comments: item.commentCount || 0,
+          title: item.message?.substring(0, 50) + "..." || "",
+        }
+      })) || [])
+    } else if (platform === "reddit") {
+      setPostsData(reddit.data?.map((item) => ({
+        id: item.date,
+        metrics: {
+          upvotes: item.upvotes || 0,
+          comments: item.comments || 0,
+          title: ""
+        }
+      })) || [])
+    }
+  }, [fb.data, platform, reddit.data])
 
   if (!projectId && !platform) return null
   return (
     <Card>
       <CardContent>
         {
-          isLoading ? (
+          fb.isLoading || reddit.isLoading ? (
             <div className='flex flex-col items-center py-12 justify-center'>
               <Loader2 className='h-10 w-10 animate-spin' />
             </div>
@@ -65,7 +103,7 @@ const Graph = ({ platform, projectId }: Props) => {
               <ChartContainer config={chartConfig}>
                 <AreaChart
                   accessibilityLayer
-                  data={postsData}
+                  data={postsData?.map(p => p.metrics)}
                   margin={{
                     left: 12,
                     right: 12,
@@ -85,7 +123,7 @@ const Graph = ({ platform, projectId }: Props) => {
                   />
                   <Area
                     dataKey="comments"
-                    type="natural"
+                    type="linear"
                     fill="hsl(var(--chart-1))"
                     fillOpacity={0.4}
                     stroke="hsl(var(--chart-1))"
@@ -93,7 +131,7 @@ const Graph = ({ platform, projectId }: Props) => {
                   />
                   <Area
                     dataKey="upvotes"
-                    type="natural"
+                    type="linear"
                     fill="hsl(var(--chart-2))"
                     fillOpacity={0.4}
                     stroke="hsl(var(--chart-2))"

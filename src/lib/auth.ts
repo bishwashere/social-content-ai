@@ -24,7 +24,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "pages_manage_posts,email,public_profile,pages_show_list",
+          scope:
+            "pages_manage_posts,email,public_profile,pages_show_list,pages_read_engagement,pages_read_user_content",
         },
       },
     }),
@@ -113,15 +114,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (pagesData.data && pagesData.data.length > 0) {
                   // Store the long-lived user token temporarily
                   updateData.accessToken = longLivedTokenData.access_token;
-                  
+
                   // Store pages data in a cookie for the client to handle page selection
                   const cookieStore = cookies();
-                  cookieStore.set('fb_pages_data', JSON.stringify(pagesData.data), {
-                    maxAge: 300, // 5 minutes
-                    path: '/',
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax',
-                  });
+                  cookieStore.set(
+                    "fb_pages_data",
+                    JSON.stringify(pagesData.data),
+                    {
+                      maxAge: 300, // 5 minutes
+                      path: "/",
+                      secure: process.env.NODE_ENV === "production",
+                      sameSite: "lax",
+                    }
+                  );
                 } else {
                   console.log("No Facebook pages found for user");
                   updateData.accessToken = longLivedTokenData.access_token;
