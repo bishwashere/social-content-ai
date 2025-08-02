@@ -13,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { ChevronDown, ChevronsUpDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -390,16 +390,16 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                 // Calculate Loading and real progress bar
                 const totalChats = campaign.chats.length;
-                const loadedChats = campaign.chats.filter(chat =>
-                  chat.contents && Object.keys(chat.contents).length > 0
-                ).length;
+                // const loadedChats = campaign.chats.filter(chat =>
+                //   chat.contents && Object.keys(chat.contents).length > 0
+                // ).length;
                 // const completedChats = campaign.chats.filter(chat => chat.completed).length;
                 const passedDays = campaign.chats.filter(chat => {
                   const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
                   chatDate.setHours(0, 0, 0, 0);
-                  return chatDate <= today;
+                  return chatDate < today;
                 }).length;
-                const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
+                // const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
                 const realProgress = totalChats > 0 ? (passedDays / totalChats) * 100 : 0;
 
 
@@ -407,11 +407,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                   <div key={campaign.id} className="border rounded-lg pb-5">
 
                     <div className="w-full relative">
-                      <div
+                      {/* <div
                         className={`h-1 ${loadingProgress === 100 ? 'bg-gray-400' : 'bg-green-600'} transition-all duration-300 absolute top-0 left-0 z-0`}
                         style={{ width: `${loadingProgress}%` }}
-                      />
-                      {realProgress > 0 && loadingProgress === 100 &&
+                      /> */}
+                      {realProgress > 0 &&
                         <div
                           className={`h-1 bg-green-600 transition-all duration-300 absolute top-0 left-0 z-10`}
                           style={{ width: `${realProgress}%` }}
@@ -461,7 +461,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     className="text-xs"
                                     customInput={
                                       <Button variant="outline" size="sm" className="w-fit text-xs">
-                                        <Play />
+                                        <Calendar />
                                         <span className="max-lg:hidden"> Start</span>
                                       </Button>
                                     }
@@ -509,7 +509,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     } catch { }
                                   }}
                                 >
-                                  <RefreshCcw className="h-4 w-4 mr-1" />
+                                  <Play className="h-4 w-4 mr-1" />
                                 </Button>
                               </div>
 
@@ -526,7 +526,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                         <>
                           <div className="flex justify-end px-4">
                             <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)}>
-                              {/* {showPast ? "Hide Past Days" : "Show Past Days"} */}
+                              {showPast ? "Hide Past Days" : "Show Past Days"}
                               <ChevronsUpDown />
                             </Button>
                           </div>
