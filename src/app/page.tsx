@@ -66,10 +66,10 @@ export default function HomeV3() {
           <div className='absolute top-0 left-0 w-full h-full bg-top-section z-10 object-fill' />
           <div className='relative flex flex-col items-center justify-center z-20 w-[90%] md:w-[80%] gap-5'>
             <div className='flex flex-col items-center md:items-start'>
-              <p className='text-primary text-2xl'>Welcome To</p>
+              <p className='text-[#FAA41B] text-2xl'>Welcome To</p>
               <p className='text-6xl md:text-8xl xl:text-9xl font-[900] text-white mt-3 md:mt-0'>NextPostAI</p>
             </div>
-            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-blue-400'>Your AI-Powered Marketing Assistant for Apps & Products</p>
+            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]'>Your AI-Powered Marketing Assistant for Apps & Products</p>
             {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
             <hr className='my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]' />
             <div className='flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5'>
@@ -128,7 +128,7 @@ export default function HomeV3() {
         {/* Section 3 */}
         <section className='flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5'>
           <div className='w-full h-full bg-primary rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16'>
-            <p className='font-bold text-5xl md:text-5xl'>How It Works</p>
+            <p className='font-bold text-5xl md:text-5xl text-white'>How It Works</p>
             <div className='grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-5 px-5 md:px-0'>
               {
                 [
@@ -219,7 +219,7 @@ export default function HomeV3() {
 
         <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
           <div className="bg-[#222639] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-10 md:px-16 flex flex-col items-center gap-12">
-            <h2 className="text-4xl md:text-5xl text-primary font-medium text-center">Testimonials</h2>
+            <h2 className="text-4xl md:text-5xl text-primary font-medium text-center text-white">Testimonials</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
               {[
