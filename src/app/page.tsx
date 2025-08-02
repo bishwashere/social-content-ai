@@ -69,13 +69,13 @@ export default function HomeV3() {
               <p className='text-[#FAA41B] text-2xl'>Welcome To</p>
               <p className='text-6xl md:text-8xl xl:text-9xl font-[900] text-white mt-3 md:mt-0'>NextPostAI</p>
             </div>
-            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]'>Your AI-Powered Marketing Assistant for Apps & Products</p>
+            <p className='text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]'>Your AI-Powered Social Media Assistant</p>
             {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
             <hr className='my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]' />
             <div className='flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5'>
               <div className='flex flex-col gap-2 lg:gap-8 items-center lg:items-start p-3 lg:p-0'>
-                <p className='text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold'>Plan Smarter. Post Faster. Grow Consistently.</p>
-                <p className='text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider'>Building something amazing but not sure how to market it? NextPostAI helps you plan your launch, create engaging content, and stay consistent — so your product gets the attention it deserves.</p>
+                <p className='text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold'>Create Viral Content in Minutes, Not Hours.</p>
+                <p className='text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider'>Building something amazing but not sure how to market it? NextPostAI helps you plan your launch, create engaging content, and stay consistent, so your product gets the attention it deserves.</p>
                 <GoogleLoginButton triggerClassName='px-12 py-3 text-primary-foreground bg-primary text-lg w-fit rounded-3xl mt-6 lg:mt-0' />
               </div>
               <Image src="/tmpu3cg1514.webp" width={600} height={600} alt="image" className='max-w-96' />
@@ -98,7 +98,7 @@ export default function HomeV3() {
               [
                 {
                   title: "Marketing Strategy Assistant",
-                  content: "Go beyond posts — map out your entire promotional journey with timelines and goals tailored to your product."
+                  content: "Go beyond posts, map out your entire promotional journey with timelines and goals tailored to your product."
                 },
                 {
                   title: "Smart Content Planner",
