@@ -46,6 +46,7 @@ const Graph = ({ platform, projectId }: Props) => {
     metrics: {
       upvotes: number
       comments: number
+      title: string
     }
   }[]>([])
   const fb = useFacebookPostMetrics({
@@ -62,10 +63,11 @@ const Graph = ({ platform, projectId }: Props) => {
     // set post data according to platform
     if (platform === "facebook") {
       setPostsData(fb.data?.map((item) => ({
-        id: item.date,
+        id: item.id,
         metrics: {
           upvotes: item.likeCount || 0,
           comments: item.commentCount || 0,
+          title: item.message?.substring(0, 50) + "..." || "",
         }
       })) || [])
     } else if (platform === "reddit") {
@@ -74,10 +76,11 @@ const Graph = ({ platform, projectId }: Props) => {
         metrics: {
           upvotes: item.upvotes || 0,
           comments: item.comments || 0,
+          title: ""
         }
       })) || [])
     }
-  }, [fb.data, reddit.data])
+  }, [fb.data, platform, reddit.data])
 
   if (!projectId && !platform) return null
   return (
@@ -100,7 +103,7 @@ const Graph = ({ platform, projectId }: Props) => {
               <ChartContainer config={chartConfig}>
                 <AreaChart
                   accessibilityLayer
-                  data={postsData}
+                  data={postsData?.map(p => p.metrics)}
                   margin={{
                     left: 12,
                     right: 12,
@@ -120,7 +123,7 @@ const Graph = ({ platform, projectId }: Props) => {
                   />
                   <Area
                     dataKey="comments"
-                    type="natural"
+                    type="linear"
                     fill="hsl(var(--chart-1))"
                     fillOpacity={0.4}
                     stroke="hsl(var(--chart-1))"
@@ -128,7 +131,7 @@ const Graph = ({ platform, projectId }: Props) => {
                   />
                   <Area
                     dataKey="upvotes"
-                    type="natural"
+                    type="linear"
                     fill="hsl(var(--chart-2))"
                     fillOpacity={0.4}
                     stroke="hsl(var(--chart-2))"

@@ -50,6 +50,7 @@
     "consola": "^3.4.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "follow-redirects": "^1.15.11",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.479.0",
@@ -79,6 +80,7 @@
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/follow-redirects": "^1.14.4",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20",
