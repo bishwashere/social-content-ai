@@ -97,20 +97,20 @@ export default function HomeV3() {
             {
               [
                 {
-                  title: "Marketing Strategy Assistant",
-                  content: "Go beyond posts, map out your entire promotional journey with timelines and goals tailored to your product."
+                  title: "Campaign Timeline Designer",
+                  content: "Build marketing journeys with customizable timelines, intensity levels, and platform-specific goals tailored to each project."
                 },
                 {
-                  title: "Smart Content Planner",
-                  content: "Schedule content and get timely reminders to stay visible and consistent across platforms."
+                  title: "Context-Aware Post Generator",
+                  content: "Create content that adapts to your campaign's stage, audience type, and platform—no generic prompts, just focused output."
                 },
                 {
-                  title: "AI-Driven Post & Campaign Generator",
-                  content: "Generate posts, announcements, and promotional ideas that align with your marketing milestones."
+                  title: "Cross-Platform Scheduler",
+                  content: "Automate your posting calendar with intelligent scheduling and adaptive reminders to stay consistently active where it matters."
                 },
                 {
-                  title: "Community Inspiration",
-                  content: "Explore real-world campaigns, see what others are doing, and gather fresh ideas from fellow builders."
+                  title: "Creator-Led Inspiration Hub",
+                  content: "Browse a living feed of real campaigns from active users, uncover tested strategies, and remix ideas that are driving results today."
                 }
               ].map((data, idx) => (
                 <div className='flex flex-row gap-1' key={idx}>
@@ -123,6 +123,7 @@ export default function HomeV3() {
               ))
             }
           </div>
+
         </section>
 
         {/* Section 3 */}
@@ -207,7 +208,7 @@ export default function HomeV3() {
                   <span className="text-green-400">✔</span> Instant post & promo content generation
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Reminders to stay on track
+                  <span className="text-green-400">✔</span> Supports auto posting
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-400">✔</span> Access to a supportive creator community
