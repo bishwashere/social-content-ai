@@ -64,8 +64,8 @@ export default function ProjectDashboard() {
 
       <div ref={graphContainerRef} className="pb-12">
         <Graph
-          platform={activeGraph.platform}
-          projectId={activeGraph.projectId}
+          // platform={activeGraph.platform}
+          // projectId={activeGraph.projectId}
         />
       </div>
     </div>
