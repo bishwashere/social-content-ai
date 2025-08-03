@@ -77,11 +77,22 @@ export function ProjectSidebar() {
                 }
               }}
               href="/project/dashboard"
-              className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200 mb-3"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200"
             >
               📊 Content Planner
             </Link>
           </FirstViewTooltip>
+          <Link
+            onClick={() => {
+              if (window.innerWidth <= 768) {
+                toggleSidebar()
+              }
+            }}
+            href="/project/analytics"
+            className="block rounded-md px-3 py-2 text-sm font-medium text-left bg-gray-100 hover:bg-gray-200"
+          >
+            💹 Analytics
+          </Link>
           {/* Projects */}
           <p className="text-sm font-semibold px-2">Projects</p>
           {isLoading

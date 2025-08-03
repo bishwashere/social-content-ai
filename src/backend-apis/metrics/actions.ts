@@ -1,7 +1,8 @@
 "use server";
 
+import { Fb } from "@/lib/facebook";
 import { extractPostId, RedditPostData } from "./hooks";
-import { getFacebookPostMetrics, type FacebookMetrics } from "@/lib/facebook";
+import { prisma } from "@/lib/prisma";
 
 export const fetchRedditPostsData = async (
   urls: string[]
@@ -45,17 +46,24 @@ export const fetchRedditPostsData = async (
   return results;
 };
 
-export const fetchFacebookPostMetrics = async (
-  urls: string[],
-  userId: string
-): Promise<FacebookMetrics[] | null> => {
-  console.log("Fetching Facebook post metrics for URLs:", urls, userId);
-  const results: FacebookMetrics[] = [];
-  for (const url of urls) {
-    const metrics = await getFacebookPostMetrics(url, userId);
-    if (metrics) {
-      results.push(metrics);
-    }
+export const getFacebookMetrics = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      message: "User not found",
+    };
   }
-  return results.length > 0 ? results : [];
+
+  const fb = new Fb(user);
+  const metrics = await fb.getMyPostInsights();
+  return {
+    success: true,
+    data: metrics,
+  };
 };
