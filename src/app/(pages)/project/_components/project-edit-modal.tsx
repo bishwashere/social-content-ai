@@ -28,6 +28,7 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
         if (project) {
             setEditedName(project.name);
             setEditedDescription(project.description);
+            setPlatformUrls(project.platformUrls);
         }
     }, [project]);
 
