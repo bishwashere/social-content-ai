@@ -40,14 +40,15 @@ model Projects {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user                  User?                   @relation(fields: [userId], references: [id])
-  campaignPlanners      CampaignPlanner[]
-  invitedUsers          InvitedUser[]
-  projectChats          ProjectChat[]
-  projectTrackings      ProjectTracking[]
-  walls                 Wall[]
-  uploadedVideos        UploadedVideo[]
-  ProjectsSubredditData ProjectsSubredditData[]
+  user                    User?                    @relation(fields: [userId], references: [id])
+  campaignPlanners        CampaignPlanner[]
+  invitedUsers            InvitedUser[]
+  projectChats            ProjectChat[]
+  projectTrackings        ProjectTracking[]
+  walls                   Wall[]
+  uploadedVideos          UploadedVideo[]
+  ProjectsSubredditData   ProjectsSubredditData[]
+  projectToOAuthProviders ProjectToOAuthProvider[]
 
   @@map("projects")
 }
@@ -155,9 +156,23 @@ model OauthProvider {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  user User? @relation(fields: [userId], references: [id])
+  user                    User?                    @relation(fields: [userId], references: [id])
+  projectToOAuthProviders ProjectToOAuthProvider[]
 
   @@map("oauth-providers")
+}
+
+model ProjectToOAuthProvider {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId       String   @db.ObjectId
+  oauthProviderId String   @db.ObjectId
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project       Projects?      @relation(fields: [projectId], references: [id])
+  oauthProvider OauthProvider? @relation(fields: [oauthProviderId], references: [id])
+
+  @@map("project-to-oauth-providers")
 }
 
 model ScheduledPost {

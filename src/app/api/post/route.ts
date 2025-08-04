@@ -18,6 +18,9 @@ export const GET = applyMiddleware(
           lte: new Date(),
         },
       },
+      include: {
+        oauthProvider: true
+      }
     });
 
     console.log(`📊 Found ${pending.length} pending posts`);
@@ -32,34 +35,15 @@ export const GET = applyMiddleware(
       twitterPosts.map(async (post) => {
         console.log(`🔄 Processing Twitter post ID: ${post.id}`);
         try {
-          const user = await prisma.user.findUnique({
-            where: { id: post.userId },
-          });
-
-          if (!user) {
-            console.log(`❌ User not found for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "User not found");
-            return { id: post.id, success: false, error: "User not found" };
-          }
-
-          console.log(`👤 Found user: ${user.id}`);
-
-          // Check and refresh Twitter token if needed
-          const tokenResult = await checkAndRefreshTwitterToken(user.id);
-
-          if (!tokenResult.success) {
-            console.log(`❌ Token refresh failed for post ID: ${post.id}`);
-            await updatePostStatus(
-              post.id,
-              "failed",
-              tokenResult.error || "Token refresh failed"
-            );
-            return { id: post.id, success: false, error: tokenResult.error };
+          if (!post.oauthProvider || !post.oauthProvider.accessToken) {
+            console.log(`❌ OAuth provider not found or invalid for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "OAuth provider not found or invalid");
+            return { id: post.id, success: false, error: "OAuth provider not found or invalid" };
           }
 
           // Post to Twitter
           const tweetResult = await postToTwitter(
-            tokenResult.accessToken!,
+            post.oauthProvider.accessToken,
             post.content
           );
 
@@ -88,40 +72,17 @@ export const GET = applyMiddleware(
       facebookPosts.map(async (post) => {
         console.log(`🔄 Processing Facebook post ID: ${post.id}`);
         try {
-          const user = await prisma.user.findUnique({
-            where: { id: post.userId },
-          });
-
-          if (!user) {
-            console.log(`❌ User not found for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "User not found");
-            return { id: post.id, success: false, error: "User not found" };
-          }
-
-          console.log(`👤 Found user: ${user.id}`);
-
-          // Get Facebook tokens
-          const tokens = await getFacebookTokensForUser(user.id.toString());
-
-          if (!tokens || !tokens.accessToken) {
-            console.log(`❌ Facebook tokens not found for post ID: ${post.id}`);
-            await updatePostStatus(
-              post.id,
-              "failed",
-              "Facebook tokens not found"
-            );
-            return {
-              id: post.id,
-              success: false,
-              error: "Facebook tokens not found",
-            };
+          if (!post.oauthProvider || !post.oauthProvider.accessToken || !post.oauthProvider.pageId) {
+            console.log(`❌ OAuth provider not found or invalid for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "OAuth provider not found or invalid");
+            return { id: post.id, success: false, error: "OAuth provider not found or invalid" };
           }
 
           // Post to Facebook
           const facebookResult = await postToFacebook(
-            tokens.accessToken,
+            post.oauthProvider.accessToken,
             post.content,
-            tokens.facebookPageId || ""
+            post.oauthProvider.pageId
           );
 
           if (facebookResult.success) {
@@ -158,38 +119,15 @@ export const GET = applyMiddleware(
       linkedinPosts.map(async (post) => {
         console.log(`🔄 Processing Linkedin post ID: ${post.id}`);
         try {
-          const user = await prisma.user.findUnique({
-            where: { id: post.userId },
-          });
-
-          if (!user) {
-            console.log(`❌ User not found for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "User not found");
-            return { id: post.id, success: false, error: "User not found" };
-          }
-
-          console.log(`👤 Found user: ${user.id}`);
-
-          // Get Linkedin tokens
-          const tokens = await getLinkedinTokensForUser(user.id.toString());
-
-          if (!tokens || !tokens.accessToken) {
-            console.log(`❌ Linkedin tokens not found for post ID: ${post.id}`);
-            await updatePostStatus(
-              post.id,
-              "failed",
-              "Linkedin tokens not found"
-            );
-            return {
-              id: post.id,
-              success: false,
-              error: "Linkedin tokens not found",
-            };
+          if (!post.oauthProvider || !post.oauthProvider.accessToken) {
+            console.log(`❌ OAuth provider not found or invalid for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "OAuth provider not found or invalid");
+            return { id: post.id, success: false, error: "OAuth provider not found or invalid" };
           }
 
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
-            tokens.accessToken,
+            post.oauthProvider.accessToken,
             post.content
           );
 
@@ -320,107 +258,15 @@ async function postToTwitter(
 }
 
 /**
- * Post content to Threads
- */
-// async function postToThreads(
-//   accessToken: string,
-//   content: string
-// ): Promise<{ success: boolean; error?: string }> {
-//   try {
-//     console.log("🧵 Posting to Threads...");
-
-//     // First, create a media container
-//     const containerResponse = await fetch(
-//       `https://graph.threads.net/v1.0/me/threads`,
-//       {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           media_type: "TEXT",
-//           text: content,
-//           access_token: accessToken,
-//         }),
-//       }
-//     );
-
-//     if (!containerResponse.ok) {
-//       const errorData = await containerResponse.json().catch(() => ({}));
-//       console.error("❌ Threads container creation error:", errorData);
-//       return {
-//         success: false,
-//         error: `Threads container error: ${containerResponse.status} ${containerResponse.statusText}`,
-//       };
-//     }
-
-//     const containerData = await containerResponse.json();
-//     const containerId = containerData.id;
-
-//     if (!containerId) {
-//       return {
-//         success: false,
-//         error: "Failed to create Threads media container",
-//       };
-//     }
-
-//     // Then, publish the container
-//     const publishResponse = await fetch(
-//       `https://graph.threads.net/v1.0/me/threads_publish`,
-//       {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           creationid: containerId,
-//           access_token: accessToken,
-//         }),
-//       }
-//     );
-
-//     if (!publishResponse.ok) {
-//       const errorData = await publishResponse.json().catch(() => ({}));
-//       console.error("❌ Threads publish error:", errorData);
-//       return {
-//         success: false,
-//         error: `Threads publish error: ${publishResponse.status} ${publishResponse.statusText}`,
-//       };
-//     }
-
-//     const publishData = await publishResponse.json();
-//     console.log("✅ Successfully posted to Threads:", publishData);
-
-//     return { success: true };
-//   } catch (error) {
-//     console.error("❌ Error posting to Threads:", error);
-//     return {
-//       success: false,
-//       error:
-//         error instanceof Error
-//           ? error.message
-//           : "Unknown error posting to Threads",
-//     };
-//   }
-// }
-
-/**
  * Post content to Facebook Page
  */
 async function postToFacebook(
   accessToken: string,
   content: string,
-  pageId?: string
+  pageId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("📘 Posting to Facebook API");
-
-    if (!pageId) {
-      return {
-        success: false,
-        error: "Page ID is required for Facebook posting",
-      };
-    }
 
     // First, get the page access token
     const pageTokenResponse = await fetch(
