@@ -7,7 +7,7 @@ import { Facebook } from "./facebook"
 
 const AnalyticsTabs = () => {
   return (
-    <Tabs defaultValue="all" className="p-8">
+    <Tabs defaultValue="all" className="p-3 sm:p-8">
       <TabsList>
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="Facebook">Facebook</TabsTrigger>
