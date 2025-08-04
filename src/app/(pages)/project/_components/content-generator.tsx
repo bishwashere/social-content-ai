@@ -115,9 +115,9 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                         prompt={generateProjectContent.data.prompt}
                       />
                       <AutoPost
-                        //@ts-expect-error:...........
-                        platform={platform}
+                        platform={platform as any}
                         content={text}
+                        projectId={project.id}
                       />
                     </div>
                   </CardHeader>

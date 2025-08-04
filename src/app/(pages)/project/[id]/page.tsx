@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CampaignPlannerPage from "./_components/campaing-planner";
 import History from "./_components/history";
 import { Media } from "./_components/media";
-
+import { ScheduledPosts } from "./_components/scheduled-posts";
 
 export default function ProjectPage() {
   const { id } = useParams();
@@ -36,10 +36,10 @@ export default function ProjectPage() {
     fetchProject();
   }, [id, project, projects?.data]);
 
-  const [defaultTab, setDefaultTab] = useState<'generate' | 'campaign' | 'history'>();
+  const [defaultTab, setDefaultTab] = useState<'generate' | 'campaign' | 'history' | 'media' | 'scheduled'>();
 
   useEffect(() => {
-    const defaultLocalTab = localStorage.getItem("projectTab") as 'generate' | 'campaign' | 'history' | undefined;
+    const defaultLocalTab = localStorage.getItem("projectTab") as 'generate' | 'campaign' | 'history' | 'media' | 'scheduled' | undefined;
     setDefaultTab(defaultLocalTab || "generate");
   }, [])
 
@@ -70,11 +70,13 @@ export default function ProjectPage() {
                 <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign Planner</TabsTrigger>
                 <TabsTrigger value="history" onClick={() => localStorage.setItem("projectTab", "history")}>History</TabsTrigger>
                 <TabsTrigger value="media" onClick={() => localStorage.setItem("projectTab", "media")}>Media</TabsTrigger>
+                <TabsTrigger value="scheduled" onClick={() => localStorage.setItem("projectTab", "scheduled")}>Scheduled Posts</TabsTrigger>
               </TabsList>
               <TabsContent value="generate"><QuickGenerate project={project!} /></TabsContent>
               <TabsContent value="campaign"><CampaignPlannerPage project={project!} /></TabsContent>
               <TabsContent value="history"><History project={project!} /></TabsContent>
               <TabsContent value="media"><Media project={project!} /></TabsContent>
+              <TabsContent value="scheduled"><ScheduledPosts project={project!} /></TabsContent>
             </Tabs>
         )}
       </div>

@@ -23,9 +23,10 @@ const ICONS = {
 type Props = {
   platform: "x" | "facebook" | "linkedin" | "threads" | "reddit"
   content: string
+  projectId: string
 }
 
-const AutoPost = ({ platform, content }: Props) => {
+const AutoPost = ({ platform, content, projectId }: Props) => {
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false)
   const [isAlertOpen, setIsAlertOpen] = React.useState(false)
   const { data } = useSession()
@@ -137,7 +138,7 @@ const AutoPost = ({ platform, content }: Props) => {
     const res = await schedulePost({
       content,
       platform: platformName,
-      userId: data.user.id,
+      projectId,
       date: date.toISOString()
     })
 

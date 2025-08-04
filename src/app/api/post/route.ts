@@ -32,20 +32,35 @@ export const GET = applyMiddleware(
       twitterPosts.map(async (post) => {
         console.log(`🔄 Processing Twitter post ID: ${post.id}`);
         try {
-          const user = await prisma.user.findUnique({
-            where: { id: post.userId },
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
           });
 
-          if (!user) {
-            console.log(`❌ User not found for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "User not found");
-            return { id: post.id, success: false, error: "User not found" };
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
           }
 
-          console.log(`👤 Found user: ${user.id}`);
+          console.log(
+            `👤 Found project: ${project.id} with user: ${project.user.id}`
+          );
 
           // Check and refresh Twitter token if needed
-          const tokenResult = await checkAndRefreshTwitterToken(user.id);
+          const tokenResult = await checkAndRefreshTwitterToken(
+            project.user.id
+          );
 
           if (!tokenResult.success) {
             console.log(`❌ Token refresh failed for post ID: ${post.id}`);
@@ -88,20 +103,35 @@ export const GET = applyMiddleware(
       facebookPosts.map(async (post) => {
         console.log(`🔄 Processing Facebook post ID: ${post.id}`);
         try {
-          const user = await prisma.user.findUnique({
-            where: { id: post.userId },
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
           });
 
-          if (!user) {
-            console.log(`❌ User not found for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "User not found");
-            return { id: post.id, success: false, error: "User not found" };
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
           }
 
-          console.log(`👤 Found user: ${user.id}`);
+          console.log(
+            `👤 Found project: ${project.id} with user: ${project.user.id}`
+          );
 
           // Get Facebook tokens
-          const tokens = await getFacebookTokensForUser(user.id.toString());
+          const tokens = await getFacebookTokensForUser(
+            project.user.id.toString()
+          );
 
           if (!tokens || !tokens.accessToken) {
             console.log(`❌ Facebook tokens not found for post ID: ${post.id}`);
@@ -158,20 +188,33 @@ export const GET = applyMiddleware(
       linkedinPosts.map(async (post) => {
         console.log(`🔄 Processing Linkedin post ID: ${post.id}`);
         try {
-          const user = await prisma.user.findUnique({
-            where: { id: post.userId },
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
           });
 
-          if (!user) {
-            console.log(`❌ User not found for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "User not found");
-            return { id: post.id, success: false, error: "User not found" };
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
           }
 
-          console.log(`👤 Found user: ${user.id}`);
+          console.log(`👤 Found user: ${project.user.id}`);
 
           // Get Linkedin tokens
-          const tokens = await getLinkedinTokensForUser(user.id.toString());
+          const tokens = await getLinkedinTokensForUser(
+            project.user.id.toString()
+          );
 
           if (!tokens || !tokens.accessToken) {
             console.log(`❌ Linkedin tokens not found for post ID: ${post.id}`);
