@@ -9,6 +9,7 @@ export type ProjectWithChats = Projects & {
     id: string;
     title: string;
   }[];
+  projectTrackings?: ProjectTrackingResponse;
 };
 
 export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {
