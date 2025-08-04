@@ -10,7 +10,7 @@ import { format, parse, startOfWeek, getDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useGetProjectsSummary } from "@/backend-apis/projects/hooks";
+import { useGetAllProjects, useGetProjectsSummary } from "@/backend-apis/projects/hooks";
 import { enUS } from 'date-fns/locale/en-US'
 
 const locales = {
@@ -108,18 +108,18 @@ function CustomToolbar({ label, onNavigate, date }: ToolbarProps<MyEvent>) {
 export default function CalendarView() {
     const [date, setDate] = useState(new Date());
     const [calendarHeight, setCalendarHeight] = useState(650);
-    const summary = useGetProjectsSummary();
+    const projects = useGetAllProjects();
 
     const events = useMemo(() =>
-        summary.data?.totalPostsForEachProject?.flatMap(project =>
-            project.trackings.map(tracking => ({
+        projects.data?.flatMap(project =>
+            (project.projectTrackings || []).map(tracking => ({
                 title: project.name,
                 start: new Date(tracking.date),
                 end: new Date(tracking.date),
                 platform: tracking.platform,
             }))
         ) || []
-        , [summary.data]);
+        , [projects.data]);
 
     // Responsive height for mobile
     useEffect(() => {
