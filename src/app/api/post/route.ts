@@ -15,7 +15,7 @@ export const GET = applyMiddleware(
       where: {
         status: "pending",
         date: {
-          lte: new Date(),
+          lte: new Date().toISOString(),
         },
       },
     });
