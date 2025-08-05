@@ -1,39 +1,27 @@
-import { User } from "@prisma/client";
-import { prisma } from "./prisma";
 import axios from "axios";
 
 class Fb {
-  private _user: User;
   private _baseUrl = "https://graph.facebook.com/v23.0";
-  constructor(user: User) {
-    this._user = user;
+  private _pageId: string;
+  private _accessToken: string;
+
+  constructor(pageId: string, accessToken: string) {
+    this._pageId = pageId;
+    this._accessToken = accessToken;
   }
 
-  private async _getOauth() {
-    return await prisma.oauthProvider.findFirst({
-      where: {
-        userId: this._user.id,
-      },
-    });
-  }
-
-  private async _getMyPostInsightsApiUrl() {
-    const oauth = await this._getOauth();
-    if (!oauth) return "";
+  private _getMyPostInsightsApiUrl() {
     return (
       this._baseUrl +
       "/" +
-      String(oauth.facebookPageId) +
+      this._pageId +
       "/posts?fields=id,message,reactions.type(LIKE).summary(total_count).limit(0),comments.summary(total_count).limit(0),insights.metric(post_impressions,post_impressions_unique)&access_token=" +
-      oauth.accessToken
+      this._accessToken
     );
   }
 
   async getMyPostInsights() {
-    const oauth = await this._getOauth();
-    if (!oauth) return [];
-
-    const url = await this._getMyPostInsightsApiUrl();
+    const url = this._getMyPostInsightsApiUrl();
 
     if (!url) return [];
 

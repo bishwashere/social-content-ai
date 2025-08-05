@@ -46,21 +46,22 @@ export const fetchRedditPostsData = async (
   return results;
 };
 
-export const getFacebookMetrics = async (userId: string) => {
-  const user = await prisma.user.findUnique({
+export const getFacebookMetrics = async (pageId: string) => {
+  const oauthProvider = await prisma.oauthProvider.findFirst({
     where: {
-      id: userId,
+      pageId,
+      platform: 'facebook',
     },
   });
 
-  if (!user) {
+  if (!oauthProvider) {
     return {
       success: false,
-      message: "User not found",
+      message: "Facebook page not found",
     };
   }
 
-  const fb = new Fb(user);
+  const fb = new Fb(pageId, oauthProvider.accessToken);
   const metrics = await fb.getMyPostInsights();
   return {
     success: true,
