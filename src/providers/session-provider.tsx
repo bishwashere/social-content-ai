@@ -2,7 +2,7 @@
 import { useSession } from "@/backend-apis/auth/hooks";
 import Loading from "@/components/common/loading";
 import React, { useEffect } from "react";
-import HomePage from "@/app/page"; // Import the home page component
+import HomePage from "@/app/(landing)/page"; // Import the home page component
 import { usePathname, useRouter } from "next/navigation";
 
 type Props = {
