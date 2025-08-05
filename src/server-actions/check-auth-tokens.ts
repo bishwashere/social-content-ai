@@ -2,7 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 
-export const checkAuthTokens = async (userId: string, platform: string, postDate?: Date) => {
+export const checkAuthTokens = async (
+  userId: string,
+  platform: string,
+  postDate?: Date
+) => {
   try {
     console.log(
       `🔍 Finding OAuth provider for userId: ${userId}, platform: ${platform}`
@@ -10,7 +14,7 @@ export const checkAuthTokens = async (userId: string, platform: string, postDate
     const data = await prisma.oauthProvider.findFirst({
       where: {
         userId: userId,
-        platform: platform === "x" ? "twitter" : platform,
+        platform: (platform === "x" ? "twitter" : platform) as any,
       },
     });
 
@@ -23,13 +27,11 @@ export const checkAuthTokens = async (userId: string, platform: string, postDate
 
     // Check if token will expire till posting date and doesnot contain refreshtoken too
     if (data.expiresAt && !data.refreshToken && postDate) {
-      const diff = Number(data.expiresAt) - (postDate.getTime() / 1000);
+      const diff = Number(data.expiresAt) - postDate.getTime() / 1000;
       if (diff <= 0) {
-        console.log(
-          `❌ Token expired and no refresh token. Relogin ...`
-        );
+        console.log(`❌ Token expired and no refresh token. Relogin ...`);
         return false;
-      };
+      }
     }
 
     return true;
