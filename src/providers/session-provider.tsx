@@ -22,17 +22,23 @@ const SessionProvider = ({ children }: Props) => {
   useEffect(() => {
     if (isLoading) return;
 
+    // Allow public access to landing page and blogs
+    if (path === "/" || path.startsWith("/blogs")) return;
+
     if (isError) {
       router.push("/"); // ✅ Redirect to the home page
     }
-  }, [isError, isLoading, router]);
+  }, [isError, isLoading, router, path]);
 
   if (isLoading) {
-    if (path === "/") return <HomePage />;
+    // Allow public access to landing page and blogs
+    if (path === "/" || path.startsWith("/blogs")) return children;
     return <Loading className="h-screen" />;
   }
 
   if (isError) {
+    // Allow public access to landing page and blogs
+    if (path === "/" || path.startsWith("/blogs")) return children;
     return <HomePage />; // ✅ Show the home page instead of UnauthorizedError
   }
 
