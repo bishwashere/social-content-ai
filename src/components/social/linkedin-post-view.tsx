@@ -1,8 +1,9 @@
 import { ScheduledPost } from "@prisma/client"
 import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
+import EditableContent from "./editable-content"
 
-const LinkedinPostView = ({ content }: { content: string }) => {
+const LinkedinPostView = ({ post }: { post: ScheduledPost }) => {
 
     const LikeIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
@@ -35,8 +36,8 @@ const LinkedinPostView = ({ content }: { content: string }) => {
     )
 
     return (
-        <div className="bg-white shadow-md rounded-lg p-4 mb-4 max-w-md">
-            <div className="flex justify-between">
+        <div className="bg-white shadow-md rounded-lg p-4 mb-4 w-full max-w-md">
+            <div className="relative">
                 <div className="flex items-center mb-2">
                     <img
                         src="https://randomuser.me/api/portraits/women/60.jpg" // Replace with the actual avatar URL
@@ -45,7 +46,7 @@ const LinkedinPostView = ({ content }: { content: string }) => {
                     />
                     <div className="flex flex-col gap-0">
                         <h2 className="font-bold">Puja Jaiswal</h2>
-                        <p className="text-muted-foreground text-sm">Data Science, AIML enthusiast | SRM University</p>
+                        <p className="text-muted-foreground text-sm">Data Science, AIML enthusiast</p>
                         <div className="flex items-center">
                             <span className="text-muted-foreground text-xs">1d</span>
                             <Dot className="stroke-muted-foreground size-4" />
@@ -53,22 +54,13 @@ const LinkedinPostView = ({ content }: { content: string }) => {
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-1 justify-center">
+                <div className="absolute top-0 right-0 flex gap-1 justify-center">
                     <Plus className="size-5 stroke-blue-600" />
                     <p className="font-medium text-blue-500">Follow</p>
                 </div>
             </div>
-            <div
-                className="text-sm text-muted-foreground w-full"
-                style={{ whiteSpace: "pre-wrap" }}
-            >
-                <Markdown>
-                    {content
-                        .split("\n")
-                        .map((line) => line.trim())
-                        .filter((line) => line.length > 0)
-                        .join("\n\n")}
-                </Markdown>
+            <div className="w-full" style={{ whiteSpace: "pre-wrap" }}>
+                <EditableContent id={post.id} content={post.content} />
             </div>
             <div className="w-full mt-3 flex gap-1">
                 <img src="/linkedin-reactions.png" className="w-10 h-auto" />
