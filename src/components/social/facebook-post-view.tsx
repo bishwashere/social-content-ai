@@ -4,7 +4,13 @@ import Image from "next/image";
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content";
 
-const FacebookPostView = ({ post }: { post: ScheduledPost }) => {
+type Props = {
+    post: ScheduledPost;
+    viewContentEdit: string[];
+    setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
+}
+
+const FacebookPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
 
     const ThreeDotIcon = () => (
         <svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor">
@@ -61,7 +67,7 @@ const FacebookPostView = ({ post }: { post: ScheduledPost }) => {
 
 
             <div className="w-full">
-                <EditableContent id={post.id} content={post.content} />
+                <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
             </div>
             <div className="w-full mt-3 flex gap-1 items-center">
                 <img src="/facebook-reactions.png" className="w-9 h-auto" />

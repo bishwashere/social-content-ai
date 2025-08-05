@@ -6,8 +6,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
 
-const EditableContent = ({ id, content }: { id: string; content: string }) => {
-    const [edit, setEdit] = useState(false);
+type Props = {
+    id: string;
+    content: string;
+    viewContentEdit: string[];
+    setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
+}
+
+const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit }: Props) => {
     const [editedContent, setEditedContent] = useState(content);
     const queryClient = useQueryClient();
 
@@ -45,10 +51,15 @@ const EditableContent = ({ id, content }: { id: string; content: string }) => {
         }
     });
 
+    const toggleEdit = (id: string) => {
+        setViewContentEdit((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        );
+    };
 
     return (
         <div className="text-sm text-muted-foreground w-full" style={{ whiteSpace: "pre-wrap" }}>
-            {edit ? (
+            {viewContentEdit.includes(id) ? (
                 <div className="flex flex-col gap-2">
                     <textarea
                         className="w-full border p-2 rounded text-black"
@@ -57,12 +68,12 @@ const EditableContent = ({ id, content }: { id: string; content: string }) => {
                         onChange={(e) => setEditedContent(e.target.value)}
                     />
                     <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" size="sm" onClick={() => setEdit(false)}>
+                        <Button variant="secondary" size="sm" onClick={() => toggleEdit(id)}>
                             Cancel
                         </Button>
                         <Button
                             size="sm"
-                            onClick={async () => await updateScheduledPost.mutateAsync({ id: id, content: editedContent }).then(() => setEdit(false))}
+                            onClick={async () => await updateScheduledPost.mutateAsync({ id: id, content: editedContent }).then(() => toggleEdit(id))}
                             loading={updateScheduledPost.isPending}
                         >
                             Save
@@ -70,18 +81,13 @@ const EditableContent = ({ id, content }: { id: string; content: string }) => {
                     </div>
                 </div>
             ) : (
-                <div className="w-full relative">
-                    <Button variant="ghost" size="sm" className="absolute right-0 -top-7" onClick={() => { setEditedContent(content); setEdit(true) }}>
-                        <Pencil /> Edit
-                    </Button>
-                    <Markdown>
-                        {content
-                            .split("\n")
-                            .map(line => line.trim())
-                            .filter(line => line.length > 0)
-                            .join("\n\n")}
-                    </Markdown>
-                </div>
+                <Markdown>
+                    {content
+                        .split("\n")
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0)
+                        .join("\n\n")}
+                </Markdown>
             )}
         </div>
     )
