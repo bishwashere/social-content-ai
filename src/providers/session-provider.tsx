@@ -2,7 +2,7 @@
 import { useSession } from "@/backend-apis/auth/hooks";
 import Loading from "@/components/common/loading";
 import React, { useEffect } from "react";
-import HomePage from "@/app/page"; // Import the home page component
+import HomePage from "@/app/(landing)/page"; // Import the home page component
 import { usePathname, useRouter } from "next/navigation";
 
 type Props = {
@@ -22,21 +22,23 @@ const SessionProvider = ({ children }: Props) => {
   useEffect(() => {
     if (isLoading) return;
 
+    // Allow public access to landing page and blogs
+    if (path === "/" || path.startsWith("/blogs")) return;
+
     if (isError) {
       router.push("/"); // ✅ Redirect to the home page
-    } else {
-      if (path === "/") {
-        router.push("/project"); // ✅ Redirect to the dashboard page, if the user is authenticated and tries to access the home page
-      }
     }
-  }, [isError, isLoading, path, router]);
+  }, [isError, isLoading, router, path]);
 
   if (isLoading) {
-    if (path === "/") return <HomePage />;
+    // Allow public access to landing page and blogs
+    if (path === "/" || path.startsWith("/blogs")) return children;
     return <Loading className="h-screen" />;
   }
 
   if (isError) {
+    // Allow public access to landing page and blogs
+    if (path === "/" || path.startsWith("/blogs")) return children;
     return <HomePage />; // ✅ Show the home page instead of UnauthorizedError
   }
 
