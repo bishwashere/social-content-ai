@@ -3,7 +3,13 @@ import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content"
 
-const XPostView = ({ post }: { post: ScheduledPost }) => {
+type Props = {
+    post: ScheduledPost;
+    viewContentEdit: string[];
+    setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
+}
+
+const XPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
 
     const LikeIcon = () => (
         <svg viewBox="0 0 24 24" className="size-5 fill-muted-foreground">
@@ -74,7 +80,7 @@ const XPostView = ({ post }: { post: ScheduledPost }) => {
                     </div>
                 </div>
                 <div className="w-full">
-                    <EditableContent id={post.id} content={post.content} />
+                    <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
                 </div>
                 <div className="flex w-full justify-between gap-5 mt-3">
                     <div className="flex items-center justify-between w-full">

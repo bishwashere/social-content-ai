@@ -3,7 +3,7 @@
 import type { Projects as Project, ScheduledPost } from "@prisma/client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2, Trash } from "lucide-react"
+import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2, Trash, Pencil } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Md from "react-markdown"
 import LinkedinPostView from "@/components/social/linkedin-post-view"
@@ -12,6 +12,7 @@ import XPostView from "@/components/social/x-post-view"
 import { Button } from "@/components/ui/button"
 import { confirm } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { useState } from "react"
 interface Props {
   project: Project
 }
@@ -86,6 +87,9 @@ const formatDate = (date: Date | string) => {
 
 
 export function ScheduledPosts({ project }: Props) {
+
+  const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
+
   const queryClient = useQueryClient();
 
   const {
@@ -201,6 +205,13 @@ export function ScheduledPosts({ project }: Props) {
                     </div>
                     <div className="absolute -top-3 right-0 flex gap-2">
                       <div className="flex items-center gap-2">{getStatusBadge(post.status)}</div>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        setViewContentEdit((prev) =>
+                          prev.includes(post.id) ? prev.filter((item) => item !== post.id) : [...prev, post.id]
+                        );
+                      }}>
+                        <Pencil /> Edit
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => onDeleteScheduledPost(post.id)} loading={deleteScheduledPost.isPending}>
                         <Trash className="stroke-red-500 size-5" />
                       </Button>
@@ -210,9 +221,9 @@ export function ScheduledPosts({ project }: Props) {
 
                 <CardContent className="space-y-4 p-1">
                   <div className="flex w-full items-center justify-center ">
-                    {post.platform === "facebook" ? <FacebookPostView post={post} />
-                      : post.platform === "linkedin" ? <LinkedinPostView post={post} />
-                        : post.platform === "twitter" ? <XPostView post={post} />
+                    {post.platform === "facebook" ? <FacebookPostView post={post} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+                      : post.platform === "linkedin" ? <LinkedinPostView post={post} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+                        : post.platform === "twitter" ? <XPostView post={post} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
                           :
                           <div
                             className="text-sm text-muted-foreground w-full"

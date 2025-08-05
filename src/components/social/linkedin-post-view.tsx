@@ -3,7 +3,13 @@ import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content"
 
-const LinkedinPostView = ({ post }: { post: ScheduledPost }) => {
+type Props = {
+    post: ScheduledPost;
+    viewContentEdit: string[];
+    setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
+}
+
+const LinkedinPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
 
     const LikeIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4">
@@ -60,7 +66,7 @@ const LinkedinPostView = ({ post }: { post: ScheduledPost }) => {
                 </div>
             </div>
             <div className="w-full" style={{ whiteSpace: "pre-wrap" }}>
-                <EditableContent id={post.id} content={post.content} />
+                <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
             </div>
             <div className="w-full mt-3 flex gap-1">
                 <img src="/linkedin-reactions.png" className="w-10 h-auto" />
