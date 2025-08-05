@@ -35,7 +35,7 @@ const FacebookPostView = ({ post }: { post: ScheduledPost }) => {
                     />
                     <div className="flex flex-col gap-0">
                         <div className="flex items-center">
-                            <h2 className="font-bold">Puja Jaiswal</h2>
+                            <h2 className="font-bold">Your Name</h2>
                             <Dot className="stroke-muted-foreground size-3" />
                             <p className="font-medium text-sm text-blue-700">Follow</p>
 

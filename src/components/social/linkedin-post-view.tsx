@@ -40,13 +40,13 @@ const LinkedinPostView = ({ post }: { post: ScheduledPost }) => {
             <div className="relative">
                 <div className="flex items-center mb-2">
                     <img
-                        src="https://randomuser.me/api/portraits/women/60.jpg" // Replace with the actual avatar URL
+                        src="https://randomuser.me/api/portraits/women/60.jpg"
                         alt="User Avatar"
                         className="w-12 h-12 rounded-full mr-3"
                     />
                     <div className="flex flex-col gap-0">
-                        <h2 className="font-bold">Puja Jaiswal</h2>
-                        <p className="text-muted-foreground text-sm">Data Science, AIML enthusiast</p>
+                        <h2 className="font-bold">Your Name</h2>
+                        <p className="text-muted-foreground text-sm">Your linkedin profile title</p>
                         <div className="flex items-center">
                             <span className="text-muted-foreground text-xs">1d</span>
                             <Dot className="stroke-muted-foreground size-4" />
