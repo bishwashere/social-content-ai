@@ -7,7 +7,6 @@ type Props = {
   platform: string;
   content: string;
   date: string;
-  projectId: string;
 };
 
 export const schedulePost = async (props: Props) => {
@@ -17,13 +16,12 @@ export const schedulePost = async (props: Props) => {
       where: {
         projectId: props.projectId,
         oauthProvider: {
-          platform: props.platform,
-          userId: props.userId
-        }
+          platform: props.platform as any,
+        },
       },
       include: {
-        oauthProvider: true
-      }
+        oauthProvider: true,
+      },
     });
 
     if (!projectProvider) {
@@ -44,8 +42,6 @@ export const schedulePost = async (props: Props) => {
         content: props.content,
         date: props.date,
         status: "pending",
-        projectId: props.projectId,
-        oauthProviderId: projectProvider.oauthProviderId
       },
     });
 

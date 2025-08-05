@@ -19,8 +19,16 @@ export const GET = applyMiddleware(
         },
       },
       include: {
-        oauthProvider: true
-      }
+        project: {
+          include: {
+            projectToOAuthProviders: {
+              include: {
+                oauthProvider: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     console.log(`📊 Found ${pending.length} pending posts`);
@@ -56,6 +64,18 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
           console.log(
             `👤 Found project: ${project.id} with user: ${project.user.id}`
           );
@@ -77,7 +97,8 @@ export const GET = applyMiddleware(
 
           // Post to Twitter
           const tweetResult = await postToTwitter(
-            post.oauthProvider.accessToken,
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
             post.content
           );
 
@@ -127,6 +148,18 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
           console.log(
             `👤 Found project: ${project.id} with user: ${project.user.id}`
           );
@@ -152,9 +185,10 @@ export const GET = applyMiddleware(
 
           // Post to Facebook
           const facebookResult = await postToFacebook(
-            post.oauthProvider.accessToken,
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
             post.content,
-            post.oauthProvider.pageId
+            post.project?.projectToOAuthProviders[0].oauthProvider?.pageId || ""
           );
 
           if (facebookResult.success) {
@@ -212,6 +246,18 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
           console.log(`👤 Found user: ${project.user.id}`);
 
           // Get Linkedin tokens
@@ -235,7 +281,8 @@ export const GET = applyMiddleware(
 
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
-            post.oauthProvider.accessToken,
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
             post.content
           );
 

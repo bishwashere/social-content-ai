@@ -12,6 +12,9 @@ import { Share2Icon } from 'lucide-react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog'
 import FacebookPostView from '../social/facebook-post-view'
 import LinkedinPostView from '../social/linkedin-post-view'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { mapProjectToOAuthProvider } from '@/server-actions/map-project-oauth-provider'
+import { checkProjectOAuthProvider } from '@/server-actions/check-project-oauth-provider'
 
 const ICONS = {
   x: "/x.svg",
@@ -32,6 +35,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false)
   const [isAlertOpen, setIsAlertOpen] = React.useState(false)
   const [isProviderSelectOpen, setIsProviderSelectOpen] = React.useState(false)
+  const [selectedProvider, setSelectedProvider] = React.useState<string>('')
   const [availableProviders, setAvailableProviders] = React.useState<Array<{ id: string; pageName?: string | null; pageId?: string | null }> | undefined>()
   const { data } = useSession()
 
@@ -62,7 +66,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
     }
 
     const platformName = platform === "x" ? "twitter" : platform
-    
+
     try {
       const result = await checkProjectOAuthProvider(projectId, data.user.id, platformName)
 
@@ -95,19 +99,20 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
   }
 
   const handleProviderSelect = async (providerId: string) => {
-    if (!data?.user?.id) return
+    if (!data?.user?.id || !providerId) return;
 
     try {
-      await mapProjectToOAuthProvider(projectId, providerId, data.user.id)
-      setIsProviderSelectOpen(false)
-      toast.success('Account mapped to project successfully')
+      await mapProjectToOAuthProvider(projectId, providerId, data.user.id);
+      setIsProviderSelectOpen(false);
+      setSelectedProvider('');
+      toast.success('Account mapped to project successfully');
       // Retry the post action
-      onClick()
+      onClick();
     } catch (error) {
-      console.error('Error mapping provider to project:', error)
-      toast.error('Failed to map account to project')
+      console.error('Error mapping provider to project:', error);
+      toast.error('Failed to map account to project');
     }
-  }
+  };
 
   const onDone = async (date: Date | undefined, isNow?: boolean) => {
     if (!data?.user) {
@@ -200,7 +205,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
               Choose which {platform} account to use for this project
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Select onValueChange={handleProviderSelect}>
+          <Select onValueChange={(value) => setSelectedProvider(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select an account" />
             </SelectTrigger>
@@ -216,6 +221,9 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
             <AlertDialogCancel onClick={() => setIsProviderSelectOpen(false)}>
               Cancel
             </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleProviderSelect(selectedProvider)}>
+              Save
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
