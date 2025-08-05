@@ -3,12 +3,16 @@
 import type { Projects as Project, ScheduledPost } from "@prisma/client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2, Trash, Pencil } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Md from "react-markdown"
 import LinkedinPostView from "@/components/social/linkedin-post-view"
 import FacebookPostView from "@/components/social/facebook-post-view"
 import XPostView from "@/components/social/x-post-view"
+import { Button } from "@/components/ui/button"
+import { confirm } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+import { useState } from "react"
 interface Props {
   project: Project
 }
@@ -84,6 +88,10 @@ const formatDate = (date: Date | string) => {
 
 export function ScheduledPosts({ project }: Props) {
 
+  const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
+
+  const queryClient = useQueryClient();
+
   const {
     data: posts = [],
     isLoading,
@@ -98,6 +106,36 @@ export function ScheduledPosts({ project }: Props) {
       return response.json()
     },
   })
+
+  const deleteScheduledPost = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/scheduled-posts?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete scheduled post");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Deleted scheduled post");
+      queryClient.invalidateQueries({
+        queryKey: ["scheduledPosts", project.id]
+      })
+    },
+    onError: () => {
+      toast.error("Failed to delete scheduled post")
+    }
+  });
+
+  const onDeleteScheduledPost = async (id: string) => {
+    const yes = await confirm({
+      title: "Do you want to delete this scheduled post ?",
+      description: ""
+    })
+    if (!yes) return;
+    deleteScheduledPost.mutate(id);
+  }
 
   if (error) {
     return (
@@ -152,7 +190,7 @@ export function ScheduledPosts({ project }: Props) {
             return (
               <Card key={post.id} className="w-full">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
+                  <div className="relative flex items-center">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full text-white ${getPlatformColor(post.platform)}`}>
                         {getPlatformIcon(post.platform)}
@@ -165,15 +203,27 @@ export function ScheduledPosts({ project }: Props) {
                         </CardDescription>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">{getStatusBadge(post.status)}</div>
+                    <div className="absolute -top-3 right-0 flex gap-2">
+                      <div className="flex items-center gap-2">{getStatusBadge(post.status)}</div>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        setViewContentEdit((prev) =>
+                          prev.includes(post.id) ? prev.filter((item) => item !== post.id) : [...prev, post.id]
+                        );
+                      }}>
+                        <Pencil /> Edit
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => onDeleteScheduledPost(post.id)} loading={deleteScheduledPost.isPending}>
+                        <Trash className="stroke-red-500 size-5" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4 p-1">
                   <div className="flex w-full items-center justify-center ">
-                    {post.platform === "facebook" ? <FacebookPostView content={post.content} />
-                      : post.platform === "linkedin" ? <LinkedinPostView content={post.content} />
-                        : post.platform === "twitter" ? <XPostView content={post.content} />
+                    {post.platform === "facebook" ? <FacebookPostView post={post} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+                      : post.platform === "linkedin" ? <LinkedinPostView post={post} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+                        : post.platform === "twitter" ? <XPostView post={post} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
                           :
                           <div
                             className="text-sm text-muted-foreground w-full"

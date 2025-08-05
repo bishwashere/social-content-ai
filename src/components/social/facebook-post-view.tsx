@@ -2,8 +2,15 @@ import { ScheduledPost } from "@prisma/client";
 import { Dot } from "lucide-react"
 import Image from "next/image";
 import Markdown from "react-markdown"
+import EditableContent from "./editable-content";
 
-const FacebookPostView = ({ content }: { content: string }) => {
+type Props = {
+    post: ScheduledPost;
+    viewContentEdit: string[];
+    setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
+}
+
+const FacebookPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
 
     const ThreeDotIcon = () => (
         <svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor">
@@ -40,7 +47,7 @@ const FacebookPostView = ({ content }: { content: string }) => {
 
                         </div>
                         <div className="flex items-center">
-                            <span className="text-muted-foreground font-medium text-xs">{new Date().toLocaleString("en-US", {
+                            <span className="text-muted-foreground font-medium text-xs">{new Date(post.date).toLocaleString("en-US", {
                                 month: "long",        // "August"
                                 day: "numeric",       // 5
                                 hour: "numeric",      // 5
@@ -57,17 +64,10 @@ const FacebookPostView = ({ content }: { content: string }) => {
                     <XIcon />
                 </div>
             </div>
-            <div
-                className="text-sm text-muted-foreground w-full"
-                style={{ whiteSpace: "pre-wrap" }}
-            >
-                <Markdown>
-                    {content
-                        .split("\n")
-                        .map((line) => line.trim())
-                        .filter((line) => line.length > 0)
-                        .join("\n\n")}
-                </Markdown>
+
+
+            <div className="w-full">
+                <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
             </div>
             <div className="w-full mt-3 flex gap-1 items-center">
                 <img src="/facebook-reactions.png" className="w-9 h-auto" />
