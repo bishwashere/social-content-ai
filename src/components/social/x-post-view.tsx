@@ -62,7 +62,7 @@ const XPostView = ({ content }: { content: string }) => {
             <div>
                 <div className="flex justify-between mb-1">
                     <div className="flex items-center gap-0">
-                        <h2 className="font-bold">Puja Jaiswal</h2>
+                        <h2 className="font-bold">Your Name</h2>
                         <p className="text-muted-foreground ml-2 text-sm">@PujaJaiswal</p>
                         <Dot className="stroke-muted-foreground size-4" />
                         <span className="text-muted-foreground text-xs">1d</span>

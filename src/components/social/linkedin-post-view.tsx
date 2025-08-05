@@ -44,7 +44,7 @@ const LinkedinPostView = ({ content }: { content: string }) => {
                         className="w-12 h-12 rounded-full mr-3"
                     />
                     <div className="flex flex-col gap-0">
-                        <h2 className="font-bold">Puja Jaiswal</h2>
+                        <h2 className="font-bold">Your Name</h2>
                         <p className="text-muted-foreground text-sm">Data Science, AIML enthusiast | SRM University</p>
                         <div className="flex items-center">
                             <span className="text-muted-foreground text-xs">1d</span>
