@@ -1,5 +1,5 @@
 "use client";
-import { useContinueWithGoogle } from "@/backend-apis/auth/hooks";
+import { useContinueWithGoogle, useSession } from "@/backend-apis/auth/hooks";
 import React, { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
   const [open, setOpen] = useState(false);
   const continueWithGoogle = useContinueWithGoogle();
   const router = useRouter();
+  const { isLoading, isError } = useSession();
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -43,14 +44,24 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      {!isLoading && !isError ? (
         <Button
           className={triggerClassName}
+          onClick={() => router.push('/project')}
         >
-          Get Started Now
+          Go to Dashboard
           <MoveRight className="scale-125"/>
         </Button>
-      </DialogTrigger>
+      ) : (
+        <DialogTrigger asChild>
+          <Button
+            className={triggerClassName}
+          >
+            Get Started Now
+            <MoveRight className="scale-125"/>
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogClose />
         <DialogHeader>

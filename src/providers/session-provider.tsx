@@ -24,12 +24,8 @@ const SessionProvider = ({ children }: Props) => {
 
     if (isError) {
       router.push("/"); // ✅ Redirect to the home page
-    } else {
-      if (path === "/") {
-        router.push("/project"); // ✅ Redirect to the dashboard page, if the user is authenticated and tries to access the home page
-      }
     }
-  }, [isError, isLoading, path, router]);
+  }, [isError, isLoading, router]);
 
   if (isLoading) {
     if (path === "/") return <HomePage />;
