@@ -5,23 +5,28 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CopyIcon, RefreshCcw, Share2Icon, Sparkle } from "lucide-react";
+import { CopyIcon, RefreshCcw, Share2Icon, Sparkle, Pencil } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
-import { Projects as Project } from "@prisma/client";
+import { Projects as Project, ProjectChat } from "@prisma/client";
+import { editChatContent } from "@/server-actions/edit-chat-content";
 
 import PostToWall from "@/components/common/post-to-wall";
 import { Switch } from "@/components/ui/switch";
 import AutoPost from "@/components/common/auto-post";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ContentGeneratorProps {
   project: Project;
 }
 
 export function ContentGenerator({ project }: ContentGeneratorProps) {
+  const queryClient = useQueryClient();
+  const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(true);
   const [prompt, setPrompt] = useState("");
   const generateProjectContent = useGenerateProjectContent();
@@ -39,7 +44,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
     },
     [],
   );
-
+  const [isSaving, setIsSaving] = useState(false);
   return (
     <div className="space-y-4 w-full mt-5">
       <div className="flex items-center justify-between">
@@ -104,6 +109,16 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => {
+                          setEditedContent({ ...editedContent, [platform]: text });
+                          setEditingPlatform(platform);
+                        }}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => copyToClipboard(text, platform)}
                       >
                         <CopyIcon />
@@ -115,21 +130,64 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                         prompt={generateProjectContent.data.prompt}
                       />
                       <AutoPost
-                        //@ts-expect-error:...........
-                        platform={platform}
+                        platform={platform as any}
                         content={text}
+                        projectId={project.id}
                       />
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      <Markdown>
-                        {(text as string)
-                          .split("\n")
-                          .map((line) => line.trim())
-                          .filter((line) => line.length > 0)
-                          .join("\n\n")}
-                      </Markdown>
+                      {editingPlatform === platform ? (
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            className="w-full border p-2 rounded text-black"
+                            rows={10}
+                            value={editedContent[platform] ?? text}
+                            onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              loading={isSaving}
+                              onClick={async () => {
+                                try {
+                                  setIsSaving(true);
+                                  await editChatContent({
+                                    chatId: generateProjectContent.data?.id || '',
+                                    platform,
+                                    content: editedContent[platform] ?? text
+                                  });
+                                  const updatedContents = { ...generateProjectContent.data?.contents as any, [platform]: editedContent[platform] ?? text };
+                                  generateProjectContent.data.contents = updatedContents;
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["project-chats", { projectId: project.id }]
+                                  });
+                                  setEditingPlatform(null);
+                                  toast.success('Content updated successfully');
+                                } catch (error) {
+                                  toast.error('Failed to update content');
+                                } finally {
+                                  setIsSaving(false);
+                                }
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Markdown>
+                          {(text as string)
+                            .split("\n")
+                            .map((line) => line.trim())
+                            .filter((line) => line.length > 0)
+                            .join("\n\n")}
+                        </Markdown>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

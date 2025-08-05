@@ -668,7 +668,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     projectId={project.id}
                                                     timelineDay={timeline.day}
                                                   />
-                                                  <AutoPost platform={platform} content={text} />
+                                                  <AutoPost platform={platform} content={text} projectId={project.id} />
                                                   <Checkbox
                                                     key={platform}
                                                     checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}

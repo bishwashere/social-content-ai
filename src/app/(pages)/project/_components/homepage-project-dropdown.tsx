@@ -134,9 +134,9 @@ export default function HomepageProjectDropdown() {
                 />}
 
                 <AutoPost
-                  //@ts-expect-error:...........
-                  platform={platform}
+                  platform={platform as any}
                   content={text}
+                  projectId={chat.data.projectId}
                 />
               </div>
             </div>

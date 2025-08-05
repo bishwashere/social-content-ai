@@ -15,7 +15,7 @@ export const GET = applyMiddleware(
       where: {
         status: "pending",
         date: {
-          lte: new Date(),
+          lte: new Date().toISOString(),
         },
       },
       include: {
@@ -35,10 +35,44 @@ export const GET = applyMiddleware(
       twitterPosts.map(async (post) => {
         console.log(`🔄 Processing Twitter post ID: ${post.id}`);
         try {
-          if (!post.oauthProvider || !post.oauthProvider.accessToken) {
-            console.log(`❌ OAuth provider not found or invalid for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "OAuth provider not found or invalid");
-            return { id: post.id, success: false, error: "OAuth provider not found or invalid" };
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
+          });
+
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
+          }
+
+          console.log(
+            `👤 Found project: ${project.id} with user: ${project.user.id}`
+          );
+
+          // Check and refresh Twitter token if needed
+          const tokenResult = await checkAndRefreshTwitterToken(
+            project.user.id
+          );
+
+          if (!tokenResult.success) {
+            console.log(`❌ Token refresh failed for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              tokenResult.error || "Token refresh failed"
+            );
+            return { id: post.id, success: false, error: tokenResult.error };
           }
 
           // Post to Twitter
@@ -72,10 +106,48 @@ export const GET = applyMiddleware(
       facebookPosts.map(async (post) => {
         console.log(`🔄 Processing Facebook post ID: ${post.id}`);
         try {
-          if (!post.oauthProvider || !post.oauthProvider.accessToken || !post.oauthProvider.pageId) {
-            console.log(`❌ OAuth provider not found or invalid for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "OAuth provider not found or invalid");
-            return { id: post.id, success: false, error: "OAuth provider not found or invalid" };
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
+          });
+
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
+          }
+
+          console.log(
+            `👤 Found project: ${project.id} with user: ${project.user.id}`
+          );
+
+          // Get Facebook tokens
+          const tokens = await getFacebookTokensForUser(
+            project.user.id.toString()
+          );
+
+          if (!tokens || !tokens.accessToken) {
+            console.log(`❌ Facebook tokens not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Facebook tokens not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Facebook tokens not found",
+            };
           }
 
           // Post to Facebook
@@ -119,10 +191,46 @@ export const GET = applyMiddleware(
       linkedinPosts.map(async (post) => {
         console.log(`🔄 Processing Linkedin post ID: ${post.id}`);
         try {
-          if (!post.oauthProvider || !post.oauthProvider.accessToken) {
-            console.log(`❌ OAuth provider not found or invalid for post ID: ${post.id}`);
-            await updatePostStatus(post.id, "failed", "OAuth provider not found or invalid");
-            return { id: post.id, success: false, error: "OAuth provider not found or invalid" };
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
+          });
+
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
+          }
+
+          console.log(`👤 Found user: ${project.user.id}`);
+
+          // Get Linkedin tokens
+          const tokens = await getLinkedinTokensForUser(
+            project.user.id.toString()
+          );
+
+          if (!tokens || !tokens.accessToken) {
+            console.log(`❌ Linkedin tokens not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Linkedin tokens not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Linkedin tokens not found",
+            };
           }
 
           // Post to Linkedin

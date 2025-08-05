@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 
 type Props = {
-  userId: string;
+  projectId: string;
   platform: string;
   content: string;
   date: string;
@@ -34,12 +34,12 @@ export const schedulePost = async (props: Props) => {
     }
 
     console.log(
-      `🔍 Scheduling post for userId: ${props.userId}, platform: ${props.platform}, date: ${props.date}, projectId: ${props.projectId}`
+      `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
     );
 
     const data = await prisma.scheduledPost.create({
       data: {
-        userId: props.userId,
+        projectId: props.projectId,
         platform: props.platform,
         content: props.content,
         date: props.date,
@@ -51,7 +51,7 @@ export const schedulePost = async (props: Props) => {
 
     if (!data) {
       console.log(
-        `❌ Failed to schedule post for userId: ${props.userId}, platform: ${props.platform}, date: ${props.date}`
+        `❌ Failed to schedule post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
       );
       return false;
     }

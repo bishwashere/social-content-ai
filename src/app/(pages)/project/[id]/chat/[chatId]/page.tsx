@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ChevronLeft, CopyIcon, Share2Icon } from "lucide-react";
+import { ChevronLeft, CopyIcon, Share2Icon, Pencil } from "lucide-react";
 import Markdown from "react-markdown";
 import {
   useGetAllProjectChats,
@@ -12,6 +12,8 @@ import {
 } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Projects as Project, ProjectChat } from "@prisma/client";
+import { editChatContent } from "@/server-actions/edit-chat-content";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ICONS = {
   x: "/x.svg",
@@ -28,10 +30,13 @@ import AutoPost from "@/components/common/auto-post";
 export default function ChatPage() {
   const { id, chatId } = useParams() as { id: string; chatId: string };
   const [chat, setChat] = useState<ProjectChat | null>(null);
-
+  const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const projectChats = useGetAllProjectChats({ projectId: id });
   const projects = useGetAllProjects();
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchProject = () => {
@@ -91,11 +96,21 @@ export default function ChatPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => {
+                        setEditedContent({ ...editedContent, [platform]: text });
+                        setEditingPlatform(platform);
+                      }}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => copyToClipboard(text, platform)}
                     >
                       <CopyIcon />
                     </Button>
-                    <AutoPost platform={platform as any} content={text} />
+                    <AutoPost platform={platform as any} content={text} projectId={id} />
                     <PostToWall
                       content={text}
                       platform={platform}
@@ -108,13 +123,61 @@ export default function ChatPage() {
                   className="text-sm text-muted-foreground w-full"
                   style={{ whiteSpace: "pre-wrap" }}
                 >
-                  <Markdown>
-                    {(text as string)
-                      .split("\n")
-                      .map((line) => line.trim())
-                      .filter((line) => line.length > 0)
-                      .join("\n\n")}
-                  </Markdown>
+                  {editingPlatform === platform ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        className="w-full border p-2 rounded text-black"
+                        rows={10}
+                        value={editedContent[platform] ?? text}
+                        onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          loading={isSaving}
+                          onClick={async () => {
+                            try {
+                              setIsSaving(true);
+                              const updated = await editChatContent({
+                                chatId: chatId,
+                                platform,
+                                content: editedContent[platform] ?? text
+                              });
+                              console.log("updated", updated);
+                              if (updated) {
+
+                                const updatedChat = { ...chat, contents: updated.contents };
+                                setChat(updatedChat);
+                                setEditingPlatform(null);
+                                await queryClient.invalidateQueries({ queryKey: ['projectChats'] });
+                                await queryClient.invalidateQueries({ queryKey: ['projects'] });
+                                toast.success('Content updated successfully');
+                              } else {
+                                toast.error('Failed to update content');
+                              }
+                            } catch (error) {
+                              toast.error('Failed to update content');
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Markdown>
+                      {(text as string)
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter((line) => line.length > 0)
+                        .join("\n\n")}
+                    </Markdown>
+                  )}
                 </div>
               </div>
             ))}
