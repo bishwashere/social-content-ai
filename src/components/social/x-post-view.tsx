@@ -1,8 +1,9 @@
 import { ScheduledPost } from "@prisma/client"
 import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
+import EditableContent from "./editable-content"
 
-const XPostView = ({ content }: { content: string }) => {
+const XPostView = ({ post }: { post: ScheduledPost }) => {
 
     const LikeIcon = () => (
         <svg viewBox="0 0 24 24" className="size-5 fill-muted-foreground">
@@ -72,17 +73,8 @@ const XPostView = ({ content }: { content: string }) => {
                         <ThreeDotIcon />
                     </div>
                 </div>
-                <div
-                    className="text-sm text-muted-foreground w-full"
-                    style={{ whiteSpace: "pre-wrap" }}
-                >
-                    <Markdown>
-                        {content
-                            .split("\n")
-                            .map((line) => line.trim())
-                            .filter((line) => line.length > 0)
-                            .join("\n\n")}
-                    </Markdown>
+                <div className="w-full">
+                    <EditableContent id={post.id} content={post.content} />
                 </div>
                 <div className="flex w-full justify-between gap-5 mt-3">
                     <div className="flex items-center justify-between w-full">
