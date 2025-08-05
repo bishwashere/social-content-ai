@@ -10,6 +10,8 @@ import { schedulePost } from '@/server-actions/schedule-post'
 import { DateTimePickerDialog } from './date-picker'
 import { Share2Icon } from 'lucide-react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog'
+import FacebookPostView from '../social/facebook-post-view'
+import LinkedinPostView from '../social/linkedin-post-view'
 
 const ICONS = {
   x: "/x.svg",
@@ -175,6 +177,10 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
             <AlertDialogTitle>{`Post to ${platform}?`}</AlertDialogTitle>
             <AlertDialogDescription>
               Choose whether to post now or schedule for later
+              {/* <div className='flex'>
+              {platform === "facebook" && <FacebookPostView content={content} />}
+              {platform === "linkedin" && <LinkedinPostView content={content} />}
+              </div> */}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

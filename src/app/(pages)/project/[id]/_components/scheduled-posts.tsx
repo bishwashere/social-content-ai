@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import Md from "react-markdown"
+import LinkedinPostView from "@/components/social/linkedin-post-view"
+import FacebookPostView from "@/components/social/facebook-post-view"
+import XPostView from "@/components/social/x-post-view"
 interface Props {
   project: Project
 }
@@ -114,7 +117,7 @@ export function ScheduledPosts({ project }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 -mx-4 sm:mx-0">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Scheduled Posts</h2>
@@ -166,21 +169,28 @@ export function ScheduledPosts({ project }: Props) {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                  <div
-                    className="text-sm text-muted-foreground w-full"
-                    style={{ whiteSpace: "pre-wrap" }}
-                  >
-                    <Md>
-                      {post.content
-                        .split("\n")
-                        .map((line) => line.trim())
-                        .filter((line) => line.length > 0)
-                        .join("\n\n")}
-                    </Md>
+                <CardContent className="space-y-4 p-1">
+                  <div className="flex w-full items-center justify-center ">
+                    {post.platform === "facebook" ? <FacebookPostView content={post.content} />
+                      : post.platform === "linkedin" ? <LinkedinPostView content={post.content} />
+                        : post.platform === "twitter" ? <XPostView content={post.content} />
+                          :
+                          <div
+                            className="text-sm text-muted-foreground w-full"
+                            style={{ whiteSpace: "pre-wrap" }}
+                          >
+                            <Md>
+                              {post.content
+                                .split("\n")
+                                .map((line) => line.trim())
+                                .filter((line) => line.length > 0)
+                                .join("\n\n")}
+                            </Md>
+                          </div>
+                    }
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-4 px-5">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <div>
@@ -197,7 +207,7 @@ export function ScheduledPosts({ project }: Props) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="flex items-center justify-around pt-2 border-t">
                     {post.createdAt && new Date(post.createdAt) > new Date() && (
                       <div className="text-xs text-muted-foreground">
                         Scheduled in{" "}
