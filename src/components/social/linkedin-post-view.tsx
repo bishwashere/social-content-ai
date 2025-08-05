@@ -45,7 +45,7 @@ const LinkedinPostView = ({ content }: { content: string }) => {
                     />
                     <div className="flex flex-col gap-0">
                         <h2 className="font-bold">Your Name</h2>
-                        <p className="text-muted-foreground text-sm">Data Science, AIML enthusiast | SRM University</p>
+                        <p className="text-muted-foreground text-sm">Your linkedin profile title</p>
                         <div className="flex items-center">
                             <span className="text-muted-foreground text-xs">1d</span>
                             <Dot className="stroke-muted-foreground size-4" />
