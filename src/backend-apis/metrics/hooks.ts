@@ -22,10 +22,10 @@ export const useRedditPostsData = (urls: string[]) => {
   });
 };
 
-export const useGetFacebookMetrics = (userId: string) => {
+export const useGetFacebookMetrics = (pageId: string) => {
   return useQuery({
-    queryKey: ["facebook-metrics", userId],
-    queryFn: () => getFacebookMetrics(userId),
-    enabled: !!userId,
+    queryKey: ["facebook-metrics", pageId],
+    queryFn: () => getFacebookMetrics(pageId),
+    enabled: !!pageId,
   });
 };

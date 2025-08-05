@@ -11,9 +11,30 @@ type Props = {
 
 export const schedulePost = async (props: Props) => {
   try {
+    // Verify project has OAuth provider mapped
+    const projectProvider = await prisma.projectToOAuthProvider.findFirst({
+      where: {
+        projectId: props.projectId,
+        oauthProvider: {
+          platform: props.platform as any,
+        },
+      },
+      include: {
+        oauthProvider: true,
+      },
+    });
+
+    if (!projectProvider) {
+      console.log(
+        `❌ No OAuth provider mapped for projectId: ${props.projectId}, platform: ${props.platform}`
+      );
+      return false;
+    }
+
     console.log(
       `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
     );
+
     const data = await prisma.scheduledPost.create({
       data: {
         projectId: props.projectId,

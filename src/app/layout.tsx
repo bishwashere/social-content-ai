@@ -5,7 +5,6 @@ import { Inter, Roboto } from "next/font/google";
 import { Toaster } from "sonner";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import NextAuthProvider from "@/providers/next-auth-provider";
-import { FacebookAuthHandler } from "@/components/common/facebook-auth-handler";
 const inter = Inter({ subsets: ["latin"] });
 const roboto = Roboto({ subsets: ["latin"], weight: ["300", "400", "500", "700", "900"] })
 
@@ -31,7 +30,6 @@ export default function RootLayout({
       <body className={`${inter.className} ${roboto.className}`}>
         <NextAuthProvider>
           <RootProvider>
-            <FacebookAuthHandler />
             {children}
             <Toaster richColors />
           </RootProvider>

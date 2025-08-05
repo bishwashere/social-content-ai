@@ -18,6 +18,17 @@ export const GET = applyMiddleware(
           lte: new Date().toISOString(),
         },
       },
+      include: {
+        project: {
+          include: {
+            projectToOAuthProviders: {
+              include: {
+                oauthProvider: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     console.log(`📊 Found ${pending.length} pending posts`);
@@ -53,6 +64,18 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
           console.log(
             `👤 Found project: ${project.id} with user: ${project.user.id}`
           );
@@ -74,7 +97,8 @@ export const GET = applyMiddleware(
 
           // Post to Twitter
           const tweetResult = await postToTwitter(
-            tokenResult.accessToken!,
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
             post.content
           );
 
@@ -124,6 +148,18 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
           console.log(
             `👤 Found project: ${project.id} with user: ${project.user.id}`
           );
@@ -149,9 +185,10 @@ export const GET = applyMiddleware(
 
           // Post to Facebook
           const facebookResult = await postToFacebook(
-            tokens.accessToken,
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
             post.content,
-            tokens.facebookPageId || ""
+            post.project?.projectToOAuthProviders[0].oauthProvider?.pageId || ""
           );
 
           if (facebookResult.success) {
@@ -209,6 +246,18 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
           console.log(`👤 Found user: ${project.user.id}`);
 
           // Get Linkedin tokens
@@ -232,7 +281,8 @@ export const GET = applyMiddleware(
 
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
-            tokens.accessToken,
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
             post.content
           );
 
@@ -363,107 +413,15 @@ async function postToTwitter(
 }
 
 /**
- * Post content to Threads
- */
-// async function postToThreads(
-//   accessToken: string,
-//   content: string
-// ): Promise<{ success: boolean; error?: string }> {
-//   try {
-//     console.log("🧵 Posting to Threads...");
-
-//     // First, create a media container
-//     const containerResponse = await fetch(
-//       `https://graph.threads.net/v1.0/me/threads`,
-//       {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           media_type: "TEXT",
-//           text: content,
-//           access_token: accessToken,
-//         }),
-//       }
-//     );
-
-//     if (!containerResponse.ok) {
-//       const errorData = await containerResponse.json().catch(() => ({}));
-//       console.error("❌ Threads container creation error:", errorData);
-//       return {
-//         success: false,
-//         error: `Threads container error: ${containerResponse.status} ${containerResponse.statusText}`,
-//       };
-//     }
-
-//     const containerData = await containerResponse.json();
-//     const containerId = containerData.id;
-
-//     if (!containerId) {
-//       return {
-//         success: false,
-//         error: "Failed to create Threads media container",
-//       };
-//     }
-
-//     // Then, publish the container
-//     const publishResponse = await fetch(
-//       `https://graph.threads.net/v1.0/me/threads_publish`,
-//       {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           creationid: containerId,
-//           access_token: accessToken,
-//         }),
-//       }
-//     );
-
-//     if (!publishResponse.ok) {
-//       const errorData = await publishResponse.json().catch(() => ({}));
-//       console.error("❌ Threads publish error:", errorData);
-//       return {
-//         success: false,
-//         error: `Threads publish error: ${publishResponse.status} ${publishResponse.statusText}`,
-//       };
-//     }
-
-//     const publishData = await publishResponse.json();
-//     console.log("✅ Successfully posted to Threads:", publishData);
-
-//     return { success: true };
-//   } catch (error) {
-//     console.error("❌ Error posting to Threads:", error);
-//     return {
-//       success: false,
-//       error:
-//         error instanceof Error
-//           ? error.message
-//           : "Unknown error posting to Threads",
-//     };
-//   }
-// }
-
-/**
  * Post content to Facebook Page
  */
 async function postToFacebook(
   accessToken: string,
   content: string,
-  pageId?: string
+  pageId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("📘 Posting to Facebook API");
-
-    if (!pageId) {
-      return {
-        success: false,
-        error: "Page ID is required for Facebook posting",
-      };
-    }
 
     // First, get the page access token
     const pageTokenResponse = await fetch(

@@ -112,24 +112,55 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const pagesData = await pagesResponse.json();
 
                 if (pagesData.data && pagesData.data.length > 0) {
-                  // Store the long-lived user token temporarily
-                  updateData.accessToken = longLivedTokenData.access_token;
-
-                  // Store pages data in a cookie for the client to handle page selection
-                  const cookieStore = cookies();
-                  cookieStore.set(
-                    "fb_pages_data",
-                    JSON.stringify(pagesData.data),
+                  // Get existing Facebook OAuth providers for this user
+                  const existingProviders = await prisma.oauthProvider.findMany(
                     {
-                      maxAge: 300, // 5 minutes
-                      path: "/",
-                      secure: process.env.NODE_ENV === "production",
-                      sameSite: "lax",
+                      where: {
+                        userId: googleUser.id,
+                        platform: "facebook",
+                      },
                     }
                   );
+
+                  // Create a map of existing providers by pageId
+                  const existingProviderMap = new Map(
+                    existingProviders.map((provider) => [
+                      provider.pageId,
+                      provider,
+                    ])
+                  );
+
+                  // Process each page
+                  for (const page of pagesData.data) {
+                    const existingProvider = existingProviderMap.get(page.id);
+
+                    if (existingProvider) {
+                      // Update existing provider
+                      await prisma.oauthProvider.update({
+                        where: { id: existingProvider.id },
+                        data: {
+                          accessToken: longLivedTokenData.access_token,
+                          pageName: page.name,
+                        },
+                      });
+                    } else {
+                      // Create new provider
+                      await prisma.oauthProvider.create({
+                        data: {
+                          userId: googleUser.id,
+                          platform: "facebook",
+                          accessToken: longLivedTokenData.access_token,
+                          pageId: page.id,
+                          pageName: page.name,
+                        },
+                      });
+                    }
+                  }
+
+                  return true;
                 } else {
                   console.log("No Facebook pages found for user");
-                  updateData.accessToken = longLivedTokenData.access_token;
+                  return false;
                 }
               } else {
                 console.error(
@@ -153,28 +184,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             updateData.accessToken = account.access_token;
           }
 
-          // Store OAuth credentials for this user
-          // Find existing provider
-          const existingProvider = await prisma.oauthProvider.findFirst({
-            where: {
-              userId: googleUser.id,
-              platform: platform,
-            },
-          });
-
-          if (existingProvider) {
-            await prisma.oauthProvider.update({
-              where: { id: existingProvider.id },
-              data: updateData,
-            });
-          } else {
-            await prisma.oauthProvider.create({
-              data: {
+          // For non-Facebook platforms, handle OAuth provider creation/update
+          if (platform !== "facebook") {
+            // Store OAuth credentials for this user
+            // Find existing provider
+            const existingProvider = await prisma.oauthProvider.findFirst({
+              where: {
                 userId: googleUser.id,
-                platform: platform,
-                ...updateData,
+                platform: platform as any,
               },
             });
+
+            if (existingProvider) {
+              await prisma.oauthProvider.update({
+                where: { id: existingProvider.id },
+                data: updateData,
+              });
+            } else {
+              await prisma.oauthProvider.create({
+                data: {
+                  userId: googleUser.id,
+                  platform: platform,
+                  ...updateData,
+                },
+              });
+            }
           }
 
           // Return true to allow the sign-in
