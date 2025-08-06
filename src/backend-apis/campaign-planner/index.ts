@@ -116,7 +116,7 @@ export const getCampaignPlanner = async (projectId: string) => {
       chatsGroupedByCampaign: planners.map((p) => ({
         id: p.id,
         name: p.name,
-        chats: p.chats,
+        chats: p.chats.sort((a, b) => a.day - b.day), // day 1, 2, 3
         goal: p.goal,
         targetAudience: p.targetAudience,
         date: p.updatedAt,

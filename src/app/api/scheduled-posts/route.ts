@@ -7,7 +7,10 @@ export async function GET(request: Request) {
     const projectId = searchParams.get("projectId");
 
     if (!projectId) {
-      return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Project ID is required" },
+        { status: 400 }
+      );
     }
 
     const scheduledPosts = await prisma.scheduledPost.findMany({
@@ -15,7 +18,8 @@ export async function GET(request: Request) {
         projectId: projectId,
       },
       orderBy: {
-        date: 'asc',
+        //  latest at top
+        createdAt: "desc",
       },
     });
 
@@ -35,7 +39,10 @@ export async function PATCH(request: Request) {
     const { id, ...updateData } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "Post ID is required", success: false }, { status: 400 });
+      return NextResponse.json(
+        { error: "Post ID is required", success: false },
+        { status: 400 }
+      );
     }
 
     await prisma.scheduledPost.update({
@@ -59,7 +66,10 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Post ID is required", success: false }, { status: 400 });
+      return NextResponse.json(
+        { error: "Post ID is required", success: false },
+        { status: 400 }
+      );
     }
 
     await prisma.scheduledPost.delete({
