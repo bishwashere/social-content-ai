@@ -2,7 +2,7 @@ import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { verifyJWT } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 interface ThreadsTokenResponse {
   access_token: string;
@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
 
   if (!token) {
     console.error("No auth token found, user not logged in with Google");
-    return false;
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   const payload = verifyJWT(token, process.env.JWT_SECRET as string);
 
   if (!payload) {
     console.error("Invalid token");
-    return false;
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   // Find the Google-authenticated user
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
   if (!googleUser) {
     console.error("Google user not found");
-    return false;
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -187,12 +187,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return Response.redirect(new URL(`${returnUrl}${separator}`, request.url));
+    return NextResponse.redirect(
+      new URL(`${returnUrl}${separator}`, request.url)
+    );
   } catch (error) {
     const errorMessage = (error as Error).message;
     console.error("❌ OAuth callback error:", errorMessage);
     const separator = returnUrl.includes("?") ? "&" : "?";
-    return Response.redirect(
+    return NextResponse.redirect(
       new URL(
         `${returnUrl}${separator}threads_error=${encodeURIComponent(
           errorMessage
