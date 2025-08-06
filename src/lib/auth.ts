@@ -152,6 +152,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                           accessToken: longLivedTokenData.access_token,
                           pageId: page.id,
                           pageName: page.name,
+                          pageProfilePhoto: page.picture
                         },
                       });
                     }
