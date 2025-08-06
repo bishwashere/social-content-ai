@@ -58,7 +58,7 @@
     "marked": "^16.1.2",
     "motion": "^12.10.5",
     "next": "14.2.24",
-    "next-auth": "5.0.0-beta.28",
+    "next-auth": "5.0.0-beta.29",
     "nodemailer": "^6.10.0",
     "react": "^18",
     "react-big-calendar": "^1.19.4",
