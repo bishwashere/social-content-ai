@@ -15,6 +15,7 @@ import LinkedinPostView from '../social/linkedin-post-view'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { mapProjectToOAuthProvider } from '@/server-actions/map-project-oauth-provider'
 import { checkProjectOAuthProvider } from '@/server-actions/check-project-oauth-provider'
+import { authenticateWithThreads } from '@/lib/auth/threads'
 
 const ICONS = {
   x: "/x.svg",
@@ -74,7 +75,11 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
         // User needs to connect their account first
         toast.loading(`You need to connect your ${platform} account first, redirecting...`)
         setTimeout(() => {
-          signIn(platformName)
+          if (platform === "threads") {
+            authenticateWithThreads()
+          } else {
+            signIn(platformName)
+          }
         }, 1000)
         return false
       }

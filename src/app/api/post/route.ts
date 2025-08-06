@@ -35,9 +35,11 @@ export const GET = applyMiddleware(
     const twitterPosts = pending.filter((p) => p.platform === "twitter");
     const facebookPosts = pending.filter((p) => p.platform === "facebook");
     const linkedinPosts = pending.filter((p) => p.platform === "linkedin");
+    const threadsPosts = pending.filter((p) => p.platform === "threads");
     console.log(`🐦 Found ${twitterPosts.length} Twitter posts to process`);
     console.log(`📘 Found ${facebookPosts.length} Facebook posts to process`);
     console.log(`📘 Found ${linkedinPosts.length} Linkedin posts to process`);
+    console.log(`🧵 Found ${threadsPosts.length} Threads posts to process`);
 
     const twitterResults = await Promise.all(
       twitterPosts.map(async (post) => {
@@ -316,10 +318,86 @@ export const GET = applyMiddleware(
       })
     );
 
+    const threadsResults = await Promise.all(
+      threadsPosts.map(async (post) => {
+        console.log(`🔄 Processing Threads post ID: ${post.id}`);
+        try {
+          const project = await prisma.projects.findUnique({
+            where: { id: post.projectId },
+            include: {
+              user: true,
+            },
+          });
+
+          if (!project || !project.user) {
+            console.log(`❌ Project or user not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Project or user not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Project or user not found",
+            };
+          }
+
+          if (
+            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
+          ) {
+            console.log(`❌ No access token found for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
+          console.log(`👤 Found user: ${project.user.id}`);
+
+          // Post to Threads
+          const threadsResult = await postToThreads(
+            post.project?.projectToOAuthProviders[0].oauthProvider
+              ?.accessToken || "",
+            post.content,
+            post.project?.projectToOAuthProviders[0].oauthProvider.pageId || ""
+          );
+
+          if (threadsResult.success) {
+            console.log(
+              `✅ Successfully posted to Threads for post ID: ${post.id}`
+            );
+            await updatePostStatus(post.id, "success");
+            return { id: post.id, success: true };
+          } else {
+            console.log(`❌ Failed to post to Threads for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", threadsResult.error);
+            return {
+              id: post.id,
+              success: false,
+              error: threadsResult.error,
+            };
+          }
+        } catch (error) {
+          console.error(
+            `❌ Error processing Threads post ID: ${post.id}`,
+            error
+          );
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          await updatePostStatus(post.id, "failed", errorMessage);
+          return { id: post.id, success: false, error: errorMessage };
+        }
+      })
+    );
+
     const allResults = [
       ...twitterResults,
       ...facebookResults,
       ...linkedinResults,
+      ...threadsResults,
     ];
 
     return sendNextResponse({
@@ -343,6 +421,11 @@ export const GET = applyMiddleware(
           processed: linkedinResults.length,
           successful: linkedinResults.filter((r) => r.success).length,
           failed: linkedinResults.filter((r) => !r.success).length,
+        },
+        threads: {
+          processed: threadsResults.length,
+          successful: threadsResults.filter((r) => r.success).length,
+          failed: threadsResults.filter((r) => !r.success).length,
         },
         details: allResults,
       },
@@ -573,6 +656,97 @@ async function postToLinkedin(
         error instanceof Error
           ? error.message
           : "Unknown error posting to Linkedin",
+    };
+  }
+}
+
+/**
+ * Post content to Threads
+ * This is a two-step process:
+ * 1. Create a media container
+ * 2. Publish the container
+ */
+async function postToThreads(
+  accessToken: string,
+  content: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log("🧵 Posting to Threads API");
+
+    // Step 1: Create media container
+    const createResponse = await fetch(
+      `https://graph.threads.net/v1.0/${userId}/threads`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          media_type: "TEXT",
+          text: content,
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json().catch(() => ({}));
+      console.error("❌ Threads container creation error:", errorData);
+      return {
+        success: false,
+        error: `Failed to create container: ${createResponse.status} ${createResponse.statusText}`,
+      };
+    }
+
+    const containerData = await createResponse.json();
+    const containerId = containerData.id;
+
+    if (!containerId) {
+      return {
+        success: false,
+        error: "Failed to get container ID from creation response",
+      };
+    }
+
+    console.log("✅ Container created successfully:", containerId);
+
+    // Step 2: Publish the container
+    const publishResponse = await fetch(
+      `https://graph.threads.net/v1.0/${userId}/threads_publish`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          creation_id: containerId,
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!publishResponse.ok) {
+      const errorData = await publishResponse.json().catch(() => ({}));
+      console.error("❌ Threads publish error:", errorData);
+      return {
+        success: false,
+        error: `Failed to publish: ${publishResponse.status} ${publishResponse.statusText}`,
+      };
+    }
+
+    const publishData = await publishResponse.json();
+    console.log("✅ Successfully published to Threads:", publishData);
+
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Error posting to Threads:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unknown error posting to Threads",
     };
   }
 }
