@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { verifyJWT } from "@/lib/jwt";
+import Threads from "next-auth/providers/threads";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -36,6 +37,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         params: {
           scope: "openid profile w_member_social email",
         },
+      },
+    }),
+    Threads({
+      clientId: process.env.THREADS_CLIENT_ID,
+      clientSecret: process.env.THREADS_CLIENT_SECRET,
+      authorization: {
+        url: "https://www.threads.net/oauth/authorize",
+        params: {
+          scope:
+            "threads_basic threads_content_publish threads_manage_insights",
+        },
+      },
+      token: {
+        url: "https://api.threads.net/oauth/token",
+      },
+      userinfo: {
+        url: "https://api.threads.net/userinfo",
       },
     }),
   ],
@@ -152,7 +170,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                           accessToken: longLivedTokenData.access_token,
                           pageId: page.id,
                           pageName: page.name,
-                          pageProfilePhoto: page.picture
+                          pageProfilePhoto: page.picture,
                         },
                       });
                     }
