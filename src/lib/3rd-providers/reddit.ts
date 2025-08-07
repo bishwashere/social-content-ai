@@ -127,6 +127,7 @@ class Reddit {
     data: any;
     newToken: NewToken | null;
   }> {
+    console.log("Submitting post to Reddit", options);
     await this._ensureAccessTokenValid();
 
     const {
@@ -164,6 +165,8 @@ class Reddit {
         "Post submission failed: " + JSON.stringify(res.data.json.errors)
       );
     }
+
+    console.log(res.data.json);
 
     return {
       data: res.data.json,

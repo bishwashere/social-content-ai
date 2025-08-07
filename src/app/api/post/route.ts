@@ -4,6 +4,7 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
 import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
+import { postToSocial } from "@/lib/post-to-social";
 
 /**
  * Process pending scheduled posts
@@ -36,10 +37,12 @@ export const GET = applyMiddleware(
     const facebookPosts = pending.filter((p) => p.platform === "facebook");
     const linkedinPosts = pending.filter((p) => p.platform === "linkedin");
     const threadsPosts = pending.filter((p) => p.platform === "threads");
+    const redditPosts = pending.filter((p) => p.platform === "reddit");
     console.log(`🐦 Found ${twitterPosts.length} Twitter posts to process`);
     console.log(`📘 Found ${facebookPosts.length} Facebook posts to process`);
     console.log(`📘 Found ${linkedinPosts.length} Linkedin posts to process`);
     console.log(`🧵 Found ${threadsPosts.length} Threads posts to process`);
+    console.log(`📘 Found ${redditPosts.length} Reddit posts to process`);
 
     const twitterResults = await Promise.all(
       twitterPosts.map(async (post) => {
@@ -393,11 +396,25 @@ export const GET = applyMiddleware(
       })
     );
 
+    const redditResults = await Promise.all(
+      redditPosts.map(async (post) => {
+        const response = await postToSocial({
+          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+          oauth: post.project?.projectToOAuthProviders.find(
+            (p) => p.oauthProvider?.platform === "reddit"
+          )?.oauthProvider!,
+          post,
+        });
+        return response;
+      })
+    );
+
     const allResults = [
       ...twitterResults,
       ...facebookResults,
       ...linkedinResults,
       ...threadsResults,
+      ...redditResults,
     ];
 
     return sendNextResponse({

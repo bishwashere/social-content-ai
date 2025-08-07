@@ -9,6 +9,7 @@ import { verifyJWT } from "@/lib/jwt";
 import RedditProvider from "next-auth/providers/reddit";
 import { Reddit } from "./3rd-providers/reddit";
 import { AUTH_ERROR_CODES } from "@/constants/auth-error";
+import { OauthProvider } from "@prisma/client";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Twitter({
@@ -89,64 +90,80 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return `/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`;
           }
 
-          if (platform === "reddit") {
-            const r = new Reddit({
-              accessToken: account.access_token!,
-              refreshToken: account.refresh_token!,
-              expiresAt: account.expires_at!,
-            });
-            const subreddits = await r.getModeratedSubreddits();
-            if (subreddits.data.length === 0) {
-              return `/error/auth?code=${AUTH_ERROR_CODES.ZERO_SUBREDDITS}`;
-            } else {
-              // for each subreddit, create a new oauthProvider
-              for (const subreddit of subreddits.data) {
-                // check if the subreddit already exists
-                const existingProvider = await prisma.oauthProvider.findFirst({
-                  where: {
+          const authProviders: Omit<
+            OauthProvider,
+            "id" | "createdAt" | "updatedAt"
+          >[] = [];
+
+          switch (platform) {
+            case "reddit":
+              const r = new Reddit({
+                accessToken: account.access_token!,
+                refreshToken: account.refresh_token!,
+                expiresAt: account.expires_at!,
+              });
+              const { data } = await r.getModeratedSubreddits();
+
+              const subreddits = data.filter(
+                (subreddit) => !subreddit.is_personal
+              );
+
+              if (subreddits.length === 0) {
+                return `/error/auth?code=${AUTH_ERROR_CODES.ZERO_SUBREDDITS}`;
+              } else {
+                // for each subreddit, create a new oauthProvider
+                for (const subreddit of subreddits) {
+                  authProviders.push({
                     userId: googleUser.id,
                     platform: "reddit",
-                    pageId: subreddit.id,
-                  },
-                });
-
-                if (!existingProvider) {
-                  await prisma.oauthProvider.create({
-                    data: {
-                      userId: googleUser.id,
-                      platform: "reddit",
-                      pageId: subreddit.display_name,
-                      accessToken: account.access_token || "",
-                      refreshToken: account.refresh_token,
-                      expiresAt: account.expires_at,
-                      pageName: subreddit.title,
-                      pageProfilePhoto: subreddit.icon_img,
-                      isPersonal: subreddit.is_personal,
-                    },
-                  });
-                } else {
-                  // update the existing provider
-                  await prisma.oauthProvider.update({
-                    where: {
-                      id: existingProvider.id,
-                    },
-                    data: {
-                      userId: googleUser.id,
-                      platform: "reddit",
-                      pageId: subreddit.display_name,
-                      accessToken: account.access_token || "",
-                      refreshToken: account.refresh_token,
-                      expiresAt: account.expires_at,
-                      pageName: subreddit.title,
-                      pageProfilePhoto: subreddit.icon_img,
-                      isPersonal: subreddit.is_personal,
-                    },
+                    pageId: subreddit.display_name || "",
+                    accessToken: account.access_token || "",
+                    refreshToken: account.refresh_token || "",
+                    expiresAt: account.expires_at || 0,
+                    pageName: subreddit.title || "",
+                    pageProfilePhoto: subreddit.icon_img || "",
+                    isPersonal: subreddit.is_personal,
                   });
                 }
               }
-              return true;
-            }
           }
+
+          console.log("authProviders", authProviders);
+
+          if (authProviders.length > 0) {
+            //  for each authProvider, check if it already exists
+            for (const authProvider of authProviders) {
+              const existingProvider = await prisma.oauthProvider.findFirst({
+                where: {
+                  userId: googleUser.id,
+                  platform: authProvider.platform,
+                  pageId: authProvider.pageId,
+                },
+              });
+
+              if (existingProvider) {
+                // Update the existing provider
+                await prisma.oauthProvider.update({
+                  where: {
+                    id: existingProvider.id,
+                  },
+                  data: {
+                    accessToken: authProvider.accessToken,
+                    refreshToken: authProvider.refreshToken,
+                    expiresAt: authProvider.expiresAt,
+                  },
+                });
+              } else {
+                // Create a new provider
+                await prisma.oauthProvider.create({
+                  data: authProvider,
+                });
+              }
+            }
+            return true;
+          }
+
+          // todo refactor, abstract
 
           console.log(
             `Linking ${platform} account to Google user:`,
