@@ -49,7 +49,7 @@ model Projects {
   uploadedVideos          UploadedVideo[]
   ProjectsSubredditData   ProjectsSubredditData[]
   projectToOAuthProviders ProjectToOAuthProvider[]
-  scheduledPosts        ScheduledPost[]
+  scheduledPosts          ScheduledPost[]
 
   @@map("projects")
 }
@@ -146,17 +146,18 @@ enum OauthPlatform {
 }
 
 model OauthProvider {
-  id           String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String        @db.ObjectId
-  platform     OauthPlatform
-  accessToken  String
-  refreshToken String?
-  expiresAt    Int?
-  pageId       String?
-  pageName     String?
-  pageProfilePhoto  String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String        @db.ObjectId
+  platform         OauthPlatform
+  accessToken      String
+  refreshToken     String?
+  expiresAt        Int?
+  pageId           String?
+  pageName         String?
+  pageProfilePhoto String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  isPersonal       Boolean       @default(false)
 
   user                    User?                    @relation(fields: [userId], references: [id])
   projectToOAuthProviders ProjectToOAuthProvider[]

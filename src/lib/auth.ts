@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { verifyJWT } from "@/lib/jwt";
-import Threads from "next-auth/providers/threads";
-
+import RedditProvider from "next-auth/providers/reddit";
+import { Reddit } from "./3rd-providers/reddit";
+import { AUTH_ERROR_CODES } from "@/constants/auth-error";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Twitter({
@@ -39,24 +40,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
-    Threads({
-      clientId: process.env.THREADS_CLIENT_ID,
-      clientSecret: process.env.THREADS_CLIENT_SECRET,
+    RedditProvider({
       authorization: {
-        url: "https://www.threads.net/oauth/authorize",
         params: {
-          scope:
-            "threads_basic threads_content_publish threads_manage_insights",
+          duration: "permanent",
+          scope: "identity submit read modconfig mysubreddits",
         },
-      },
-      token: {
-        url: "https://api.threads.net/oauth/token",
-      },
-      userinfo: {
-        url: "https://api.threads.net/userinfo",
+        url: "https://www.reddit.com/api/v1/authorize.compact",
       },
     }),
   ],
+  pages: {
+    error: "/error/auth",
+  },
   callbacks: {
     async signIn({ user, account }) {
       if (account && user) {
@@ -66,17 +62,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const token = cookieStore.get(AUTH_TOKEN_COOKIE_NAME)?.value;
 
           if (!token) {
-            console.error(
-              "No auth token found, user not logged in with Google"
-            );
-            return false;
+            return `/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`;
           }
 
           const payload = verifyJWT(token, process.env.JWT_SECRET as string);
 
           if (!payload) {
-            console.error("Invalid token");
-            return false;
+            return `/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`;
           }
 
           // Find the Google-authenticated user
@@ -88,11 +80,73 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
 
           if (!googleUser) {
-            console.error("Google user not found");
-            return false;
+            return `/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`;
           }
 
           const platform = account.provider;
+
+          if (!account.access_token) {
+            return `/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`;
+          }
+
+          if (platform === "reddit") {
+            const r = new Reddit({
+              accessToken: account.access_token!,
+              refreshToken: account.refresh_token!,
+              expiresAt: account.expires_at!,
+            });
+            const subreddits = await r.getModeratedSubreddits();
+            if (subreddits.data.length === 0) {
+              return `/error/auth?code=${AUTH_ERROR_CODES.ZERO_SUBREDDITS}`;
+            } else {
+              // for each subreddit, create a new oauthProvider
+              for (const subreddit of subreddits.data) {
+                // check if the subreddit already exists
+                const existingProvider = await prisma.oauthProvider.findFirst({
+                  where: {
+                    userId: googleUser.id,
+                    platform: "reddit",
+                    pageId: subreddit.id,
+                  },
+                });
+
+                if (!existingProvider) {
+                  await prisma.oauthProvider.create({
+                    data: {
+                      userId: googleUser.id,
+                      platform: "reddit",
+                      pageId: subreddit.display_name,
+                      accessToken: account.access_token || "",
+                      refreshToken: account.refresh_token,
+                      expiresAt: account.expires_at,
+                      pageName: subreddit.title,
+                      pageProfilePhoto: subreddit.icon_img,
+                      isPersonal: subreddit.is_personal,
+                    },
+                  });
+                } else {
+                  // update the existing provider
+                  await prisma.oauthProvider.update({
+                    where: {
+                      id: existingProvider.id,
+                    },
+                    data: {
+                      userId: googleUser.id,
+                      platform: "reddit",
+                      pageId: subreddit.display_name,
+                      accessToken: account.access_token || "",
+                      refreshToken: account.refresh_token,
+                      expiresAt: account.expires_at,
+                      pageName: subreddit.title,
+                      pageProfilePhoto: subreddit.icon_img,
+                      isPersonal: subreddit.is_personal,
+                    },
+                  });
+                }
+              }
+              return true;
+            }
+          }
 
           console.log(
             `Linking ${platform} account to Google user:`,
@@ -197,6 +251,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             console.log(
               "Stored LinkedIn access token for personal account posting"
             );
+            updateData.accessToken = account.access_token;
+          } else if (account.provider === "reddit" && account.access_token) {
             updateData.accessToken = account.access_token;
           } else {
             // For Twitter, use the original access token

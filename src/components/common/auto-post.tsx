@@ -37,7 +37,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
   const [isAlertOpen, setIsAlertOpen] = React.useState(false)
   const [isProviderSelectOpen, setIsProviderSelectOpen] = React.useState(false)
   const [selectedProvider, setSelectedProvider] = React.useState<string>('')
-  const [availableProviders, setAvailableProviders] = React.useState<Array<{ id: string; pageName?: string | null; pageId?: string | null }> | undefined>()
+  const [availableProviders, setAvailableProviders] = React.useState<Array<{ id: string; pageName?: string | null; pageId?: string | null; isPersonal?: boolean }> | undefined>()
   const { data } = useSession()
 
   const onClick = async () => {
@@ -70,7 +70,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
 
     try {
       const result = await checkProjectOAuthProvider(projectId, data.user.id, platformName)
-
+      console.log(result)
       if (!result.hasProviderConnected) {
         // User needs to connect their account first
         toast.loading(`You need to connect your ${platform} account first, redirecting...`)
@@ -217,7 +217,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
             <SelectContent>
               {availableProviders?.map((provider) => (
                 <SelectItem key={provider.id} value={provider.id}>
-                  {provider.pageName || provider.pageId || 'Unnamed Account'}
+                  {provider.pageName || provider.pageId || 'Unnamed Account'} {provider.isPersonal ? ' (Personal)' : ''}
                 </SelectItem>
               ))}
             </SelectContent>
