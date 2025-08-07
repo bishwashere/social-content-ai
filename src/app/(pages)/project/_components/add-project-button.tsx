@@ -19,6 +19,7 @@ import FirstViewTooltip from "@/components/common/first-view-tooltip";
 
 export function AddProjectButton() {
   const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
   const [open, setOpen] = useState(false);
   const createProject = useCreateProject();
@@ -26,9 +27,10 @@ export function AddProjectButton() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createProject.mutateAsync({ name, description });
+      await createProject.mutateAsync({ name, url, description });
       setOpen(false);
       setName("");
+      setUrl("");
       setDescription("");
     } catch { }
   };
@@ -57,6 +59,15 @@ export function AddProjectButton() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Spring Campaign 2025"
               required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Url</Label>
+            <Input
+              id="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://springcampaign2025.ccom"
             />
           </div>
           <div className="space-y-2">

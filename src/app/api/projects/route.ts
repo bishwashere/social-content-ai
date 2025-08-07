@@ -65,7 +65,7 @@ export const POST = applyMiddleware(
     //@ts-expect-error: user is not defined in Request type
     const user = req.parsed.user;
 
-    const { name, description } = await req.json();
+    const { name, url, description } = await req.json();
 
     if (!name) {
       return sendNextResponse({
@@ -78,6 +78,7 @@ export const POST = applyMiddleware(
     const project = await prisma.projects.create({
       data: {
         name,
+        url,
         description,
         userId: user.id,
       },
