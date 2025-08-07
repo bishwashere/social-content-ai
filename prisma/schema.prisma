@@ -33,6 +33,7 @@ model User {
 model Projects {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
+  url          String?
   description  String   @default("")
   userId       String   @db.ObjectId
   platformUrls Json     @default("{}") // Map<string, string> → JSON

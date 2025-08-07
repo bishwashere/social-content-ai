@@ -16,6 +16,7 @@ import { useSession } from "@/backend-apis/auth/hooks";
 export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState("");
+    const [editedUrl, setEditedUrl] = useState("");
     const [editedDescription, setEditedDescription] = useState("");
     const [platformUrls, setPlatformUrls] = useState<Project["platformUrls"]>(
         {} as Project["platformUrls"],
@@ -27,6 +28,7 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
     useEffect(() => {
         if (project) {
             setEditedName(project.name);
+            setEditedUrl(project.url || "");
             setEditedDescription(project.description);
             setPlatformUrls(project.platformUrls);
         }
@@ -65,6 +67,13 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
                                 onChange={(e) => setEditedName(e.target.value)}
                                 className="w-full"
                                 placeholder="Project Name"
+                            />
+                            <Input
+                                type="text"
+                                value={editedUrl}
+                                onChange={(e) => setEditedUrl(e.target.value)}
+                                className="w-full"
+                                placeholder="Project Url"
                             />
                             <Textarea
                                 value={editedDescription}
@@ -107,6 +116,7 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
                                                 await updateProject.mutateAsync({
                                                     id: project.id,
                                                     name: editedName,
+                                                    url: editedUrl,
                                                     description: editedDescription,
                                                     platformUrls: platformUrls as any,
                                                 });

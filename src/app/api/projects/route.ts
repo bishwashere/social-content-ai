@@ -4,6 +4,7 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import axios from "axios";
+import { AI } from "@/lib/ai";
 
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -64,7 +65,7 @@ export const POST = applyMiddleware(
     //@ts-expect-error: user is not defined in Request type
     const user = req.parsed.user;
 
-    const { name, description } = await req.json();
+    const { name, url, description } = await req.json();
 
     if (!name) {
       return sendNextResponse({
@@ -77,6 +78,7 @@ export const POST = applyMiddleware(
     const project = await prisma.projects.create({
       data: {
         name,
+        url,
         description,
         userId: user.id,
       },
@@ -94,7 +96,7 @@ export const POST = applyMiddleware(
           projectId: project.id,
         }
       );
-    } catch {}
+    } catch { }
 
     return sendNextResponse({
       status: 201,
@@ -126,11 +128,20 @@ export const PUT = async (req: Request) => {
     });
   }
   try {
+
+
+    const ai = new AI();
+    const newDescription = await ai.beautifyProjectDescription({
+      title: project.name,
+      description: project.description,
+    });
+
+    // console.log(project.name + ". " + newDescription);
     // Generate subreddit data
     const subredditData = await axios.post(
       `${process.env.OLIVEDRIFT_BASE_URL}/api/getKeywordsAndSubreddits`,
       {
-        text: project.name + " " + project.description,
+        text: project.name + ". " + newDescription,
       },
       {
         headers: {
@@ -138,6 +149,8 @@ export const PUT = async (req: Request) => {
         },
       }
     );
+
+    // console.log(subredditData.data)
 
     if (subredditData.data.success) {
       await prisma.projectsSubredditData.create({

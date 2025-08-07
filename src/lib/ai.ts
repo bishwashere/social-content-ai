@@ -166,4 +166,38 @@ export class AI {
       }
     }
   }
+
+  /**
+   * Gives the proper/beautified project description 
+   */
+  async beautifyProjectDescription({
+    title,
+    description,
+  }: {
+    title: string;
+    description: string;
+  }): Promise<string> {
+    const prompt = `Project Title: ${title} \n Project Description: ${description} \n Beautify this project description to make it more understandable and meaningfull (max 20 words). Respond with ONLY new description, nothing else.`;
+
+    let attempt = 0;
+
+    while (attempt < this.maxRetries) {
+      try {
+        const genAI = new GoogleGenerativeAI(this.apiKeys[attempt]);
+        const model = genAI.getGenerativeModel({
+          model: "models/gemini-2.0-flash-001",
+        });
+
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+      } catch (error) {
+        console.warn(`Attempt ${attempt + 1} failed:`, error);
+        attempt++;
+      }
+    }
+
+    // All retries failed — return fallback
+    console.error("All retries failed");
+    return "New Chat";
+  }
 }

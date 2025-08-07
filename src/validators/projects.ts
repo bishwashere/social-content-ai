@@ -8,6 +8,7 @@ import { commonValidator } from "./common";
 class ProjectValidator {
   createProject = z.object({
     name: z.string(),
+    url: z.string(),
     description: z.string(),
   });
 
