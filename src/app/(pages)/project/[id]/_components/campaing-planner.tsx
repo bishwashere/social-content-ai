@@ -47,6 +47,15 @@ import { Projects } from "@prisma/client";
 import { SavePlatformCard } from "./save-platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 
+export const PLATFORMS = [
+  { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" /> },
+  { key: 'facebook', label: 'Facebook', icon: <Image src="/fb.svg" width={16} height={16} alt="Facebook" /> },
+  { key: 'linkedin', label: 'LinkedIn', icon: <Image src="/linkedin.png" width={16} height={16} alt="LinkedIn" /> },
+  { key: 'instagram', label: 'Instagram', icon: <Image src="/instagram.svg" width={16} height={16} alt="Instagram" /> },
+  { key: 'threads', label: 'Threads', icon: <Image src="/threads.svg" width={16} height={16} alt="Threads" /> },
+  { key: 'reddit', label: 'Reddit', icon: <Image src="/reddit.svg" width={16} height={16} alt="Reddit" /> }
+];
+
 const ICONS = {
   x: "/x.svg",
   facebook: "/fb.svg",
@@ -73,6 +82,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
   const [selectedTargetAudience, setSelectedTargetAudience] = useState<number>(2);   // 1=Light,   2=Moderate,   3=Aggresive
   const [name, setName] = useState<string>('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(Object.keys(ICONS));
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [isCalenderOpen, setIsCalenderOpen] = useState<string[]>([]);   // array of ids
   const updateCampaignData = useChangeCampaignData();
@@ -126,7 +136,8 @@ export default function CampaignPlannerPage({ project }: Props) {
       const { data: d } = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
-        plan
+        plan,
+        platforms: selectedPlatforms
       });
 
       //fetch only first day data by default
@@ -311,6 +322,35 @@ export default function CampaignPlannerPage({ project }: Props) {
                 </div>
               ))}
             </RadioGroup>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold mb-2">Select Platforms:</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {PLATFORMS.map((p) => (
+                  <label
+                    key={p.key}
+                    htmlFor={`select-${p.key}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-xl border p-3 cursor-pointer",
+                      selectedPlatforms.includes(p.key) ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"
+                    )}
+                    onClick={() => {
+                      if (selectedPlatforms.includes(p.key)) {
+                        setSelectedPlatforms(selectedPlatforms.filter(platform => platform !== p.key));
+                      } else {
+                        setSelectedPlatforms([...selectedPlatforms, p.key]);
+                      }
+                    }}
+                  >
+
+                    <Checkbox
+                      //@ts-expect-error: htmlFor is not a prop of Checkbox but it works
+                      htmlFor={`select-${p.key}`} checked={selectedPlatforms.includes(p.key)} />
+                    <span className="flex items-center gap-2 text-sm">{p.icon}{p.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             <div className="space-y-2">
               <h2 className="text-xl font-semibold">Target Audience:</h2>

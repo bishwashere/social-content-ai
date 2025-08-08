@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
 export const useCampaignPlanner = () => {
-  const queryClient = useQueryClient();
   const { data: session } = useSession();
   return useMutation({
     mutationFn: ({
@@ -22,18 +21,21 @@ export const useCampaignPlanner = () => {
       projectId,
       campaignName,
       plan,
+      platforms,
     }: {
       id?: string;
       projectId: string;
       campaignName: string;
       plan: CampaignPlanner;
+      platforms?: string[];
     }) =>
       startCampaignPlanner(
         id,
         projectId,
         campaignName,
         plan,
-        session?.user.id as string
+        session?.user.id as string,
+        platforms
       ),
     onSuccess: (data) => {
       if (data.success) {
@@ -83,8 +85,8 @@ export const useGenerateCampaignChat = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["session"]
-      })
+        queryKey: ["session"],
+      });
     },
     onError: () => {
       toast.error("Failed to generate campaign chat");

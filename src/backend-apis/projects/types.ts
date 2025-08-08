@@ -18,6 +18,7 @@ export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {
 
 export type GenerateProjectContentProps = ProjectValidatorType["createChat"] & {
   projectId: string;
+  platforms?: string[];
   extraInformation?: {
     reddit?: {
       popularPost?: string;

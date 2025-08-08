@@ -103,6 +103,7 @@ model CampaignPlanner {
   targetAudience String
   name           String?
   startDate      DateTime?
+  platforms      String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit"]) 
   chats          CampaignChat[] @relation("PlannerChats")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
