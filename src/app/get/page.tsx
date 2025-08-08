@@ -23,7 +23,7 @@ const PLATFORMS = [
   { key: "reddit", label: "Reddit", icon: <Share2 className="w-4 h-4" /> },
 ];
 
-const TONES = ["Witty", "Professional", "Inspiring", "Casual", "Bold"] as const;
+const TONES = ["Persuasive", "Formal", "Inform", "Motivate", "Business"] as const;
 
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -57,18 +57,18 @@ function generatePlan(intensity: number, platforms: string[]) {
 
 function sampleViralPost(topic: string, tone: typeof TONES[number]) {
   const hooks = {
-    Witty: "Hot take:",
-    Professional: "Insight:",
-    Inspiring: "Reminder:",
-    Casual: "Real talk:",
-    Bold: "Unpopular opinion:",
+    Persuasive: "Compelling insight:",
+    Formal: "Analysis:",
+    Inform: "Key takeaway:",
+    Motivate: "Success principle:",
+    Business: "Business insight:",
   } as const;
   const ending = {
-    Witty: "Thoughts?",
-    Professional: "Agree?",
-    Inspiring: "Who's in?",
-    Casual: "What do you think?",
-    Bold: "Prove me wrong.",
+    Persuasive: "Ready to transform?",
+    Formal: "Consider implementing.",
+    Inform: "Learn more inside.",
+    Motivate: "Take action now.",
+    Business: "Implement for results.",
   } as const;
 
   const viralPosts = [
@@ -95,7 +95,7 @@ export default function LandingPage() {
   const [intensity, setIntensity] = useState<number>(2); // 1..3
   const [selected, setSelected] = useState<string[]>(["twitter", "linkedin", "instagram"]);
   const [topic, setTopic] = useState("Launch day hype for a new app");
-  const [tone, setTone] = useState<typeof TONES[number]>("Witty");
+  const [tone, setTone] = useState<typeof TONES[number]>("Formal");
   const [generating, setGenerating] = useState(false);
   const [post, setPost] = useState<string>(sampleViralPost(topic, tone));
 
