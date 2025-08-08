@@ -16,10 +16,12 @@ import { useRouter } from "next/navigation";
 import { MoveRight } from "lucide-react";
 
 type Props = {
-  triggerClassName: string;
+  triggerClassName?: string;
+  trigger?: React.ReactNode
+  gotoDashboard?: React.ReactNode
 };
 
-const GoogleLoginButton = ({ triggerClassName }: Props) => {
+const GoogleLoginButton = ({ triggerClassName, trigger, gotoDashboard }: Props) => {
   const [open, setOpen] = useState(false);
   const continueWithGoogle = useContinueWithGoogle();
   const router = useRouter();
@@ -37,7 +39,7 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
 
         router.replace("/project");
 
-      } catch {}
+      } catch { }
     },
     scope: "profile email",
   });
@@ -45,21 +47,21 @@ const GoogleLoginButton = ({ triggerClassName }: Props) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {!isLoading && !isError ? (
-        <Button
+        gotoDashboard ?? <Button
           className={triggerClassName}
           onClick={() => router.push('/project')}
         >
           Go to Dashboard
-          <MoveRight className="scale-125"/>
+          <MoveRight className="scale-125" />
         </Button>
       ) : (
         <DialogTrigger asChild>
-          <Button
+          {trigger ?? <Button
             className={triggerClassName}
           >
             Get Started Now
-            <MoveRight className="scale-125"/>
-          </Button>
+            <MoveRight className="scale-125" />
+          </Button>}
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-md">
