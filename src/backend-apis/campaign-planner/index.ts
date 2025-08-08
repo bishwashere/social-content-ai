@@ -10,7 +10,8 @@ export const startCampaignPlanner = async (
   projectId: string,
   campaignName: string,
   plan: CampaignPlanner,
-  userId: string
+  userId: string,
+  platforms: string[] = ['x', 'facebook', 'linkedin', 'instagram', 'threads', 'reddit']
 ) => {
   const chatData: {
     title: string;
@@ -70,6 +71,7 @@ export const startCampaignPlanner = async (
         goal: plan.goal,
         targetAudience: plan.targetAudience,
         name: campaignName,
+        platforms: platforms,
       },
       include: {
         chats: true,
@@ -88,6 +90,7 @@ export const startCampaignPlanner = async (
       goal: plan.goal,
       targetAudience: plan.targetAudience,
       name: campaignName,
+      platforms: platforms,
       chats: {
         create: chatData,
       },
@@ -228,12 +231,16 @@ export const generateCampaignChat = async (props: {
     }
   }
   console.log("redditPopularPost", redditPopularPost);
+  // Get selected platforms for this campaign
+  const platforms = projectCampaign.platforms || ['x', 'facebook', 'linkedin', 'instagram', 'threads', 'reddit'];
+
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",
     projectDescription: project.description,
     projectName: project.name,
     projectId: props.projectId || "",
     projectRelated: true,
+    platforms: platforms,
     ...(redditPopularPost
       ? {
           extraInformation: {

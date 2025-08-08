@@ -64,6 +64,7 @@ export class AI {
    * Generate platform wise content
    */
   async generateContent({
+    platforms = PLATFORMS,
     projectDescription,
     projectName,
     userPrompt,
@@ -96,7 +97,7 @@ export class AI {
           model: "models/gemini-2.0-flash-001",
         });
 
-        const contentPromises = PLATFORMS.map(async (platform) => {
+        const contentPromises = platforms.map(async (platform) => {
           const isReddit = platform === "reddit";
 
           const corePrompt = prompt.generateCorePrompt(
@@ -106,9 +107,10 @@ export class AI {
           );
 
           const platformSpecificPrompt = await prompt.addPlatformSpecifics({
-            characterLimit: PLATFORM_CHARACTER_LIMITS[platform],
+            characterLimit:
+              PLATFORM_CHARACTER_LIMITS[platform as (typeof PLATFORMS)[number]],
             corePrompt,
-            platform,
+            platform: platform as (typeof PLATFORMS)[number],
             userPrompt: userPrompt || "",
             extraInformation,
           });
@@ -123,7 +125,7 @@ export class AI {
             acc: Record<(typeof PLATFORMS)[number], string>,
             { platform, content }
           ) => {
-            acc[platform] = content;
+            acc[platform as (typeof PLATFORMS)[number]] = content;
 
             return acc;
           },
@@ -168,7 +170,7 @@ export class AI {
   }
 
   /**
-   * Gives the proper/beautified project description 
+   * Gives the proper/beautified project description
    */
   async beautifyProjectDescription({
     title,
