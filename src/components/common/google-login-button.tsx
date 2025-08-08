@@ -43,7 +43,7 @@ const GoogleLoginButton = ({ triggerClassName, trigger, gotoDashboard }: Props) 
     },
     scope: "profile email",
   });
-
+  console.log(trigger);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {!isLoading && !isError ? (

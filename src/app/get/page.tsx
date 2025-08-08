@@ -1,7 +1,7 @@
 "use client"
 import React, { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Check, CalendarDays, Sparkles, Rocket, ArrowRight, PlayCircle, BarChart2, Facebook, Twitter, Linkedin, Instagram, Share2, Flame, Loader2, Github } from "lucide-react";
+import { Check, CalendarDays, Sparkles, Rocket, BarChart2, Facebook, Twitter, Linkedin, Instagram, Share2, Flame, Loader2, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -70,9 +70,25 @@ function sampleViralPost(topic: string, tone: typeof TONES[number]) {
     Casual: "What do you think?",
     Bold: "Prove me wrong.",
   } as const;
+
+  const viralPosts = [
+    "doesn't need luck—just a repeatable system. 30 days, focused channels, consistent voice. Ship ideas fast, measure, iterate.",
+    "is all about consistency over perfection. Start small, show up daily, build momentum. The results will follow.",
+    "requires strategic thinking, not just random posting. Map your journey, track metrics, adjust course.",
+    "success comes from understanding your audience first. Listen, engage, then create content that resonates.",
+    "is a marathon, not a sprint. Build genuine connections, provide value, and growth will follow naturally.",
+    "starts with a clear vision. Know your goals, understand your market, then execute with precision.",
+    "thrives on authenticity. Share your journey, embrace imperfection, connect with your tribe.",
+    "demands innovation and adaptation. Test new approaches, learn from data, evolve your strategy.",
+    "grows through community building. Engage, collaborate, and create meaningful connections.",
+    "succeeds with smart automation and systems. Build once, scale efficiently, reach further."
+  ];
+
   const h = hooks[tone];
   const e = ending[tone];
-  return `${h} ${topic} doesn't need luck—just a repeatable system. 30 days, focused channels, consistent voice. Ship ideas fast, measure, iterate. ${e}`;
+  const randomPost = viralPosts[Math.floor(Math.random() * viralPosts.length)];
+
+  return `${h} ${topic} ${randomPost} ${e}`;
 }
 
 export default function LandingPage() {
@@ -328,9 +344,17 @@ export default function LandingPage() {
                   {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   <span className="ml-2">Generate sample</span>
                 </Button>
-                <Button variant="outline" className="rounded-2xl" asChild>
-                  <a href="#cta"><ArrowRight className="w-4 h-4 mr-2" />Start my 30‑day plan</a>
-                </Button>
+                <GoogleLoginButton
+                  trigger={
+                    (
+                      <Button variant="outline" className="rounded-2xl" >
+                        Start my 30‑day plan
+                      </Button>
+                    )
+                  }
+                  gotoDashboard={<span></span>}
+
+                />
               </div>
             </div>
           </div>
@@ -363,8 +387,20 @@ export default function LandingPage() {
             <div className="text-4xl font-bold">$0</div>
             <div className="text-sm text-slate-500">Starter • then from $19/mo</div>
             <div className="mt-4 flex gap-3">
-              <Button className="rounded-2xl" id="cta">Create free account</Button>
-              <Button variant="outline" className="rounded-2xl">Book a demo</Button>
+              <GoogleLoginButton
+                trigger={
+                  <Button variant="outline" className="rounded-2xl" >
+                    Create free account
+                  </Button>
+                }
+                gotoDashboard={<span></span>}
+
+              />
+              <Button variant="outline" className="rounded-2xl" asChild>
+                <a href="tel:223-279-9248">
+                  Book a Demo (223-279-9248)
+                </a>
+              </Button>
             </div>
           </div>
         </div>
