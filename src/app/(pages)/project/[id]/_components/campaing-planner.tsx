@@ -9,7 +9,7 @@ import {
   useGetCampaignPlanner,
   useToggleTickMark
 } from "@/backend-apis/campaign-planner/hooks";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
@@ -46,6 +46,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Projects } from "@prisma/client";
 import { SavePlatformCard } from "./save-platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
+import { Switch } from "@/components/ui/switch";
 
 export const PLATFORMS = [
   { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" /> },
@@ -343,7 +344,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                     }}
                   >
 
-                    <Checkbox
+                    <Switch
                       //@ts-expect-error: htmlFor is not a prop of Checkbox but it works
                       htmlFor={`select-${p.key}`} checked={selectedPlatforms.includes(p.key)} />
                     <span className="flex items-center gap-2 text-sm">{p.icon}{p.label}</span>
