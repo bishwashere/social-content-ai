@@ -1,7 +1,7 @@
 ---
 title: "Supercharge Your Launches with NextPostAI 🚀"
 summary: "Generate platform-specific social media posts in seconds"
-date: "2024-01-05"
+date: "2025-08-06"
 thumbnail: "/tmp9wo0ngod.webp"
 ---
 Are you tired of spending hours brainstorming, drafting, and rewriting posts for your product launch? We were too.
