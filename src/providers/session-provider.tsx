@@ -23,7 +23,7 @@ const SessionProvider = ({ children }: Props) => {
     if (isLoading) return;
 
     // Allow public access to landing page and blogs
-    if (path === "/" || path.startsWith("/blogs")) return;
+    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return;
 
     if (isError) {
       router.push("/"); // ✅ Redirect to the home page
@@ -32,13 +32,13 @@ const SessionProvider = ({ children }: Props) => {
 
   if (isLoading) {
     // Allow public access to landing page and blogs
-    if (path === "/" || path.startsWith("/blogs")) return children;
+    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return children;
     return <Loading className="h-screen" />;
   }
 
   if (isError) {
     // Allow public access to landing page and blogs
-    if (path === "/" || path.startsWith("/blogs")) return children;
+    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return children;
     return <HomePage />; // ✅ Show the home page instead of UnauthorizedError
   }
 
