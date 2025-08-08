@@ -385,8 +385,8 @@ export default function LandingPage() {
           </div>
           <div className="rounded-2xl border p-6 bg-gradient-to-br from-slate-50 to-white">
             <div className="text-4xl font-bold">$0</div>
-            <div className="text-sm text-slate-500">Starter • then from $19/mo</div>
-            <div className="mt-4 flex gap-3">
+            <div className="text-sm text-slate-500">Starter • then from $10/mo</div>
+            <div className="mt-4 flex gap-3 flex-wrap">
               <GoogleLoginButton
                 trigger={
                   <Button variant="outline" className="rounded-2xl" >
