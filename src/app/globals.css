@@ -86,3 +86,41 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.hide-time-gutter .rbc-time-gutter,
+.hide-time-gutter .rbc-time-content {
+  display: none !important;
+}
+.hide-time-gutter .rbc-time-view {
+  border: none;
+  display: flex;
+  flex-direction: column;
+}
+.hide-time-gutter .rbc-time-header {
+  border-bottom: none;
+}
+.hide-time-gutter .rbc-events-container {
+  margin: 0 !important;
+  width: 100% !important;
+}
+.hide-time-gutter .rbc-event {
+  padding: 4px 8px;
+  margin: 2px 0;
+  width: 100% !important;
+  position: relative !important;
+  top: 0 !important;
+}
+.hide-time-gutter .rbc-day-slot {
+  min-height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  padding: 8px !important;
+}
+.hide-time-gutter .rbc-header {
+  padding: 8px !important;
+  font-weight: 600;
+}
+.hide-time-gutter .rbc-time-header-content {
+  border-left: none !important;
+}
