@@ -35,7 +35,7 @@ export const useCampaignPlanner = () => {
         campaignName,
         plan,
         session?.user.id as string,
-        platforms
+        platforms || []
       ),
     onSuccess: (data) => {
       if (data.success) {
