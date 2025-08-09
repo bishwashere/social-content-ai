@@ -11,7 +11,7 @@ export const startCampaignPlanner = async (
   campaignName: string,
   plan: CampaignPlanner,
   userId: string,
-  platforms: string[] = ['x', 'facebook', 'linkedin', 'instagram', 'threads', 'reddit']
+  platforms: string[]
 ) => {
   const chatData: {
     title: string;
@@ -47,10 +47,13 @@ export const startCampaignPlanner = async (
     };
   }
 
-  if (user.remainingChatGenerations < 10) {
+  // Calculate required coins based on number of platforms and chats
+  const requiredCoins = platforms.length * plan.data.length;
+
+  if (user.remainingChatGenerations < requiredCoins) {
     return {
       success: false,
-      message: "You donot have enough coins to generate chat.",
+      message: `You need ${requiredCoins} coins to generate chat for ${platforms.length} platforms across ${plan.data.length} days.`,
       insufficientCoins: true,
     };
   }
@@ -125,6 +128,7 @@ export const getCampaignPlanner = async (projectId: string) => {
         date: p.updatedAt,
         startDate: p.startDate,
         projectId: p.projectId.toString(),
+        platforms: p.platforms,
       })),
     };
 };
@@ -150,27 +154,7 @@ export const generateCampaignChat = async (props: {
     };
   }
 
-  if (user.remainingChatGenerations < 5) {
-    return {
-      success: false,
-      message: "You donot have enough coins to generate chat.",
-      insufficientCoins: true,
-    };
-  }
-
-  // Find project
-  const project = await prisma.projects.findFirst({
-    where: { id: props.projectId },
-  });
-
-  if (!project) {
-    return {
-      success: false,
-      message: "Project not found",
-    };
-  }
-
-  // Find campaign planner with matching ID and projectId
+  // Get campaign planner to check platforms
   const projectCampaign = await prisma.campaignPlanner.findFirst({
     where: {
       id: props.id,
@@ -185,6 +169,29 @@ export const generateCampaignChat = async (props: {
     return {
       success: false,
       message: "Campaign not found",
+    };
+  }
+
+  // Calculate required coins based on number of platforms (1 coin per platform for single generation)
+  const requiredCoins = projectCampaign.platforms.length;
+
+  if (user.remainingChatGenerations < requiredCoins) {
+    return {
+      success: false,
+      message: `You need ${requiredCoins} coins to generate chat for ${projectCampaign.platforms.length} platforms.`,
+      insufficientCoins: true,
+    };
+  }
+
+  // Find project
+  const project = await prisma.projects.findFirst({
+    where: { id: props.projectId },
+  });
+
+  if (!project) {
+    return {
+      success: false,
+      message: "Project not found",
     };
   }
 
@@ -232,7 +239,14 @@ export const generateCampaignChat = async (props: {
   }
   console.log("redditPopularPost", redditPopularPost);
   // Get selected platforms for this campaign
-  const platforms = projectCampaign.platforms || ['x', 'facebook', 'linkedin', 'instagram', 'threads', 'reddit'];
+  const platforms = projectCampaign.platforms || [
+    "x",
+    "facebook",
+    "linkedin",
+    "instagram",
+    "threads",
+    "reddit",
+  ];
 
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",
@@ -283,12 +297,13 @@ export const generateCampaignChat = async (props: {
     },
   });
 
-  // Deduct 5 generations
+  // Deduct coins based on number of platforms
+  const coinsToDeduct = projectCampaign.platforms.length * 5;
   await prisma.user.update({
     where: { id: user.id },
     data: {
       remainingChatGenerations: {
-        decrement: 5,
+        decrement: coinsToDeduct,
       },
     },
   });

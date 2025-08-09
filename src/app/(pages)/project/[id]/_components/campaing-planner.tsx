@@ -121,7 +121,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
     const yes = await confirm({
       title: 'Do you want to generate campaign?',
-      description: 'Generating Campaign will use 5 coins initially.'
+      description: `Generating Campaign will use ${selectedPlatforms.length * 5} coins initially.`
     })
     if (!yes) return;
 
@@ -527,7 +527,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       }
                                       const yes = await confirm({
                                         title: "Regenerate all contents for this campaign?",
-                                        description: `Regenerating content will use your ${intensityPlans.data.length * 5} coins`
+                                        description: `Regenerating content will use your ${intensityPlans.data.length * campaign.platforms.length} coins`
                                       });
                                       if (!yes) return;
 
@@ -537,7 +537,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         id: campaign.id,
                                         projectId: projectId as string,
                                         campaignName: campaign.name || "",
-                                        plan
+                                        plan,
+                                        platforms: campaign.platforms
                                       });
 
                                       for (const chat of (d?.data?.chats || [])) {
@@ -645,7 +646,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 className="border-dashed border-primary"
                                                 onClick={async () => {
                                                   const yes = await confirm({
-                                                    title: 'Generating content for this day will use 5 coins.',
+                                                    title: `Generating content for this day will use ${campaign.platforms.length} coins.`,
                                                     description: ''
                                                   });
                                                   if (!yes) return;
