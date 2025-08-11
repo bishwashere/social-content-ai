@@ -6,6 +6,7 @@ import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { postToSocial } from "@/lib/post-to-social";
 
+export const dynamic = "force-dynamic";
 /**
  * Process pending scheduled posts
  */
