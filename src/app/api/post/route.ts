@@ -45,6 +45,14 @@ export const GET = applyMiddleware(
     console.log(`🧵 Found ${threadsPosts.length} Threads posts to process`);
     console.log(`📘 Found ${redditPosts.length} Reddit posts to process`);
 
+    // Helper function to get platform-specific OAuth provider
+    const getOAuthProviderForPlatform = (post: any, platform: string) => {
+      return post.project?.projectToOAuthProviders.find(
+        (p: any) => p.oauthProvider?.platform === platform
+      )?.oauthProvider;
+    };
+
+    // Twitter implementation
     const twitterResults = await Promise.all(
       twitterPosts.map(async (post) => {
         console.log(`🔄 Processing Twitter post ID: ${post.id}`);
@@ -101,10 +109,27 @@ export const GET = applyMiddleware(
             return { id: post.id, success: false, error: tokenResult.error };
           }
 
+          const oauthProvider = getOAuthProviderForPlatform(post, "twitter");
+
+          if (!oauthProvider) {
+            console.log(
+              `❌ No OAuth provider found for Twitter post ID: ${post.id}`
+            );
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "No OAuth provider found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "No OAuth provider found",
+            };
+          }
+
           // Post to Twitter
           const tweetResult = await postToTwitter(
-            post.project?.projectToOAuthProviders[0].oauthProvider
-              ?.accessToken || "",
+            oauthProvider.accessToken,
             post.content
           );
 
@@ -154,9 +179,9 @@ export const GET = applyMiddleware(
             };
           }
 
-          if (
-            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
-          ) {
+          const oauthProvider = getOAuthProviderForPlatform(post, "facebook");
+
+          if (!oauthProvider?.accessToken) {
             console.log(`❌ No access token found for post ID: ${post.id}`);
             await updatePostStatus(post.id, "failed", "No access token found");
             return {
@@ -191,10 +216,9 @@ export const GET = applyMiddleware(
 
           // Post to Facebook
           const facebookResult = await postToFacebook(
-            post.project?.projectToOAuthProviders[0].oauthProvider
-              ?.accessToken || "",
+            oauthProvider.accessToken,
             post.content,
-            post.project?.projectToOAuthProviders[0].oauthProvider?.pageId || ""
+            oauthProvider.pageId || ""
           );
 
           if (facebookResult.success) {
@@ -252,9 +276,9 @@ export const GET = applyMiddleware(
             };
           }
 
-          if (
-            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
-          ) {
+          const oauthProvider = getOAuthProviderForPlatform(post, "linkedin");
+
+          if (!oauthProvider?.accessToken) {
             console.log(`❌ No access token found for post ID: ${post.id}`);
             await updatePostStatus(post.id, "failed", "No access token found");
             return {
@@ -287,8 +311,7 @@ export const GET = applyMiddleware(
 
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
-            post.project?.projectToOAuthProviders[0].oauthProvider
-              ?.accessToken || "",
+            oauthProvider.accessToken,
             post.content
           );
 
@@ -347,9 +370,9 @@ export const GET = applyMiddleware(
             };
           }
 
-          if (
-            !post.project?.projectToOAuthProviders[0].oauthProvider?.accessToken
-          ) {
+          const oauthProvider = getOAuthProviderForPlatform(post, "threads");
+
+          if (!oauthProvider?.accessToken) {
             console.log(`❌ No access token found for post ID: ${post.id}`);
             await updatePostStatus(post.id, "failed", "No access token found");
             return {
@@ -363,10 +386,9 @@ export const GET = applyMiddleware(
 
           // Post to Threads
           const threadsResult = await postToThreads(
-            post.project?.projectToOAuthProviders[0].oauthProvider
-              ?.accessToken || "",
+            oauthProvider.accessToken,
             post.content,
-            post.project?.projectToOAuthProviders[0].oauthProvider.pageId || ""
+            oauthProvider.pageId || ""
           );
 
           if (threadsResult.success) {
@@ -399,11 +421,22 @@ export const GET = applyMiddleware(
 
     const redditResults = await Promise.all(
       redditPosts.map(async (post) => {
+        const oauthProvider = getOAuthProviderForPlatform(post, "reddit");
+
+        if (!oauthProvider) {
+          console.log(
+            `❌ No OAuth provider found for Reddit post ID: ${post.id}`
+          );
+          await updatePostStatus(post.id, "failed", "No OAuth provider found");
+          return {
+            id: post.id,
+            success: false,
+            error: "No OAuth provider found",
+          };
+        }
+
         const response = await postToSocial({
-          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-          oauth: post.project?.projectToOAuthProviders.find(
-            (p) => p.oauthProvider?.platform === "reddit"
-          )?.oauthProvider!,
+          oauth: oauthProvider,
           post,
         });
         return response;
