@@ -65,7 +65,7 @@ export default function ProjectPage() {
           </Card>
         ) : (
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="">
+              <TabsList className="flex flex-wrap w-full h-fit">
                 <TabsTrigger value="generate" onClick={() => localStorage.setItem("projectTab", "generate")}>Quick Generate</TabsTrigger>
                 <TabsTrigger value="campaign" onClick={() => localStorage.setItem("projectTab", "campaign")}>Campaign Planner</TabsTrigger>
                 <TabsTrigger value="history" onClick={() => localStorage.setItem("projectTab", "history")}>History</TabsTrigger>
