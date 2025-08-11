@@ -121,7 +121,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
     const yes = await confirm({
       title: 'Do you want to generate campaign?',
-      description: `Generating Campaign will use ${selectedPlatforms.length * 5} coins initially.`
+      description: `Generating Campaign will use ${selectedPlatforms.length} coins initially.`
     })
     if (!yes) return;
 

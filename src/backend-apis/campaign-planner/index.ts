@@ -298,7 +298,7 @@ export const generateCampaignChat = async (props: {
   });
 
   // Deduct coins based on number of platforms
-  const coinsToDeduct = projectCampaign.platforms.length * 5;
+  const coinsToDeduct = projectCampaign.platforms.length;
   await prisma.user.update({
     where: { id: user.id },
     data: {
