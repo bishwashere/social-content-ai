@@ -121,7 +121,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
     const yes = await confirm({
       title: 'Do you want to generate campaign?',
-      description: `Generating Campaign will use ${selectedPlatforms.length * 5} coins initially.`
+      description: `Generating Campaign will use ${selectedPlatforms.length} coins initially.`
     })
     if (!yes) return;
 
@@ -662,13 +662,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                                           }
                                         </div>
                                       </div>
-                                      <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px]">
+                                      <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px] p-5 sm:p-8 scrollbar-none">
                                         {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
                                           <Card key={platform} className="rounded-lg border mb-5">
                                             <div className="flex flex-col gap-0">
                                               <CardHeader className="flex justify-between items-center flex-row">
                                                 <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                                <div className="flex flex-row items-center gap-2">
+                                                <div className="flex flex-wrap justify-center items-center sm:flex-row sm:items-center sm:gap-2">
                                                   <Button variant="ghost" size="icon"
                                                     onClick={() => {
                                                       setEditedContent({ ...editedContent, [platform]: text });
@@ -693,6 +693,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
                                                       const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
 
+                                                  
                                                       if (!finalUrl) return null;
 
                                                       return (
@@ -704,6 +705,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       );
                                                     })()
                                                   }
+
 
                                                   <SavePlatformCard
                                                     platform={platform}
