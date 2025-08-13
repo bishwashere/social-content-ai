@@ -286,3 +286,59 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
+
+/**
+ * Helper function to get Twitter tokens for a user
+ */
+export async function getTwitterTokensForUser(userId: string) {
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "twitter",
+    },
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Facebook tokens for a user
+ */
+export async function getFacebookTokensForUser(userId: string) {
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "facebook",
+    },
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get LinkedIn tokens for a user
+ */
+export async function getLinkedinTokensForUser(userId: string) {
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "linkedin",
+    },
+  });
+
+  return tokens;
+}
+
+/**
+ * Helper function to get Threads tokens for a user
+ */
+export async function getThreadsTokensForUser(userId: string) {
+  const tokens = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "threads",
+    },
+  });
+
+  return tokens;
+}
