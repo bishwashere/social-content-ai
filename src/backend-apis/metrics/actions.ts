@@ -1,6 +1,6 @@
 "use server";
 
-import { Fb } from "@/lib/facebook";
+import { Fb } from "@/lib/3rd-providers/fb";
 import { extractPostId, RedditPostData } from "./hooks";
 import { prisma } from "@/lib/prisma";
 
@@ -50,7 +50,7 @@ export const getFacebookMetrics = async (pageId: string) => {
   const oauthProvider = await prisma.oauthProvider.findFirst({
     where: {
       pageId,
-      platform: 'facebook',
+      platform: "facebook",
     },
   });
 
@@ -61,8 +61,12 @@ export const getFacebookMetrics = async (pageId: string) => {
     };
   }
 
-  const fb = new Fb(pageId, oauthProvider.accessToken);
-  const metrics = await fb.getMyPostInsights();
+  const fb = new Fb({
+    accessToken: oauthProvider.accessToken,
+    refreshToken: oauthProvider.refreshToken!,
+  });
+  const metrics = await fb.getMyPostInsights(pageId);
+
   return {
     success: true,
     data: metrics,

@@ -159,8 +159,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
               }
 
-              const { cred } = longLivedTokens;
-
               const fbPages = await f.getMyPages();
 
               if (!fbPages || !fbPages.length) {
@@ -173,8 +171,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   userId: googleUser.id,
                   platform: "facebook",
                   pageId: fbPage.id,
-                  accessToken: cred.accessToken,
-                  refreshToken: cred.refreshToken || "",
+                  accessToken: fbPage.accessToken,
+                  refreshToken: "",
                   expiresAt: null,
                   pageName: fbPage.name,
                   pageProfilePhoto: fbPage.picture,
