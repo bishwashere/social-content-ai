@@ -1,21 +1,11 @@
 import { useSession } from '@/backend-apis/auth/hooks'
 import { useGetFacebookMetrics } from '@/backend-apis/metrics/hooks'
-import { Card, CardContent } from '@/components/ui/card'
-import { Eye, Heart, MessageCircle, Users } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import ViewAnalytics, { ViewAnalyticsSkeleton } from './view-analytics'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getOauthPages } from '@/server-actions/check-project-oauth-provider'
 
-const chartData = [
-  { day: "Sun", totalPosts: 0, totalImpressions: 0, totalLikes: 0, totalComments: 0 },
-  { day: "Mon", totalPosts: 0, totalImpressions: 0, totalLikes: 1, totalComments: 0 },
-  { day: "Tue", totalPosts: 1, totalImpressions: 10, totalLikes: 2, totalComments: 1 },
-  { day: "Wed", totalPosts: 0, totalImpressions: 8, totalLikes: 3, totalComments: 2 },
-  { day: "Thu", totalPosts: 1, totalImpressions: 40, totalLikes: 3, totalComments: 2 },
-  { day: "Fri", totalPosts: 1, totalImpressions: 10, totalLikes: 1, totalComments: 0 },
-  { day: "Sat", totalPosts: 0, totalImpressions: 5, totalLikes: 0, totalComments: 0 },
-];
+
 
 const Facebook = () => {
   const { data } = useSession();
@@ -63,7 +53,12 @@ const Facebook = () => {
         totalLikes={fb.data?.data?.reduce((sum, data) => sum + (data.reactions || 0), 0) || 0}
         totalFollowers={0}
         totalImpressions={fb.data?.data?.reduce((sum, data) => sum + (data.impressions || 0), 0) || 0}
-        chartData={chartData}
+        chartData={fb.data?.data?.map((data) => ({
+          label: data.message.substring(0, 20) + "...",
+          totalComments: data.comments || 0,
+          totalImpressions: data.impressions || 0,
+          totalLikes: data.reactions || 0,
+        })) || []}
       />
     </div>
   )
