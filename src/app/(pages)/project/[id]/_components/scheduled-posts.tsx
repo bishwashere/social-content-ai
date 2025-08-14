@@ -3,7 +3,7 @@
 import type { Projects as Project, ScheduledPost } from "@prisma/client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2, Trash, Pencil } from "lucide-react"
+import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2, Trash, Pencil, Eye } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Md from "react-markdown"
 import LinkedinPostView from "@/components/social/linkedin-post-view"
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { confirm } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { useState } from "react"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 interface Props {
   project: Project
 }
@@ -196,22 +197,29 @@ export function ScheduledPosts({ project }: Props) {
                         {getPlatformIcon(post.platform)}
                       </div>
                       <div>
-                        <CardTitle className="text-lg capitalize">{post.platform}</CardTitle>
+                        <CardTitle className="text-lg capitalize flex flex-row gap-2" >{post.platform}
+                          <div className="flex items-center gap-2">{getStatusBadge(post.status)}</div>
+                        </CardTitle>
                         <CardDescription className="flex items-center gap-2">
                           <Calendar className="h-3 w-3" />
-                          Created {formatDate(post.createdAt)}
+                          Scheduled For: {formatDate(post.date)}
                         </CardDescription>
                       </div>
                     </div>
                     <div className="absolute -top-3 right-0 flex gap-2">
-                      <div className="flex items-center gap-2">{getStatusBadge(post.status)}</div>
-                      <Button variant="ghost" size="sm" onClick={() => {
-                        setViewContentEdit((prev) =>
-                          prev.includes(post.id) ? prev.filter((item) => item !== post.id) : [...prev, post.id]
-                        );
-                      }}>
-                        <Pencil /> Edit
-                      </Button>
+                      <ToggleGroup
+                        variant={"outline"}
+                        value={viewContentEdit.includes(post.id) ? "edit" : "preview"}
+                        type="single"
+                        onValueChange={() => {
+                          setViewContentEdit((prev) =>
+                          viewContentEdit.includes(post.id)  ? prev.filter((item) => item !== post.id) : [...prev, post.id]
+                          );
+                        }}
+                      >
+                        <ToggleGroupItem value="edit"><Pencil className="size-4" /></ToggleGroupItem>
+                        <ToggleGroupItem value="preview"><Eye className="size-4" /></ToggleGroupItem>
+                      </ToggleGroup>
                       <Button variant="ghost" size="icon" onClick={() => onDeleteScheduledPost(post.id)} loading={deleteScheduledPost.isPending}>
                         <Trash className="stroke-red-500 size-5" />
                       </Button>
@@ -238,35 +246,6 @@ export function ScheduledPosts({ project }: Props) {
                             </Md>
                           </div>
                     }
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-4 px-5">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <span className="font-medium">Scheduled for:</span>
-                        <p className="text-muted-foreground">{formatDate(post.date)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <span className="font-medium">Created:</span>
-                        <p className="text-muted-foreground">{formatDate(post.createdAt)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-around pt-2 border-t">
-                    {post.createdAt && new Date(post.createdAt) > new Date() && (
-                      <div className="text-xs text-muted-foreground">
-                        Scheduled in{" "}
-                        {Math.ceil(
-                          (new Date(post.createdAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                        )}{" "}
-                        days
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
