@@ -10,6 +10,7 @@ import {
 import { projectService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { getWebsiteDescription } from "./actions";
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -134,5 +135,11 @@ export const useDeleteProject = () => {
     onError: (error) => {
       toast.error(error.message);
     },
+  });
+};
+
+export const useGetWebsiteDescription = () => {
+  return useMutation({
+    mutationFn: getWebsiteDescription,
   });
 };

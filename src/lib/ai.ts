@@ -202,4 +202,22 @@ export class AI {
     console.error("All retries failed");
     return "New Chat";
   }
+
+  async summarize(content: string, lines = 3) {
+    const prompt = `Summarize the following content in ${lines} lines:\n\n${content}\n\nRespond with ONLY the summary, nothing else.`;
+
+    const ai = new GoogleGenerativeAI(this.apiKeys[2]);
+
+    const model = ai.getGenerativeModel({
+      model: "models/gemini-2.0-flash-001",
+    });
+
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (err) {
+      console.error("Error summarizing content:", err);
+      return null;
+    }
+  }
 }
