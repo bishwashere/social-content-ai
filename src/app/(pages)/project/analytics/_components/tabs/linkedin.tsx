@@ -18,7 +18,7 @@ const Linkedin = () => {
     if (!data?.user.id || executed) return;
     const result = await getOauthPages(data.user.id, "linkedin");
     setAvailableProviders(result);
-    setSelectedPage(result[0].pageId || "");
+    setSelectedPage(result?.[0].pageId || "");
     setExecuted(true);
   }
 
