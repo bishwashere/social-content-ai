@@ -1,6 +1,6 @@
 "use client"
 
-import type { Projects as Project, ScheduledPost } from "@prisma/client"
+import type { OauthProvider, Projects as Project, ScheduledPost } from "@prisma/client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Facebook, Twitter, Linkedin, Calendar, AlertCircle, CheckCircle2, Clock, Loader2, Trash, Pencil, Eye } from "lucide-react"
@@ -97,7 +97,7 @@ export function ScheduledPosts({ project }: Props) {
     data: posts = [],
     isLoading,
     error,
-  } = useQuery<ScheduledPost[]>({
+  } = useQuery<(ScheduledPost & { oauthProvider: OauthProvider })[]>({
     queryKey: ["scheduledPosts", project.id],
     queryFn: async () => {
       const response = await fetch(`/api/scheduled-posts?projectId=${project.id}`)
