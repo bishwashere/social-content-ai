@@ -18,7 +18,7 @@ const Facebook = () => {
     if (!data?.user.id || executed) return;
     const result = await getOauthPages(data.user.id, "facebook");
     setAvailableProviders(result);
-    setSelectedPage(result[0].pageId || "");
+    setSelectedPage(result?.[0].pageId || "");
     setExecuted(true);
   }
 
@@ -54,7 +54,7 @@ const Facebook = () => {
         totalFollowers={0}
         totalImpressions={fb.data?.data?.reduce((sum, data) => sum + (data.impressions || 0), 0) || 0}
         chartData={fb.data?.data?.map((data) => ({
-          label: data.message.substring(0, 20) + "...",
+          label: data.message?.substring(0, 20) + "...",
           totalComments: data.comments || 0,
           totalImpressions: data.impressions || 0,
           totalLikes: data.reactions || 0,

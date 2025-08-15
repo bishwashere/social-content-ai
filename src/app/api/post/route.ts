@@ -18,9 +18,9 @@ export const GET = applyMiddleware(
     const pending = await prisma.scheduledPost.findMany({
       where: {
         status: "pending",
-        // date: {
-        //   lte: new Date(),
-        // },
+        date: {
+          lte: new Date(),
+        },
       },
       include: {
         project: {
@@ -48,9 +48,12 @@ export const GET = applyMiddleware(
     console.log(`📘 Found ${redditPosts.length} Reddit posts to process`);
 
     // Helper function to get platform-specific OAuth provider
-    const getOAuthProviderForPlatform = (post: any, platform: string) => {
+    const getOAuthProviderForPlatform = (
+      post: (typeof pending)[number],
+      platform: string
+    ) => {
       return post.project?.projectToOAuthProviders.find(
-        (p: any) => p.oauthProvider?.platform === platform
+        (p) => p.oauthProvider?.platform === platform
       )?.oauthProvider;
     };
 
@@ -289,9 +292,9 @@ export const GET = applyMiddleware(
 
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
-            oauthProvider.pageId,
+            oauthProvider.pageId || "",
             oauthProvider.accessToken,
-            oauthProvider.expiresAt,
+            oauthProvider.expiresAt || 0,
             post.content
           );
 
