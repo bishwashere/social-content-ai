@@ -3,6 +3,9 @@ import { Dot } from "lucide-react"
 import Image from "next/image";
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content";
+import { useEffect, useState } from "react";
+import { detectMediaTypeFromUrl } from "@/lib/detect-media-type";
+import { buttonVariants } from "../ui/button";
 
 type Props = {
   post: ScheduledPost;
@@ -11,6 +14,16 @@ type Props = {
 }
 
 const FacebookPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
+  const [fileType, setFileType] = useState<"img" | "video" | "unknown">("unknown");
+
+  useEffect(() => {
+    if (post.media) {
+      setFileType(detectMediaTypeFromUrl(post.media))
+    } else {
+      setFileType("unknown")
+    }
+  }, [post.media])
+
 
   const ThreeDotIcon = () => (
     <svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor">
@@ -66,8 +79,22 @@ const FacebookPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) 
       </div>
 
 
-      <div className="w-full">
+      <div className="w-full space-y-3">
         <EditableContent id={post.id} media={post.media} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+
+        {fileType === "img" && post.media && (
+          <img src={post.media} alt="Uploaded media" className="max-w-sm rounded" />
+        )}
+
+        {fileType === "video" && post.media && (
+          <video src={post.media} controls className="max-w-sm rounded" />
+        )}
+
+        {fileType === "unknown" && post.media && (
+          <a className={buttonVariants({ variant: "outline" })} href={post.media} target="_blank">
+            View Media
+          </a>
+        )}
       </div>
       <div className="w-full mt-3 flex gap-1 items-center">
         <img src="/facebook-reactions.png" className="w-9 h-auto" />
