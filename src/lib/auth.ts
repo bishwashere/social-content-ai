@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
 import FacebookProvider from "next-auth/providers/facebook";
-import LinkedInProvider from "next-auth/providers/linkedin";
+// import LinkedInProvider from "next-auth/providers/linkedin";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
@@ -14,6 +14,7 @@ import { Fb } from "./3rd-providers/fb";
 import { Twitter } from "./3rd-providers/twitter";
 import { Linkedin } from "./3rd-providers/linkedin";
 import { authenticateWithThreads } from "./auth/threads";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     FacebookProvider({
@@ -54,15 +55,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         url: "https://twitter.com/i/oauth2/authorize",
         params: {
           scope: "tweet.read tweet.write offline.access users.read",
-        },
-      },
-    }),
-    LinkedInProvider({
-      clientId: process.env.AUTH_LINKEDIN_ID!,
-      clientSecret: process.env.AUTH_LINKEDIN_SECRET!,
-      authorization: {
-        params: {
-          scope: "openid profile w_member_social email",
         },
       },
     }),
@@ -211,24 +203,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
               break;
 
-            case "linkedin":
-              const expiresAt = new Date(
-                new Date().getTime() + account.expires_in! * 1000
-              );
-
-              authProviders.push({
-                userId: googleUser.id,
-                platform: "linkedin",
-                pageId: "",
-                accessToken: account.access_token!,
-                refreshToken: null,
-                expiresAt: expiresAt.getTime(),
-                pageName: "",
-                pageProfilePhoto: "",
-                isPersonal: true,
-              });
-
-              break;
 
             case "threads":
               authenticateWithThreads();

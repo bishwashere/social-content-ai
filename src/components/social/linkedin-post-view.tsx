@@ -1,10 +1,10 @@
-import { ScheduledPost } from "@prisma/client"
+import { OauthProvider, ScheduledPost } from "@prisma/client"
 import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content"
 
 type Props = {
-  post: ScheduledPost;
+  post: ScheduledPost & { oauthProvider: OauthProvider };
   viewContentEdit: string[];
   setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
 }
@@ -41,42 +41,42 @@ const LinkedinPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) 
     </svg>
   )
 
-  return (
-    <div className="bg-white shadow-md rounded-lg p-4 mb-4 w-full max-w-md">
-      <div className="relative">
-        <div className="flex items-center mb-2">
-          <img
-            src="https://randomuser.me/api/portraits/women/60.jpg"
-            alt="User Avatar"
-            className="w-12 h-12 rounded-full mr-3"
-          />
-          <div className="flex flex-col gap-0">
-            <h2 className="font-bold">Your Name</h2>
-            <p className="text-muted-foreground text-sm">Your linkedin profile title</p>
-            <div className="flex items-center">
-              <span className="text-muted-foreground text-xs">1d</span>
-              <Dot className="stroke-muted-foreground size-4" />
-              <GlobeIcon />
+    return (
+        <div className="bg-white shadow-md rounded-lg p-4 mb-4 w-full max-w-md">
+            <div className="relative">
+                <div className="flex items-center mb-2">
+                    <img
+                        src="https://static.licdn.com/aero-v1/sc/h/aajlclc14rr2scznz5qm2rj9u"
+                        alt="User Avatar"
+                        className="w-12 h-12 mr-3"
+                    />
+                    <div className="flex flex-col gap-0">
+                        <h2 className="font-bold">{post.oauthProvider && post.oauthProvider.pageName ? post.oauthProvider.pageName : 'Your Name'}</h2>
+                        <p className="text-muted-foreground text-sm">Your linkedin profile title</p>
+                        <div className="flex items-center">
+                            <span className="text-muted-foreground text-xs">1d</span>
+                            <Dot className="stroke-muted-foreground size-4" />
+                            <GlobeIcon />
+                        </div>
+                    </div>
+                </div>
+                <div className="absolute top-0 right-0 flex gap-1 justify-center">
+                    <Plus className="size-5 stroke-blue-600" />
+                    <p className="font-medium text-blue-500">Follow</p>
+                </div>
             </div>
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 flex gap-1 justify-center">
-          <Plus className="size-5 stroke-blue-600" />
-          <p className="font-medium text-blue-500">Follow</p>
-        </div>
-      </div>
-      <div className="w-full" style={{ whiteSpace: "pre-wrap" }}>
-        <EditableContent media={post.media} id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
-      </div>
-      <div className="w-full mt-3 flex gap-1">
-        <img src="/linkedin-reactions.png" className="w-10 h-auto" />
-        <p className="text-sm text-muted-foreground">534</p>
-      </div>
-      <hr className="w-full my-3" />
-      <div className="flex w-full justify-around">
-        <div className="flex items-center justify-center gap-1">
-          <LikeIcon />
-          <p className="font-semibold text-gray-600 text-sm">Like</p>
+            <div className="w-full" style={{ whiteSpace: "pre-wrap" }}>
+                <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+            </div>
+            <div className="w-full mt-3 flex gap-1">
+                <img src="/linkedin-reactions.png" className="w-10 h-auto" />
+                <p className="text-sm text-muted-foreground">534</p>
+            </div>
+            <hr className="w-full my-3" />
+            <div className="flex w-full justify-around">
+                <div className="flex items-center justify-center gap-1">
+                    <LikeIcon />
+                    <p className="font-semibold text-gray-600 text-sm">Like</p>
 
         </div>
         <div className="flex items-center justify-center gap-1">

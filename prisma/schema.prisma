@@ -103,7 +103,7 @@ model CampaignPlanner {
   targetAudience String
   name           String?
   startDate      DateTime?
-  platforms      String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit"]) 
+  platforms      String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit"])
   chats          CampaignChat[] @relation("PlannerChats")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -162,7 +162,9 @@ model OauthProvider {
 
   user                    User?                    @relation(fields: [userId], references: [id])
   projectToOAuthProviders ProjectToOAuthProvider[]
+  scheduledPosts          ScheduledPost[]
 
+  @@unique([userId, pageId, platform])
   @@map("oauth-providers")
 }
 
@@ -180,20 +182,22 @@ model ProjectToOAuthProvider {
 }
 
 model ScheduledPost {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  projectId   String    @db.ObjectId
-  platform    String
-  content     String
-  date        DateTime
-  status      String    @default("pending")
-  error       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  processedAt DateTime?
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  projectId       String    @db.ObjectId
+  oauthProviderId String?   @db.ObjectId
+  platform        String
+  content         String
+  date            DateTime
+  status          String    @default("pending")
+  error           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  processedAt     DateTime?
 
   media       String?   // S3 key or URL for uploaded media (image/video)
 
-  project Projects? @relation(fields: [projectId], references: [id])
+  project       Projects?      @relation(fields: [projectId], references: [id])
+  oauthProvider OauthProvider? @relation(fields: [oauthProviderId], references: [id])
 
   @@map("scheduled-posts")
 }
