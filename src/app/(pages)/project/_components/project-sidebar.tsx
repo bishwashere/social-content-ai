@@ -182,8 +182,9 @@ function ProjectItem({
             if (window.innerWidth <= 768) {
               toggleSidebar()
             }
+            localStorage.setItem("projectTab", "generate")
           }}
-          href={`/project/${project.id}`}
+          href={`/project/${project.id}?tab=generate`}
           className={cn(
             "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
             currentPath === `/project/${project.id}` &&

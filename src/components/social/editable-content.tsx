@@ -64,7 +64,7 @@ const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, med
       {viewContentEdit.includes(id) ? (
         <div className="flex flex-col gap-2">
           <textarea
-            className="w-full border p-2 rounded text-black"
+            className="w-full border p-2 rounded text-black "
             rows={10}
             value={editedContent ?? content}
             onChange={(e) => setEditedContent(e.target.value)}
