@@ -6,6 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { useOAuthProviders } from "@/server-actions/oauth-providers/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OauthProvider } from "@prisma/client";
+import { Button } from "@/components/ui/button";
+import { authenticateWithThreads } from "@/lib/auth/threads";
+import { signIn } from "next-auth/react";
+import { useDeleteAllUserOAuthProviders } from "@/backend-apis/user/hooks";
+import { confirm, } from "@/components/ui/alert-dialog";
 
 type GroupedProviders = {
   [key: string]: OauthProvider[];
@@ -14,6 +19,7 @@ type GroupedProviders = {
 export function OAuthProvidersList() {
   const { data: session } = useSession();
   const { data: providers, isLoading } = useOAuthProviders();
+  const del = useDeleteAllUserOAuthProviders()
 
   // Group providers by platform
   const groupedProviders = providers?.reduce((acc: GroupedProviders, provider: OauthProvider) => {
@@ -55,24 +61,64 @@ export function OAuthProvidersList() {
                     <div>
                       <h4 className="font-medium">{provider.pageName || provider.pageId}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Connected on {new Date(provider.createdAt).toLocaleDateString()}
+                        Connected on {new Date(provider.createdAt).toLocaleDateString()} {
+                          provider.expiresAt && `| Expires on ${new Date(provider.expiresAt).toLocaleDateString()}`
+                        }
                       </p>
                     </div>
                   </div>
                 </div>
               ))}
+              <div className="w-full flex justify-end">
+                <Button variant={"outline"}
+                  onClick={() => {
+                    if (platform === "threads") {
+                      return authenticateWithThreads()
+                    } else {
+                      signIn(platform)
+                    }
+                  }}
+                  className="ml-auto"
+                >
+                  Reconnect {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       ))}
 
-      {Object.keys(groupedProviders).length === 0 && (
+      {Object.keys(groupedProviders).length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>No Connected Accounts</CardTitle>
             <CardDescription>
               You haven&apos;t connected any social media accounts yet.
             </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Remove Connection</CardTitle>
+            <CardDescription>
+              If you are experiencing issues with connected accounts, you can remove it and reconnect.
+            </CardDescription>
+            <Button
+              onClick={async () => {
+                const confirmed = await confirm({
+                  title: "Are you sure?",
+                  description: "This will delete all your connected accounts like (Facebook, Twitter etc) and you will need to reconnect them.",
+                })
+
+                if (!confirmed) return;
+
+                del.mutate(session.user.id)
+              }}
+              loading={del.isPending}
+              className="w-fit ml-auto" variant={"destructive-outline"}>
+              Delete All Connections
+            </Button>
           </CardHeader>
         </Card>
       )}
