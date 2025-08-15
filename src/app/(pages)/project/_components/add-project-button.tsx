@@ -112,7 +112,7 @@ export function AddProjectButton() {
           {steps[step]}
 
           <div className="flex justify-end mt-4">
-            {step > 0 && (
+            {/* {step > 0 && (
               <Button
                 type="button"
                 variant="secondary"
@@ -120,10 +120,11 @@ export function AddProjectButton() {
               >
                 Back
               </Button>
-            )}
+            )} */}
 
             {step < steps.length - 1 ? (
               <Button
+                className="w-full"
                 type="button"
                 onClick={handleNext}
                 loading={desc.isPending}
@@ -135,6 +136,7 @@ export function AddProjectButton() {
               </Button>
             ) : (
               <Button
+                className="w-full"
                 loading={createProject.isPending}
                 disabled={!name || !description}
                 type="submit"

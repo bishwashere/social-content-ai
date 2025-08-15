@@ -9,20 +9,20 @@ export async function getWebsiteDescription(url: string) {
     const $ = cheerio.load(data);
 
     // Try to get meta description first
-    let description =
-      $('meta[name="description"]').attr("content") ||
-      $('meta[property="og:description"]').attr("content");
+    // let description =
+    //   $('meta[name="description"]').attr("content") ||
+    //   $('meta[property="og:description"]').attr("content");
 
-    console.log("description from meta tags:", description);
+    // console.log("description from meta tags:", description);
 
-    // If no description, get all body text
-    if (!description) {
-      description = $("body").text();
-      // Optional: trim and collapse whitespace
-      description = description.replace(/\s+/g, " ").trim();
+    // // If no description, get all body text
+    // if (!description) {
+    let description = $("body").text();
+    // Optional: trim and collapse whitespace
+    description = description.replace(/\s+/g, " ").trim();
 
-      console.log("description from body text:", description);
-    }
+    // console.log("description from body text:", description);
+    // }
 
     // summarize this description using gemini in 3 lines
 
