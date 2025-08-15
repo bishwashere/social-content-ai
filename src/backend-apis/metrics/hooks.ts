@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchRedditPostsData, getFacebookMetrics } from "./actions";
+import { fetchRedditPostsData, getFacebookMetrics, getLinkedinMetrics } from "./actions";
 
 export type RedditPostData = {
   url: string;
@@ -27,5 +27,14 @@ export const useGetFacebookMetrics = (pageId: string) => {
     queryKey: ["facebook-metrics", pageId],
     queryFn: () => getFacebookMetrics(pageId),
     enabled: !!pageId,
+  });
+};
+
+export const useGetLinkedinMetrics = (pageId: string) => {
+  return useQuery({
+    queryKey: ["linkedin-metrics", pageId],
+    queryFn: () => getLinkedinMetrics(pageId),
+    enabled: !!pageId,
+    refetchOnWindowFocus: false,
   });
 };
