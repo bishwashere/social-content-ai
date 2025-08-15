@@ -69,7 +69,7 @@ export const UploadMediaToScheduledPost = ({
       } else {
         setFileType("unknown")
       }
-    } catch (e) {
+    } catch {
       // In case media is not a valid URL
       setFileType("unknown")
     }
