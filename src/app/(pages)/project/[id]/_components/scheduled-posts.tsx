@@ -14,6 +14,7 @@ import { confirm } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { useState } from "react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useUploadMedia } from "@/backend-apis/video-generation/hooks"
 interface Props {
   project: Project
 }
@@ -92,7 +93,6 @@ export function ScheduledPosts({ project }: Props) {
   const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
-
   const {
     data: posts = [],
     isLoading,
@@ -213,7 +213,7 @@ export function ScheduledPosts({ project }: Props) {
                         type="single"
                         onValueChange={() => {
                           setViewContentEdit((prev) =>
-                          viewContentEdit.includes(post.id)  ? prev.filter((item) => item !== post.id) : [...prev, post.id]
+                            viewContentEdit.includes(post.id) ? prev.filter((item) => item !== post.id) : [...prev, post.id]
                           );
                         }}
                       >
@@ -256,3 +256,5 @@ export function ScheduledPosts({ project }: Props) {
     </div>
   )
 }
+
+

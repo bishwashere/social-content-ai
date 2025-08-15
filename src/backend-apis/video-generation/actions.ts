@@ -171,9 +171,26 @@ export const uploadMedia = async (
   projectId: string,
   filename: string
 ) => {
-  return await s3.getPresignedUrlForVideoUpload(
-    `media-uploads/${userId}/${projectId}/${filename}`
-  );
+  const key = `media-uploads/${userId}/${projectId}/${filename}`;
+  const url = await s3.getPresignedUrlForVideoUpload(key);
+
+  return {
+    key,
+    url,
+  };
+};
+
+export const getSignedKeyForScheduledPost = async (
+  userId: string,
+  filename: string
+) => {
+  const key = `scheduled-posts/${userId}/${filename}`;
+  const url = await s3.getPresignedUrlForVideoUpload(key);
+
+  return {
+    key,
+    url,
+  };
 };
 
 export const listAllFilesByKey = async (key: string) => {
