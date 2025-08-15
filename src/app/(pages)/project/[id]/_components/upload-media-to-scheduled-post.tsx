@@ -1,7 +1,8 @@
 import { useUploadMediaForScheduledPost } from "@/backend-apis/video-generation/hooks"
+import { ViewMedia } from "@/components/social/view-media"
 import { Button } from "@/components/ui/button"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import {  useRef } from "react"
+import { useRef } from "react"
 import { toast } from "sonner"
 
 export const UploadMediaToScheduledPost = ({
@@ -44,37 +45,42 @@ export const UploadMediaToScheduledPost = ({
       toast.error("Failed to update scheduled post")
     },
   })
+
+
   return (
-    <div className="flex flex-col gap-4 items-start">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*,video/*"
-        className="hidden"
-        onChange={async (e) => {
-          try {
-            const file = e.target.files?.[0]
-            if (!file) return
+    <>
+      {media && <ViewMedia post={{ media }} showMedia />}
+      <div className="flex flex-col gap-4 items-center">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={async (e) => {
+            try {
+              const file = e.target.files?.[0]
+              if (!file) return
 
-            const key = await upload.mutateAsync({ file })
+              const key = await upload.mutateAsync({ file })
 
-            updateScheduledPost.mutate({
-              id: postId,
-              media: key,
-            })
-          } catch {
-            toast.error("Upload failed")
-          }
-        }}
-      />
+              updateScheduledPost.mutate({
+                id: postId,
+                media: key,
+              })
+            } catch {
+              toast.error("Upload failed")
+            }
+          }}
+        />
 
-      <Button
-        loading={updateScheduledPost.isPending || upload.isPending}
-        onClick={() => inputRef.current?.click()}
-        variant="outline"
-      >
-        {media ? "Replace Media" : "Upload Media"}
-      </Button>
-    </div>
+        <Button
+          loading={updateScheduledPost.isPending || upload.isPending}
+          onClick={() => inputRef.current?.click()}
+          variant="outline"
+        >
+          {media ? "Replace Media" : "Upload Media"}
+        </Button>
+      </div>
+    </>
   )
 }
