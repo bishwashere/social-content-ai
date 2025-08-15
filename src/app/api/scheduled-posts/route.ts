@@ -17,6 +17,9 @@ export async function GET(request: Request) {
       where: {
         projectId: projectId,
       },
+      include: {
+        oauthProvider: true,
+      },
       orderBy: {
         //  latest at top
         createdAt: "desc",

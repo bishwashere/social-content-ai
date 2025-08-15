@@ -5,6 +5,7 @@ import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
 import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { postToSocial } from "@/lib/post-to-social";
+import { Linkedin } from "@/lib/3rd-providers/linkedin";
 
 export const dynamic = "force-dynamic";
 /**
@@ -309,9 +310,25 @@ export const GET = applyMiddleware(
             };
           }
 
+          if (!tokens.pageId) {
+            console.log(`❌ Linkedin page not found for post ID: ${post.id}`);
+            await updatePostStatus(
+              post.id,
+              "failed",
+              "Linkedin page not found"
+            );
+            return {
+              id: post.id,
+              success: false,
+              error: "Linkedin page not found",
+            };
+          }
+
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
+            oauthProvider.pageId,
             oauthProvider.accessToken,
+            oauthProvider.expiresAt,
             post.content
           );
 
@@ -625,77 +642,17 @@ async function postToFacebook(
  * Post content to Linkedin Page
  */
 async function postToLinkedin(
+  pageId: string,
   accessToken: string,
+  expiresAt: number,
   content: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("📘 Posting to Lindeding API");
-
-    // First, get the user id
-    const userDataResponse = await fetch(
-      "https://api.linkedin.com/v2/userinfo",
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!userDataResponse.ok) {
-      const errorData = await userDataResponse.json().catch(() => ({}));
-      console.error("❌ Linkedin Get User data error:", errorData);
-      return {
-        success: false,
-        error: `Failed to get user data: ${userDataResponse.status}`,
-      };
-    }
-
-    const userData = await userDataResponse.json();
-    const userId = userData.sub;
-
-    if (!userId) {
-      return {
-        success: false,
-        error: "Failed to retrieve linkedin user id",
-      };
-    }
+    console.log("📘 Posting to Linkedin page : ", pageId);
 
     // Post to the Linkedin page
-    const response = await fetch(`https://api.linkedin.com/v2/ugcPosts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        author: `urn:li:person:${userId}`,
-        lifecycleState: "PUBLISHED",
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: {
-              text: content,
-            },
-            shareMediaCategory: "NONE",
-          },
-        },
-        visibility: {
-          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("❌ Linkedin API error:", errorData);
-      return {
-        success: false,
-        error: `Linkedin API error: ${response.status} ${response.statusText}`,
-      };
-    }
-
-    const data = await response.json();
+    const l = new Linkedin({ accessToken, expiresAt });
+    const data = await l.postToPage(pageId, content);
     console.log("✅ Successfully posted to Linkedin:", data);
 
     return { success: true };
