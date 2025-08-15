@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import React from 'react'
 import { All } from "./all"
 import { Facebook } from "./facebook"
+import { Linkedin } from "./linkedin"
 
 const AnalyticsTabs = () => {
   return (
@@ -11,12 +12,16 @@ const AnalyticsTabs = () => {
       <TabsList>
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="Facebook">Facebook</TabsTrigger>
+        <TabsTrigger value="Linkedin">Linkedin</TabsTrigger>
       </TabsList>
       <TabsContent value="all">
         <All />
       </TabsContent>
       <TabsContent value="Facebook">
         <Facebook />
+      </TabsContent>
+      <TabsContent value="Linkedin">
+        <Linkedin />
       </TabsContent>
     </Tabs>
   )

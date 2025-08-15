@@ -3,6 +3,8 @@
 import { Fb } from "@/lib/3rd-providers/fb";
 import { extractPostId, RedditPostData } from "./hooks";
 import { prisma } from "@/lib/prisma";
+import { Linkedin } from "@/lib/3rd-providers/linkedin";
+import axios from "axios";
 
 export const fetchRedditPostsData = async (
   urls: string[]
@@ -71,4 +73,49 @@ export const getFacebookMetrics = async (pageId: string) => {
     success: true,
     data: metrics,
   };
+};
+
+export const getLinkedinMetrics = async (pageId: string) => {
+  try {
+    const oauthProvider = await prisma.oauthProvider.findFirst({
+      where: {
+        pageId,
+        platform: "linkedin",
+      },
+    });
+
+    if (!oauthProvider || !oauthProvider.expiresAt) {
+      return {
+        success: false,
+        message: "Linkedin page not found",
+      };
+    }
+
+    const l = new Linkedin({
+      accessToken: oauthProvider.accessToken,
+      expiresAt: oauthProvider.expiresAt,
+    });
+    const metrics = await l.getMyPostInsights(pageId);
+
+    const followersCount = await l.getFollowersCount(pageId);
+
+    return {
+      success: true,
+      data: metrics,
+      followersCount: followersCount
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      console.error("Axios error:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+      throw new Error("API call limit reached for today !");
+    } else {
+      throw new Error("Couldnot load linkedin data !");
+    }
+  }
 };

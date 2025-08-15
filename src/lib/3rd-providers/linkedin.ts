@@ -28,7 +28,7 @@ class Linkedin {
           Authorization: `Bearer ${this._accessToken}`,
         },
       });
-      console.log(res.data);
+      // console.log(res.data);
       return res.data;
     } catch {
       return null;
@@ -96,6 +96,81 @@ class Linkedin {
       throw err;
     }
   }
+
+  async getMyPostInsights(pageId: string) {
+    try {
+      // Fetch all posts from the organization
+      const postsRes = await this._client.get("/rest/posts", {
+        params: { author: `urn:li:organization:${pageId}`, q: "author", count: 100 },
+      });
+
+      const posts = postsRes.data.elements as Array<{
+        id: string;
+        commentary?: string;
+        createdAt: number;
+      }>;
+
+      const insights: {
+        postId: string;
+        content: string;
+        totalLikes: number;
+        totalComments: number;
+        totalImpressions: number;
+        createdAt: number;
+      }[] = [];
+
+      for (const post of posts) {
+        const postId = post.id;
+        const commentary = post.commentary || "";
+        const createdAt = post.createdAt;
+
+        // // Likes & comments
+        // const reactionsRes = await this._client.get(`/rest/socialActions/${encodeURIComponent(postId)}`);
+        // const reactionsData = reactionsRes.data;
+
+        const statsRes = await this._client.get(`/v2/organizationalEntityShareStatistics`,
+          {
+            params: {
+              q: "organizationalEntity",
+              organizationalEntity: `urn:li:organization:${pageId}`,
+              shares: postId,
+            },
+          }
+        );
+
+        const stats = statsRes.data.elements?.[0]?.totalShareStatistics;
+        // console.log(stats);
+
+        insights.push({
+          postId,
+          content: commentary,
+          totalLikes: stats.likeCount || 0,
+          totalComments: stats.commentCount || 0,
+          totalImpressions: stats.impressionCount || 0,
+          // uniqueImpressions: stats.uniqueImpressionsCount || 0,
+          // clicks: stats.clickCount || 0,
+          // engagement: stats.engagement || 0,
+          createdAt,
+        });
+      }
+
+      return insights;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+
+  async getFollowersCount(pageId: string) {
+
+    const res = await this._client(`/rest/networkSizes/urn:li:organization:${pageId}?edgeType=COMPANY_FOLLOWED_BY_MEMBER`)
+    const data = await res.data;
+    // console.log(data)
+    const totalFollowers = data.firstDegreeSize ?? 0;
+
+    return Number(totalFollowers);
+  }
+
 
 }
 
