@@ -77,7 +77,11 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
         setTimeout(() => {
           if (platform === "threads") {
             authenticateWithThreads()
-          } else {
+          } else if (platform === "linkedin") {
+            const currentUrl = window.location.href;
+            window.location.href = `/api/linkedin-login/auth?redirectTo=${encodeURIComponent(currentUrl)}`;
+          }
+          else {
             signIn(platformName)
           }
         }, 1000)

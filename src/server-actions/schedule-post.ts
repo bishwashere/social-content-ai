@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { OauthPlatform } from "@prisma/client";
 
 type Props = {
   projectId: string;
@@ -16,7 +17,7 @@ export const schedulePost = async (props: Props) => {
       where: {
         projectId: props.projectId,
         oauthProvider: {
-          platform: props.platform as any,
+          platform: props.platform as OauthPlatform,
         },
       },
       include: {
@@ -42,6 +43,7 @@ export const schedulePost = async (props: Props) => {
         content: props.content,
         date: props.date,
         status: "pending",
+        oauthProviderId: projectProvider.oauthProviderId
       },
     });
 

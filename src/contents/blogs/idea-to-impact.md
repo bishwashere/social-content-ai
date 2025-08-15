@@ -2,7 +2,7 @@
 title: "From Idea to Impact: How NextPostAI Turns AI Output into Real World Results"
 summary: "AI can give you a thousand ideas: without a system to prioritize, adapt, and execute, they stay as ideas. NextPostAI transforms AI generated content into strategic campaigns, keeping your message consistent and your audience engaged."
 date: "2025-08-14"
-thumbnail: "idea-to-impact.png"
+thumbnail: "/idea-to-impact.png"
 ---
 
 In 2025, content creation is no longer the bottleneck: **execution is**.  

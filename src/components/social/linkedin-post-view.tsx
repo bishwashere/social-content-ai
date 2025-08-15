@@ -1,10 +1,10 @@
-import { ScheduledPost } from "@prisma/client"
+import { OauthProvider, ScheduledPost } from "@prisma/client"
 import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content"
 
 type Props = {
-    post: ScheduledPost;
+    post: ScheduledPost & { oauthProvider: OauthProvider };
     viewContentEdit: string[];
     setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
 }
@@ -46,12 +46,12 @@ const LinkedinPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) 
             <div className="relative">
                 <div className="flex items-center mb-2">
                     <img
-                        src="https://randomuser.me/api/portraits/women/60.jpg"
+                        src="https://static.licdn.com/aero-v1/sc/h/aajlclc14rr2scznz5qm2rj9u"
                         alt="User Avatar"
-                        className="w-12 h-12 rounded-full mr-3"
+                        className="w-12 h-12 mr-3"
                     />
                     <div className="flex flex-col gap-0">
-                        <h2 className="font-bold">Your Name</h2>
+                        <h2 className="font-bold">{post.oauthProvider && post.oauthProvider.pageName ? post.oauthProvider.pageName : 'Your Name'}</h2>
                         <p className="text-muted-foreground text-sm">Your linkedin profile title</p>
                         <div className="flex items-center">
                             <span className="text-muted-foreground text-xs">1d</span>
