@@ -2,6 +2,7 @@ import {
   addMetadataToVideo,
   copyVideo,
   getPresignedUrlForDemoVideoUpload,
+  getSignedKeyForScheduledPost,
   getUploadedVideoUrl,
   listAllFilesByKey,
   listAllUploadedVideos,
@@ -111,7 +112,7 @@ export const useUploadMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { projectId: string; file: File }) => {
-      const presignedUrl = await uploadMedia(
+      const { url: presignedUrl, key } = await uploadMedia(
         session?.user?.id || "",
         data.projectId,
         data.file.name
@@ -129,7 +130,43 @@ export const useUploadMedia = () => {
         throw new Error("Failed to upload media");
       }
 
-      return res;
+      return key;
+    },
+    onSuccess: () => {
+      toast.success("Media uploaded successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["uploaded-media"],
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
+export const useUploadMediaForScheduledPost = () => {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { file: File }) => {
+      const { url: presignedUrl, key } = await getSignedKeyForScheduledPost(
+        session?.user?.id || "",
+        data.file.name
+      );
+
+      const res = await fetch(presignedUrl, {
+        method: "PUT",
+        body: data.file,
+        headers: {
+          "Content-Type": data.file.type,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload media");
+      }
+
+      return key;
     },
     onSuccess: () => {
       toast.success("Media uploaded successfully");

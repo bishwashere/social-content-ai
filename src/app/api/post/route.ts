@@ -2,10 +2,11 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
-import { getFacebookTokensForUser, getLinkedinTokensForUser } from "@/lib/auth";
+import { getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { postToSocial } from "@/lib/post-to-social";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
+import { Fb } from "@/lib/3rd-providers/fb";
 
 export const dynamic = "force-dynamic";
 /**
@@ -17,9 +18,9 @@ export const GET = applyMiddleware(
     const pending = await prisma.scheduledPost.findMany({
       where: {
         status: "pending",
-        date: {
-          lte: new Date(),
-        },
+        // date: {
+        //   lte: new Date(),
+        // },
       },
       include: {
         project: {
@@ -159,30 +160,11 @@ export const GET = applyMiddleware(
       facebookPosts.map(async (post) => {
         console.log(`🔄 Processing Facebook post ID: ${post.id}`);
         try {
-          const project = await prisma.projects.findUnique({
-            where: { id: post.projectId },
-            include: {
-              user: true,
-            },
-          });
+          const oauth = post.project?.projectToOAuthProviders.find(
+            (p) => p.oauthProvider?.platform === "facebook"
+          )?.oauthProvider;
 
-          if (!project || !project.user) {
-            console.log(`❌ Project or user not found for post ID: ${post.id}`);
-            await updatePostStatus(
-              post.id,
-              "failed",
-              "Project or user not found"
-            );
-            return {
-              id: post.id,
-              success: false,
-              error: "Project or user not found",
-            };
-          }
-
-          const oauthProvider = getOAuthProviderForPlatform(post, "facebook");
-
-          if (!oauthProvider?.accessToken) {
+          if (!oauth) {
             console.log(`❌ No access token found for post ID: ${post.id}`);
             await updatePostStatus(post.id, "failed", "No access token found");
             return {
@@ -192,34 +174,15 @@ export const GET = applyMiddleware(
             };
           }
 
-          console.log(
-            `👤 Found project: ${project.id} with user: ${project.user.id}`
-          );
-
-          // Get Facebook tokens
-          const tokens = await getFacebookTokensForUser(
-            project.user.id.toString()
-          );
-
-          if (!tokens || !tokens.accessToken) {
-            console.log(`❌ Facebook tokens not found for post ID: ${post.id}`);
-            await updatePostStatus(
-              post.id,
-              "failed",
-              "Facebook tokens not found"
-            );
-            return {
-              id: post.id,
-              success: false,
-              error: "Facebook tokens not found",
-            };
-          }
-
+          const fb = new Fb({
+            accessToken: oauth.accessToken,
+            refreshToken: oauth.refreshToken!,
+          });
           // Post to Facebook
-          const facebookResult = await postToFacebook(
-            oauthProvider.accessToken,
+          const facebookResult = await fb.postToFacebook(
             post.content,
-            oauthProvider.pageId || ""
+            oauth.pageId || "",
+            post.media || ""
           );
 
           if (facebookResult.success) {

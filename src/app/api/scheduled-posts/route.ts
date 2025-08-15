@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { s3 } from "@/lib/s3";
 
 export async function GET(request: Request) {
   try {
@@ -26,7 +27,19 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(scheduledPosts);
+    // generate signed url for each post
+    const withSignedUrl = await Promise.all(
+      scheduledPosts.map(async (p) => {
+        if (!p.media) return p;
+        const signedUrl = await s3.getSignedUrlForVideoDownload(p.media);
+        return {
+          ...p,
+          media: signedUrl,
+        };
+      })
+    );
+
+    return NextResponse.json(withSignedUrl);
   } catch (error) {
     console.error("Error fetching scheduled posts:", error);
     return NextResponse.json(

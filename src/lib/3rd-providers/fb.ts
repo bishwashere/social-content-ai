@@ -1,4 +1,6 @@
 import axios, { AxiosInstance } from "axios";
+import { detectMediaTypeFromUrl } from "../detect-media-type";
+import { s3 } from "../s3";
 
 type ConstructorProps = {
   accessToken: string;
@@ -150,6 +152,84 @@ class Fb {
       return normalizedData;
     } catch {
       return [];
+    }
+  }
+
+  async postToFacebook(
+    content: string,
+    pageId: string,
+    mediaUrl?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log("📘 Posting to Facebook API");
+
+      // Step 2: Determine endpoint and payload
+      let endpoint = `https://graph.facebook.com/v18.0/${pageId}/feed`;
+      let payload: Record<string, string> = {
+        access_token: this._accessToken,
+      };
+
+      if (mediaUrl) {
+        const signedUrl = await s3.getSignedUrlForVideoDownload(mediaUrl);
+
+        const mediaType = detectMediaTypeFromUrl(signedUrl);
+
+        if (mediaType === "img") {
+          endpoint = `https://graph.facebook.com/v18.0/${pageId}/photos`;
+          payload = {
+            url: signedUrl,
+            caption: content,
+            access_token: this._accessToken,
+          };
+        } else if (mediaType === "video") {
+          endpoint = `https://graph.facebook.com/v18.0/${pageId}/videos`;
+          payload = {
+            file_url: signedUrl,
+            description: content,
+            access_token: this._accessToken,
+          };
+        } else {
+          // fallback to feed if media type is unknown
+          payload.message = content;
+        }
+      } else {
+        // No media, just a text post
+        payload.message = content;
+      }
+
+      console.log(payload);
+
+      // Step 3: Post to Facebook
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Facebook API error:", errorData);
+        return {
+          success: false,
+          error: `Facebook API error: ${response.status} ${response.statusText}`,
+        };
+      }
+
+      const data = await response.json();
+      console.log("✅ Successfully posted to Facebook:", data);
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Error posting to Facebook:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown error posting to Facebook",
+      };
     }
   }
 }

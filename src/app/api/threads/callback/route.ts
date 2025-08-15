@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
   // Get the current user from your custom JWT token
   const cookieStore = cookies();
   const token = cookieStore.get(AUTH_TOKEN_COOKIE_NAME)?.value;
+  const returnUrl = cookieStore.get("threads_return_url")?.value || "/";
 
   if (!token) {
     console.error("No auth token found, user not logged in with Google");
@@ -57,7 +58,6 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
-  const returnUrl = searchParams.get("return_url") || "/";
 
   // Handle authorization errors
   if (error) {
