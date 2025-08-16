@@ -67,8 +67,8 @@ const FacebookPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) 
 
 
       <div className="w-full space-y-3">
-        <EditableContent id={post.id} media={post.media} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
-
+       <EditableContent id={post.id} media={post.media} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+ 
         <ViewMedia post={post} showMedia={!viewContentEdit.includes(post.id)} />
       </div>
       <div className="w-full mt-3 flex gap-1 items-center">

@@ -36,6 +36,7 @@ import { confirm } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ThreadsPost } from "@/components/social/threads-post-view";
 interface Props {
   project: Project;
 }
@@ -304,20 +305,25 @@ export function ScheduledPosts({ project }: Props) {
                         viewContentEdit={viewContentEdit}
                         setViewContentEdit={setViewContentEdit}
                       />
-                    ) : (
-                      <div
-                        className="text-sm text-muted-foreground w-full"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        <Md>
-                          {post.content
-                            .split("\n")
-                            .map((line) => line.trim())
-                            .filter((line) => line.length > 0)
-                            .join("\n\n")}
-                        </Md>
-                      </div>
-                    )}
+                    ) :
+                      post.platform === "threads" ? (
+                        <ThreadsPost post={post}
+                          viewContentEdit={viewContentEdit}
+                          setViewContentEdit={setViewContentEdit} />
+                      ) :
+                        <div
+                          className="text-sm text-muted-foreground w-full"
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          <Md>
+                            {post.content
+                              .split("\n")
+                              .map((line) => line.trim())
+                              .filter((line) => line.length > 0)
+                              .join("\n\n")}
+                          </Md>
+                        </div>
+                    }
                   </div>
                 </CardContent>
               </Card>

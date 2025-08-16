@@ -25,13 +25,13 @@ const ViewMedia = (props: Props) => {
 
   if (fileType === "img" && post.media) {
     return (
-      <img src={post.media} alt="Uploaded media" className="max-w-sm rounded" />
+      <img src={post.media} alt="Uploaded media" className="max-w-md w-full rounded" />
     )
   }
 
   if (fileType === "video" && post.media) {
     return (
-      <video src={post.media} controls className="max-w-sm rounded" />
+      <video src={post.media} controls className="max-w-md w-full rounded" />
     )
   }
 
