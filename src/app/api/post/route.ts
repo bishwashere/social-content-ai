@@ -7,6 +7,7 @@ import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { postToSocial } from "@/lib/post-to-social";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import { Fb } from "@/lib/3rd-providers/fb";
+import { Threads } from "@/lib/3rd-providers/threads";
 
 export const dynamic = "force-dynamic";
 /**
@@ -332,27 +333,6 @@ export const GET = applyMiddleware(
       threadsPosts.map(async (post) => {
         console.log(`🔄 Processing Threads post ID: ${post.id}`);
         try {
-          const project = await prisma.projects.findUnique({
-            where: { id: post.projectId },
-            include: {
-              user: true,
-            },
-          });
-
-          if (!project || !project.user) {
-            console.log(`❌ Project or user not found for post ID: ${post.id}`);
-            await updatePostStatus(
-              post.id,
-              "failed",
-              "Project or user not found"
-            );
-            return {
-              id: post.id,
-              success: false,
-              error: "Project or user not found",
-            };
-          }
-
           const oauthProvider = getOAuthProviderForPlatform(post, "threads");
 
           if (!oauthProvider?.accessToken) {
@@ -365,21 +345,38 @@ export const GET = applyMiddleware(
             };
           }
 
-          console.log(`👤 Found user: ${project.user.id}`);
+          const threads = new Threads({
+            accessToken: oauthProvider.accessToken,
+          });
 
           // Post to Threads
-          const threadsResult = await postToThreads(
-            oauthProvider.accessToken,
+          const threadsResult = await threads.postToThreads(
             post.content,
-            oauthProvider.pageId || ""
+            oauthProvider.pageId || "",
+            post.media || ""
           );
 
           if (threadsResult.success) {
             console.log(
               `✅ Successfully posted to Threads for post ID: ${post.id}`
             );
-            await updatePostStatus(post.id, "success");
-            return { id: post.id, success: true };
+
+            if (threadsResult.data?.type === "VIDEO") {
+              await updatePostStatus(
+                post.id,
+                "processing",
+                undefined,
+                threadsResult?.data
+              );
+              return {
+                id: post.id,
+                success: true,
+                message: "Waiting for meta review for video",
+              };
+            } else {
+              await updatePostStatus(post.id, "success");
+              return { id: post.id, success: true };
+            }
           } else {
             console.log(`❌ Failed to post to Threads for post ID: ${post.id}`);
             await updatePostStatus(post.id, "failed", threadsResult.error);
@@ -426,12 +423,84 @@ export const GET = applyMiddleware(
       })
     );
 
+    const processing = await prisma.scheduledPost.findMany({
+      where: {
+        status: "processing",
+        platform: "threads", // for now only threads require post processing
+        date: {
+          lte: new Date(),
+        },
+      },
+      include: {
+        project: {
+          include: {
+            projectToOAuthProviders: {
+              include: {
+                oauthProvider: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const threadsPostProcessingResult = await Promise.all(
+      processing.map(async (post) => {
+        const oauthProvider = getOAuthProviderForPlatform(post, "threads");
+
+        if (!oauthProvider) {
+          console.log(
+            `❌ No OAuth provider found for Threads post ID: ${post.id}`
+          );
+          await updatePostStatus(post.id, "failed", "No OAuth provider found");
+          return {
+            id: post.id,
+            success: false,
+            error: "No OAuth provider found",
+          };
+        }
+
+        const threads = new Threads({
+          accessToken: oauthProvider.accessToken,
+        });
+
+        // Check and publish the container
+        const checkResult = await threads.checkAndPublishContainerOnce(
+          (post.meta as any)?.container?.id,
+          oauthProvider.pageId || ""
+        );
+
+        if (checkResult) {
+          if (checkResult.success) {
+            console.log(
+              `✅ Successfully published to Threads for post ID: ${post.id}`
+            );
+            await updatePostStatus(post.id, "success");
+            return { id: post.id, success: true };
+          } else {
+            console.log(
+              `❌ Failed to publish to Threads for post ID: ${post.id}`
+            );
+            await updatePostStatus(post.id, "failed", checkResult.error);
+            return {
+              id: post.id,
+              success: false,
+              error: checkResult.error,
+            };
+          }
+        }
+
+        return { message: "processing" };
+      })
+    );
+
     const allResults = [
       ...twitterResults,
       ...facebookResults,
       ...linkedinResults,
       ...threadsResults,
       ...redditResults,
+      ...threadsPostProcessingResult,
     ];
 
     return sendNextResponse({
@@ -472,15 +541,17 @@ export const GET = applyMiddleware(
  */
 async function updatePostStatus(
   postId: string,
-  status: "success" | "failed",
-  error?: string
+  status: "success" | "failed" | "pending" | "processing",
+  error?: string,
+  meta?: any
 ) {
   await prisma.scheduledPost.update({
     where: { id: postId },
     data: {
       status,
-      error,
+      error: typeof error === "string" ? error : JSON.stringify(error),
       processedAt: new Date(),
+      meta,
     },
   });
 }
@@ -530,81 +601,6 @@ async function postToTwitter(
 }
 
 /**
- * Post content to Facebook Page
- */
-async function postToFacebook(
-  accessToken: string,
-  content: string,
-  pageId: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    console.log("📘 Posting to Facebook API");
-
-    // First, get the page access token
-    const pageTokenResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}?fields=access_token&access_token=${accessToken}`
-    );
-
-    if (!pageTokenResponse.ok) {
-      const errorData = await pageTokenResponse.json().catch(() => ({}));
-      console.error("❌ Facebook Page Token error:", errorData);
-      return {
-        success: false,
-        error: `Failed to get page token: ${pageTokenResponse.status}`,
-      };
-    }
-
-    const pageTokenData = await pageTokenResponse.json();
-    const pageAccessToken = pageTokenData.access_token;
-
-    if (!pageAccessToken) {
-      return {
-        success: false,
-        error: "Failed to retrieve page access token",
-      };
-    }
-
-    // Post to the Facebook page
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/feed`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: content,
-          access_token: pageAccessToken,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("❌ Facebook API error:", errorData);
-      return {
-        success: false,
-        error: `Facebook API error: ${response.status} ${response.statusText}`,
-      };
-    }
-
-    const data = await response.json();
-    console.log("✅ Successfully posted to Facebook:", data);
-
-    return { success: true };
-  } catch (error) {
-    console.error("❌ Error posting to Facebook:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Unknown error posting to Facebook",
-    };
-  }
-}
-
-/**
  * Post content to Linkedin Page
  */
 async function postToLinkedin(
@@ -630,97 +626,6 @@ async function postToLinkedin(
         error instanceof Error
           ? error.message
           : "Unknown error posting to Linkedin",
-    };
-  }
-}
-
-/**
- * Post content to Threads
- * This is a two-step process:
- * 1. Create a media container
- * 2. Publish the container
- */
-async function postToThreads(
-  accessToken: string,
-  content: string,
-  userId: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    console.log("🧵 Posting to Threads API");
-
-    // Step 1: Create media container
-    const createResponse = await fetch(
-      `https://graph.threads.net/v1.0/${userId}/threads`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          media_type: "TEXT",
-          text: content,
-          access_token: accessToken,
-        }),
-      }
-    );
-
-    if (!createResponse.ok) {
-      const errorData = await createResponse.json().catch(() => ({}));
-      console.error("❌ Threads container creation error:", errorData);
-      return {
-        success: false,
-        error: `Failed to create container: ${createResponse.status} ${createResponse.statusText}`,
-      };
-    }
-
-    const containerData = await createResponse.json();
-    const containerId = containerData.id;
-
-    if (!containerId) {
-      return {
-        success: false,
-        error: "Failed to get container ID from creation response",
-      };
-    }
-
-    console.log("✅ Container created successfully:", containerId);
-
-    // Step 2: Publish the container
-    const publishResponse = await fetch(
-      `https://graph.threads.net/v1.0/${userId}/threads_publish`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          creation_id: containerId,
-          access_token: accessToken,
-        }),
-      }
-    );
-
-    if (!publishResponse.ok) {
-      const errorData = await publishResponse.json().catch(() => ({}));
-      console.error("❌ Threads publish error:", errorData);
-      return {
-        success: false,
-        error: `Failed to publish: ${publishResponse.status} ${publishResponse.statusText}`,
-      };
-    }
-
-    const publishData = await publishResponse.json();
-    console.log("✅ Successfully published to Threads:", publishData);
-
-    return { success: true };
-  } catch (error) {
-    console.error("❌ Error posting to Threads:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Unknown error posting to Threads",
     };
   }
 }

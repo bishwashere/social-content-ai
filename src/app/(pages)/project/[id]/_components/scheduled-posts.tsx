@@ -287,6 +287,9 @@ export function ScheduledPosts({ project }: Props) {
                       </Button>
                     </div>
                   </div>
+                  {post.error && (post.status === "error" || post.status === "failed") && <p className="text-sm text-destructive px-4">
+                    {post.error}
+                  </p>}
                 </CardHeader>
 
                 <CardContent className="space-y-4 p-1">

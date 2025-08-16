@@ -194,10 +194,11 @@ model ScheduledPost {
   updatedAt       DateTime  @updatedAt
   processedAt     DateTime?
 
-  media       String?   // S3 key or URL for uploaded media (image/video)
+  media String? // S3 key or URL for uploaded media (image/video)
 
   project       Projects?      @relation(fields: [projectId], references: [id])
   oauthProvider OauthProvider? @relation(fields: [oauthProviderId], references: [id])
+  meta          Json? // any details that can be stored 
 
   @@map("scheduled-posts")
 }
