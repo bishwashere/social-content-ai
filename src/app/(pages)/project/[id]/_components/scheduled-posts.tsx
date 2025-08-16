@@ -49,6 +49,8 @@ const getPlatformIcon = (platform: string) => {
       return <Twitter className="h-4 w-4" />;
     case "linkedin":
       return <Linkedin className="h-4 w-4" />;
+    case "threads":
+      return <img src="/threads.svg" className="h-6 w-6" />;
     default:
       return null;
   }
@@ -62,6 +64,8 @@ const getPlatformColor = (platform: string) => {
       return "bg-sky-500";
     case "linkedin":
       return "bg-blue-700";
+    case "threads":
+      return "bg-muted rounded-full border border-gray-300";
     default:
       return "bg-gray-500";
   }
