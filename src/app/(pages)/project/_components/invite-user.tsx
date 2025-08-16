@@ -21,12 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { useInviteUserToProject } from "@/backend-apis/projects/hooks";
+import { useEffect, useState } from "react";
+import { useGetAllProjects, useInviteUserToProject } from "@/backend-apis/projects/hooks";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import { INVITED_USER_ROLES } from "@/constants/common";
+import { ProjectWithChats } from "@/backend-apis/projects/types";
 
 export function InviteUserDialog() {
   const [role, setRole] = useState(INVITED_USER_ROLES.VIEWER);
@@ -34,6 +35,19 @@ export function InviteUserDialog() {
   const [email, setEmail] = useState("");
   const invite = useInviteUserToProject();
   const [isOpen, setIsOpen] = useState(false);
+  const { data: projects, isLoading: projectsLoading } = useGetAllProjects();
+  const [invitedUsers, setInvitedUsers] = useState<ProjectWithChats["invitedUsers"]>([]);
+
+  useEffect(() => {
+    if (projectsLoading) return;
+    if (projects) {
+      const project = projects.find(project => project.id === id);
+      if (project?.invitedUsers && project.invitedUsers.length > 0) {
+        setInvitedUsers(project.invitedUsers);
+      }
+    }
+  }, [projects, projectsLoading, id])
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -91,7 +105,7 @@ export function InviteUserDialog() {
                     setIsOpen(false);
                     setEmail("");
                   }
-                } catch {}
+                } catch { }
               } else {
                 toast.error("Invalid email");
               }
@@ -104,6 +118,17 @@ export function InviteUserDialog() {
             <SendHorizonalIcon />
           </Button>
         </DialogFooter>
+        {invitedUsers && invitedUsers.length > 0 &&
+          <div>
+            <p className="font-medium underline underline-offset-2">Invited Users</p>
+            <ol className="list-disc ml-4 text-sm">
+              {
+                invitedUsers.map(user => (
+                  <li key={user.id}>{user.user.name} - {user.role}</li>
+                ))
+              }
+            </ol>
+          </div>}
       </DialogContent>
     </Dialog>
   );
