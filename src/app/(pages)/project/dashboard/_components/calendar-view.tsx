@@ -125,7 +125,7 @@ function WeeklyEventInfo({ event }: { event: MyEvent }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
-          {event.title}
+          {event.title.length > 4 ? event.title.slice(0, 4) + ".." : event.title}
           <div className="flex gap-1">
             {event.platforms?.map((p: string) => (
               <div className="bg-white p-0.5 rounded-sm" key={p}>
