@@ -9,6 +9,15 @@ type Props = {
   children: React.ReactNode;
 };
 
+const isPublic = (path: string) => {
+  return (
+    path === "/" ||
+    path.startsWith("/blogs") ||
+    path.startsWith("/get") ||
+    path.startsWith("/privacy")
+  );
+};
+
 /**
  *  SessionProvider is a component that checks if the user is authenticated or not.
  *  If the user is authenticated, it redirects to the dashboard page.
@@ -23,12 +32,14 @@ const SessionProvider = ({ children }: Props) => {
     if (isLoading) return;
 
     // Allow public access to landing page and blogs
-    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return;
+    if (isPublic(path)) return;
 
     if (isError) {
       router.push("/"); // ✅ Redirect to the home page
     }
   }, [isError, isLoading, router, path]);
+
+  if (isPublic(path)) return children;
 
   if (isLoading) {
     // Allow public access to landing page and blogs
