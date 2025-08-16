@@ -23,7 +23,16 @@ export const GET = applyMiddleware(
               updatedAt: "desc",
             },
           },
-          invitedUsers: true,
+          invitedUsers: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                }
+              }
+            }
+          },
         },
         orderBy: {
           updatedAt: "desc",

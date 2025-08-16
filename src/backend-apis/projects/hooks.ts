@@ -110,6 +110,7 @@ export const useGetProjectsSummary = () => {
 };
 
 export const useInviteUserToProject = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: projectService.inviteUser,
     onError: (error) => {
@@ -117,6 +118,9 @@ export const useInviteUserToProject = () => {
     },
     onSuccess: (message) => {
       toast.success(message);
+      queryClient.invalidateQueries({
+        queryKey: ["projects"]
+      }); 
     },
   });
 };
