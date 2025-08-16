@@ -2,6 +2,7 @@ import { ScheduledPost } from "@prisma/client"
 import { Dot, Plus } from "lucide-react"
 import Markdown from "react-markdown"
 import EditableContent from "./editable-content"
+import { ViewMedia } from "./view-media"
 
 type Props = {
   post: ScheduledPost;
@@ -59,8 +60,10 @@ const ThreadsPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) =
             <ThreeDotIcon />
           </div>
         </div>
-        <div className="w-full">
-          <EditableContent media={post.media} id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+        <div className="mb-3 space-y-3 w-full">
+          <EditableContent id={post.id} media={post.media} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+
+          <ViewMedia post={post} showMedia={!viewContentEdit.includes(post.id)} />
         </div>
         <div className="flex w-full gap-5 mt-3 font-sans">
           <div className="flex items-center justify-center gap-1">

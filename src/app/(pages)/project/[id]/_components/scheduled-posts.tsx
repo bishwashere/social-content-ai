@@ -36,6 +36,7 @@ import { confirm } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import ThreadsPost from "@/components/social/threads-post-view";
 import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
 interface Props {
@@ -50,6 +51,8 @@ const getPlatformIcon = (platform: string) => {
       return <Twitter className="h-4 w-4" />;
     case "linkedin":
       return <Linkedin className="h-4 w-4" />;
+    case "threads":
+      return <img src="/threads.svg" className="h-6 w-6" />;
     default:
       return null;
   }
@@ -63,6 +66,8 @@ const getPlatformColor = (platform: string) => {
       return "bg-sky-500";
     case "linkedin":
       return "bg-blue-700";
+    case "threads":
+      return "bg-muted rounded-full border border-gray-300";
     default:
       return "bg-gray-500";
   }
@@ -284,6 +289,9 @@ export function ScheduledPosts({ project }: Props) {
                       </Button>
                     </div>
                   </div>
+                  {post.error && (post.status === "error" || post.status === "failed") && <p className="text-sm text-destructive px-4">
+                    {post.error}
+                  </p>}
                 </CardHeader>
 
                 <CardContent className="space-y-4 p-1">
@@ -318,20 +326,25 @@ export function ScheduledPosts({ project }: Props) {
                         viewContentEdit={viewContentEdit}
                         setViewContentEdit={setViewContentEdit}
                       />
-                    ) : (
-                      <div
-                        className="text-sm text-muted-foreground w-full"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        <Md>
-                          {post.content
-                            .split("\n")
-                            .map((line) => line.trim())
-                            .filter((line) => line.length > 0)
-                            .join("\n\n")}
-                        </Md>
-                      </div>
-                    )}
+                    ) :
+                      post.platform === "threads" ? (
+                        <ThreadsPost post={post}
+                          viewContentEdit={viewContentEdit}
+                          setViewContentEdit={setViewContentEdit} />
+                      ) :
+                        <div
+                          className="text-sm text-muted-foreground w-full"
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          <Md>
+                            {post.content
+                              .split("\n")
+                              .map((line) => line.trim())
+                              .filter((line) => line.length > 0)
+                              .join("\n\n")}
+                          </Md>
+                        </div>
+                    }
                   </div>
                 </CardContent>
               </Card>
