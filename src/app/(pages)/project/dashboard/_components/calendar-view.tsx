@@ -26,7 +26,7 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-type MyEvent = { title: string; start: Date; end: Date, platform?: string }
+type MyEvent = { title: string; start: Date; end: Date, platforms?: string[] }
 
 function EventInfo({ event }: { event: MyEvent }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -44,17 +44,19 @@ function EventInfo({ event }: { event: MyEvent }) {
       <Popover>
         <PopoverTrigger asChild>
           <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
-            {event.title}
-            <div className="bg-white p-0.5 rounded-sm">
-              {
-                PLATFORMS.find(platform => platform.key === event.platform)?.icon
-              }
+            {event.title.length > 4 ? event.title.slice(0, 4) + ".." : event.title}
+            <div className="flex gap-1">
+              {event.platforms?.map((p: string) => (
+                <div className="bg-white p-0.5 rounded-sm" key={p}>
+                  {PLATFORMS.find(platform => platform.key === p)?.icon}
+                </div>
+              ))}
             </div>
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-fit">
           <p className="text-sm font-medium">{event.title}</p>
-          <p className="text-sm">({event.platform})</p>
+          <p className="text-sm">({event.platforms?.join(', ')})</p>
           {/* <p className="text-xs">{event.start.toDateString()}</p> */}
         </PopoverContent>
       </Popover>
@@ -66,17 +68,19 @@ function EventInfo({ event }: { event: MyEvent }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
-          {event.title}
-          <div className="bg-white p-0.5 rounded-sm">
-            {
-              PLATFORMS.find(platform => platform.key === event.platform)?.icon
-            }
+          {event.title.length > 4 ? event.title.slice(0, 4) + ".." : event.title}
+          <div className="flex gap-1">
+            {event.platforms?.map((p: string) => (
+              <div className="bg-white p-0.5 rounded-sm" key={p}>
+                {PLATFORMS.find(platform => platform.key === p)?.icon}
+              </div>
+            ))}
           </div>
         </div>
       </TooltipTrigger>
       <TooltipContent>
         <p className="text-sm font-medium">{event.title}</p>
-        <p className="text-sm">({event.platform})</p>
+        <p className="text-sm">({event.platforms?.join(", ")})</p>
         {/* <p className="text-xs">{event.start.toDateString()}</p> */}
       </TooltipContent>
     </Tooltip>
@@ -122,16 +126,18 @@ function WeeklyEventInfo({ event }: { event: MyEvent }) {
       <TooltipTrigger asChild>
         <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
           {event.title}
-          <div className="bg-white p-0.5 rounded-sm">
-            {
-              PLATFORMS.find(platform => platform.key === event.platform)?.icon
-            }
+          <div className="flex gap-1">
+            {event.platforms?.map((p: string) => (
+              <div className="bg-white p-0.5 rounded-sm" key={p}>
+                {PLATFORMS.find(platform => platform.key === p)?.icon}
+              </div>
+            ))}
           </div>
         </div>
       </TooltipTrigger>
       <TooltipContent>
         <p className="text-sm font-medium">{event.title}</p>
-        <p className="text-sm">({event.platform})</p>
+        <p className="text-sm">({event.platforms?.join(", ")})</p>
       </TooltipContent>
     </Tooltip>
   );
@@ -143,17 +149,33 @@ export default function CalendarView() {
   const [calendarHeight, setCalendarHeight] = useState(650);
   const projects = useGetAllProjects();
 
-  const events = useMemo(() =>
-    projects.data?.flatMap(project =>
-      (project.projectTrackings || []).map(tracking => ({
-        title: project.name,
-        start: new Date(tracking.date),
-        end: new Date(tracking.date),
-        platform: tracking.platform,
-        allDay: true
-      })))
-    || []
-    , [projects.data]);
+  const events = useMemo(() => {
+    const map = new Map<string, { title: string; date: Date; platforms: string[] }>();
+
+    projects.data?.forEach(project => {
+      (project.projectTrackings || []).forEach(tracking => {
+        const dayKey = format(new Date(tracking.date), "yyyy-MM-dd");
+        const key = `${project.name}-${dayKey}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            title: project.name,
+            date: new Date(tracking.date),
+            platforms: [],
+          });
+        }
+        map.get(key)!.platforms.push(tracking.platform);
+      });
+    });
+
+    return Array.from(map.values()).map(item => ({
+      title: item.title,
+      start: item.date,
+      end: item.date,
+      platforms: item.platforms, // array of platforms
+      allDay: true,
+    }));
+  }, [projects.data]);
+
 
   // Responsive height for mobile
   useEffect(() => {
