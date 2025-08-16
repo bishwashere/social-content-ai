@@ -36,7 +36,7 @@ import { confirm } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ThreadsPost } from "@/components/social/threads-post-view";
+import ThreadsPost from "@/components/social/threads-post-view";
 import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
 interface Props {
