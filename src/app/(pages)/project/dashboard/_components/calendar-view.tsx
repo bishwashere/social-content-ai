@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useGetAllProjects, useGetProjectsSummary } from "@/backend-apis/projects/hooks";
 import { enUS } from 'date-fns/locale/en-US'
+import { PLATFORMS } from "../../[id]/_components/campaing-planner";
 
 const locales = {
   "en-US": enUS,
@@ -42,8 +43,13 @@ function EventInfo({ event }: { event: MyEvent }) {
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className="text-white text-xs p-1 rounded cursor-pointer truncate w-fit">
+          <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
             {event.title}
+            <div className="bg-white p-0.5 rounded-sm">
+              {
+                PLATFORMS.find(platform => platform.key === event.platform)?.icon
+              }
+            </div>
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-fit">
@@ -59,8 +65,13 @@ function EventInfo({ event }: { event: MyEvent }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="text-white text-xs p-1 rounded cursor-pointer truncate">
+        <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
           {event.title}
+          <div className="bg-white p-0.5 rounded-sm">
+            {
+              PLATFORMS.find(platform => platform.key === event.platform)?.icon
+            }
+          </div>
         </div>
       </TooltipTrigger>
       <TooltipContent>
@@ -71,7 +82,6 @@ function EventInfo({ event }: { event: MyEvent }) {
     </Tooltip>
   );
 }
-
 
 
 // Custom Toolbar
@@ -110,8 +120,13 @@ function WeeklyEventInfo({ event }: { event: MyEvent }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="text-white text-xs p-1 rounded cursor-pointer truncate">
+        <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
           {event.title}
+          <div className="bg-white p-0.5 rounded-sm">
+            {
+              PLATFORMS.find(platform => platform.key === event.platform)?.icon
+            }
+          </div>
         </div>
       </TooltipTrigger>
       <TooltipContent>
@@ -194,9 +209,8 @@ export default function CalendarView() {
           }}
           showAllEvents
           className="hide-time-gutter"
-        />}
+        />
+      }
     </div>
   );
 }
-
-
