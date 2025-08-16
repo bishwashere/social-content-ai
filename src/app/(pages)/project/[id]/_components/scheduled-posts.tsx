@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ThreadsPostView from "@/components/social/threads-post-view";
+import RedditPostView from "@/components/social/reddit-post-view";
 interface Props {
   project: Project;
 }
@@ -307,6 +308,12 @@ export function ScheduledPosts({ project }: Props) {
                       />
                     ) : post.platform === "threads" ? (
                       <ThreadsPostView
+                        post={post}
+                        viewContentEdit={viewContentEdit}
+                        setViewContentEdit={setViewContentEdit}
+                      />
+                    ) : post.platform === "reddit" ? (
+                      <RedditPostView
                         post={post}
                         viewContentEdit={viewContentEdit}
                         setViewContentEdit={setViewContentEdit}
