@@ -94,9 +94,9 @@ export async function getProjectPulse(projectId: string) {
     0.1 * coverage +
     0.1 * planProgress;
 
-  const thiwWeekPostSummaries = calculateThisWeekPostSummaries(postsThisWeek);
+  const thiwWeekPostSummaries = calculateThisWeekPostSummaries(planners, postsThisWeek);
 
-  const streak = calculateGapsandPostsDaysThisMonth(scheduledPosts);
+  const streak = calculateGapsandPostsDaysThisMonth(planners, '1MONTH');
 
   return {
     pulse: Math.round(pulse),
