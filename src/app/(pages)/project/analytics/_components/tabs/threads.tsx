@@ -14,16 +14,23 @@ const Threads = () => {
     <div className='w-full'>
       <ViewAnalytics
         totalPosts={data?.data?.length || 0}
-        totalComments={data?.data?.reduce((sum, data) => sum + (data.insights.repliesCount || 0), 0) || 0}
-        totalLikes={data?.data?.reduce((sum, data) => sum + (data.insights.likesCount || 0), 0) || 0}
+        totalComments={data?.data?.reduce((sum, data) => sum + (data.comments || 0), 0) || 0}
+        totalLikes={data?.data?.reduce((sum, data) => sum + (data.likes || 0), 0) || 0}
         totalFollowers={0}
-        totalImpressions={data?.data?.reduce((sum, data) => sum + (data.insights.viewsCount || 0), 0) || 0}
-        chartData={data?.data?.map((data) => ({
-          label: data.content?.substring(0, 20) + "...",
-          totalComments: data.insights.repliesCount || 0,
-          totalImpressions: data.insights.viewsCount || 0,
-          totalLikes: data.insights.likesCount || 0,
-        })) || []}
+        totalImpressions={data?.data?.reduce((sum, data) => sum + (data.impressions || 0), 0) || 0}
+        chartData={data?.data ?
+          [...data?.data].reverse().map((data) => ({
+            label: new Date(data.date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric"
+            }),
+            totalComments: data.comments || 0,
+            totalImpressions: data.impressions || 0,
+            totalLikes: data.likes || 0,
+          }))
+          : []
+        }
       />
     </div>
   )

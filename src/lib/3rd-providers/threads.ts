@@ -189,13 +189,11 @@ class Threads {
   /**
    * Fetch all posts for a user (paginated) (id and content)
    */
-  async fetchAllUserPosts(
-    userId: string = "me"
-  ): Promise<Array<{ id: string; text: string }>> {
-    const allPosts: Array<{ id: string; text: string }> = [];
+  async fetchAllUserPosts(userId: string = "me") {
+    const allPosts: Array<{ id: string; text: string; timestamp: string }> = [];
     let url:
       | string
-      | null = `/${userId}/threads?fields=id,text&limit=50&access_token=${this._accessToken}`;
+      | null = `/${userId}/threads?fields=id,text,timestamp&limit=50&access_token=${this._accessToken}`;
 
     while (url) {
       const res: any = await this._client.get(url);
@@ -247,6 +245,7 @@ class Threads {
     const results: Array<{
       postId: string;
       content: string;
+      date: string;
       insights: AnalyticsData;
     }> = [];
     for (const post of posts) {
@@ -255,6 +254,7 @@ class Threads {
         postId: post.id,
         content: post.text || "No text",
         insights,
+        date: post.timestamp,
       });
     }
 
