@@ -157,29 +157,70 @@ export const getLinkedinMetrics = async (pageId: string) => {
 };
 
 export const getThreadsMetrics = async (userId: string) => {
-  const oauthProvider = await prisma.oauthProvider.findFirst({
-    where: {
-      userId,
-      platform: "threads",
-    },
-  });
+  try {
+    // Step 1: Find the Threads OAuth provider and existing posts
+    const oauthProvider = await prisma.oauthProvider.findFirst({
+      where: {
+        userId,
+        platform: "threads",
+      },
+      include: {
+        pagePosts: true,
+      },
+    });
 
-  if (!oauthProvider) {
+    if (!oauthProvider) {
+      return {
+        success: false,
+        message: "Threads account not found",
+      };
+    }
+
+    // Step 2: Return from DB if posts already exist
+    if (oauthProvider.pagePosts.length) {
+      return {
+        success: true,
+        data: oauthProvider.pagePosts,
+      };
+    }
+
+    // Step 3: Fetch from Threads API if not in DB
+    const t = new Threads({ accessToken: oauthProvider.accessToken });
+    const metrics = await t.fetchUserPostsWithInsights(
+      oauthProvider.pageId || ""
+    );
+
+    // Step 4: Transform metrics to match DB structure
+    const postsToSave = metrics.map((post) => ({
+      postId: post.postId,
+      content: post.content,
+      likes: post.insights.likesCount,
+      comments: post.insights.repliesCount,
+      shares: 0, // Threads API do not have shares
+      impressions: post.insights.viewsCount,
+      uniqueImpressions: post.insights.viewsCount,
+      date: new Date(post.date),
+    }));
+
+    // Step 5: Save to DB
+    const data = await prisma.oauthProvider.update({
+      where: { id: oauthProvider.id },
+      data: {
+        pagePosts: {
+          create: postsToSave,
+        },
+      },
+      include: {
+        pagePosts: true,
+      },
+    });
+
     return {
-      success: false,
-      message: "Threads account not found",
+      success: true,
+      data: data.pagePosts,
     };
+  } catch (error) {
+    console.error("Error fetching Threads metrics:", error);
+    throw new Error("Could not load Threads data!");
   }
-
-  const t = new Threads({
-    accessToken: oauthProvider.accessToken,
-  });
-  const metrics = await t.fetchUserPostsWithInsights(
-    oauthProvider.pageId || ""
-  );
-
-  return {
-    success: true,
-    data: metrics,
-  };
 };
