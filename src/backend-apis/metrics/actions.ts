@@ -5,6 +5,7 @@ import { extractPostId, RedditPostData } from "./hooks";
 import { prisma } from "@/lib/prisma";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import axios from "axios";
+import { Threads } from "@/lib/3rd-providers/threads";
 
 export const fetchRedditPostsData = async (
   urls: string[]
@@ -84,7 +85,7 @@ export const getLinkedinMetrics = async (pageId: string) => {
       },
       include: {
         pagePosts: true,
-      }
+      },
     });
 
     if (!oauthProvider || !oauthProvider.expiresAt) {
@@ -99,8 +100,8 @@ export const getLinkedinMetrics = async (pageId: string) => {
       return {
         sucess: true,
         data: oauthProvider.pagePosts,
-        followersCount: oauthProvider.pageFollowers
-      }
+        followersCount: oauthProvider.pageFollowers,
+      };
     }
 
     // Otherwise fetch from linkedin and save to db and return as well
@@ -117,7 +118,7 @@ export const getLinkedinMetrics = async (pageId: string) => {
       data: {
         pageFollowers: followersCount,
         pagePosts: {
-          create: metrics.map(post => ({
+          create: metrics.map((post) => ({
             postId: post.postId,
             content: post.content,
             likes: post.likes,
@@ -131,14 +132,13 @@ export const getLinkedinMetrics = async (pageId: string) => {
       },
       include: {
         pagePosts: true,
-      }
+      },
     });
-
 
     return {
       success: true,
       data: data.pagePosts,
-      followersCount: followersCount
+      followersCount: followersCount,
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 429) {
@@ -154,4 +154,32 @@ export const getLinkedinMetrics = async (pageId: string) => {
       throw new Error("Couldnot load linkedin data !");
     }
   }
+};
+
+export const getThreadsMetrics = async (userId: string) => {
+  const oauthProvider = await prisma.oauthProvider.findFirst({
+    where: {
+      userId,
+      platform: "threads",
+    },
+  });
+
+  if (!oauthProvider) {
+    return {
+      success: false,
+      message: "Threads account not found",
+    };
+  }
+
+  const t = new Threads({
+    accessToken: oauthProvider.accessToken,
+  });
+  const metrics = await t.fetchUserPostsWithInsights(
+    oauthProvider.pageId || ""
+  );
+
+  return {
+    success: true,
+    data: metrics,
+  };
 };

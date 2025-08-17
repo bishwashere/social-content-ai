@@ -2,6 +2,12 @@ import axios, { AxiosInstance } from "axios";
 import { s3 } from "../s3";
 import { detectMediaTypeFromUrl } from "../detect-media-type";
 
+type AnalyticsData = {
+  likesCount: number;
+  repliesCount: number;
+  viewsCount: number;
+};
+
 class Threads {
   private _accessToken: string;
   private _client: AxiosInstance;
@@ -178,6 +184,81 @@ class Threads {
         raw?.error?.message || raw?.message || err?.message || "Unknown error";
       return { success: false, error: String(msg), raw };
     }
+  }
+
+  /**
+   * Fetch all posts for a user (paginated) (id and content)
+   */
+  async fetchAllUserPosts(
+    userId: string = "me"
+  ): Promise<Array<{ id: string; text: string }>> {
+    const allPosts: Array<{ id: string; text: string }> = [];
+    let url:
+      | string
+      | null = `/${userId}/threads?fields=id,text&limit=50&access_token=${this._accessToken}`;
+
+    while (url) {
+      const res: any = await this._client.get(url);
+      const data = res.data.data;
+      allPosts.push(...data);
+
+      // Pagination
+      url = res.data.paging?.cursors?.after
+        ? `/${userId}/threads?fields=id,text&limit=50&after=${res.data.paging.cursors.after}&access_token=${this._accessToken}`
+        : null;
+    }
+
+    return allPosts;
+  }
+
+  /**
+   * Fetch insights for a single post
+   */
+  async fetchPostInsights(
+    postId: string,
+    metrics: string[] = ["likes", "replies"]
+  ): Promise<AnalyticsData> {
+    const metricParam = metrics.join(",");
+    const url = `/${postId}/insights?metric=${metricParam}&access_token=${this._accessToken}`;
+    const res = await this._client.get(url);
+
+    return {
+      likesCount:
+        res.data.data.find((insight: any) => insight.name === "likes")
+          ?.values?.[0]?.value || 0,
+      repliesCount:
+        res.data.data.find((insight: any) => insight.name === "replies")
+          ?.values?.[0]?.value || 0,
+      viewsCount:
+        res.data.data.find((insight: any) => insight.name === "views")
+          ?.values?.[0]?.value || 0,
+    };
+  }
+
+  /**
+   * Fetch all posts + insights for a user
+   */
+  async fetchUserPostsWithInsights(
+    userId: string = "me",
+    metrics: string[] = ["likes", "replies", "views"]
+  ) {
+    const posts = await this.fetchAllUserPosts(userId);
+    // Sequential approach (safe for rate limits)
+    const results: Array<{
+      postId: string;
+      content: string;
+      insights: AnalyticsData;
+    }> = [];
+    for (const post of posts) {
+      const insights = await this.fetchPostInsights(post.id, metrics);
+      results.push({
+        postId: post.id,
+        content: post.text || "No text",
+        insights,
+      });
+    }
+
+    return results;
   }
 }
 

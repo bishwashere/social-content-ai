@@ -5,6 +5,7 @@ import React from 'react'
 import { All } from "./all"
 import { Facebook } from "./facebook"
 import { Linkedin } from "./linkedin"
+import { Threads } from "./threads"
 
 const AnalyticsTabs = () => {
   return (
@@ -13,6 +14,7 @@ const AnalyticsTabs = () => {
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="Facebook">Facebook</TabsTrigger>
         <TabsTrigger value="Linkedin">Linkedin</TabsTrigger>
+        <TabsTrigger value="Threads">Threads</TabsTrigger>
       </TabsList>
       <TabsContent value="all">
         <All />
@@ -22,6 +24,9 @@ const AnalyticsTabs = () => {
       </TabsContent>
       <TabsContent value="Linkedin">
         <Linkedin />
+      </TabsContent>
+      <TabsContent value="Threads">
+        <Threads />
       </TabsContent>
     </Tabs>
   )
