@@ -1,4 +1,4 @@
-import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost } from "@prisma/client";
+import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTracking } from "@prisma/client";
 import { startOfWeek, endOfWeek, addDays, isBefore, startOfMonth, eachDayOfInterval } from "date-fns";
 
 /**
@@ -136,11 +136,11 @@ export function calculateEngagement(posts: PlatformPost[]): number {
 }
 
 export function calculateThisWeekPostSummaries(
-    planners: (CampaignPlanner & { chats: CampaignChat[] })[],
+    trackings: ProjectTracking[],
     posts: PlatformPost[]
 ) {
     return {
-        posts: calculateGapsandPostsDaysThisMonth(planners, '1WEEK').daysPosted,
+        posts: trackings.length,
         likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
         impressions: posts.reduce((sum, post) => sum + (post.impressions || 0), 0),
         uniqueImpressions: posts.reduce((sum, post) => sum + (post.uniqueImpressions || 0), 0),
