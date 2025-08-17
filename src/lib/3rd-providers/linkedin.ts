@@ -100,6 +100,7 @@ class Linkedin {
   async getMyPostInsights(pageId: string) {
     try {
       // Fetch all posts from the organization
+      console.log("Fetching Posts form Linkedin API");
       const postsRes = await this._client.get("/rest/posts", {
         params: { author: `urn:li:organization:${pageId}`, q: "author", count: 100 },
       });
@@ -113,16 +114,18 @@ class Linkedin {
       const insights: {
         postId: string;
         content: string;
-        totalLikes: number;
-        totalComments: number;
-        totalImpressions: number;
-        createdAt: number;
+        likes: number;
+        comments: number;
+        impressions: number;
+        uniqueImpressions: number;
+        shares: number;
+        date: Date;
       }[] = [];
 
       for (const post of posts) {
         const postId = post.id;
         const commentary = post.commentary || "";
-        const createdAt = post.createdAt;
+        const date = new Date(post.createdAt);
 
         // // Likes & comments
         // const reactionsRes = await this._client.get(`/rest/socialActions/${encodeURIComponent(postId)}`);
@@ -144,13 +147,14 @@ class Linkedin {
         insights.push({
           postId,
           content: commentary,
-          totalLikes: stats.likeCount || 0,
-          totalComments: stats.commentCount || 0,
-          totalImpressions: stats.impressionCount || 0,
-          // uniqueImpressions: stats.uniqueImpressionsCount || 0,
+          likes: stats.likeCount || 0,
+          comments: stats.commentCount || 0,
+          impressions: stats.impressionCount || 0,
+          uniqueImpressions: stats.uniqueImpressionsCount || 0,
+          shares: stats.shareCount || 0,
           // clicks: stats.clickCount || 0,
           // engagement: stats.engagement || 0,
-          createdAt,
+          date,
         });
       }
 

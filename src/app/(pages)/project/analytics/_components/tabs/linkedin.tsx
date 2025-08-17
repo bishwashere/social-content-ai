@@ -55,20 +55,20 @@ const Linkedin = () => {
       }
       <ViewAnalytics
         totalPosts={linkedin?.data?.length || 0}
-        totalComments={linkedin?.data?.reduce((sum, data) => sum + (data.totalComments || 0), 0) || 0}
-        totalLikes={linkedin?.data?.reduce((sum, data) => sum + (data.totalLikes || 0), 0) || 0}
+        totalComments={linkedin?.data?.reduce((sum, data) => sum + (data.comments || 0), 0) || 0}
+        totalLikes={linkedin?.data?.reduce((sum, data) => sum + (data.likes || 0), 0) || 0}
         totalFollowers={linkedin?.followersCount || 0}
-        totalImpressions={linkedin?.data?.reduce((sum, data) => sum + (data.totalImpressions || 0), 0) || 0}
+        totalImpressions={linkedin?.data?.reduce((sum, data) => sum + (data.impressions || 0), 0) || 0}
         chartData={linkedin?.data ?
           [...linkedin.data].reverse().map((data) => ({
-            label: new Date(data.createdAt).toLocaleDateString("en-US", {
+            label: new Date(data.date).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric"
             }),
-            totalComments: data.totalComments || 0,
-            totalImpressions: data.totalImpressions,
-            totalLikes: data.totalLikes || 0,
+            totalComments: data.comments || 0,
+            totalImpressions: data.impressions || 0,
+            totalLikes: data.likes || 0,
           }))
           : []
         }

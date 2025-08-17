@@ -10,7 +10,7 @@ import {
 import { projectService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { getWebsiteDescription } from "./actions";
+import { getProjectPulse, getWebsiteDescription } from "./actions";
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -120,7 +120,7 @@ export const useInviteUserToProject = () => {
       toast.success(message);
       queryClient.invalidateQueries({
         queryKey: ["projects"]
-      }); 
+      });
     },
   });
 };
@@ -145,5 +145,13 @@ export const useDeleteProject = () => {
 export const useGetWebsiteDescription = () => {
   return useMutation({
     mutationFn: getWebsiteDescription,
+  });
+};
+
+export const useGetProjectPulse = (projectId: string) => {
+  return useQuery({
+    queryKey: ["project-pulse", projectId],
+    queryFn: () => getProjectPulse(projectId),
+    enabled: !!projectId,
   });
 };

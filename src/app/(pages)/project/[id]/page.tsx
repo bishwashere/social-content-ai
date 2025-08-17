@@ -9,7 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetAllProjects } from "@/backend-apis/projects/hooks";
+import { useGetAllProjects, useGetProjectPulse } from "@/backend-apis/projects/hooks";
 import { Projects as Project } from "@prisma/client";
 import QuickGenerate from "./_components/quick-generate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ import CampaignPlannerPage from "./_components/campaing-planner";
 import History from "./_components/history";
 import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled"] as const;
 
@@ -43,6 +44,10 @@ function ProjectPage() {
     router.replace(`${window.location.pathname}?${params.toString()}`);
   };
 
+  const { data: projectPulse } = useGetProjectPulse(id as string);
+
+  console.log(projectPulse)
+
   if (projects.isLoading)
     return (
       <div className="p-6 space-y-6 items-center justify-center">
@@ -65,6 +70,20 @@ function ProjectPage() {
 
   return (
     <div className="flex-grow max-w-5xl mx-auto py-6 px-6 md:px-14 xl:px-20 space-y-6">
+      {projectPulse &&
+        <Alert
+          className="cursor-pointer flex items-center gap-2  border-green-500 px-2 py-2 -mt-5"
+        >
+          <div className="text-green-600 text-xs flex flex-col gap-1">
+            <p>
+              <strong>Project Pulse:</strong> {projectPulse.pulse}%, <strong>Streak:</strong> {projectPulse.postedDays} days posted, {projectPulse.gapDays} days without posts this month
+            </p>
+            <p>
+              <strong>This Week:</strong> {projectPulse.thiwWeekPostSummaries.posts} posts, {projectPulse.thiwWeekPostSummaries.impressions} impressions, {projectPulse.thiwWeekPostSummaries.uniqueImpressions} unique impression {'->'} ER: {projectPulse.thiwWeekPostSummaries.er}%, Cadence: {projectPulse.components.cadence}
+            </p>
+          </div>
+        </Alert>
+      }
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
           <TabsTrigger value="generate" onClick={() => handleTabChange("generate")}>

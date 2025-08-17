@@ -82,6 +82,9 @@ export const getLinkedinMetrics = async (pageId: string) => {
         pageId,
         platform: "linkedin",
       },
+      include: {
+        pagePosts: true,
+      }
     });
 
     if (!oauthProvider || !oauthProvider.expiresAt) {
@@ -91,6 +94,16 @@ export const getLinkedinMetrics = async (pageId: string) => {
       };
     }
 
+    if (oauthProvider.pagePosts.length) {
+      // Reutrn data from db
+      return {
+        sucess: true,
+        data: oauthProvider.pagePosts,
+        followersCount: oauthProvider.pageFollowers
+      }
+    }
+
+    // Otherwise fetch from linkedin and save to db and return as well
     const l = new Linkedin({
       accessToken: oauthProvider.accessToken,
       expiresAt: oauthProvider.expiresAt,
@@ -99,9 +112,32 @@ export const getLinkedinMetrics = async (pageId: string) => {
 
     const followersCount = await l.getFollowersCount(pageId);
 
+    const data = await prisma.oauthProvider.update({
+      where: { id: oauthProvider.id },
+      data: {
+        pageFollowers: followersCount,
+        pagePosts: {
+          create: metrics.map(post => ({
+            postId: post.postId,
+            content: post.content,
+            likes: post.likes,
+            comments: post.comments,
+            shares: post.shares,
+            impressions: post.impressions,
+            uniqueImpressions: post.uniqueImpressions,
+            date: post.date,
+          })),
+        },
+      },
+      include: {
+        pagePosts: true,
+      }
+    });
+
+
     return {
       success: true,
-      data: metrics,
+      data: data.pagePosts,
       followersCount: followersCount
     };
   } catch (error) {
