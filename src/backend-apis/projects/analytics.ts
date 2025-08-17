@@ -132,7 +132,7 @@ export function calculateEngagement(posts: PlatformPost[]): number {
     if (engagementRates.length === 0) return 0;
 
     const avgEngagement = engagementRates.reduce((a, b) => a + b, 0) / engagementRates.length;
-    return avgEngagement * 100;
+    return Number((avgEngagement * 100).toFixed(2));
 }
 
 export function calculateThisWeekPostSummaries(
