@@ -84,7 +84,7 @@ class Fb {
       this._baseUrl +
       "/" +
       pageId +
-      "/posts?fields=id,message,reactions.type(LIKE).summary(total_count).limit(0),comments.summary(total_count).limit(0),insights.metric(post_impressions,post_impressions_unique)&access_token=" +
+      "/posts?fields=id,message,shares,created_time,reactions.type(LIKE).summary(total_count).limit(0),comments.summary(total_count).limit(0),insights.metric(post_impressions,post_impressions_unique)&access_token=" +
       this._accessToken
     );
   }
@@ -98,6 +98,8 @@ class Fb {
       let posts: {
         id: string;
         message: string;
+        created_time: string;
+        shares: number;
         reactions: {
           summary: {
             total_count: number;
@@ -139,6 +141,8 @@ class Fb {
       const normalizedData = posts.map((post) => ({
         id: post.id,
         message: post.message,
+        date: post.created_time,
+        shares: post.shares || 0,
         reactions: post.reactions?.summary?.total_count,
         comments: post.comments?.summary?.total_count,
         impressions: post.insights?.data?.find(
