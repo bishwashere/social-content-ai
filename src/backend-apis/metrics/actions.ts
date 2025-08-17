@@ -50,30 +50,73 @@ export const fetchRedditPostsData = async (
 };
 
 export const getFacebookMetrics = async (pageId: string) => {
-  const oauthProvider = await prisma.oauthProvider.findFirst({
-    where: {
-      pageId,
-      platform: "facebook",
-    },
-  });
+  try {
+    // Step 1: Find OAuth provider and existing posts
+    const oauthProvider = await prisma.oauthProvider.findFirst({
+      where: {
+        pageId,
+        platform: "facebook",
+      },
+      include: {
+        pagePosts: true,
+      },
+    });
 
-  if (!oauthProvider) {
+    if (!oauthProvider) {
+      return {
+        success: false,
+        message: "Facebook page not found",
+      };
+    }
+
+    // Step 2: Return from DB if posts already exist
+    if (oauthProvider.pagePosts.length) {
+      return {
+        success: true,
+        data: oauthProvider.pagePosts,
+      };
+    }
+
+    // Step 3: Fetch from Facebook API
+    const fb = new Fb({
+      accessToken: oauthProvider.accessToken,
+      refreshToken: oauthProvider.refreshToken!,
+    });
+    const metrics = await fb.getMyPostInsights(pageId);
+
+    // Step 4: Map API response to DB structure
+    const postsToSave = metrics.map((post) => ({
+      postId: post.id,
+      content: post.message || "No message",
+      date: new Date(post.date),
+      shares: post.shares || 0,
+      likes: post.reactions || 0,
+      comments: post.comments || 0,
+      impressions: post.impressions,
+      uniqueImpressions: post.uniqueImpressions,
+    }));
+
+    // Step 5: Save to DB
+    const data = await prisma.oauthProvider.update({
+      where: { id: oauthProvider.id },
+      data: {
+        pagePosts: {
+          create: postsToSave,
+        },
+      },
+      include: {
+        pagePosts: true,
+      },
+    });
+
     return {
-      success: false,
-      message: "Facebook page not found",
+      success: true,
+      data: data.pagePosts,
     };
+  } catch (error) {
+    console.error("Error fetching Facebook metrics:", error);
+    throw new Error("Could not load Facebook data!");
   }
-
-  const fb = new Fb({
-    accessToken: oauthProvider.accessToken,
-    refreshToken: oauthProvider.refreshToken!,
-  });
-  const metrics = await fb.getMyPostInsights(pageId);
-
-  return {
-    success: true,
-    data: metrics,
-  };
 };
 
 export const getLinkedinMetrics = async (pageId: string) => {

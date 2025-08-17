@@ -50,14 +50,14 @@ const Facebook = () => {
       <ViewAnalytics
         totalPosts={fb.data?.data?.length || 0}
         totalComments={fb.data?.data?.reduce((sum, data) => sum + (data.comments || 0), 0) || 0}
-        totalLikes={fb.data?.data?.reduce((sum, data) => sum + (data.reactions || 0), 0) || 0}
+        totalLikes={fb.data?.data?.reduce((sum, data) => sum + (data.likes || 0), 0) || 0}
         totalFollowers={0}
         totalImpressions={fb.data?.data?.reduce((sum, data) => sum + (data.impressions || 0), 0) || 0}
         chartData={fb.data?.data?.map((data) => ({
-          label: data.message?.substring(0, 20) + "...",
+          label: data.content?.substring(0, 20) + "...",
           totalComments: data.comments || 0,
           totalImpressions: data.impressions || 0,
-          totalLikes: data.reactions || 0,
+          totalLikes: data.likes || 0,
         })) || []}
       />
     </div>
