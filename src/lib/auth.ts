@@ -102,7 +102,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           const authProviders: Omit<
             OauthProvider,
-            "id" | "createdAt" | "updatedAt"
+            "id" | "createdAt" | "updatedAt" | "pageFollowers"
           >[] = [];
 
           // handle the auth provider

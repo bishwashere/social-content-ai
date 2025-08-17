@@ -139,6 +139,7 @@ export const generateCampaignChat = async (props: {
   prompt: string;
   userId: string;
   day: number;
+  productRelated: boolean;
 }) => {
   console.log("Props", props);
 
@@ -253,7 +254,7 @@ export const generateCampaignChat = async (props: {
     projectDescription: project.description,
     projectName: project.name,
     projectId: props.projectId || "",
-    projectRelated: true,
+    projectRelated: props.productRelated,
     platforms: platforms,
     ...(redditPopularPost
       ? {

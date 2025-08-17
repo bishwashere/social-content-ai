@@ -159,10 +159,12 @@ model OauthProvider {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   isPersonal       Boolean       @default(false)
+  pageFollowers    Int           @default(0)
 
   user                    User?                    @relation(fields: [userId], references: [id])
   projectToOAuthProviders ProjectToOAuthProvider[]
   scheduledPosts          ScheduledPost[]
+  pagePosts               PlatformPost[]
 
   @@unique([userId, pageId, platform])
   @@map("oauth-providers")
@@ -288,4 +290,23 @@ model SubredditPopularPosts {
   posts     Json
 
   @@map("subreddit-popular-posts")
+}
+
+model PlatformPost {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId            String
+  oauthProviderId   String   @db.ObjectId
+  date              DateTime
+  content           String
+  likes             Int
+  comments          Int
+  shares            Int      @default(0)
+  impressions       Int?
+  uniqueImpressions Int?
+  media             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  oauthProvider OauthProvider @relation(fields: [oauthProviderId], references: [id], onDelete: Cascade)
 }

@@ -70,11 +70,13 @@ export const useGenerateCampaignChat = () => {
       id,
       prompt,
       day,
+      productRelated,
     }: {
       projectId: string;
       id: string;
       prompt: string;
       day: number;
+      productRelated: boolean;
     }) =>
       generateCampaignChat({
         projectId,
@@ -82,6 +84,7 @@ export const useGenerateCampaignChat = () => {
         prompt,
         userId: session?.user?.id as string,
         day,
+        productRelated,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
