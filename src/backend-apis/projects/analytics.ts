@@ -135,9 +135,12 @@ export function calculateEngagement(posts: PlatformPost[]): number {
     return avgEngagement * 100;
 }
 
-export function calculateThisWeekPostSummaries(posts: PlatformPost[]) {
+export function calculateThisWeekPostSummaries(
+    planners: (CampaignPlanner & { chats: CampaignChat[] })[],
+    posts: PlatformPost[]
+) {
     return {
-        posts: posts.length,
+        posts: calculateGapsandPostsDaysThisMonth(planners, '1WEEK').daysPosted,
         likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
         impressions: posts.reduce((sum, post) => sum + (post.impressions || 0), 0),
         uniqueImpressions: posts.reduce((sum, post) => sum + (post.uniqueImpressions || 0), 0),
@@ -145,27 +148,41 @@ export function calculateThisWeekPostSummaries(posts: PlatformPost[]) {
     }
 }
 
-export function calculateGapsandPostsDaysThisMonth(posts: ScheduledPost[]) {
+export function calculateGapsandPostsDaysThisMonth(
+    planners: (CampaignPlanner & { chats: CampaignChat[] })[],
+    type: '1MONTH' | '1WEEK'
+) {
     const today = new Date();
-    const firstDay = startOfMonth(today);
+    const firstDay = type === '1MONTH' ? startOfMonth(today) : startOfWeek(today, {weekStartsOn: 1});
 
-    // Filter posts with status "success" in this month
-    const postsThisMonth = posts.filter(
-        post =>
-            post.status === "success" &&
-            post.date >= firstDay &&
-            post.date <= today
-    );
+    // Collect unique days where at least one chat has a tickMark true
+    const postedDays = new Set<string>();
 
-    // Unique days on which posts were published
-    const postedDays = new Set(
-        postsThisMonth.map(post => post.date.toDateString())
-    ).size;
+    for (const planner of planners) {
+        for (const chat of planner.chats) {
+            const tickMark = chat.tickMark as unknown as Record<string, boolean>;
+            if (!tickMark || !Object.values(tickMark).some(Boolean)) {
+                continue;
+            }
 
-    // Total days from start of month to today
+            const chatDate = addDays(planner.startDate!, chat.day - 1);
+            if (chatDate >= firstDay && chatDate <= today) {
+                postedDays.add(chatDate.toDateString());
+            }
+        }
+    }
+    if(type==='1WEEK'){
+        console.log("BB")
+        console.log(firstDay)
+        console.log(postedDays)
+    }
+
+    // total days in this month (till today)
     const totalDays = eachDayOfInterval({ start: firstDay, end: today }).length;
 
-    const gapDays = totalDays - postedDays;
+    const daysPosted = postedDays.size;
+    const gapDays = totalDays - daysPosted;
 
-    return { postedDays, gapDays };
+    return { daysPosted, gapDays };
 }
+

@@ -76,7 +76,7 @@ function ProjectPage() {
         >
           <div className="text-green-600 text-xs flex flex-col gap-1">
             <p>
-              <strong>Project Pulse:</strong> {projectPulse.pulse}%, <strong>Streak:</strong> {projectPulse.postedDays} days posted, {projectPulse.gapDays} days without posts this month
+              <strong>Project Pulse:</strong> {projectPulse.pulse}%, <strong>Streak:</strong> {projectPulse.daysPosted} days posted, {projectPulse.gapDays} days without posts this month
             </p>
             <p>
               <strong>This Week:</strong> {projectPulse.thiwWeekPostSummaries.posts} posts, {projectPulse.thiwWeekPostSummaries.impressions} impressions, {projectPulse.thiwWeekPostSummaries.uniqueImpressions} unique impression {'->'} ER: {projectPulse.thiwWeekPostSummaries.er}%, Cadence: {projectPulse.components.cadence}
