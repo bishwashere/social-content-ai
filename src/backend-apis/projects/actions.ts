@@ -3,7 +3,15 @@ import { AI } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { calculateCadence, calculateCoverage, calculateEngagement, calculateGapsandPostsDaysThisMonth, calculateOnTime, calculatePlanProgress, calculateThisWeekPostSummaries } from "./analytics";
+import {
+  calculateCadence,
+  calculateCoverage,
+  calculateEngagement,
+  calculateGapsandPostsDaysThisMonth,
+  calculateOnTime,
+  calculatePlanProgress,
+  calculateThisWeekPostSummaries,
+} from "./analytics";
 import { endOfWeek, startOfWeek, subWeeks } from "date-fns";
 
 export async function getWebsiteDescription(url: string) {
@@ -40,44 +48,53 @@ export async function getWebsiteDescription(url: string) {
   }
 }
 
-
 export async function getProjectPulse(projectId: string) {
+  console.log("Getting project pulse for:", projectId);
+  const [planners, scheduledPosts, oauthProviders, projectTracking] =
+    await Promise.all([
+      prisma.campaignPlanner.findMany({
+        where: { projectId },
+        include: { chats: true },
+      }),
+      prisma.scheduledPost.findMany({
+        where: { projectId },
+      }),
+      prisma.projectToOAuthProvider.findMany({
+        where: {
+          projectId,
+        },
+        select: {
+          oauthProvider: {
+            select: {
+              pagePosts: true,
+            },
+          },
+        },
+      }),
+      prisma.projectTracking.findMany({
+        where: {
+          projectId,
+        },
+      }),
+    ]);
 
-  const [planners, scheduledPosts, oauthProviders] = await Promise.all([
-    prisma.campaignPlanner.findMany({
-      where: { projectId },
-      include: { chats: true },
-    }),
-    prisma.scheduledPost.findMany({
-      where: { projectId },
-    }),
-    prisma.projectToOAuthProvider.findMany({
-      where: {
-        projectId,
-      },
-      select: {
-        oauthProvider: {
-          select: {
-            pagePosts: true,
-          }
-        }
-      }
-    }),
-  ]);
+  const platformPosts = oauthProviders.flatMap(
+    (provider) => provider.oauthProvider?.pagePosts ?? []
+  );
 
-  const platformPosts = oauthProviders.flatMap(provider => provider.oauthProvider?.pagePosts ?? []);
+  console.log(oauthProviders);
 
   // Filter posts for last 4 weeks
   const fourWeeksAgo = subWeeks(new Date(), 4);
   const postsLast4Weeks = platformPosts.filter(
-    post => post.date >= fourWeeksAgo
+    (post) => post.date >= fourWeeksAgo
   );
 
   // Filter posts for this week
   const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const thisWeekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
   const postsThisWeek = platformPosts.filter(
-    post => post.date >= thisWeekStart && post.date <= thisWeekEnd
+    (post) => post.date >= thisWeekStart && post.date <= thisWeekEnd
   );
 
   const cadence = calculateCadence(planners);
@@ -94,9 +111,18 @@ export async function getProjectPulse(projectId: string) {
     0.1 * coverage +
     0.1 * planProgress;
 
-  const thiwWeekPostSummaries = calculateThisWeekPostSummaries(planners, postsThisWeek);
+  console.log("postsThisWeek", postsThisWeek);
 
-  const streak = calculateGapsandPostsDaysThisMonth(planners, '1MONTH');
+  const projectTrackingThisWeek = projectTracking.filter(
+    (post) => post.date >= thisWeekStart && post.date <= thisWeekEnd
+  );
+
+  const thiwWeekPostSummaries = calculateThisWeekPostSummaries(
+    projectTrackingThisWeek,
+    postsThisWeek
+  );
+
+  const streak = calculateGapsandPostsDaysThisMonth(planners, "1MONTH");
 
   return {
     pulse: Math.round(pulse),
@@ -108,6 +134,6 @@ export async function getProjectPulse(projectId: string) {
       planProgress,
     },
     thiwWeekPostSummaries,
-    ...streak
+    ...streak,
   };
 }
