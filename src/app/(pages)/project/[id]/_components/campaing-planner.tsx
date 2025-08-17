@@ -85,6 +85,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [name, setName] = useState<string>('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(Object.keys(ICONS));
   const [showCampaignForm, setShowCampaignForm] = useState(false);
+  const [productRelated, setProductRelated] = useState(true);
   const [isCalenderOpen, setIsCalenderOpen] = useState<string[]>([]);   // array of ids
   const updateCampaignData = useChangeCampaignData();
   const deleteCampaignFromDb = useDeleteCampaign();
@@ -170,7 +171,8 @@ export default function CampaignPlannerPage({ project }: Props) {
         projectId: projectId,
         id: campaignId,
         prompt: getPrompt(`Day: ${day} Title: ${title}`),
-        day: day
+        day: day,
+        productRelated
       });
       if (!success) {
         toast.error(message || "Failed to generate campaign chat");
@@ -372,6 +374,19 @@ export default function CampaignPlannerPage({ project }: Props) {
               </div>
             </div>
 
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={productRelated}
+                onCheckedChange={(checked) => setProductRelated(checked as boolean)}
+                id="checked" />
+              <label
+                htmlFor="checked"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Related to product
+              </label>
+            </div>
+
             <Button
               size="lg"
               className="w-full"
@@ -566,8 +581,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                     <div>
                       {isOpen && (
                         <>
-                          <div className="flex justify-end px-4">
-                            <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)}>
+                          <div className="flex ml-0 md:ml-32 px-4">
+                            <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="w-full rounded-lg border mb-5">
                               {showPast ? "Hide Past Days" : "Show Past Days"}
                               <ChevronsUpDown />
                             </Button>
@@ -693,7 +708,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
                                                       const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
 
-                                                  
+
                                                       if (!finalUrl) return null;
 
                                                       return (
