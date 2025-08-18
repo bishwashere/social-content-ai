@@ -52,7 +52,7 @@ const LinkedinPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) 
                     />
                     <div className="flex flex-col gap-0">
                         <h2 className="font-bold">{post.oauthProvider && post.oauthProvider.pageName ? post.oauthProvider.pageName : 'Your Name'}</h2>
-                        <p className="text-muted-foreground text-sm">Your linkedin profile title</p>
+                        <p className="text-muted-foreground text-xs">{post.oauthProvider?.pageFollowers || 0} followers</p>
                         <div className="flex items-center">
                             <span className="text-muted-foreground text-xs">1d</span>
                             <Dot className="stroke-muted-foreground size-4" />
@@ -66,7 +66,7 @@ const LinkedinPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) 
                 </div>
             </div>
             <div className="w-full" style={{ whiteSpace: "pre-wrap" }}>
-                <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} />
+                <EditableContent id={post.id} content={post.content} viewContentEdit={viewContentEdit} setViewContentEdit={setViewContentEdit} media={post.media} />
             </div>
             <div className="w-full mt-3 flex gap-1">
                 <img src="/linkedin-reactions.png" className="w-10 h-auto" />

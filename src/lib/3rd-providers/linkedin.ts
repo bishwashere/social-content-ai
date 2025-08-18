@@ -1,4 +1,6 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
+import { get } from 'https';
+import { s3 } from "../s3";
 
 class Linkedin {
   private _accessToken: string;
@@ -69,9 +71,51 @@ class Linkedin {
     return res.data.downloadUrl as string;
   }
 
-  async postToPage(pageId: string, content: string) {
+  async uploadToLinkedin(ownerUrn: string, mediaUrl: string) {
+
+    // Register/Initialize Upload
+    const res = await this._client.post('/rest/images?action=initializeUpload', { initializeUploadRequest: { owner: `urn:li:organization:${ownerUrn}` } });
+
+    const registerUploadData = {
+      uploadUrl: res.data.value.uploadUrl,
+      asset: res.data.value.image, // URN like "urn:li:image:..."
+    };
+
+    // Download image from URL into buffer
+    const signedUrl = await s3.getSignedUrlForVideoDownload(mediaUrl);
+    const imageBuffer = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: any[] = [];
+      get(signedUrl, (resp) => {
+        resp.on('data', chunk => chunks.push(chunk));
+        resp.on('end', () => resolve(Buffer.concat(chunks)));
+        resp.on('error', reject);
+      });
+    });
+
+    // Upload binary to LinkedIn
+    const data = await axios.put(registerUploadData.uploadUrl, imageBuffer, {
+      headers: {
+        "Authorization": `Bearer ${this._accessToken}`,
+        "Content-Type": "application/octet-stream"
+      },
+      maxBodyLength: Infinity,
+    });
+    if(data.status === 201 || data.status === 200) {
+      console.log("Post Image uploaded to Linkedin");
+    }
+
+    return registerUploadData.asset;
+  }
+
+  async postToPage(pageId: string, content: string, media: string | null) {
     try {
-      const { data } = await this._client.post("/rest/posts", {
+      let mediaUrn: string | undefined;
+
+      if (media) {
+        mediaUrn = await this.uploadToLinkedin(pageId, media);
+      }
+
+      const payload: any = {
         author: `urn:li:organization:${pageId}`,
         commentary: content,
         visibility: "PUBLIC",
@@ -80,22 +124,26 @@ class Linkedin {
           targetEntities: [],
           thirdPartyDistributionChannels: []
         },
-        // content: {
-        //   media: {
-        //     title: "title of the video",
-        //     id: "urn:li:video:C5F10AQGKQg_6y2a4sQ"
-        //   }
-        // },
         lifecycleState: "PUBLISHED",
         isReshareDisabledByAuthor: false
-      });
+      };
 
+      // Only attach media if present
+      if (mediaUrn) {
+        payload.content = {
+          media: {
+            id: mediaUrn
+          }
+        };
+      }
+
+      const { data } = await this._client.post("/rest/posts", payload);
       return data;
-    }
-    catch (err) {
+    } catch (err) {
       throw err;
     }
   }
+
 
   async getMyPostInsights(pageId: string) {
     try {
