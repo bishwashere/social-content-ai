@@ -44,6 +44,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -82,8 +83,20 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+.rbc-month-row {
+  display: inline-table !important;
+  flex: 0 0 0 !important;
+  min-height: 90px !important;
+}
+@media (max-width: 640px) {
+  .rbc-month-row {
+    min-height: 60px !important;
   }
 }
 
@@ -91,18 +104,22 @@ body {
 .hide-time-gutter .rbc-time-content {
   display: none !important;
 }
+
 .hide-time-gutter .rbc-time-view {
   border: none;
   display: flex;
   flex-direction: column;
 }
+
 .hide-time-gutter .rbc-time-header {
   border-bottom: none;
 }
+
 .hide-time-gutter .rbc-events-container {
   margin: 0 !important;
   width: 100% !important;
 }
+
 .hide-time-gutter .rbc-event {
   padding: 4px 8px;
   margin: 2px 0;
@@ -110,6 +127,7 @@ body {
   position: relative !important;
   top: 0 !important;
 }
+
 .hide-time-gutter .rbc-day-slot {
   min-height: auto !important;
   display: flex !important;
@@ -117,10 +135,12 @@ body {
   gap: 4px !important;
   padding: 8px !important;
 }
+
 .hide-time-gutter .rbc-header {
   padding: 8px !important;
   font-weight: 600;
 }
+
 .hide-time-gutter .rbc-time-header-content {
   border-left: none !important;
 }

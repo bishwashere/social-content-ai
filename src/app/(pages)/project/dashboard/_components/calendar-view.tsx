@@ -43,7 +43,7 @@ function EventInfo({ event }: { event: MyEvent }) {
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
+          <div className="text-white text-xs rounded cursor-pointer truncate flex gap-2 items-center">
             {event.title.length > 4 ? event.title.slice(0, 4) + ".." : event.title}
             <div className="flex gap-1">
               {event.platforms?.map((p: string) => (
@@ -119,34 +119,34 @@ function CustomToolbar({ label, onNavigate, date }: ToolbarProps<MyEvent>) {
   );
 }
 
-// Custom Weekly Event Component
-function WeeklyEventInfo({ event }: { event: MyEvent }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center">
-          {event.title.length > 4 ? event.title.slice(0, 4) + ".." : event.title}
-          <div className="flex gap-1">
-            {event.platforms?.map((p: string) => (
-              <div className="bg-white p-0.5 rounded-sm" key={p}>
-                {PLATFORMS.find(platform => platform.key === p)?.icon}
-              </div>
-            ))}
-          </div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p className="text-sm font-medium">{event.title}</p>
-        <p className="text-sm">({event.platforms?.join(", ")})</p>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
+// // Custom Weekly Event Component
+// function WeeklyEventInfo({ event }: { event: MyEvent }) {
+//   return (
+//     <Tooltip>
+//       <TooltipTrigger asChild>
+//         <div className="text-white text-xs sm:p-1 rounded cursor-pointer truncate flex gap-2 items-center">
+//           {event.title.length > 4 ? event.title.slice(0, 4) + ".." : event.title}
+//           <div className="flex gap-1">
+//             {event.platforms?.map((p: string) => (
+//               <div className="bg-white p-0.5 rounded-sm" key={p}>
+//                 {PLATFORMS.find(platform => platform.key === p)?.icon}
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//       </TooltipTrigger>
+//       <TooltipContent>
+//         <p className="text-sm font-medium">{event.title}</p>
+//         <p className="text-sm">({event.platforms?.join(", ")})</p>
+//       </TooltipContent>
+//     </Tooltip>
+//   );
+// }
 
 export default function CalendarView() {
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState("month");
-  const [calendarHeight, setCalendarHeight] = useState(650);
+  const [calendarHeight, setCalendarHeight] = useState(1050);
   const projects = useGetAllProjects();
 
   const events = useMemo(() => {
@@ -180,7 +180,7 @@ export default function CalendarView() {
   // Responsive height for mobile
   useEffect(() => {
     const handleResize = () => {
-      setCalendarHeight(window.innerWidth < 768 ? 450 : 650);
+      setCalendarHeight(window.innerWidth < 768 ? 450 : 950);
     };
     handleResize();
     window.addEventListener("resize", handleResize);
@@ -218,12 +218,13 @@ export default function CalendarView() {
           onView={setView}
           components={{
             toolbar: CustomToolbar,
-            event: view === "month" ? EventInfo : WeeklyEventInfo,
+            // event: view === "month" ? EventInfo : WeeklyEventInfo,
+            event: EventInfo,
             timeGutterHeader: () => null,
             timeGutterCell: () => null
           }}
           views={["month", "week"]}
-          style={{ height: calendarHeight }}
+          // style={{ height: "auto" }}
           formats={{
             timeGutterFormat: () => "",
             dayRangeHeaderFormat: ({ start, end }) =>
