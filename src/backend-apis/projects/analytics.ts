@@ -1,5 +1,5 @@
 import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTracking } from "@prisma/client";
-import { startOfWeek, endOfWeek, addDays, isBefore, startOfMonth, eachDayOfInterval } from "date-fns";
+import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks } from "date-fns";
 
 /**
  * Cadence = posted_this_week / planned_this_week (capped 100)
@@ -7,8 +7,8 @@ import { startOfWeek, endOfWeek, addDays, isBefore, startOfMonth, eachDayOfInter
 export function calculateCadence(
     planners: (CampaignPlanner & { chats: CampaignChat[] })[]
 ): number {
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+    const startDate = subWeeks(new Date(), 1);
+    const endDate = new Date();
 
     let plannedThisWeek = 0;
     let postedThisWeek = 0;
@@ -20,7 +20,7 @@ export function calculateCadence(
             // derive chatDate = planner.startDate + (day - 1)
             const chatDate = addDays(new Date(planner.startDate), chat.day - 1);
 
-            if (chatDate >= weekStart && chatDate <= weekEnd) {
+            if (chatDate >= startDate && chatDate <= endDate) {
                 // this chat is planned for this week
                 plannedThisWeek += planner.platforms.length;
 
@@ -139,6 +139,18 @@ export function calculateThisWeekPostSummaries(
     trackings: ProjectTracking[],
     posts: PlatformPost[]
 ) {
+    // const d = {
+    //     posts: trackings.length,
+    //     likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
+    //     impressions: posts.reduce((sum, post) => sum + (post.impressions || 0), 0),
+    //     shares: posts.reduce((sum, post) => sum + (post.shares || 0), 0),
+    //     comments: posts.reduce((sum, post) => sum + (post.comments || 0), 0),
+    // }
+    // console.log("Last 1 week data");
+    // console.log(d);
+    // console.log("ER (like+comment+share)/impressions : ", (d.likes + d.comments + d.shares) / d.impressions);
+    // console.log("Normalized ER (calculation Er per post and then average) : ", calculateEngagement(posts));
+
     return {
         posts: trackings.length,
         likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
@@ -153,7 +165,7 @@ export function calculateGapsandPostsDaysThisMonth(
     type: '1MONTH' | '1WEEK'
 ) {
     const today = new Date();
-    const firstDay = type === '1MONTH' ? startOfMonth(today) : startOfWeek(today, {weekStartsOn: 1});
+    const firstDay = type === '1MONTH' ? startOfMonth(today) : subWeeks(today, 1);
 
     // Collect unique days where at least one chat has a tickMark true
     const postedDays = new Set<string>();
@@ -170,11 +182,6 @@ export function calculateGapsandPostsDaysThisMonth(
                 postedDays.add(chatDate.toDateString());
             }
         }
-    }
-    if(type==='1WEEK'){
-        console.log("BB")
-        console.log(firstDay)
-        console.log(postedDays)
     }
 
     // total days in this month (till today)
