@@ -17,7 +17,7 @@ import CampaignPlannerPage from "./_components/campaing-planner";
 import History from "./_components/history";
 import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 
 const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled"] as const;
 
@@ -69,21 +69,8 @@ function ProjectPage() {
     );
 
   return (
-    <div className="flex-grow max-w-5xl mx-auto py-6 px-6 md:px-14 xl:px-20 space-y-6">
-      {projectPulse &&
-        <Alert
-          className="cursor-pointer flex items-center gap-2  border-green-500 px-2 py-2 -mt-5"
-        >
-          <div className="text-green-600 text-xs flex flex-col gap-1">
-            <p>
-              <strong>Project Pulse:</strong> {projectPulse.pulse}%, <strong>Streak:</strong> {projectPulse.daysPosted} days posted, {projectPulse.gapDays} days without posts this month
-            </p>
-            <p>
-              <strong>This Week:</strong> {projectPulse.thiwWeekPostSummaries.posts} posts, {projectPulse.thiwWeekPostSummaries.impressions} impressions, {projectPulse.thiwWeekPostSummaries.uniqueImpressions} unique impression {'->'} ER: {projectPulse.thiwWeekPostSummaries.er}%, Cadence: {projectPulse.components.cadence}
-            </p>
-          </div>
-        </Alert>
-      }
+    <div className="flex-grow max-w-5xl mx-auto py-6 px-6 md:px-14 xl:px-20 space-y-6 -mt-5">
+      {projectPulse && <ProjectPulseMetrics projectPulse={projectPulse} />}
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
           <TabsTrigger value="generate" onClick={() => handleTabChange("generate")}>
