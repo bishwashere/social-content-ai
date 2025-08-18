@@ -12,7 +12,7 @@ import {
   calculatePlanProgress,
   calculateThisWeekPostSummaries,
 } from "./analytics";
-import { endOfWeek, startOfWeek, subWeeks } from "date-fns";
+import { subWeeks } from "date-fns";
 
 export async function getWebsiteDescription(url: string) {
   try {
@@ -91,10 +91,10 @@ export async function getProjectPulse(projectId: string) {
   );
 
   // Filter posts for this week
-  const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const thisWeekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+  const startDate = subWeeks(new Date(), 1);
+  const endDate = new Date();
   const postsThisWeek = platformPosts.filter(
-    (post) => post.date >= thisWeekStart && post.date <= thisWeekEnd
+    (post) => post.date >= startDate && post.date <= endDate
   );
 
   const cadence = calculateCadence(planners);
@@ -114,7 +114,7 @@ export async function getProjectPulse(projectId: string) {
   console.log("postsThisWeek", postsThisWeek);
 
   const projectTrackingThisWeek = projectTracking.filter(
-    (post) => post.date >= thisWeekStart && post.date <= thisWeekEnd
+    (post) => post.date >= startDate && post.date <= endDate
   );
 
   const thiwWeekPostSummaries = calculateThisWeekPostSummaries(
