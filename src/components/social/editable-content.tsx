@@ -84,13 +84,26 @@ const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, med
           </div>
         </div>
       ) : (
-        <Markdown>
-          {content
-            .split("\n")
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .join("\n\n")}
-        </Markdown>
+        <>
+          <Markdown>
+            {media && content.length > 150 ?
+              content
+                .slice(0, 150)
+                .split("\n")
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join("\n\n")
+              + "...more"
+              :
+              content
+                .split("\n")
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join("\n\n")
+            }
+          </Markdown>
+          {media && <img src={media} alt="Media" className="w-full h-auto" />}
+        </>
       )}
     </div>
   )

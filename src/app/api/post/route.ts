@@ -296,7 +296,8 @@ export const GET = applyMiddleware(
             oauthProvider.pageId || "",
             oauthProvider.accessToken,
             oauthProvider.expiresAt || 0,
-            post.content
+            post.content,
+            post.media
           );
 
           if (linkedinResult.success) {
@@ -607,14 +608,15 @@ async function postToLinkedin(
   pageId: string,
   accessToken: string,
   expiresAt: number,
-  content: string
+  content: string,
+  media: string | null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("📘 Posting to Linkedin page : ", pageId);
 
     // Post to the Linkedin page
     const l = new Linkedin({ accessToken, expiresAt });
-    const data = await l.postToPage(pageId, content);
+    const data = await l.postToPage(pageId, content, media);
     console.log("✅ Successfully posted to Linkedin:", data);
 
     return { success: true };
