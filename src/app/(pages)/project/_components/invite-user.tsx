@@ -124,7 +124,7 @@ export function InviteUserDialog() {
             <ol className="list-disc ml-4 text-sm">
               {
                 invitedUsers.map(user => (
-                  <li key={user.id}>{user.user.name} - {user.role}</li>
+                  <li key={user.id}>{user.user.name} - {user.user.email} - {user.role}</li>
                 ))
               }
             </ol>
