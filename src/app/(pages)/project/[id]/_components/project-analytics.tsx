@@ -205,7 +205,7 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
         <div className="flex flex-col w-full gap-3 mt-5">
             {metrics.length ? metrics.map((metric) => {
                 return (
-                    <ProjectAnalyticsGraph data={metric} />
+                    <ProjectAnalyticsGraph key={metric.label} data={metric} />
                 );
             })
                 :
