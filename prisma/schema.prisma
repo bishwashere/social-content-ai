@@ -322,5 +322,7 @@ model ProjectPulse {
   projectId             String   @db.ObjectId
   createdAt             DateTime @default(now())
 
+   @@map("project-pulse")
+
   project Projects @relation(fields: [projectId], references: [id])
 }
