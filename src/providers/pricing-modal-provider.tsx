@@ -22,7 +22,7 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
   const [open, setOpen] = useState(false);
   const [coinsModalOpen, setCoinsModalOpen] = useState(false);
   const handleCoinsFinished = () => {
-    if (data?.subscription?.status === "trial") {
+    if (data?.subscription?.status === "trial" || data?.subscription?.status === "trialing") {
       setOpen(true)
     } else {
       setCoinsModalOpen(true)

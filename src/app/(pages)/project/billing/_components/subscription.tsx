@@ -2,6 +2,7 @@ import {
   useCreateCheckoutSession,
   useGetSubscription,
   useManageSubscription,
+  useUpgradeTrialToPro,
 } from "@/backend-apis/payment/hooks";
 import React, { useState } from "react";
 import {
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import StatusBadge from "@/components/common/status-badge";
 import { formatDate } from "@/lib/format-date";
-import { Calendar1Icon, CreditCardIcon, ShieldCheckIcon } from "lucide-react";
+import { Calendar1Icon, CreditCardIcon, ShieldCheckIcon, ArrowUpIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import Loading from "@/components/common/loading";
@@ -27,7 +28,7 @@ import { usePricingModal } from "@/providers/pricing-modal-provider";
 const Subscription = () => {
   const { data: activeSubscription, isLoading } = useGetSubscription();
   const [clickedButton, setClickedButton] = useState<
-    "manage-subscription" | "cancel-subscription"
+    "manage-subscription" | "cancel-subscription" | "upgrade-trial"
   >();
   const { setCoinsModalOpen } = usePricingModal()
   const payment = useCreateCheckoutSession();
@@ -35,6 +36,7 @@ const Subscription = () => {
   const router = useRouter();
   const { data } = useSession();
   const mangeSubs = useManageSubscription();
+  const upgradeTrial = useUpgradeTrialToPro();
 
   if (isLoading) return <Loading className="h-[70vh]" />;
 
@@ -81,7 +83,7 @@ const Subscription = () => {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">
-              {activeSubscription?.status === "trialing"
+              {activeSubscription?.status === "trial"
                 ? "Trial ends on"
                 : "Next billing date"}
             </p>
@@ -91,7 +93,7 @@ const Subscription = () => {
           </div>
         </div>
 
-        {activeSubscription.status !== "trial" && <div className="rounded-md bg-muted p-4">
+        {activeSubscription.status !== "trial"  && <div className="rounded-md bg-muted p-4">
           <div className="flex items-center gap-3">
             <ShieldCheckIcon className="h-5 w-5 text-primary" />
             <div>
@@ -104,41 +106,23 @@ const Subscription = () => {
         </div>}
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2">
-        {
-          activeSubscription?.status === "trial" ? <>
-            <Button
-              loading={payment.isPending || manage.isPending}
-              onClick={async () => {
-                try {
-                  if (
-                    data?.subscription &&
-                    isSubscriptionExpired(data.subscription.endsAt).isExpired
-                    && !data?.subscription?.customerId?.startsWith("trial__")
-                  ) {
-                    try {
-                      const res = await manage.mutateAsync();
-                      console.log("Managaing subscription", res);
-                      router.push(res.data.url);
-                    } catch {
-                      const res = await payment.mutateAsync("subscription");
-                      router.push(res.data.redirectUrl);
-                      console.log("Creating checkout session", res);
-                    }
-                  } else {
-                    const res = await payment.mutateAsync("subscription");
-                    router.push(res.data.redirectUrl);
-                    console.log("Creating checkout session", res);
-                  }
-                } catch { }
-              }}
-              className="w-full"
-            >
-              {
-                payment.isSuccess || manage.isSuccess
-                  ? "Redirecting..."
-                  : "Upgrade Plan"}
-            </Button>
-          </> : <>
+            {/* Show upgrade button for trial users */}
+            {(activeSubscription?.status === "trial" || activeSubscription?.status === "trialing") && (
+              <Button
+                loading={
+                  upgradeTrial.isPending && clickedButton === "upgrade-trial"
+                }
+                onClick={() => {
+                  setClickedButton("upgrade-trial");
+                  upgradeTrial.mutate();
+                }}
+                className="w-full sm:w-auto"
+              >
+                <ArrowUpIcon className="mr-2 h-4 w-4" />
+                Upgrade Plan to Pro
+              </Button>
+            )}
+            
             <Button
               loading={
                 mangeSubs.isPending && clickedButton === "manage-subscription"
@@ -171,8 +155,6 @@ const Subscription = () => {
             <Button onClick={() => setCoinsModalOpen(true)}>
               Purchase Coins
             </Button>
-          </>
-        }
       </CardFooter>
     </Card>
   );
