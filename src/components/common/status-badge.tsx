@@ -8,6 +8,12 @@ type BadgeProps = {
 const StatusBadge = ({ children }: BadgeProps) => {
   switch (children.toLowerCase()) {
     case "active":
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+          Active
+        </Badge>
+      );
+
     case "success":
       return (
         <Badge className="bg-green-100 text-green-800 hover:bg-green-200">

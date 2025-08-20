@@ -1,7 +1,8 @@
 export const SUBSCRIPTION_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
-  TRIALING: "trialing",
+  TRIALING: "trial",
+  TRIAL: "trial",
   CANCELLED: "cancelled",
   UNPAID: "unpaid",
 } as const;

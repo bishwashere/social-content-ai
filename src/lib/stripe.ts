@@ -8,7 +8,7 @@ import consola from "consola";
 import StripeNative from "stripe";
 import { prisma } from "./prisma";
 import { SUBSCRIPTION_STATUS } from "@/constants/subscription-status";
-import { CHAT_GENERATION_PER_MONTH } from "@/constants/common";
+import { CHAT_GENERATION_PER_MONTH, CHAT_GENERATION_PER_MONTH_WHILE_TRIAL } from "@/constants/common";
 class Stripe {
   stripe: StripeNative;
 
@@ -199,19 +199,27 @@ class Stripe {
           event.data.object.current_period_end * 1000
         ).toISOString(),
         invoiceId: event.data.object.latest_invoice?.toString() || "",
-        status: event.data.object.status,
+        status: event.data.object.status === "trialing" ? "trial" : event.data.object.status,
         subscriptionIdFromStripe: event.data.object.id,
         active: true,
         customerId: event.data.object.customer as string,
       },
     });
 
+    // Update user chat generations and trial status based on subscription status
+    const updateData: any = {
+      remainingChatGenerations:event.data.object.status === "trialing"? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL: CHAT_GENERATION_PER_MONTH,
+    };
+    
+    // Only mark trial as claimed when subscription is created (either trial or active)
+    // Stripe native trials will have status 'trialing' or 'active'
+    if (event.data.object.status === 'trialing' || event.data.object.status === 'active' ) {
+      updateData.hasClaimedFreeTrial = true;
+    }
+
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        remainingChatGenerations: CHAT_GENERATION_PER_MONTH,
-        hasClaimedFreeTrial: true,
-      },
+      data: updateData,
     });
 
     return;
@@ -269,7 +277,7 @@ class Stripe {
     await prisma.subscription.update({
       where: { id: subscription.id },
       data: {
-        status: event.data.object.status?.toString(),
+        status: event.data.object.status?.toString() === "trialing" ? "trial" : event.data.object.status?.toString(),
         startedAt: new Date(
           subscriptionFromStripe.current_period_start * 1000
         ).toISOString(),
@@ -279,12 +287,19 @@ class Stripe {
       },
     });
 
-    // Reset remaining chat generations for the user
+    // Reset remaining chat generations for the user and handle trial status
+    const updateData: any = {
+      remainingChatGenerations: event.data.object.status === "trialing"? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL: CHAT_GENERATION_PER_MONTH,
+    };
+    
+    // If subscription is transitioning to active status (from trial), mark trial as claimed
+    if (subscriptionFromStripe.status === 'active') {
+      updateData.hasClaimedFreeTrial = true;
+    }
+
     await prisma.user.update({
       where: { id: subscription.userId },
-      data: {
-        remainingChatGenerations: CHAT_GENERATION_PER_MONTH,
-      },
+      data: updateData,
     });
 
     return;

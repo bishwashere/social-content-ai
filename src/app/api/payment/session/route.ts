@@ -26,9 +26,10 @@ export const POST = applyMiddleware(
         orderBy: { createdAt: "desc" },
       });
 
+      // Check if user has an active subscription (excluding trials)
       if (
         subscriptions &&
-        subscriptions.status !== "trial" &&
+        subscriptions.status === "active" &&
         !isSubscriptionExpired(subscriptions.endsAt.toISOString()).isExpired
       ) {
         return sendNextResponse({
@@ -45,7 +46,7 @@ export const POST = applyMiddleware(
           : await stripe.createSession(
               PACKAGES.BASIC,
               user as unknown as User,
-              false
+              !user.hasClaimedFreeTrial // Give trial if user hasn't claimed it yet
             );
 
       // delete old subscription

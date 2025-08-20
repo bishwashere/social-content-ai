@@ -22,11 +22,11 @@ import {
   useManageSubscription,
 } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
-import { useSession } from "@/backend-apis/auth/hooks";
+import { useLogout, useSession } from "@/backend-apis/auth/hooks";
 import { useEffect, useState } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
-import { claimFreeTrial } from "@/server-actions/claim-free-trial";
-import { toast } from "sonner";
+// import { claimFreeTrial } from "@/server-actions/claim-free-trial"; // COMMENTED OUT: Using Stripe native trials
+// import { toast } from "sonner"; // COMMENTED OUT: No longer needed for custom trial claims
 import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
@@ -39,61 +39,63 @@ export default function PricingModal({ open, setOpen }: Props) {
   const manage = useManageSubscription();
   const router = useRouter();
   const { data } = useSession();
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // COMMENTED OUT: No longer needed for custom trial claims
   const queryClient = useQueryClient();
 
-  // only open the modal if the user has not claimed the subscription
+  // only open the modal if the user doesn't have an active subscription
   useEffect(() => {
-    // open the modal if the user doesn't have a subscription or has claimed free trial or subscription is expired
+    // open the modal if the user doesn't have a subscription or subscription is expired
 
     // if open in last 10 sec, don't open
-    const lastOpen = localStorage.getItem(`lastOpen__${data?.user?.id}`);
-    if (lastOpen && Date.now() - Number(lastOpen) < 10 * 1000) {
-      console.log("lastOpen", lastOpen);
-      return;
-    }
+    // const lastOpen = localStorage.getItem(`lastOpen__${data?.user?.id}`);
+    // if (lastOpen && Date.now() - Number(lastOpen) < 10 * 1000) {
+    //   console.log("lastOpen", lastOpen);
+    //   return;
+    // }
 
-
+    // Show modal if no subscription or subscription is expired
     if (
-      (!data?.user?.hasClaimedFreeTrial) || (
-        data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
-      ) || data.subscription?.status === "trial"
+      !data?.subscription || 
+      (data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired)
     ) {
       setOpen(true);
     } else {
       console.log("data.subscription", data.subscription);
       setOpen(false);
     }
-  }, [data?.subscription, data?.user?.hasClaimedFreeTrial, data?.user?.id, setOpen]);
+  }, [data?.subscription, data?.user?.id, setOpen]);
 
-  const claimTrial = async () => {
-    try {
-      if (!data?.user?.hasClaimedFreeTrial) {
-        setIsLoading(true);
-        const res = await claimFreeTrial(data?.user?.id || "")
-        if (res.success) {
-          toast.success(res.message);
-          setOpen(false);
-          queryClient.invalidateQueries({
-            queryKey: ["session"],
-          });
-        } else {
-          toast.error(res.message);
-        }
-        setIsLoading(false);
-      }
-    } catch { }
-  }
+  // COMMENTED OUT: Custom trial claim logic - now handled by Stripe
+  // const claimTrial = async () => {
+  //   try {
+  //     if (!data?.user?.hasClaimedFreeTrial) {
+  //       setIsLoading(true);
+  //       const res = await claimFreeTrial(data?.user?.id || "")
+  //       if (res.success) {
+  //         toast.success(res.message);
+  //         setOpen(false);
+  //         queryClient.invalidateQueries({
+  //           queryKey: ["session"],
+  //         });
+  //       } else {
+  //         toast.error(res.message);
+  //       }
+  //       setIsLoading(false);
+  //     }
+  //   } catch { }
+  // }
 
-
+const logout = useLogout()
   return (
-    <Dialog open={open}>
+    <Dialog open={open} >
       <DialogContent className="sm:max-w-md">
         <DialogClose
           onClick={async () => {
-            await claimTrial();
+            // COMMENTED OUT: Custom trial claim - now handled by Stripe
+            // await claimTrial();
             localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
             setOpen(false);
+            logout.mutate()
           }}
         />
         <DialogHeader>
@@ -191,13 +193,14 @@ export default function PricingModal({ open, setOpen }: Props) {
               {
                 payment.isSuccess || manage.isSuccess
                   ? "Redirecting..."
-                  : data?.subscription?.status === "trial"
+                  : (data?.subscription?.status === "trial" )
                     ? "Upgrade Plan"
                     : data?.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
                       ? "Upgrade Plan"
                       : "Go Pro!"}
             </Button>
-            {
+            {/* COMMENTED OUT: Custom trial claim button - trials now handled by Stripe during checkout */}
+            {/*
               !data?.user?.hasClaimedFreeTrial && (
                 <Button
                   loading={isLoading}
@@ -212,7 +215,7 @@ export default function PricingModal({ open, setOpen }: Props) {
                   Claim Free Trial
                 </Button>
               )
-            }
+            */}
           </CardFooter>
         </Card>
       </DialogContent>
