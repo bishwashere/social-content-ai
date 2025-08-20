@@ -137,3 +137,20 @@ export async function getProjectPulse(projectId: string) {
     ...streak,
   };
 }
+
+export const getAllDayProjectPulse = async (projectId: string) => {
+  try {
+    const projectPulse = await prisma.projectPulse.findMany({
+      where: {
+        projectId: projectId
+      },
+      orderBy: {
+        createdAt: "asc"
+      }
+    })
+    return projectPulse;
+  }
+  catch (e) {
+    throw e;
+  }
+}

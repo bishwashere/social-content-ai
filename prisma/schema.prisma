@@ -50,6 +50,7 @@ model Projects {
   ProjectsSubredditData   ProjectsSubredditData[]
   projectToOAuthProviders ProjectToOAuthProvider[]
   scheduledPosts          ScheduledPost[]
+  pulseMetrics            ProjectPulse[]
 
   @@map("projects")
 }
@@ -309,4 +310,17 @@ model PlatformPost {
   updatedAt DateTime @updatedAt
 
   oauthProvider OauthProvider @relation(fields: [oauthProviderId], references: [id], onDelete: Cascade)
+}
+
+model ProjectPulse {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  pulse                 Float
+  components            Json
+  thisWeekPostSummaries Json
+  daysPosted            Int
+  gapDays               Int
+  projectId             String   @db.ObjectId
+  createdAt             DateTime @default(now())
+
+  project Projects @relation(fields: [projectId], references: [id])
 }
