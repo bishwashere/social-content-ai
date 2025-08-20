@@ -141,7 +141,7 @@ class Fb {
       const normalizedData = posts.map((post) => ({
         id: post.id,
         message: post.message,
-        date: post.created_time,
+        date: new Date(post.created_time),
         shares: post.shares || 0,
         reactions: post.reactions?.summary?.total_count,
         comments: post.comments?.summary?.total_count,

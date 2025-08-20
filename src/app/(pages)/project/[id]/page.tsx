@@ -18,8 +18,9 @@ import History from "./_components/history";
 import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";
 import ProjectPulseMetrics from "./_components/project-pulse-metrics";
+import ProjectAnalytics from "./_components/project-analytics";
 
-const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled"] as const;
+const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled", "analytics"] as const;
 
 function ProjectPage() {
   const { id } = useParams();
@@ -88,6 +89,9 @@ function ProjectPage() {
           <TabsTrigger value="scheduled" onClick={() => handleTabChange("scheduled")}>
             Scheduled Posts
           </TabsTrigger>
+          <TabsTrigger value="analytics" onClick={() => handleTabChange("analytics")}>
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="generate">
@@ -104,6 +108,9 @@ function ProjectPage() {
         </TabsContent>
         <TabsContent value="scheduled">
           <ScheduledPosts project={project} />
+        </TabsContent>
+        <TabsContent value="analytics">
+          <ProjectAnalytics projectId={project.id} />
         </TabsContent>
       </Tabs>
     </div>

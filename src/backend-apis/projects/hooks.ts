@@ -10,7 +10,7 @@ import {
 import { projectService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { getProjectPulse, getWebsiteDescription } from "./actions";
+import { getAllDayProjectPulse, getProjectPulse, getWebsiteDescription } from "./actions";
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -152,6 +152,14 @@ export const useGetProjectPulse = (projectId: string) => {
   return useQuery({
     queryKey: ["project-pulse", projectId],
     queryFn: () => getProjectPulse(projectId),
+    enabled: !!projectId,
+  });
+};
+
+export const useGetAllDayProjectPulse = (projectId: string) => {
+  return useQuery({
+    queryKey: ["all-project-pulse", projectId],
+    queryFn: () => getAllDayProjectPulse(projectId),
     enabled: !!projectId,
   });
 };
