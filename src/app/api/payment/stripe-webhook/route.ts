@@ -81,6 +81,21 @@ export const POST = applyMiddleware(
             consola.error("❌ Error processing coins purchase:", error);
             throw error; // Re-throw to trigger error response
           }
+        } else if (session.mode === "subscription" && session.payment_status === "paid") {
+          consola.info("🔄 Processing subscription payment completion");
+          consola.info("Subscription session data:", {
+            id: session.id,
+            customer: session.customer,
+            subscription: session.subscription,
+            payment_status: session.payment_status,
+          });
+          try {
+            await stripe.handleSubscriptionPaymentCompleted(event);
+            consola.success("✅ Subscription payment completion processed successfully");
+          } catch (error) {
+            consola.error("❌ Error processing subscription payment completion:", error);
+            throw error; // Re-throw to trigger error response
+          }
         }
         break;
 

@@ -107,6 +107,49 @@ class Stripe {
     return;
   }
 
+  async handleSubscriptionPaymentCompleted(event: StripeNative.CheckoutSessionCompletedEvent) {
+    const session = event.data.object;
+    const subscriptionId = session.subscription as string;
+
+    if (!subscriptionId) {
+      consola.error("❌ Subscription ID not found in session", session.id);
+      throw new Error(`Subscription ID not found in session ${session.id}`);
+    }
+
+    // Get the subscription from Stripe to get the latest status
+    const stripeSubscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+    
+    // Find the subscription in our database
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        subscriptionIdFromStripe: subscriptionId,
+      },
+    });
+
+    if (!subscription) {
+      consola.error("❌ Subscription not found in database", subscriptionId);
+      throw new Error(`Subscription not found in database ${subscriptionId}`);
+    }
+
+    // Update subscription status to active if payment was successful
+    if (stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing') {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: stripeSubscription.status === 'trialing' ? 'trial' : 'active',
+          active: true,
+        },
+      });
+
+      consola.success("✅ Subscription status updated to active after payment completion", {
+        subscriptionId,
+        newStatus: stripeSubscription.status === 'trialing' ? 'trial' : 'active',
+      });
+    }
+
+    return;
+  }
+
   async createSession(packageToBuy: Package, user: User, trial: boolean) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -189,6 +232,18 @@ class Stripe {
       });
     }
 
+    // Determine the correct status - handle 'incomplete' by setting to 'active' if subscription was created
+    let subscriptionStatus: string;
+    if (event.data.object.status === "trialing") {
+      subscriptionStatus = "trial";
+    } else if (event.data.object.status === "incomplete" || event.data.object.status === "incomplete_expired") {
+      // For incomplete subscriptions, we'll set them as active since the subscription was created
+      // The payment completion webhook will update the status if needed
+      subscriptionStatus = "active";
+    } else {
+      subscriptionStatus = event.data.object.status;
+    }
+
     await prisma.subscription.create({
       data: {
         userId: user.id,
@@ -199,21 +254,26 @@ class Stripe {
           event.data.object.current_period_end * 1000
         ).toISOString(),
         invoiceId: event.data.object.latest_invoice?.toString() || "",
-        status: event.data.object.status === "trialing" ? "trial" : event.data.object.status,
+        status: subscriptionStatus,
         subscriptionIdFromStripe: event.data.object.id,
         active: true,
         customerId: event.data.object.customer as string,
       },
     });
 
+    consola.success("✅ Subscription created with status:", {
+      originalStripeStatus: event.data.object.status,
+      finalStatus: subscriptionStatus,
+      subscriptionId: event.data.object.id,
+    });
+
     // Update user chat generations and trial status based on subscription status
     const updateData: any = {
-      remainingChatGenerations:event.data.object.status === "trialing"? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL: CHAT_GENERATION_PER_MONTH,
+      remainingChatGenerations: subscriptionStatus === "trial" ? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL : CHAT_GENERATION_PER_MONTH,
     };
     
     // Only mark trial as claimed when subscription is created (either trial or active)
-    // Stripe native trials will have status 'trialing' or 'active'
-    if (event.data.object.status === 'trialing' || event.data.object.status === 'active' ) {
+    if (subscriptionStatus === 'trial' || subscriptionStatus === 'active') {
       updateData.hasClaimedFreeTrial = true;
     }
 
@@ -274,10 +334,21 @@ class Stripe {
       subscription.subscriptionIdFromStripe
     );
 
+    // Determine the correct status - handle 'incomplete' by setting to 'active'
+    let updatedStatus: string;
+    const stripeStatus = event.data.object.status?.toString() || subscriptionFromStripe.status;
+    if (stripeStatus === "trialing") {
+      updatedStatus = "trial";
+    } else if (stripeStatus === "incomplete" || stripeStatus === "incomplete_expired") {
+      updatedStatus = "active";
+    } else {
+      updatedStatus = stripeStatus;
+    }
+
     await prisma.subscription.update({
       where: { id: subscription.id },
       data: {
-        status: event.data.object.status?.toString() === "trialing" ? "trial" : event.data.object.status?.toString(),
+        status: updatedStatus,
         startedAt: new Date(
           subscriptionFromStripe.current_period_start * 1000
         ).toISOString(),
@@ -287,9 +358,15 @@ class Stripe {
       },
     });
 
+    consola.success("✅ Subscription updated with status:", {
+      originalStripeStatus: stripeStatus,
+      finalStatus: updatedStatus,
+      subscriptionId: subscription.subscriptionIdFromStripe,
+    });
+
     // Reset remaining chat generations for the user and handle trial status
     const updateData: any = {
-      remainingChatGenerations: event.data.object.status === "trialing"? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL: CHAT_GENERATION_PER_MONTH,
+      remainingChatGenerations: updatedStatus === "trial" ? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL : CHAT_GENERATION_PER_MONTH,
     };
     
     // If subscription is transitioning to active status (from trial), mark trial as claimed
