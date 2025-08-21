@@ -9,7 +9,6 @@ import {
     TooltipProps,
 } from "recharts";
 import { differenceInDays, format, subDays } from "date-fns";
-import { PulseDummyData } from "./dummy-data";
 import { Activity, BarChart2, Clock, FileText, LucideProps, MousePointerClick, ThumbsUp, Users } from "lucide-react";
 import { useGetAllDayProjectPulse } from "@/backend-apis/projects/hooks";
 
@@ -155,22 +154,36 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
 
     useEffect(() => {
         if (projectPulse && projectPulse.length) {
-            console.log(projectPulse)
-            const pulseStartDate = new Date(projectPulse[0].createdAt);
-            const pulseEndDate = new Date(projectPulse[projectPulse.length - 1].createdAt);
+            const pulses = projectPulse as ProjectPulse[];
+
+            // Group by date (YYYY-MM-DD) and keep the latest createdAt
+            const latestByDay = pulses.reduce<Record<string, ProjectPulse>>((acc, curr) => {
+                const dayKey = new Date(curr.createdAt).toISOString().split("T")[0]; // YYYY-MM-DD
+                if (!acc[dayKey] || new Date(curr.createdAt) > new Date(acc[dayKey].createdAt)) {
+                    acc[dayKey] = curr;
+                }
+                return acc;
+            }, {});
+
+            // Step 2: Convert back to sorted array (oldest -> newest)
+            let pulseData: ProjectPulse[] = Object.values(latestByDay).sort(
+                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            console.log(pulseData);
+
+            const pulseStartDate = new Date(pulseData[0].createdAt);
+            const pulseEndDate = new Date(pulseData[pulseData.length - 1].createdAt);
 
             const diffDays = differenceInDays(pulseEndDate, pulseStartDate);
 
-            let pulseData: ProjectPulse[] = projectPulse as ProjectPulse[];
-
-            // If less than 30 days, pad earlier dates
+            // Step 3: Pad if less than 30 days
             if (diffDays < 30) {
                 const missingDays = 30 - diffDays;
                 const padded: ProjectPulse[] = [];
                 for (let i = missingDays; i > 0; i--) {
                     padded.push({
                         id: `dummy-${i}`,
-                        projectId: projectPulse[0].projectId,
+                        projectId: pulseData[0].projectId,
                         createdAt: subDays(pulseStartDate, i),
                         pulse: 0,
                         components: { cadence: 0, coverage: 0, engagement: 0, onTime: 0, planProgress: 0 },
@@ -179,21 +192,23 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
                         gapDays: 0,
                     });
                 }
-                pulseData = [...padded, ...projectPulse as ProjectPulse[]];
+                pulseData = [...padded, ...pulseData];
             }
 
+            // Step 4: Prepare metrics
             const metricsData = [
                 { label: "Pulse", icon: Activity, color: "text-green-600 bg-green-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.pulse })) },
                 { label: "Posts", icon: FileText, color: "text-blue-600 bg-blue-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.thisWeekPostSummaries.posts })) },
-                // { label: "Cadence", icon: Clock, color: "text-pink-600 bg-pink-100", data: data.map(metric => ({ date: metric.date, value: metric. })) },
                 { label: "Likes", icon: ThumbsUp, color: "text-green-600 bg-green-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.thisWeekPostSummaries.likes })) },
                 { label: "Engagement", icon: MousePointerClick, color: "text-indigo-600 bg-indigo-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.components.engagement })) },
                 { label: "Impressions", icon: BarChart2, color: "text-purple-600 bg-purple-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.thisWeekPostSummaries.impressions })) },
-                { label: "UniqueImpressions", icon: Users, color: "text-teal-600 bg-teal-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.thisWeekPostSummaries.uniqueImpressions })) },
-            ]
+                { label: "Unique Impressions", icon: Users, color: "text-teal-600 bg-teal-100", data: pulseData.map(metric => ({ date: metric.createdAt, value: metric.thisWeekPostSummaries.uniqueImpressions })) },
+            ];
+
             setMetrics(metricsData);
         }
-    }, [projectPulse])
+    }, [projectPulse]);
+
 
     if (isLoading) return (
         <div className="flex flex-col gap-4">
@@ -202,14 +217,14 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
         </div>
     )
     return (
-        <div className="flex flex-col w-full gap-3 mt-5">
+        <div className="flex flex-col w-full gap-5 mt-5">
             {metrics.length ? metrics.map((metric) => {
                 return (
                     <ProjectAnalyticsGraph key={metric.label} data={metric} />
                 );
             })
                 :
-                <p className="text-base font-medium text-center">No metrics data!</p>
+                <p className="text-base font-medium text-center">No metrics data found !</p>
             }
         </div>
     )
