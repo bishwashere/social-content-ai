@@ -1,148 +1,168 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import catchApiAsyncError from "@/lib/catch-api-async-error";
-import { sendNextResponse } from "@/lib/send-next-response";
-import { applyMiddleware } from "@/middlewares/apply-middleware";
-import { validateUserAuth } from "@/middlewares/validate-auth";
+import { cookies } from "next/headers";
+import { verifyJWT } from "@/lib/jwt";
 
-export const POST = async (request: NextRequest) => {
-  return applyMiddleware(
-    validateUserAuth({ errorIfNotAuthenticated: true }),
-    catchApiAsyncError(async (req) => {
-      //@ts-expect-error: user is not defined in Request type
-      const user = req.parsed.user;
-      const { folderId, projectId } = await req.json();
+// Helper function to get user from JWT token
+async function getUserFromToken(request: NextRequest) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("social-ai-token")?.value;
+  
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
 
-      if (!folderId || !projectId) {
-        return sendNextResponse({
-          status: 400,
-          message: "Folder ID and Project ID are required",
-        });
-      }
+  const payload = verifyJWT(token, process.env.JWT_SECRET as string);
+  if (!payload) {
+    throw new Error("Invalid authentication token");
+  }
 
-      // Verify ownership of folder
-      const folder = await prisma.projectFolder.findFirst({
-        where: { id: folderId, userId: user.id },
-      });
+  const user = await prisma.user.findUnique({
+    where: { email: payload.email }
+  });
 
-      if (!folder) {
-        return sendNextResponse({
-          status: 404,
-          message: "Folder not found or access denied",
-        });
-      }
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-      // Verify access to project (owner or invited)
-      const project = await prisma.projects.findFirst({
-        where: {
-          id: projectId,
-          OR: [
-            { userId: user.id },
-            { invitedUsers: { some: { userId: user.id } } },
-          ],
-        },
-      });
+  return user;
+}
 
-      if (!project) {
-        return sendNextResponse({
-          status: 404,
-          message: "Project not found or access denied",
-        });
-      }
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getUserFromToken(request);
+    const { folderId, projectId } = await request.json();
 
-      // Check if project is already in folder
-      const existingItem = await prisma.projectFolderItem.findFirst({
-        where: { folderId, projectId },
-      });
+    if (!folderId || !projectId) {
+      return NextResponse.json({ 
+        error: "Folder ID and Project ID are required" 
+      }, { status: 400 });
+    }
 
-      if (existingItem) {
-        return sendNextResponse({
-          status: 400,
-          message: "Project is already in this folder",
-        });
-      }
+    // Verify ownership of folder
+    const folder = await prisma.projectFolder.findFirst({
+      where: { id: folderId, userId: user.id },
+    });
 
-      const folderItem = await prisma.projectFolderItem.create({
-        data: {
-          folderId,
-          projectId,
-        },
-        include: {
-          project: {
-            include: {
-              projectChats: {
-                orderBy: { updatedAt: "desc" },
-              },
+    if (!folder) {
+      return NextResponse.json({ 
+        error: "Folder not found or access denied" 
+      }, { status: 404 });
+    }
+
+    // Verify access to project (owner or invited)
+    const project = await prisma.projects.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { userId: user.id },
+          { invitedUsers: { some: { userId: user.id } } },
+        ],
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ 
+        error: "Project not found or access denied" 
+      }, { status: 404 });
+    }
+
+    // Check if project is already in folder
+    const existingItem = await prisma.projectFolderItem.findFirst({
+      where: { folderId, projectId },
+    });
+
+    if (existingItem) {
+      return NextResponse.json({ 
+        error: "Project is already in this folder" 
+      }, { status: 400 });
+    }
+
+    const folderItem = await prisma.projectFolderItem.create({
+      data: {
+        folderId,
+        projectId,
+      },
+      include: {
+        project: {
+          include: {
+            projectChats: {
+              orderBy: { updatedAt: "desc" },
             },
           },
         },
-      });
+      },
+    });
 
-      return sendNextResponse({
-        status: 201,
-        message: "Project added to folder successfully",
-        data: folderItem,
-      });
-    })
-  )(request, { params: {} });
-};
+    return NextResponse.json({
+      status: 201,
+      message: "Project added to folder successfully",
+      data: folderItem,
+    });
+  } catch (error) {
+    console.error('Error in project folder items POST:', error);
+    if (error instanceof Error && error.message.includes("authentication")) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
 
-export const DELETE = async (request: NextRequest) => {
-  return applyMiddleware(
-    validateUserAuth({ errorIfNotAuthenticated: true }),
-    catchApiAsyncError(async (req) => {
-      //@ts-expect-error: user is not defined in Request type
-      const user = req.parsed.user;
-      const { searchParams } = new URL(req.url);
-      const folderId = searchParams.get("folderId");
-      const projectId = searchParams.get("projectId");
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getUserFromToken(request);
+    const { searchParams } = new URL(request.url);
+    const folderId = searchParams.get("folderId");
+    const projectId = searchParams.get("projectId");
 
-      if (!folderId || !projectId) {
-        return sendNextResponse({
-          status: 400,
-          message: "Folder ID and Project ID are required",
-        });
-      }
+    if (!folderId || !projectId) {
+      return NextResponse.json({ 
+        error: "Folder ID and Project ID are required" 
+      }, { status: 400 });
+    }
 
-      // Verify ownership of folder
-      const folder = await prisma.projectFolder.findFirst({
-        where: { id: folderId, userId: user.id },
-      });
+    // Verify ownership of folder
+    const folder = await prisma.projectFolder.findFirst({
+      where: { id: folderId, userId: user.id },
+    });
 
-      if (!folder) {
-        return sendNextResponse({
-          status: 404,
-          message: "Folder not found or access denied",
-        });
-      }
+    if (!folder) {
+      return NextResponse.json({ 
+        error: "Folder not found or access denied" 
+      }, { status: 404 });
+    }
 
-      // Verify access to project (owner or invited)
-      const project = await prisma.projects.findFirst({
-        where: {
-          id: projectId,
-          OR: [
-            { userId: user.id },
-            { invitedUsers: { some: { userId: user.id } } },
-          ],
-        },
-      });
+    // Verify access to project (owner or invited)
+    const project = await prisma.projects.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { userId: user.id },
+          { invitedUsers: { some: { userId: user.id } } },
+        ],
+      },
+    });
 
-      if (!project) {
-        return sendNextResponse({
-          status: 404,
-          message: "Project not found or access denied",
-        });
-      }
+    if (!project) {
+      return NextResponse.json({ 
+        error: "Project not found or access denied" 
+      }, { status: 404 });
+    }
 
-      // Remove project from folder
-      await prisma.projectFolderItem.deleteMany({
-        where: { folderId, projectId },
-      });
+    // Remove project from folder
+    await prisma.projectFolderItem.deleteMany({
+      where: { folderId, projectId },
+    });
 
-      return sendNextResponse({
-        status: 200,
-        message: "Project removed from folder successfully",
-      });
-    })
-  )(request, { params: {} });
-};
+    return NextResponse.json({
+      status: 200,
+      message: "Project removed from folder successfully",
+    });
+  } catch (error) {
+    console.error('Error in project folder items DELETE:', error);
+    if (error instanceof Error && error.message.includes("authentication")) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

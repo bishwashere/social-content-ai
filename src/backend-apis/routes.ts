@@ -17,9 +17,9 @@ class ApiRoutes {
     INVITE: (id: string) => `/projects/${id}/invite`,
   });
 
-  PROJECT_FOLDERS = () => "/project-folders";
+  PROJECT_FOLDERS = () => "/api/project-folders";
 
-  PROJECT_FOLDER_ITEMS = () => "/project-folders/items";
+  PROJECT_FOLDER_ITEMS = () => "/api/project-folders/items";
 
   PAYMENT = {
     SESSION: () => "/payment/session",
