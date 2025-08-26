@@ -89,15 +89,20 @@ body {
   }
 }
 
+/* Must be imported after the main react-big-calendar styles */
 .rbc-month-row {
-  display: inline-table !important;
-  flex: 0 0 0 !important;
-  min-height: 90px !important;
+  overflow: visible !important;
+  /* Allow the row to adjust its height based on its content */
+  align-items: stretch !important;
 }
-@media (max-width: 640px) {
-  .rbc-month-row {
-    min-height: 60px !important;
-  }
+
+.rbc-row-content {
+  min-height: 100px !important; /* Set a starting point but allow it to grow */
+  height: unset !important; /* Allow the content to determine the height */
+}
+
+.rbc-day-bg {
+  height: 100% !important; /* Make sure the day background fills the expanded row */
 }
 
 .hide-time-gutter .rbc-time-gutter,
@@ -143,4 +148,7 @@ body {
 
 .hide-time-gutter .rbc-time-header-content {
   border-left: none !important;
+}
+.rbc-event, .rbc-day-slot .rbc-background-event {
+  background: none!important;
 }
