@@ -34,7 +34,9 @@ export const useCreateProjectFolder = () => {
         body: JSON.stringify(folder),
       });
       if (!response.ok) {
-        throw new Error("Failed to create project folder");
+        const errorData = await response.text();
+        console.error('Project folder creation failed:', response.status, errorData);
+        throw new Error(`Failed to create project folder: ${response.status} - ${errorData}`);
       }
       const data = await response.json();
       return data.data as ProjectFolder;

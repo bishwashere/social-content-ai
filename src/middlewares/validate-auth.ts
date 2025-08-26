@@ -4,6 +4,7 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { NextRequest } from "next/server";
 import { CALL_NEXT_FUNCTION } from "./apply-middleware";
 import { prisma } from "@/lib/prisma";
+import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 
 type Props = {
   errorIfNotAuthenticated: boolean;

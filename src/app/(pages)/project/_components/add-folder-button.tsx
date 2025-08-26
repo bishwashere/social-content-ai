@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProjectFolder } from "@/backend-apis/project-folders/hooks";
+import { useSession } from "@/backend-apis/auth/hooks";
 import { useState } from "react";
 
 export function AddFolderButton() {
@@ -22,17 +23,26 @@ export function AddFolderButton() {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#3B82F6");
   
+  const { data: session } = useSession();
   const createFolder = useCreateProjectFolder();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    await createFolder.mutateAsync({
-      name: name.trim(),
-      description: description.trim() || undefined,
-      color,
-    });
+    console.log('Session data:', session);
+    console.log('Creating folder with:', { name: name.trim(), description: description.trim() || undefined, color });
+
+    try {
+      await createFolder.mutateAsync({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        color,
+      });
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      throw error;
+    }
 
     // Reset form and close dialog
     setName("");

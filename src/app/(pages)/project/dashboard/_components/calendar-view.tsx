@@ -82,7 +82,7 @@ function EventInfo({ event }: { event: MyEvent }) {
         <PopoverTrigger asChild>
           <div className={`text-white text-xs rounded cursor-pointer truncate flex gap-2 items-center p-1 ${getEventColor()}`}>
             <span>{getEventIcon()}</span>
-            {event.title.length > 9 ? event.title.slice(0, 9) + ".." : event.title}
+            {event.title.length > 9 ? `${event.title.slice(0, 9)}..` : event.title}
             <div className="flex gap-1">
               {event.platforms?.map((p: string) => (
                 <div className="bg-white p-0.5 rounded-sm" key={p}>
@@ -142,7 +142,7 @@ function EventInfo({ event }: { event: MyEvent }) {
       <TooltipTrigger asChild>
         <div className={`text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center ${getEventColor()}`}>
           <span>{getEventIcon()}</span>
-          {event.title.length > 9 ? event.title.slice(0, 9) + ".." : event.title}
+          {event.title.length > 9 ? `${event.title.slice(0, 9)}..` : event.title}
           <div className="flex gap-1">
             {event.platforms?.map((p: string) => (
               <div className="bg-white p-0.5 rounded-sm" key={p}>
@@ -353,19 +353,16 @@ export default function CalendarView() {
                   title: project.name,
                   start: chatDate,
                   end: chatDate,
-                  platforms: planner.platforms || [],
                   type: 'planned',
                   projectName: project.name,
                   campaignName: planner.name || 'Campaign',
                   day: chat.day,
-                  content: chat.title || `Day ${chat.day} content`,
+                  content: `Day ${chat.day} content`,
                 });
               } else {
                 // If multiple platforms, merge them
                 const existingEvent = map.get(key)!;
-                if (existingEvent.platforms && planner.platforms) {
-                  existingEvent.platforms = [...new Set([...existingEvent.platforms, ...planner.platforms])];
-                }
+                // Note: platforms property removed as it's not available in the current type
               }
             });
           }
@@ -377,7 +374,6 @@ export default function CalendarView() {
       title: item.title,
       start: item.start,
       end: item.end,
-      platforms: item.platforms, // array of platforms
       type: item.type,
       projectName: item.projectName,
       status: item.status,

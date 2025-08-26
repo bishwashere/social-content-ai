@@ -37,6 +37,7 @@ export function InviteUserDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const { data: projects, isLoading: projectsLoading } = useGetAllProjects();
   const [invitedUsers, setInvitedUsers] = useState<ProjectWithChats["invitedUsers"]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<string>("");
 
   useEffect(() => {
     if (projectsLoading) return;

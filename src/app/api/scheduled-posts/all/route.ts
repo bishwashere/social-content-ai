@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { s3 } from "@/lib/s3";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   return applyMiddleware(
     validateUserAuth({ errorIfNotAuthenticated: true }),
     catchApiAsyncError(async (req) => {
@@ -48,5 +48,5 @@ export async function GET(request: Request) {
 
       return NextResponse.json(withSignedUrl);
     })
-  )(request);
+  )(request, { params: {} });
 }
