@@ -63,7 +63,7 @@ export function AddProjectToFolder({ projectId, projectName }: AddProjectToFolde
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add "{projectName}" to Folder</DialogTitle>
+          <DialogTitle>Add &quot;{projectName}&quot; to Folder</DialogTitle>
         </DialogHeader>
         
         {foldersLoading ? (
