@@ -10,11 +10,24 @@ export type ProjectWithChats = Projects & {
     title: string;
   }[];
   projectTrackings?: ProjectTrackingResponse;
+  campaignPlanners?: {
+    id: string;
+    name?: string;
+    startDate?: string;
+    createdAt: string;
+    chats: {
+      id: string;
+      day: number;
+      completed: boolean;
+      status: string;
+    }[];
+  }[];
   invitedUsers?: {
     id: string;
     role: string;
     user: { name: string, email: string };
   }[];
+  userRole?: string; // Role of the current user for this project
 };
 
 export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {

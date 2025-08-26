@@ -31,22 +31,46 @@ import { useSession } from "@/backend-apis/auth/hooks";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
 import FirstViewTooltip from "@/components/common/first-view-tooltip";
 import { Logo } from "@/components/common/logo";
+import { AddProjectToFolder } from "./add-project-to-folder";
+import { AddFolderButton } from "./add-folder-button";
+import { ProjectFolderItem } from "./project-folder-item";
+import { useGetProjectFolders } from "@/backend-apis/project-folders/hooks";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 
 export function ProjectSidebar() {
   const params = useParams();
   const pathname = usePathname();
-  const [openSections, setOpenSections] = React.useState<string[]>([
-    params.id?.toString() || "",
-  ]);
+  
+  // Initialize open sections from localStorage or default values
+  const [openSections, setOpenSections] = React.useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar-open-sections');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Fallback to default if parsing fails
+        }
+      }
+    }
+    return [params.id?.toString() || "", "projects"]; // Default to projects open
+  });
 
   const handleSectionToggle = (value: string) => {
-    setOpenSections((current) =>
-      current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value],
-    );
+    const newOpenSections = openSections.includes(value)
+      ? openSections.filter((item) => item !== value)
+      : [...openSections, value];
+    
+    setOpenSections(newOpenSections);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-open-sections', JSON.stringify(newOpenSections));
+    }
   };
   const { data: projects, isLoading } = useGetAllProjects();
+  const { data: folders, isLoading: foldersLoading } = useGetProjectFolders();
   const { toggleSidebar } = useSidebar()
 
   return (
@@ -93,21 +117,64 @@ export function ProjectSidebar() {
           >
             💹 Analytics
           </Link>
-          {/* Projects */}
-          <p className="text-sm font-semibold px-2">Projects</p>
-          {isLoading
-            ? Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-8" />
-            ))
-            : projects?.map((project) => (
-              <ProjectItem
-                key={project.id}
-                project={project}
-                isOpen={openSections.includes(project.id)}
-                onToggle={() => handleSectionToggle(project.id)}
-                currentPath={pathname}
-              />
-            ))}
+          {/* Project Folders */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between px-2 mb-2">
+              <p className="text-sm font-semibold">Project Folders</p>
+            </div>
+            <AddFolderButton />
+            {foldersLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 mt-2" />
+              ))
+              : folders && folders.length > 0
+              ? folders.map((folder: any) => (
+                  <ProjectFolderItem
+                    key={folder.id}
+                    folder={folder}
+                    isOpen={openSections.includes(folder.id)}
+                    onToggle={() => handleSectionToggle(folder.id)}
+                    currentPath={pathname}
+                  />
+                ))
+              : (
+                <div className="text-xs text-gray-500 px-3 py-2 text-center">
+                  No project folders yet
+                </div>
+              )}
+          </div>
+
+                    {/* Projects */}
+          <Collapsible open={openSections.includes("projects")} onOpenChange={() => handleSectionToggle("projects")}>
+            <CollapsibleTrigger asChild>
+              <div className="mt-6 cursor-pointer">
+                <div className="flex items-center justify-between px-2 mb-2">
+                  <p className="text-sm font-semibold">Projects</p>
+                  {openSections.includes("projects") ? (
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              {isLoading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8" />
+                ))
+                : projects?.map((project) => (
+                  <ProjectItem
+                    key={project.id}
+                    project={project}
+                    isOpen={false}
+                    onToggle={() => {}}
+                    currentPath={pathname}
+                  />
+                ))}
+            </CollapsibleContent>
+          </Collapsible>
         </SidebarContent>
       </ScrollArea>
     </Sidebar>
@@ -135,86 +202,101 @@ function ProjectItem({
     return match ? match[1] : null;
   };
 
+  // Function to determine if project is active (same formula as dashboard)
+  const isProjectActive = (project: ProjectWithChats) => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday end
+    
+    return (project.projectTrackings || []).some(tracking => {
+      const postDate = new Date(tracking.date);
+      return isWithinInterval(postDate, { start: weekStart, end: weekEnd });
+    });
+  };
+
+  // Function to calculate project progress (simplified version)
+  const calculateProjectProgress = (project: ProjectWithChats): number => {
+    if (!project.campaignPlanners || project.campaignPlanners.length === 0) {
+      return 0;
+    }
+
+    let totalProgress = 0;
+    let totalCampaigns = 0;
+
+    project.campaignPlanners.forEach(planner => {
+      if (planner.chats && planner.chats.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const baseDate = planner.startDate ? new Date(planner.startDate) : new Date(planner.createdAt);
+        baseDate.setHours(0, 0, 0, 0);
+        
+        const totalDays = planner.chats.length;
+        const passedDays = planner.chats.filter(chat => {
+          const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
+          chatDate.setHours(0, 0, 0, 0);
+          return chatDate < today;
+        }).length;
+
+        const campaignProgress = totalDays > 0 ? (passedDays / totalDays) * 100 : 0;
+        totalProgress += campaignProgress;
+        totalCampaigns++;
+      }
+    });
+
+    return totalCampaigns > 0 ? Math.round(totalProgress / totalCampaigns) : 0;
+  };
+
+  // Function to determine progress bar color
+  const getProgressBarColor = (project: ProjectWithChats) => {
+    if (isProjectActive(project)) {
+      return "bg-green-500"; // Green for active projects
+    } else if (project.campaignPlanners && project.campaignPlanners.length > 0) {
+      return "bg-gray-400"; // Grey for inactive projects with campaigns
+    } else {
+      return "bg-blue-500"; // Default blue for projects without campaigns
+    }
+  };
+
   const { toggleSidebar } = useSidebar()
 
   return (
-    <Collapsible open={isOpen} onOpenChange={onToggle}>
-      <CollapsibleTrigger
-        className="w-[calc(var(--sidebar-width)-1rem)]"
-        onClick={() => {
-          if (window.innerWidth <= 768) {
-            toggleSidebar()
-          }
-          router.push(`/project/${project.id}`)
-        }}
-      >
-        <div
-          className={cn(
-            "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200",
-            activeProjectId(currentPath) === project.id &&
-            "bg-gray-200",
-          )}
-        >
-          <div className="flex items-center gap-2 truncate">
-            {isOpen ? (
-              <FolderOpen className="h-4 w-4 shrink-0" />
-            ) : (
-              <Folder className="h-4 w-4 shrink-0" />
-            )}
-            <span className="font-medium truncate">{project.name}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {data?.user?.id !== project.userId && (
-              <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
-            )}
-            {isOpen ? (
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-            ) : (
-              <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-            )}
-          </div>
+    <div
+      className={cn(
+        "flex flex-col gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 cursor-pointer",
+        activeProjectId(currentPath) === project.id &&
+        "bg-gray-200",
+      )}
+      onClick={() => {
+        if (window.innerWidth <= 768) {
+          toggleSidebar()
+        }
+        router.push(`/project/${project.id}`)
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 truncate">
+          <Folder className="h-4 w-4 shrink-0" />
+          <span className="font-medium truncate">{project.name}</span>
         </div>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-1 px-3 py-2">
-        <Link
-          onClick={() => {
-            if (window.innerWidth <= 768) {
-              toggleSidebar()
-            }
-            localStorage.setItem("projectTab", "generate")
-          }}
-          href={`/project/${project.id}?tab=generate`}
-          className={cn(
-            "rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground flex gap-2 items-center",
-            currentPath === `/project/${project.id}` &&
-            "bg-accent text-accent-foreground",
+
+        <div className="flex items-center gap-2">
+          <AddProjectToFolder projectId={project.id} projectName={project.name} />
+          {data?.user?.id !== project.userId && (
+            <Users2Icon className="h-4 w-4 shrink-0 opacity-50" />
           )}
-        >
-          Create new post <PlusCircleIcon className="h-4 w-4 shrink-0" />
-        </Link>
-        {project.projectChats?.slice(0, 5).map((chat) => (
-          <Link
-            onClick={() => {
-              if (window.innerWidth <= 768) {
-                toggleSidebar()
-              }
-            }}
-            key={chat.id}
-            href={`/project/${project.id}/chat/${chat.id}`}
-            className={cn(
-              "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
-              currentPath === `/project/${project.id}/chat/${chat.id}` &&
-              "bg-accent text-accent-foreground",
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-current opacity-60" />
-              <span className="truncate max-w-[150px]">{chat.title}</span>
-            </div>
-          </Link>
-        ))}
-      </CollapsibleContent>
-    </Collapsible>
+        </div>
+      </div>
+
+      {/* Progress Bar with Dynamic Fill Color */}
+      <div className="px-1">
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(project)}`}
+            style={{ width: `${calculateProjectProgress(project)}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

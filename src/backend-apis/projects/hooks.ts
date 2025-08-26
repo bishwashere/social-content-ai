@@ -163,3 +163,23 @@ export const useGetAllDayProjectPulse = (projectId: string) => {
     enabled: !!projectId,
   });
 };
+
+export const useGetAllScheduledPosts = () => {
+  return useQuery({
+    queryKey: ["allScheduledPosts"],
+    queryFn: async () => {
+      const response = await fetch("/api/scheduled-posts/all", {
+        credentials: "include", // Include cookies for authentication
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please log in to view scheduled posts");
+        }
+        throw new Error(`Failed to fetch scheduled posts: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    retry: 1, // Only retry once
+    retryDelay: 1000,
+  });
+};

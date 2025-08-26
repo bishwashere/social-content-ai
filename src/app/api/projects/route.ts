@@ -23,6 +23,11 @@ export const GET = applyMiddleware(
               updatedAt: "desc",
             },
           },
+          campaignPlanners: {
+            include: {
+              chats: true,
+            },
+          },
           invitedUsers: {
             include: {
               user: {
@@ -45,6 +50,11 @@ export const GET = applyMiddleware(
             include: {
               projectTrackings: true,
               projectChats: true,
+              campaignPlanners: {
+                include: {
+                  chats: true,
+                },
+              },
               invitedUsers: true,
             },
           },
@@ -52,10 +62,22 @@ export const GET = applyMiddleware(
       }),
     ]);
 
+    // Add admin role to owned projects
+    const ownedProjectsWithAdmin = ownedProjects.map(project => ({
+      ...project,
+      userRole: "admin" // Project creator is always admin
+    }));
+
+    // Add roles to invited projects
+    const invitedProjectsWithRoles = invitedProjects.map((invite) => ({
+      ...invite.project,
+      userRole: invite.role
+    }));
+
     // Combine and format projects
     const allProjects = [
-      ...ownedProjects,
-      ...invitedProjects.map((invite) => invite.project),
+      ...ownedProjectsWithAdmin,
+      ...invitedProjectsWithRoles,
     ];
 
     return sendNextResponse({
@@ -94,7 +116,21 @@ export const POST = applyMiddleware(
       include: {
         projectTrackings: true,
         projectChats: true,
+        campaignPlanners: {
+          include: {
+            chats: true,
+          },
+        },
         invitedUsers: true,
+      },
+    });
+
+    // Automatically create admin role for project creator
+    await prisma.invitedUser.create({
+      data: {
+        projectId: project.id,
+        userId: user.id,
+        role: "admin",
       },
     });
 
