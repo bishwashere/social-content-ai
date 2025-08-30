@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchRedditPostsData,
+  getAllPlatformMetrics,
   getFacebookMetrics,
   getLinkedinMetrics,
   getThreadsMetrics,
@@ -48,6 +49,14 @@ export const useGetThreadsMetrics = (userId: string) => {
   return useQuery({
     queryKey: ["threads-metrics", userId],
     queryFn: () => getThreadsMetrics(userId),
+    enabled: !!userId,
+  });
+};
+
+export const useGetAllPlatformMetrics = (userId: string) => {
+  return useQuery({
+    queryKey: ["all-metrics", userId],
+    queryFn: () => getAllPlatformMetrics(userId),
     enabled: !!userId,
   });
 };

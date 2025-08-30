@@ -267,3 +267,35 @@ export const getThreadsMetrics = async (userId: string) => {
     throw new Error("Could not load Threads data!");
   }
 };
+
+export const getAllPlatformMetrics = async (userId: string) => {
+  try {
+    console.log(userId)
+    const oauthProvider = await prisma.oauthProvider.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        pagePosts: true,
+      },
+    });
+    console.log(oauthProvider)
+
+    if (!oauthProvider) {
+      return {
+        success: false,
+        message: "Threads account not found",
+      };
+    }
+
+    const posts = oauthProvider.flatMap(provider => provider.pagePosts || []);
+
+    return {
+      success: true,
+      data: posts,
+    };
+  } catch (error) {
+    console.error("Error fetching Threads metrics:", error);
+    throw new Error("Could not load Threads data!");
+  }
+}
