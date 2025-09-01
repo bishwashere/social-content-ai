@@ -14,6 +14,7 @@ type ProjectPulseProps = {
     };
     thiwWeekPostSummaries: {
         posts: number;
+        noPosts: number;
         likes: number;
         impressions: number;
         uniqueImpressions: number;
@@ -25,12 +26,12 @@ export default function ProjectPulseMetrics({ projectPulse }: { projectPulse: Pr
     const metrics = [
         { label: "Pulse", value: `${projectPulse.pulse.toFixed(0)}%`, icon: Activity, color: "text-green-600 bg-green-100" },
         { label: "Streak", value: `${projectPulse.daysPosted} days`, icon: Flame, color: "text-orange-600 bg-orange-100" },
-        { label: "No Posts", value: `${projectPulse.gapDays} days`, icon: CalendarX, color: "text-red-600 bg-red-100" },
         { label: "Posts(Week)", value: projectPulse.thiwWeekPostSummaries.posts, icon: FileText, color: "text-blue-600 bg-blue-100" },
+        { label: "No Posts", value: `${projectPulse.thiwWeekPostSummaries.noPosts} days`, icon: CalendarX, color: "text-red-600 bg-red-100" },
         { label: "Impression", value: projectPulse.thiwWeekPostSummaries.impressions, icon: BarChart2, color: "text-purple-600 bg-purple-100" },
         { label: "Uniq. Imp.", value: projectPulse.thiwWeekPostSummaries.uniqueImpressions, icon: Users, color: "text-teal-600 bg-teal-100" },
         { label: "Eng. Rate", value: `${projectPulse.thiwWeekPostSummaries.er.toFixed(0)}%`, icon: Activity, color: "text-indigo-600 bg-indigo-100" },
-        { label: "Cadence", value: projectPulse.components.cadence, icon: Clock, color: "text-pink-600 bg-pink-100" },
+        { label: "Cadence", value: Math.ceil(projectPulse.components.cadence), icon: Clock, color: "text-pink-600 bg-pink-100" },
     ]
 
     return (

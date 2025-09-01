@@ -1,5 +1,5 @@
 import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTracking } from "@prisma/client";
-import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks } from "date-fns";
+import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks, startOfDay, subDays } from "date-fns";
 
 /**
  * Cadence = posted_this_week / planned_this_week (capped 100)
@@ -7,8 +7,8 @@ import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks } from "da
 export function calculateCadence(
     planners: (CampaignPlanner & { chats: CampaignChat[] })[]
 ): number {
-    const startDate = subWeeks(new Date(), 1);
-    const endDate = new Date();
+    const endDate = startOfDay(new Date()); // today 00:00
+    const startDate = startOfDay(subDays(endDate, 7)); // 7 days before today 00:00
 
     let plannedThisWeek = 0;
     let postedThisWeek = 0;
@@ -61,8 +61,9 @@ export function calculateOnTime(posts: ScheduledPost[]): number {
  * Coverage = % of campaign platforms that had ≥1 post in last 7 days
  */
 export function calculateCoverage(planners: (CampaignPlanner & { chats: CampaignChat[] })[]): number {
-    const last7d = new Date();
-    last7d.setDate(last7d.getDate() - 7);
+
+    const todayStart = startOfDay(new Date()); // today 00:00
+    const last7d = startOfDay(subDays(todayStart, 7)); // 7 days before today 00:00
 
     const postedPlatforms = new Set<string>();
 
@@ -153,6 +154,7 @@ export function calculateThisWeekPostSummaries(
 
     return {
         posts: trackings.length,
+        noPosts: 7 - trackings.length,
         likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
         impressions: posts.reduce((sum, post) => sum + (post.impressions || 0), 0),
         uniqueImpressions: posts.reduce((sum, post) => sum + (post.uniqueImpressions || 0), 0),

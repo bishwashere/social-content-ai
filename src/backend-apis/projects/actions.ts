@@ -12,7 +12,7 @@ import {
   calculatePlanProgress,
   calculateThisWeekPostSummaries,
 } from "./analytics";
-import { subWeeks } from "date-fns";
+import { startOfDay, subDays, subWeeks } from "date-fns";
 
 export async function getWebsiteDescription(url: string) {
   try {
@@ -50,6 +50,42 @@ export async function getWebsiteDescription(url: string) {
 
 export async function getProjectPulse(projectId: string) {
   console.log("Getting project pulse for:", projectId);
+  const todayStart = startOfDay(new Date()); // today 00:00
+  const sevenDaysAgo = startOfDay(subDays(todayStart, 7)); // 7 days before today 00:00
+
+  // Fetch latest puse data calculated by cron if available
+  const projectPulse = await prisma.projectPulse.findFirst({
+    where: {
+      projectId,
+    },
+    orderBy: {
+      createdAt: "desc", // newest
+    },
+  });
+
+  if (projectPulse) {
+    return {
+      pulse: Math.round(projectPulse.pulse),
+      components: projectPulse.components as {
+        cadence: number;
+        onTime: number;
+        engagement: number;
+        coverage: number;
+        planProgress: number;
+      },
+      thiwWeekPostSummaries: projectPulse.thisWeekPostSummaries as {
+        posts: number;
+        noPosts: number;
+        likes: number;
+        impressions: number;
+        uniqueImpressions: number;
+        er: number;
+      },
+      daysPosted: projectPulse.daysPosted,
+      gapDays: projectPulse.gapDays
+    };;
+  }
+
   const [planners, scheduledPosts, oauthProviders, projectTracking] =
     await Promise.all([
       prisma.campaignPlanner.findMany({
@@ -57,7 +93,13 @@ export async function getProjectPulse(projectId: string) {
         include: { chats: true },
       }),
       prisma.scheduledPost.findMany({
-        where: { projectId },
+        where: {
+          projectId,
+          date: {
+            gte: sevenDaysAgo,
+            lt: todayStart
+          }
+        },
       }),
       prisma.projectToOAuthProvider.findMany({
         where: {
@@ -66,7 +108,14 @@ export async function getProjectPulse(projectId: string) {
         select: {
           oauthProvider: {
             select: {
-              pagePosts: true,
+              pagePosts: {
+                where: {
+                  date: {
+                    gte: sevenDaysAgo,
+                    lt: todayStart
+                  }
+                }
+              },
             },
           },
         },
@@ -74,6 +123,10 @@ export async function getProjectPulse(projectId: string) {
       prisma.projectTracking.findMany({
         where: {
           projectId,
+          date: {
+            gte: sevenDaysAgo,
+            lt: todayStart
+          }
         },
       }),
     ]);
@@ -82,26 +135,11 @@ export async function getProjectPulse(projectId: string) {
     (provider) => provider.oauthProvider?.pagePosts ?? []
   );
 
-  console.log(oauthProviders);
-
-  // Filter posts for last 4 weeks
-  const fourWeeksAgo = subWeeks(new Date(), 4);
-  const postsLast4Weeks = platformPosts.filter(
-    (post) => post.date >= fourWeeksAgo
-  );
-
-  // Filter posts for this week
-  const startDate = subWeeks(new Date(), 1);
-  const endDate = new Date();
-  const postsThisWeek = platformPosts.filter(
-    (post) => post.date >= startDate && post.date <= endDate
-  );
-
   const cadence = calculateCadence(planners);
   const onTime = calculateOnTime(scheduledPosts);
   const coverage = calculateCoverage(planners);
   const planProgress = calculatePlanProgress(planners);
-  const engagement = calculateEngagement(postsLast4Weeks);
+  const engagement = calculateEngagement(platformPosts);
 
   // Weighted formula
   const pulse =
@@ -111,15 +149,11 @@ export async function getProjectPulse(projectId: string) {
     0.1 * coverage +
     0.1 * planProgress;
 
-  console.log("postsThisWeek", postsThisWeek);
-
-  const projectTrackingThisWeek = projectTracking.filter(
-    (post) => post.date >= startDate && post.date <= endDate
-  );
+  // console.log("postsThisWeek", scheduledPosts);
 
   const thiwWeekPostSummaries = calculateThisWeekPostSummaries(
-    projectTrackingThisWeek,
-    postsThisWeek
+    projectTracking,
+    platformPosts
   );
 
   const streak = calculateGapsandPostsDaysThisMonth(planners, "1MONTH");
