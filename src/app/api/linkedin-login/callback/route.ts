@@ -2,7 +2,7 @@ import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
-import { AUTH_ERROR_CODES } from "@/constants/auth-error";
+// import { AUTH_ERROR_CODES } from "@/constants/auth-error";
 import { verifyJWT } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { OauthPlatform } from "@prisma/client";
