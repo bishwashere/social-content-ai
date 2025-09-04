@@ -152,9 +152,23 @@ export function calculateThisWeekPostSummaries(
     // console.log("ER (like+comment+share)/impressions : ", (d.likes + d.comments + d.shares) / d.impressions);
     // console.log("Normalized ER (calculation Er per post and then average) : ", calculateEngagement(posts));
 
+    const dates = trackings.map(t => t.date.toISOString().split("T")[0]);
+    // Find min and max dates
+    const minDate = new Date(Math.min(...trackings.map(t => t.date.getTime())));
+    const maxDate = new Date(Math.max(...trackings.map(t => t.date.getTime())));
+    const missing: Date[] = [];
+    const seen = new Set(dates);
+    // Walk from min → max and check which days are missing
+    for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        const key = d.toISOString().split("T")[0];
+        if (!seen.has(key)) {
+            missing.push(new Date(d));
+        }
+    }
+
     return {
         posts: trackings.length,
-        noPosts: 7 - trackings.length,
+        noPosts: missing.length,
         likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
         impressions: posts.reduce((sum, post) => sum + (post.impressions || 0), 0),
         uniqueImpressions: posts.reduce((sum, post) => sum + (post.uniqueImpressions || 0), 0),
