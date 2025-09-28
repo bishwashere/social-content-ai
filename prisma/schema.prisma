@@ -300,7 +300,7 @@ model PlatformPost {
   postId            String
   oauthProviderId   String   @db.ObjectId
   date              DateTime
-  content           String
+  content           String?
   likes             Int
   comments          Int
   shares            Int      @default(0)

@@ -275,9 +275,9 @@ function ProjectItem({
       }}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-2">
           <Folder className="h-4 w-4 shrink-0" />
-          <span className="font-medium truncate">{project.name}</span>
+          <span className="font-medium max-w-[9rem] overflow-hidden text-ellipsis">{project.name}</span>
         </div>
 
         <div className="flex items-center gap-2">

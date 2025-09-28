@@ -270,7 +270,7 @@ export const getThreadsMetrics = async (userId: string) => {
 
 export const getAllPlatformMetrics = async (userId: string) => {
   try {
-    console.log(userId)
+    // console.log(userId)
     const oauthProvider = await prisma.oauthProvider.findMany({
       where: {
         userId,
@@ -279,12 +279,12 @@ export const getAllPlatformMetrics = async (userId: string) => {
         pagePosts: true,
       },
     });
-    console.log(oauthProvider)
+    // console.log(oauthProvider)
 
     if (!oauthProvider) {
       return {
         success: false,
-        message: "Threads account not found",
+        message: "Account not found",
       };
     }
 
@@ -295,7 +295,7 @@ export const getAllPlatformMetrics = async (userId: string) => {
       data: posts,
     };
   } catch (error) {
-    console.error("Error fetching Threads metrics:", error);
-    throw new Error("Could not load Threads data!");
+    console.error("Error fetching metrics:", error);
+    throw new Error("Could not load data!");
   }
 }
