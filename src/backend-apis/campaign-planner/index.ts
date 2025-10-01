@@ -118,19 +118,30 @@ export const getCampaignPlanner = async (projectId: string) => {
   });
 
   if (planners)
-    return {
-      chatsGroupedByCampaign: planners.map((p) => ({
+  return {
+    chatsGroupedByCampaign: planners
+      .map((p) => ({
         id: p.id,
         name: p.name,
         chats: p.chats.sort((a, b) => a.day - b.day), // day 1, 2, 3
         goal: p.goal,
         targetAudience: p.targetAudience,
         date: p.updatedAt,
-        startDate: p.startDate,
+        startDate: p.startDate ? new Date(p.startDate) : null, // normalize
         projectId: p.projectId.toString(),
         platforms: p.platforms,
-      })),
-    };
+      }))
+      .sort((a, b) => {
+        if (!a.startDate && b.startDate) return -1;
+        if (a.startDate && !b.startDate) return 1;
+        if (!a.startDate && !b.startDate) return 0;
+
+        // both valid dates
+        // return a.startDate!.getTime() - b.startDate!.getTime(); // ascending
+        return b.startDate!.getTime() - a.startDate!.getTime() // descending
+      }),
+  };
+
 };
 
 export const generateCampaignChat = async (props: {
@@ -258,12 +269,12 @@ export const generateCampaignChat = async (props: {
     platforms: platforms,
     ...(redditPopularPost
       ? {
-          extraInformation: {
-            reddit: {
-              popularPost: redditPopularPost,
-            },
+        extraInformation: {
+          reddit: {
+            popularPost: redditPopularPost,
           },
-        }
+        },
+      }
       : {}),
   });
 
