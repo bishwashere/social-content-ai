@@ -16,7 +16,7 @@ import {
   TooltipProps,
 } from "recharts";
 
-type Props = {
+export type ViewAnalyticsProps = {
   totalPosts: number;
   totalLikes: number;
   totalFollowers: number;
@@ -30,7 +30,7 @@ type Props = {
   }[]
 }
 
-const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpressions, totalComments, chartData }: Props) => {
+const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpressions, totalComments, chartData }: ViewAnalyticsProps) => {
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -152,7 +152,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
                 label={
                   !isMobile ?
                     {
-                      value: "Number of Posts",
+                      value: "Total Impressions",
                       angle: -90,
                       position: "insideLeft",
                       offset: 10,
@@ -168,7 +168,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
                 label={
                   !isMobile ?
                     {
-                      value: "Impressions, Likes and Comments",
+                      value: "Likes and Comments",
                       angle: 90,
                       position: "insideRight",
                       offset: 10,
