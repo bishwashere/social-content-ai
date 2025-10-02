@@ -53,10 +53,10 @@ export const useGetThreadsMetrics = (userId: string) => {
   });
 };
 
-export const useGetAllPlatformMetrics = (userId: string) => {
+export const useGetAllPlatformMetrics = (userId: string, selectedProjectId: string | null) => {
   return useQuery({
-    queryKey: ["all-metrics", userId],
-    queryFn: () => getAllPlatformMetrics(userId),
-    enabled: !!userId,
+    queryKey: ["all-metrics", userId, selectedProjectId],
+    queryFn: () => getAllPlatformMetrics(userId, selectedProjectId),
+    enabled: !!userId && !!selectedProjectId,
   });
 };

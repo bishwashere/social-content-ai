@@ -268,7 +268,7 @@ export const getThreadsMetrics = async (userId: string) => {
   }
 };
 
-export const getAllPlatformMetrics = async (userId: string) => {
+export const getAllPlatformMetrics = async (userId: string, projectId: string | null) => {
   try {
     // console.log(userId)
     const oauthProvider = await prisma.oauthProvider.findMany({
@@ -277,6 +277,7 @@ export const getAllPlatformMetrics = async (userId: string) => {
       },
       include: {
         pagePosts: true,
+        projectToOAuthProviders: true,
       },
     });
     // console.log(oauthProvider)
@@ -288,7 +289,9 @@ export const getAllPlatformMetrics = async (userId: string) => {
       };
     }
 
-    const posts = oauthProvider.flatMap(provider => provider.pagePosts || []);
+    const posts = oauthProvider
+      .filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
+      .flatMap(provider => provider.pagePosts || []);
 
     return {
       success: true,
