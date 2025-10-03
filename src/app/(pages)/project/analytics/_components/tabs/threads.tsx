@@ -2,15 +2,11 @@ import { useSession } from '@/backend-apis/auth/hooks'
 import { useGetThreadsMetrics } from '@/backend-apis/metrics/hooks'
 import ViewAnalytics, { ViewAnalyticsProps, ViewAnalyticsSkeleton } from './view-analytics'
 import { useEffect, useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { timeRangeOptions } from './all';
+import { AnalyticsPlatformsProps } from '.';
 
-
-
-const Threads = () => {
+const Threads = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
   const { data: session } = useSession();
-  const { isLoading, data } = useGetThreadsMetrics(session?.user.id || "");
-  const [timerange, setTimerange] = useState<number>(timeRangeOptions[0].value);
+  const { isLoading, data } = useGetThreadsMetrics(session?.user.id || "", selectedProject);
   const [analytics, setAnalytics] = useState<ViewAnalyticsProps>({ totalComments: 0, totalFollowers: 0, totalImpressions: 0, totalLikes: 0, totalPosts: 0, chartData: [] });
 
   useEffect(() => {
@@ -48,21 +44,6 @@ const Threads = () => {
 
   return (
     <div className='w-full'>
-      <div className='flex gap-2 items-center justify-end mb-2'>
-        <p className='text-sm'>Time Range</p>
-        <Select value={String(timerange)} onValueChange={(value) => setTimerange(Number(value))}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select timerange" />
-          </SelectTrigger>
-          <SelectContent>
-            {timeRangeOptions.map((option) => (
-              <SelectItem key={option.value} value={String(option.value)}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       <ViewAnalytics {...analytics} />
     </div>
   )
