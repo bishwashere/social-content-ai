@@ -28,28 +28,29 @@ export const useRedditPostsData = (urls: string[]) => {
   });
 };
 
-export const useGetFacebookMetrics = (pageId: string) => {
+export const useGetFacebookMetrics = (userId: string, projectId: string | null) => {
   return useQuery({
-    queryKey: ["facebook-metrics", pageId],
-    queryFn: () => getFacebookMetrics(pageId),
-    enabled: !!pageId,
-  });
-};
-
-export const useGetLinkedinMetrics = (pageId: string) => {
-  return useQuery({
-    queryKey: ["linkedin-metrics", pageId],
-    queryFn: () => getLinkedinMetrics(pageId),
-    enabled: !!pageId,
+    queryKey: ["facebook-metrics", projectId],
+    queryFn: () => getFacebookMetrics(userId, projectId),
+    enabled: !!projectId && !!userId,
     refetchOnWindowFocus: false,
   });
 };
 
-export const useGetThreadsMetrics = (userId: string) => {
+export const useGetLinkedinMetrics = (userId: string, projectId: string | null) => {
   return useQuery({
-    queryKey: ["threads-metrics", userId],
-    queryFn: () => getThreadsMetrics(userId),
-    enabled: !!userId,
+    queryKey: ["linkedin-metrics", projectId],
+    queryFn: () => getLinkedinMetrics(userId, projectId),
+    enabled: !!projectId && !!userId,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useGetThreadsMetrics = (userId: string, projectId: string | null) => {
+  return useQuery({
+    queryKey: ["threads-metrics", projectId],
+    queryFn: () => getThreadsMetrics(userId, projectId),
+    enabled: !!userId && !!projectId,
   });
 };
 
