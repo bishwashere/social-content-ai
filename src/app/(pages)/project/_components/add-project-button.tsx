@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import { useCreateProject, useGetWebsiteDescription } from "@/backend-apis/projects/hooks";
 import FirstViewTooltip from "@/components/common/first-view-tooltip";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AddProjectButton() {
   const [step, setStep] = useState(0);
@@ -25,6 +27,7 @@ export function AddProjectButton() {
   const [open, setOpen] = useState(false);
   const createProject = useCreateProject();
   const desc = useGetWebsiteDescription()
+  const sidebar = useSidebar()
   const handleNext = async () => {
     if (step === 1 && url) {
       const description = await desc.mutateAsync(url)
@@ -32,7 +35,7 @@ export function AddProjectButton() {
     }
     setStep((prev) => prev + 1)
   };
-  const handleBack = () => setStep((prev) => prev - 1);
+  // const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,13 +95,28 @@ export function AddProjectButton() {
           content="Add project to save them permanently and see history of content generated."
           order={1}
         >
-          <Button
-            className="w-full h-10 text-sm md:h-9 lg:h-8"
-            onClick={() => setOpen(true)}
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Project
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors ${
+                    sidebar.open 
+                      ? 'w-full h-10 text-sm px-4' 
+                      : 'h-10 w-10 justify-center p-0'
+                  }`}
+                  onClick={() => setOpen(true)}
+                >
+                  <PlusCircle className={sidebar.open ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+                  {sidebar.open && <span>Add Project</span>}
+                </Button>
+              </TooltipTrigger>
+              {!sidebar.open && (
+                <TooltipContent side="right">
+                  Add Project
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </FirstViewTooltip>
       </DialogTrigger>
 

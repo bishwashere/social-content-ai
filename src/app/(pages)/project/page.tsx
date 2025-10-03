@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import HomepageProjectDropdown from "./_components/homepage-project-dropdown";
 import AdvanceCustomization from "./_components/advance-customization";
+import { CompactStatsCards } from "./_components/compact-stats-cards";
 
 export default function Home() {
   const router = useRouter();
@@ -35,6 +36,13 @@ export default function Home() {
         <br />
         Select a project from the left to get started, or click ‘Add Project’ to
         create a new one.
+      </div>
+
+      {/* Dashboard Top Section */}
+      <div className="w-full max-w-6xl mx-auto mb-6 flex justify-center">
+        <div className="w-full">
+          <CompactStatsCards />
+        </div>
       </div>
 
       {/* Main Content */}

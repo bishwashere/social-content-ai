@@ -1,4 +1,5 @@
-import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import * as React from "react";
+import { CreditCard, LogOut, Settings, User, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,9 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useLogout, useSession } from "@/backend-apis/auth/hooks";
-import { Logo } from "@/components/common/logo";
 import GoogleLoginButton from "@/components/common/google-login-button";
 import Subscription from "@/components/common/subscription";
 import { useParams, useRouter } from "next/navigation";
@@ -34,9 +35,30 @@ export function Header() {
 
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
-      <div className="flex h-16 items-center justify-between bg-background w-full md:px-8 max-w-full md:max-w-[calc(100vw-16rem)] lg:max-w-[calc(100vw-18rem)]">
+      <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
         <div className="flex items-center gap-2">
-          <SidebarTrigger className="min-w-[24px]" />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 hover:bg-gray-100 transition-colors"
+                  onClick={() => sidebar.toggleSidebar()}
+                >
+                  {sidebar.open ? (
+                    <PanelLeftClose className="h-4 w-4" />
+                  ) : (
+                    <PanelLeftOpen className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Toggle Sidebar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {sidebar.open ? "Collapse Sidebar" : "Expand Sidebar"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {!sidebar.open && <Image src="/logo.png" width="100" height="100" alt="NextPostAi" className="size-6" />}
           <div className="flex items-center gap-1">
             <span className="truncate">
