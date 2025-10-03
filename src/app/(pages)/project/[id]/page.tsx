@@ -43,6 +43,7 @@ function ProjectPage() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.replace(`${window.location.pathname}?${params.toString()}`);
+    localStorage.setItem("projectTab", tab);
   };
 
   const { data: projectPulse } = useGetProjectPulse(id as string);

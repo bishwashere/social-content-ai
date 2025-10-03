@@ -1,5 +1,5 @@
 import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTracking } from "@prisma/client";
-import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks } from "date-fns";
+import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks, startOfDay, subDays } from "date-fns";
 
 /**
  * Cadence = posted_this_week / planned_this_week (capped 100)
@@ -7,8 +7,8 @@ import { addDays, isBefore, startOfMonth, eachDayOfInterval, subWeeks } from "da
 export function calculateCadence(
     planners: (CampaignPlanner & { chats: CampaignChat[] })[]
 ): number {
-    const startDate = subWeeks(new Date(), 1);
-    const endDate = new Date();
+    const endDate = startOfDay(new Date()); // today 00:00
+    const startDate = startOfDay(subDays(endDate, 7)); // 7 days before today 00:00
 
     let plannedThisWeek = 0;
     let postedThisWeek = 0;
@@ -61,8 +61,9 @@ export function calculateOnTime(posts: ScheduledPost[]): number {
  * Coverage = % of campaign platforms that had ≥1 post in last 7 days
  */
 export function calculateCoverage(planners: (CampaignPlanner & { chats: CampaignChat[] })[]): number {
-    const last7d = new Date();
-    last7d.setDate(last7d.getDate() - 7);
+
+    const todayStart = startOfDay(new Date()); // today 00:00
+    const last7d = startOfDay(subDays(todayStart, 7)); // 7 days before today 00:00
 
     const postedPlatforms = new Set<string>();
 
@@ -151,8 +152,23 @@ export function calculateThisWeekPostSummaries(
     // console.log("ER (like+comment+share)/impressions : ", (d.likes + d.comments + d.shares) / d.impressions);
     // console.log("Normalized ER (calculation Er per post and then average) : ", calculateEngagement(posts));
 
+    const dates = trackings.map(t => t.date.toISOString().split("T")[0]);
+    // Find min and max dates
+    const minDate = new Date(Math.min(...trackings.map(t => t.date.getTime())));
+    const maxDate = new Date(Math.max(...trackings.map(t => t.date.getTime())));
+    const missing: Date[] = [];
+    const seen = new Set(dates);
+    // Walk from min → max and check which days are missing
+    for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        const key = d.toISOString().split("T")[0];
+        if (!seen.has(key)) {
+            missing.push(new Date(d));
+        }
+    }
+
     return {
         posts: trackings.length,
+        noPosts: missing.length,
         likes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
         impressions: posts.reduce((sum, post) => sum + (post.impressions || 0), 0),
         uniqueImpressions: posts.reduce((sum, post) => sum + (post.uniqueImpressions || 0), 0),

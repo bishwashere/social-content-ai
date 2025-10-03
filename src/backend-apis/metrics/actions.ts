@@ -49,20 +49,24 @@ export const fetchRedditPostsData = async (
   return results;
 };
 
-export const getFacebookMetrics = async (pageId: string) => {
+export const getFacebookMetrics = async (userId: string, projectId: string | null) => {
   try {
     // Step 1: Find OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findFirst({
+    const oauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        pageId,
+        userId,
         platform: "facebook",
       },
       include: {
         pagePosts: true,
+        projectToOAuthProviders: true,
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
-    if (!oauthProvider) {
+    if (!oauthProvider.length) {
       return {
         success: false,
         message: "Facebook page not found",
@@ -70,19 +74,28 @@ export const getFacebookMetrics = async (pageId: string) => {
     }
 
     // Step 2: Return from DB if posts already exist
-    if (oauthProvider.pagePosts.length) {
+    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
+    const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
+    if (posts.length) {
       return {
         success: true,
-        data: oauthProvider.pagePosts,
+        data: posts,
+      };
+    }
+
+    if(!projectOauthProvider[0].pageId) {
+      return {
+        success: false,
+        message: "Facebook page not found",
       };
     }
 
     // Step 3: Fetch from Facebook API
     const fb = new Fb({
-      accessToken: oauthProvider.accessToken,
-      refreshToken: oauthProvider.refreshToken!,
+      accessToken: projectOauthProvider[0].accessToken,
+      refreshToken: projectOauthProvider[0].refreshToken!,
     });
-    const metrics = await fb.getMyPostInsights(pageId);
+    const metrics = await fb.getMyPostInsights(projectOauthProvider[0].pageId);
 
     // Step 4: Map API response to DB structure
     const postsToSave = metrics.map((post) => ({
@@ -98,7 +111,7 @@ export const getFacebookMetrics = async (pageId: string) => {
 
     // Step 5: Save to DB
     const data = await prisma.oauthProvider.update({
-      where: { id: oauthProvider.id },
+      where: { id: projectOauthProvider[0].id },
       data: {
         pagePosts: {
           create: postsToSave,
@@ -119,45 +132,51 @@ export const getFacebookMetrics = async (pageId: string) => {
   }
 };
 
-export const getLinkedinMetrics = async (pageId: string) => {
+export const getLinkedinMetrics = async (userId: string, projectId: string | null) => {
   try {
-    const oauthProvider = await prisma.oauthProvider.findFirst({
+    const oauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        pageId,
+        userId,
         platform: "linkedin",
       },
       include: {
         pagePosts: true,
+        projectToOAuthProviders: true,
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
+    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
-    if (!oauthProvider || !oauthProvider.expiresAt) {
+    if (!projectOauthProvider.length || !projectOauthProvider[0].pageId || !projectOauthProvider[0].expiresAt) {
       return {
         success: false,
         message: "Linkedin page not found",
       };
     }
 
-    if (oauthProvider.pagePosts.length) {
+    const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
+    if (posts.length) {
       // Reutrn data from db
       return {
         sucess: true,
-        data: oauthProvider.pagePosts,
-        followersCount: oauthProvider.pageFollowers,
+        data: posts,
+        followersCount: projectOauthProvider[0].pageFollowers,
       };
     }
 
     // Otherwise fetch from linkedin and save to db and return as well
     const l = new Linkedin({
-      accessToken: oauthProvider.accessToken,
-      expiresAt: oauthProvider.expiresAt,
+      accessToken: projectOauthProvider[0].accessToken,
+      expiresAt: projectOauthProvider[0].expiresAt,
     });
-    const metrics = await l.getMyPostInsights(pageId);
+    const metrics = await l.getMyPostInsights(projectOauthProvider[0].pageId);
 
-    const followersCount = await l.getFollowersCount(pageId);
+    const followersCount = await l.getFollowersCount(projectOauthProvider[0].pageId);
 
     const data = await prisma.oauthProvider.update({
-      where: { id: oauthProvider.id },
+      where: { id: projectOauthProvider[0].id },
       data: {
         pageFollowers: followersCount,
         pagePosts: {
@@ -199,20 +218,25 @@ export const getLinkedinMetrics = async (pageId: string) => {
   }
 };
 
-export const getThreadsMetrics = async (userId: string) => {
+export const getThreadsMetrics = async (userId: string, projectId: string | null) => {
   try {
     // Step 1: Find the Threads OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findFirst({
+    const oauthProvider = await prisma.oauthProvider.findMany({
       where: {
         userId,
         platform: "threads",
       },
       include: {
         pagePosts: true,
+        projectToOAuthProviders: true,
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
+    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
-    if (!oauthProvider) {
+    if (!oauthProvider.length) {
       return {
         success: false,
         message: "Threads account not found",
@@ -220,17 +244,18 @@ export const getThreadsMetrics = async (userId: string) => {
     }
 
     // Step 2: Return from DB if posts already exist
-    if (oauthProvider.pagePosts.length) {
+    const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
+    if (posts.length) {
       return {
         success: true,
-        data: oauthProvider.pagePosts,
+        data: posts,
       };
     }
 
     // Step 3: Fetch from Threads API if not in DB
-    const t = new Threads({ accessToken: oauthProvider.accessToken });
+    const t = new Threads({ accessToken: projectOauthProvider[0].accessToken });
     const metrics = await t.fetchUserPostsWithInsights(
-      oauthProvider.pageId || ""
+      projectOauthProvider[0].pageId || ""
     );
 
     // Step 4: Transform metrics to match DB structure
@@ -247,7 +272,7 @@ export const getThreadsMetrics = async (userId: string) => {
 
     // Step 5: Save to DB
     const data = await prisma.oauthProvider.update({
-      where: { id: oauthProvider.id },
+      where: { id: projectOauthProvider[0].id },
       data: {
         pagePosts: {
           create: postsToSave,
@@ -267,3 +292,38 @@ export const getThreadsMetrics = async (userId: string) => {
     throw new Error("Could not load Threads data!");
   }
 };
+
+export const getAllPlatformMetrics = async (userId: string, projectId: string | null) => {
+  try {
+    // console.log(userId)
+    const oauthProvider = await prisma.oauthProvider.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        pagePosts: true,
+        projectToOAuthProviders: true,
+      },
+    });
+    // console.log(oauthProvider)
+
+    if (!oauthProvider) {
+      return {
+        success: false,
+        message: "Account not found",
+      };
+    }
+
+    const posts = oauthProvider
+      .filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
+      .flatMap(provider => provider.pagePosts || []);
+
+    return {
+      success: true,
+      data: posts,
+    };
+  } catch (error) {
+    console.error("Error fetching metrics:", error);
+    throw new Error("Could not load data!");
+  }
+}

@@ -2,7 +2,7 @@ import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
-import { AUTH_ERROR_CODES } from "@/constants/auth-error";
+// import { AUTH_ERROR_CODES } from "@/constants/auth-error";
 import { verifyJWT } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { OauthPlatform } from "@prisma/client";
@@ -11,10 +11,11 @@ import { OauthPlatform } from "@prisma/client";
 export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
-    const redirectTo = url.searchParams.get("redirectTo") || "/";
+    const redirectTo = url.searchParams.get("redirectTo") || `${process.env.NEXTAUTH_URL}/project`;
 
     if (!code) {
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
+        return NextResponse.redirect(redirectTo);
+        // return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
     }
 
     const tokenParams = new URLSearchParams({
@@ -50,11 +51,13 @@ export async function GET(req: NextRequest) {
     const cookieStore = cookies();
     const userToken = cookieStore.get(AUTH_TOKEN_COOKIE_NAME)?.value;
     if (!userToken) {
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
+        return NextResponse.redirect(redirectTo);
+        // return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
     }
     const payload = verifyJWT(userToken, process.env.JWT_SECRET as string);
     if (!payload) {
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
+        return NextResponse.redirect(redirectTo);
+        // return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
     }
 
     // Find the Google-authenticated user
@@ -65,7 +68,8 @@ export async function GET(req: NextRequest) {
         },
     });
     if (!googleUser) {
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
+        return NextResponse.redirect(redirectTo);
+        // return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/error/auth?code=${AUTH_ERROR_CODES.UNAUTHENTICATED}`);
     }
 
     const pageData = linkedinPages.map((page) => ({
