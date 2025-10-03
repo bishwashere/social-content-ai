@@ -62,7 +62,7 @@ export function ProjectFolderItem({
   const { toggleSidebar } = useSidebar();
   const deleteFolder = useDeleteProjectFolder();
   const updateFolder = useUpdateProjectFolder();
-  
+
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(folder.name);
   const [editDescription, setEditDescription] = useState(folder.description || "");
@@ -94,7 +94,7 @@ export function ProjectFolderItem({
   };
 
   const colorOptions = [
-    "#3B82F6", "#EF4444", "#10B981", "#F59E0B", 
+    "#3B82F6", "#EF4444", "#10B981", "#F59E0B",
     "#8B5CF6", "#F97316", "#EC4899", "#06B6D4"
   ];
 
@@ -103,7 +103,7 @@ export function ProjectFolderItem({
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday end
-    
+
     return (project.projectTrackings || []).some((tracking: any) => {
       const postDate = new Date(tracking.date);
       return isWithinInterval(postDate, { start: weekStart, end: weekEnd });
@@ -123,10 +123,10 @@ export function ProjectFolderItem({
       if (planner.chats && planner.chats.length > 0) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const baseDate = planner.startDate ? new Date(planner.startDate) : new Date(planner.createdAt);
         baseDate.setHours(0, 0, 0, 0);
-        
+
         const totalDays = planner.chats.length;
         const passedDays = planner.chats.filter((chat: any) => {
           const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
@@ -155,7 +155,7 @@ export function ProjectFolderItem({
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday end
-    
+
     const isActive = (project.projectTrackings || []).some((tracking: any) => {
       const postDate = new Date(tracking.date);
       return isWithinInterval(postDate, { start: weekStart, end: weekEnd });
@@ -222,7 +222,7 @@ export function ProjectFolderItem({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                
+
                 {isOpen ? (
                   <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                 ) : (
@@ -232,7 +232,7 @@ export function ProjectFolderItem({
             </div>
           </div>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent className="space-y-1 px-3 py-2">
           {/* Folder Overall Progress */}
           {folder.projectFolderItems.length > 0 && (
@@ -240,13 +240,15 @@ export function ProjectFolderItem({
               <div className="text-xs text-gray-600 mb-1">Overall Progress</div>
               <div className="px-1">
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="h-2 rounded-full transition-all duration-300 bg-blue-500"
-                    style={{ width: `${Math.round(
-                      folder.projectFolderItems.reduce((total, item) => 
-                        total + calculateProjectProgress(item.project), 0
-                      ) / folder.projectFolderItems.length
-                    )}%` }}
+                    style={{
+                      width: `${Math.round(
+                        folder.projectFolderItems.reduce((total, item) =>
+                          total + calculateProjectProgress(item.project), 0
+                        ) / folder.projectFolderItems.length
+                      )}%`
+                    }}
                   />
                 </div>
               </div>
@@ -259,16 +261,17 @@ export function ProjectFolderItem({
             </div>
           ) : (
             folder.projectFolderItems.map((item) => (
-              <Link
+              <div
                 key={item.id}
                 onClick={() => {
                   if (window.innerWidth <= 768) {
                     toggleSidebar();
                   }
+                  const tab = localStorage.getItem("projectTab");
+                  router.push(`/project/${item.project.id}${tab ? `?tab=${tab}` : ''}`)
                 }}
-                href={`/project/${item.project.id}`}
                 className={cn(
-                  "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                  "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer",
                   activeProjectId(currentPath) === item.project.id &&
                   "bg-accent text-accent-foreground",
                 )}
@@ -278,18 +281,18 @@ export function ProjectFolderItem({
                     <div className="w-1 h-1 rounded-full bg-current opacity-60" />
                     <span className="truncate max-w-[150px]">{item.project.name}</span>
                   </div>
-                  
+
                   {/* Progress Bar */}
                   <div className="px-1">
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className={`h-2 rounded-full transition-all duration-300 ${getProjectProgressBarColor(item.project)}`}
                         style={{ width: `${calculateProjectProgress(item.project)}%` }}
                       />
                     </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))
           )}
         </CollapsibleContent>
@@ -312,7 +315,7 @@ export function ProjectFolderItem({
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description (Optional)</Label>
               <Textarea
@@ -331,11 +334,10 @@ export function ProjectFolderItem({
                   <button
                     key={colorOption}
                     type="button"
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      editColor === colorOption
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${editColor === colorOption
                         ? "border-gray-800 scale-110"
                         : "border-gray-300 hover:border-gray-500"
-                    }`}
+                      }`}
                     style={{ backgroundColor: colorOption }}
                     onClick={() => setEditColor(colorOption)}
                   />

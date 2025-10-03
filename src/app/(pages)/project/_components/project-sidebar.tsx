@@ -271,7 +271,8 @@ function ProjectItem({
         if (window.innerWidth <= 768) {
           toggleSidebar()
         }
-        router.push(`/project/${project.id}`)
+        const tab = localStorage.getItem("projectTab");
+        router.push(`/project/${project.id}${tab ? `?tab=${tab}` : ''}`)
       }}
     >
       <div className="flex items-center justify-between">
