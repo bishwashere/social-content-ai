@@ -1,5 +1,12 @@
 import * as React from "react";
-import { CreditCard, LogOut, Settings, User, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  CreditCard,
+  LogOut,
+  Settings,
+  User,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +18,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useLogout, useSession } from "@/backend-apis/auth/hooks";
-import GoogleLoginButton from "@/components/common/google-login-button";
+import GoogleLoginButton from "@/components/common/auth/google-login-button";
 import Subscription from "@/components/common/subscription";
 import { useParams, useRouter } from "next/navigation";
 import { FaRegQuestionCircle } from "react-icons/fa";
@@ -22,7 +34,6 @@ import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/ho
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectEditModal } from "./project-edit-modal";
 import Image from "next/image";
-
 
 export function Header() {
   const { data } = useSession();
@@ -40,9 +51,9 @@ export function Header() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 hover:bg-gray-100 transition-colors"
                   onClick={() => sidebar.toggleSidebar()}
                 >
@@ -59,15 +70,24 @@ export function Header() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          {!sidebar.open && <Image src="/logo.png" width="100" height="100" alt="NextPostAi" className="size-6" />}
+          {!sidebar.open && (
+            <Image
+              src="/logo.png"
+              width="100"
+              height="100"
+              alt="NextPostAi"
+              className="size-6"
+            />
+          )}
           <div className="flex items-center gap-1">
             <span className="truncate">
-              {
-                projects?.data?.find((project) => project.id === id)?.name || "Dashboard"
-              }
+              {projects?.data?.find((project) => project.id === id)?.name ||
+                "Dashboard"}
             </span>
             {(() => {
-              const project = projects?.data?.find((project) => project.id === id);
+              const project = projects?.data?.find(
+                (project) => project.id === id
+              );
               return project ? <ProjectEditModal project={project} /> : null;
             })()}
           </div>
@@ -118,7 +138,9 @@ export function Header() {
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Billing</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/project/settings")}>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/project/settings")}
+                  >
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>

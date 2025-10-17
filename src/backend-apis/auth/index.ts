@@ -2,6 +2,7 @@ import tryCatchAsync from "@/lib/try-catch-async";
 import {
   ContinueWithGoogleParams,
   ContinueWithGoogleResponse,
+  EmailLoginParams,
   GetUserSessionResponse,
 } from "./types";
 import { ApiError, ApiResponse } from "../types";
@@ -27,6 +28,28 @@ class AuthService {
       const response = await api.post(apiRoutes.AUTH.CONTINUE_WITH_GOOGLE(), {
         credential,
       });
+      return response;
+    });
+
+    if (err) throw new Error(err.response?.data?.message);
+
+    Cookies.set(AUTH_TOKEN_COOKIE_NAME, res?.data.data?.bearerToken || "", {
+      expires: 30, // Cookie will expire in 30 days
+      secure: process.env.NODE_ENV === "production", // Only use secure in production
+      sameSite: "lax", // Protect against CSRF
+    });
+
+    await queryClient.setQueryData(["session"], res?.data.data);
+
+    return res?.data;
+  }
+
+  async emailLogin({ ...params }: EmailLoginParams, queryClient: QueryClient) {
+    const [err, res] = await tryCatchAsync<
+      ApiError,
+      ApiResponse<ContinueWithGoogleResponse>
+    >(async () => {
+      const response = await api.post(apiRoutes.AUTH.EMAIL_LOGIN(), params);
       return response;
     });
 

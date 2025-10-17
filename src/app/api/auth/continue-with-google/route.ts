@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { GoogleOauth } from "@/lib/google-ouath";
 import { generateJWT } from "@/lib/jwt";
-import { mail } from "@/lib/mail";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 

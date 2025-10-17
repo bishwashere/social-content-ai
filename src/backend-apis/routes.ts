@@ -5,6 +5,7 @@ class ApiRoutes {
   AUTH = {
     CONTINUE_WITH_GOOGLE: () => "/auth/continue-with-google",
     SESSION: () => "/auth/session",
+    EMAIL_LOGIN: () => "/auth/login",
   };
 
   CREATE_CHAT = () => "/chat";
