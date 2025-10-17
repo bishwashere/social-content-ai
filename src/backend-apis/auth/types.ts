@@ -12,3 +12,7 @@ export type GetUserSessionResponse = {
   user: User;
   subscription?: Subscription | null;
 };
+
+export type EmailLoginParams = AuthValidatorType["emailLogin"];
+
+export type EmailLoginResponse = ContinueWithGoogleResponse;

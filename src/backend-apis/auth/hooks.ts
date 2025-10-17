@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ContinueWithGoogleParams } from "./types";
+import { ContinueWithGoogleParams, EmailLoginParams } from "./types";
 import { authService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,22 @@ export const useContinueWithGoogle = () => {
   return useMutation({
     mutationFn: (data: ContinueWithGoogleParams) => {
       return authService.continueWithGoogle(data, queryClient);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+    },
+  });
+};
+
+export const useEmailLogin = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: EmailLoginParams) => {
+      return authService.emailLogin(data, queryClient);
     },
     onError: (error) => {
       toast.error(error.message);

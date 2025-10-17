@@ -1,4 +1,4 @@
-import GoogleLoginButton from "../common/google-login-button";
+import GoogleLoginButton from "../common/auth/google-login-button";
 
 export default function UnauthorizedError() {
   return (

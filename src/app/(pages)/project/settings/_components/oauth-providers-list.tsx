@@ -1,7 +1,13 @@
 "use client";
 
 import { useSession } from "@/backend-apis/auth/hooks";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useOAuthProviders } from "@/server-actions/oauth-providers/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { authenticateWithThreads } from "@/lib/auth/threads";
 import { signIn } from "next-auth/react";
 import { useDeleteAllUserOAuthProviders } from "@/backend-apis/user/hooks";
-import { confirm, } from "@/components/ui/alert-dialog";
+import { confirm } from "@/components/ui/alert-dialog";
+import Link from "next/link";
 
 type GroupedProviders = {
   [key: string]: OauthProvider[];
@@ -19,17 +26,18 @@ type GroupedProviders = {
 export function OAuthProvidersList() {
   const { data: session } = useSession();
   const { data: providers, isLoading } = useOAuthProviders();
-  const del = useDeleteAllUserOAuthProviders()
+  const del = useDeleteAllUserOAuthProviders();
 
   // Group providers by platform
-  const groupedProviders = providers?.reduce((acc: GroupedProviders, provider: OauthProvider) => {
-    const platform = provider.platform.toLowerCase();
-    if (!acc[platform]) {
-      acc[platform] = [];
-    }
-    acc[platform].push(provider);
-    return acc;
-  }, {}) ?? {};
+  const groupedProviders =
+    providers?.reduce((acc: GroupedProviders, provider: OauthProvider) => {
+      const platform = provider.platform.toLowerCase();
+      if (!acc[platform]) {
+        acc[platform] = [];
+      }
+      acc[platform].push(provider);
+      return acc;
+    }, {}) ?? {};
 
   if (!session) return null;
 
@@ -49,7 +57,8 @@ export function OAuthProvidersList() {
           <CardHeader>
             <CardTitle className="capitalize">{platform}</CardTitle>
             <CardDescription>
-              {providers.length} connected {platform} {providers.length === 1 ? 'account' : 'accounts'}
+              {providers.length} connected {platform}{" "}
+              {providers.length === 1 ? "account" : "accounts"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -59,28 +68,43 @@ export function OAuthProvidersList() {
                   {index > 0 && <Separator className="my-4" />}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium">{provider.pageName || provider.pageId}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Connected on {new Date(provider.createdAt).toLocaleDateString()} {
-                          provider.expiresAt && `| Expires on ${new Date(provider.expiresAt).toLocaleDateString()}`
+                      <Link
+                        href={
+                          provider.platform === "facebook"
+                            ? `https://www.facebook.com/profile.php?id=${provider.pageId}`
+                            : "#"
                         }
+                        target="_blank"
+                        className="font-medium  underline"
+                      >
+                        {provider.pageName || provider.pageId}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">
+                        Connected on{" "}
+                        {new Date(provider.createdAt).toLocaleDateString()}{" "}
+                        {provider.expiresAt &&
+                          `| Expires on ${new Date(
+                            provider.expiresAt
+                          ).toLocaleDateString()}`}
                       </p>
                     </div>
                   </div>
                 </div>
               ))}
               <div className="w-full flex justify-end">
-                <Button variant={"outline"}
+                <Button
+                  variant={"outline"}
                   onClick={() => {
                     if (platform === "threads") {
-                      return authenticateWithThreads()
+                      return authenticateWithThreads();
                     } else {
-                      signIn(platform)
+                      signIn(platform);
                     }
                   }}
                   className="ml-auto"
                 >
-                  Reconnect {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  Reconnect{" "}
+                  {platform.charAt(0).toUpperCase() + platform.slice(1)}
                 </Button>
               </div>
             </div>
@@ -102,21 +126,25 @@ export function OAuthProvidersList() {
           <CardHeader>
             <CardTitle>Remove Connection</CardTitle>
             <CardDescription>
-              If you are experiencing issues with connected accounts, you can remove it and reconnect.
+              If you are experiencing issues with connected accounts, you can
+              remove it and reconnect.
             </CardDescription>
             <Button
               onClick={async () => {
                 const confirmed = await confirm({
                   title: "Are you sure?",
-                  description: "This will delete all your connected accounts like (Facebook, Twitter etc) and you will need to reconnect them.",
-                })
+                  description:
+                    "This will delete all your connected accounts like (Facebook, Twitter etc) and you will need to reconnect them.",
+                });
 
                 if (!confirmed) return;
 
-                del.mutate(session.user.id)
+                del.mutate(session.user.id);
               }}
               loading={del.isPending}
-              className="w-fit ml-auto" variant={"destructive-outline"}>
+              className="w-fit ml-auto"
+              variant={"destructive-outline"}
+            >
               Delete All Connections
             </Button>
           </CardHeader>
