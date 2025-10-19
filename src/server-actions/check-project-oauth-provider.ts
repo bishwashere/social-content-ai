@@ -49,29 +49,30 @@ export async function checkProjectOAuthProvider(
         pageName: true,
         pageId: true,
         isPersonal: true,
-        projectToOAuthProviders: {
-          where: {
-            projectId,
-          },
-        },
+        projectToOAuthProviders: true,
       },
     });
 
     const hasProviderConnected = providers.length > 0;
-    const isProjectMapped = providers.some(
-      (provider) => provider.projectToOAuthProviders.length > 0
+    const isProjectMapped = providers.some(provider =>
+      provider.projectToOAuthProviders.some(p => p.projectId === projectId)
+    );
+
+    const filteredProviders = providers.filter(
+      provider => provider.projectToOAuthProviders.length === 0
     );
 
     return {
       hasProviderConnected,
       isProjectMapped,
       availableProviders: hasProviderConnected
-        ? providers.map((p) => ({
-            id: p.id,
-            pageName: p.pageName,
-            pageId: p.pageId,
-            isPersonal: p.isPersonal,
-          }))
+        ? filteredProviders.map((p) => ({
+          id: p.id,
+          pageName: p.pageName,
+          pageId: p.pageId,
+          isPersonal: p.isPersonal,
+          projectooauth: p.projectToOAuthProviders,
+        }))
         : undefined,
     };
   } catch (error) {
