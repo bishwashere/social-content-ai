@@ -99,8 +99,8 @@ const logout = useLogout()
           }}
         />
         <DialogHeader>
-          <DialogTitle>Pro</DialogTitle>
-          <DialogDescription>Go Pro!</DialogDescription>
+          <DialogTitle>Start 7 day FREE Trial</DialogTitle>
+          {/* <DialogDescription>Go Pro!</DialogDescription> */}
         </DialogHeader>
         <Card className="border-0 shadow-none">
           <CardHeader className="pb-2">
@@ -197,7 +197,7 @@ const logout = useLogout()
                     ? "Upgrade Plan"
                     : data?.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
                       ? "Upgrade Plan"
-                      : "Go Pro!"}
+                      : "Start Trial"}
             </Button>
             {/* COMMENTED OUT: Custom trial claim button - trials now handled by Stripe during checkout */}
             {/*
