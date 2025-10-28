@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import HomepageProjectDropdown from "./_components/homepage-project-dropdown";
 import AdvanceCustomization from "./_components/advance-customization";
 import { CompactStatsCards } from "./_components/compact-stats-cards";
+import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
 
 export default function Home() {
   const router = useRouter();
@@ -103,6 +104,8 @@ export default function Home() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AddGuidedProjectModal />
     </div>
   );
 }
