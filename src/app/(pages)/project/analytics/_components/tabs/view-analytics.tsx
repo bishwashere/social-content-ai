@@ -145,7 +145,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
           <ResponsiveContainer width="100%" height={300} className="flex">
             <ComposedChart data={chartData} margin={isMobile ? { left: -18, right: -29 } : undefined}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" padding={{ left: 0, right: 0 }} />
+              <XAxis dataKey="label" padding={{ left: 0, right: 0 }} tick={{ fontSize: 13 }} />
               <YAxis
                 yAxisId="left"
                 domain={[0, 1]}
@@ -160,7 +160,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
                     }
                     :
                     undefined}
-                tick={{ fontSize: 13 }}
+                tick={{ fontSize: 10 }}
               />
               <YAxis
                 yAxisId="right"

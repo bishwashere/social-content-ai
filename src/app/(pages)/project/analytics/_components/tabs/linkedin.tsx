@@ -34,7 +34,11 @@ const Linkedin = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
         totalFollowers: linkedin.followersCount,
         totalImpressions: filteredData.reduce((sum, d) => sum + (d.impressions || 0), 0),
         chartData: filteredData.map((d) => ({
-          label: d.content?.substring(0, 20) + "...",
+          label: d.date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric'
+          }),
           totalComments: d.comments || 0,
           totalImpressions: d.impressions || 0,
           totalLikes: d.likes || 0,
