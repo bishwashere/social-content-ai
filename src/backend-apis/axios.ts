@@ -6,7 +6,7 @@ import Cookie from "js-cookie";
  * Axios instance with base URL and request interceptor
  */
 const api = axios.create({
-  baseURL: (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL || "") + "/api",
+  baseURL: "/api",
 });
 
 api.interceptors.request.use((config) => {
@@ -16,6 +16,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log("🔵 Axios request:", config.method?.toUpperCase(), config.url);
   return config;
 });
 
