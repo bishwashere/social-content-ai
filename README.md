@@ -1,3 +1,6 @@
+### 11-01
+integrated with replit for AI coding
+
 ### 07-22
 integrate first workflow, success signup
 
