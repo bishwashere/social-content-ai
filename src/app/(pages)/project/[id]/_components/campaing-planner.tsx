@@ -106,6 +106,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [isTimePickerOpen, setIsTimePickerOpen] = useState<Record<string, boolean>>({});
   const [isPlatformSelectorOpen, setIsPlatformSelectorOpen] = useState<Record<string, boolean>>({});
   const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
+  const [showOldCampaigns, setShowOldCampaigns] = useState(false);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
 
   const campaignPlannerData = useGetCampaignPlanner({
@@ -421,10 +422,43 @@ export default function CampaignPlannerPage({ project }: Props) {
         ) : (
           <>
             {!!campaignPlannerData.data?.chatsGroupedByCampaign?.length && (
-              <h2 className="text-xl font-bold mb-2">Active Campaigns:</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold">Active Campaigns:</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowOldCampaigns(!showOldCampaigns)}
+                  className="text-xs text-muted-foreground"
+                >
+                  {showOldCampaigns ? "Hide old" : "Show old"}
+                </Button>
+              </div>
             )}
             {
-              campaignPlannerData.data?.chatsGroupedByCampaign.map((campaign) => {
+              campaignPlannerData.data?.chatsGroupedByCampaign
+                .filter((campaign) => {
+                  // If showing old campaigns, show everything
+                  if (showOldCampaigns) return true;
+
+                  // If campaign has no start date, show it (it's not scheduled yet)
+                  if (!campaign.startDate) return true;
+
+                  // Check if campaign is old (all dates have passed)
+                  const baseDate = new Date(campaign.startDate);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+
+                  // A campaign is considered "old" if all days have passed (regardless of completion)
+                  const allDaysPassed = campaign.chats.every((chat) => {
+                    const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
+                    chatDate.setHours(0, 0, 0, 0);
+                    return chatDate < today;
+                  });
+
+                  // Show campaign only if it's not old (has at least one upcoming day)
+                  return !allDaysPassed;
+                })
+                .map((campaign) => {
 
                 // Toggle Open
                 const isOpen = openCampaigns[campaign.id] || false;
