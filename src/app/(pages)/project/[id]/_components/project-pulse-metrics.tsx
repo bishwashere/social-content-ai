@@ -9,7 +9,10 @@ type ProjectPulseProps = {
         cadence: number;
         onTime: number;
         engagement: number;
+        consistency: number;
+        successRate: number;
         coverage: number;
+        platformDiversity: number;
         planProgress: number;
     };
     thiwWeekPostSummaries: {

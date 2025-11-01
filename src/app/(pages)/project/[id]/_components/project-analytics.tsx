@@ -31,7 +31,10 @@ type ProjectPulse = {
         cadence: number,
         onTime: number,
         engagement: number,
+        consistency?: number,
+        successRate?: number,
         coverage: number,
+        platformDiversity?: number,
         planProgress: number
     };
     thisWeekPostSummaries: {
@@ -186,7 +189,7 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
                         projectId: pulseData[0].projectId,
                         createdAt: subDays(pulseStartDate, i),
                         pulse: 0,
-                        components: { cadence: 0, coverage: 0, engagement: 0, onTime: 0, planProgress: 0 },
+                        components: { cadence: 0, coverage: 0, engagement: 0, onTime: 0, planProgress: 0, consistency: 0, successRate: 0, platformDiversity: 0 },
                         thisWeekPostSummaries: { posts: 0, er: 0, impressions: 0, likes: 0, uniqueImpressions: 0 },
                         daysPosted: 0,
                         gapDays: 0,

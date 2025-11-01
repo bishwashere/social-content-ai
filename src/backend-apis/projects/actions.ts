@@ -11,8 +11,11 @@ import {
   calculateOnTime,
   calculatePlanProgress,
   calculateThisWeekPostSummaries,
+  calculateConsistency,
+  calculateSuccessRate,
+  calculatePlatformDiversity,
 } from "./analytics";
-import { startOfDay, subDays, subWeeks } from "date-fns";
+import { startOfDay, subDays } from "date-fns";
 
 export async function getWebsiteDescription(url: string) {
   try {
@@ -53,40 +56,48 @@ export async function getProjectPulse(projectId: string) {
   const todayStart = startOfDay(new Date()); // today 00:00
   const sevenDaysAgo = startOfDay(subDays(todayStart, 7)); // 7 days before today 00:00
 
-  // Fetch latest puse data calculated by cron if available
-  const projectPulse = await prisma.projectPulse.findFirst({
-    where: {
-      projectId,
-    },
-    orderBy: {
-      createdAt: "desc", // newest
-    },
-  });
+  // Skip cached ProjectPulse data and always recalculate to ensure accuracy
+  // The cached data may have been calculated with old logic
+  // TODO: Update cron job to recalculate with new logic, then we can re-enable cache
+  // const projectPulse = await prisma.projectPulse.findFirst({
+  //   where: {
+  //     projectId,
+  //   },
+  //   orderBy: {
+  //     createdAt: "desc", // newest
+  //   },
+  // });
 
-  if (projectPulse) {
-    return {
-      pulse: Math.round(projectPulse.pulse),
-      components: projectPulse.components as {
-        cadence: number;
-        onTime: number;
-        engagement: number;
-        coverage: number;
-        planProgress: number;
-      },
-      thiwWeekPostSummaries: projectPulse.thisWeekPostSummaries as {
-        posts: number;
-        noPosts: number;
-        likes: number;
-        impressions: number;
-        uniqueImpressions: number;
-        er: number;
-      },
-      daysPosted: projectPulse.daysPosted,
-      gapDays: projectPulse.gapDays
-    };;
-  }
+  // if (projectPulse) {
+  //   return {
+  //     pulse: Math.round(projectPulse.pulse),
+  //     components: projectPulse.components as {
+  //       cadence: number;
+  //       onTime: number;
+  //       engagement: number;
+  //       coverage: number;
+  //       planProgress: number;
+  //     },
+  //     thiwWeekPostSummaries: projectPulse.thisWeekPostSummaries as {
+  //       posts: number;
+  //       noPosts: number;
+  //       likes: number;
+  //       impressions: number;
+  //       uniqueImpressions: number;
+  //       er: number;
+  //     },
+  //     daysPosted: projectPulse.daysPosted,
+  //     gapDays: projectPulse.gapDays
+  //   };;
+  // }
 
-  const [planners, scheduledPosts, oauthProviders, projectTracking] =
+  // For streak calculation, we need posts from the last 30 days (rolling, not calendar month)
+  // This ensures we capture posts across month boundaries (e.g., October 31 posts when viewing in November)
+  const thirtyDaysAgo = startOfDay(subDays(todayStart, 30));
+  // For engagement trend analysis, we need previous period (days 8-14 ago)
+  const fourteenDaysAgo = startOfDay(subDays(todayStart, 14));
+
+  const [planners, scheduledPosts, oauthProvidersLast7Days, oauthProvidersPrevious7Days, oauthProvidersFullMonth, projectTracking] =
     await Promise.all([
       prisma.campaignPlanner.findMany({
         where: { projectId },
@@ -101,6 +112,7 @@ export async function getProjectPulse(projectId: string) {
           }
         },
       }),
+      // Last 7 days for engagement/coverage calculations
       prisma.projectToOAuthProvider.findMany({
         where: {
           projectId,
@@ -108,13 +120,80 @@ export async function getProjectPulse(projectId: string) {
         select: {
           oauthProvider: {
             select: {
+              id: true,
+              platform: true,
               pagePosts: {
                 where: {
                   date: {
                     gte: sevenDaysAgo,
                     lt: todayStart
                   }
-                }
+                },
+                include: {
+                  oauthProvider: {
+                    select: {
+                      platform: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      // Previous 7 days (days 8-14 ago) for engagement trend analysis
+      prisma.projectToOAuthProvider.findMany({
+        where: {
+          projectId,
+        },
+        select: {
+          oauthProvider: {
+            select: {
+              id: true,
+              platform: true,
+              pagePosts: {
+                where: {
+                  date: {
+                    gte: fourteenDaysAgo,
+                    lt: sevenDaysAgo
+                  }
+                },
+                include: {
+                  oauthProvider: {
+                    select: {
+                      platform: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      // Last 30 days for streak calculation (rolling window, not calendar month)
+      prisma.projectToOAuthProvider.findMany({
+        where: {
+          projectId,
+        },
+        select: {
+          oauthProvider: {
+            select: {
+              id: true,
+              platform: true,
+              pagePosts: {
+                where: {
+                  date: {
+                    gte: thirtyDaysAgo,
+                    lt: todayStart
+                  }
+                },
+                include: {
+                  oauthProvider: {
+                    select: {
+                      platform: true,
+                    },
+                  },
+                },
               },
             },
           },
@@ -131,32 +210,115 @@ export async function getProjectPulse(projectId: string) {
       }),
     ]);
 
-  const platformPosts = oauthProviders.flatMap(
-    (provider) => provider.oauthProvider?.pagePosts ?? []
+  // Platform posts for last 7 days (engagement, coverage, this week summaries)
+  // Map posts with their provider's platform for easier access
+  const platformPostsLast7Days = oauthProvidersLast7Days.flatMap(
+    (projectProvider) => {
+      const provider = projectProvider.oauthProvider;
+      if (!provider) return [];
+      return (provider.pagePosts || []).map(post => ({
+        ...post,
+        // Ensure oauthProvider relation is set with platform from parent provider
+        oauthProvider: post.oauthProvider || {
+          id: provider.id,
+          platform: provider.platform,
+        } as any,
+      }));
+    }
   );
 
-  const cadence = calculateCadence(planners);
-  const onTime = calculateOnTime(scheduledPosts);
-  const coverage = calculateCoverage(planners);
-  const planProgress = calculatePlanProgress(planners);
-  const engagement = calculateEngagement(platformPosts);
+  // Platform posts for previous 7 days (engagement trend analysis)
+  const platformPostsPrevious7Days = oauthProvidersPrevious7Days.flatMap(
+    (projectProvider) => {
+      const provider = projectProvider.oauthProvider;
+      if (!provider) return [];
+      return (provider.pagePosts || []).map(post => ({
+        ...post,
+        // Ensure oauthProvider relation is set with platform from parent provider
+        oauthProvider: post.oauthProvider || {
+          id: provider.id,
+          platform: provider.platform,
+        } as any,
+      }));
+    }
+  );
 
-  // Weighted formula
+  // Platform posts for full month (streak calculation)
+  const platformPostsFullMonth = oauthProvidersFullMonth.flatMap(
+    (projectProvider) => {
+      const provider = projectProvider.oauthProvider;
+      if (!provider) return [];
+      return (provider.pagePosts || []).map(post => ({
+        ...post,
+        // Ensure oauthProvider relation is set with platform from parent provider
+        oauthProvider: post.oauthProvider || {
+          id: provider.id,
+          platform: provider.platform,
+        } as any,
+      }));
+    }
+  );
+
+  // Count total connected platforms for diversity calculation
+  const totalConnectedPlatforms = oauthProvidersLast7Days.length;
+
+  // Debug: Log posts fetched for streak calculation
+  console.log(`🔍 Posts for streak (Project ${projectId}):`, {
+    totalPosts: platformPostsFullMonth.length,
+    dateRange: { from: thirtyDaysAgo.toISOString(), to: todayStart.toISOString() },
+    postsByDate: platformPostsFullMonth
+      .map(p => ({ date: new Date(p.date).toDateString(), platform: p.oauthProvider?.platform }))
+      .slice(0, 20), // First 20 for debugging
+  });
+
+  // Calculate all components (based purely on platform data, no manual/campaign data)
+  const cadence = calculateCadence(platformPostsLast7Days, platformPostsPrevious7Days);
+  const onTime = calculateOnTime(scheduledPosts);
+  const engagement = calculateEngagement(platformPostsLast7Days, platformPostsPrevious7Days);
+  const coverage = calculateCoverage(platformPostsLast7Days, totalConnectedPlatforms);
+  // planProgress removed - was based on campaigns, not platform data
+  
+  // Calculate new components
+  const streak = calculateGapsandPostsDaysThisMonth(platformPostsFullMonth, "1MONTH");
+  const consistency = calculateConsistency(streak.daysPosted);
+  const successRate = calculateSuccessRate(scheduledPosts);
+  const platformDiversity = calculatePlatformDiversity(platformPostsLast7Days, totalConnectedPlatforms);
+
+  // Enhanced weighted formula - all based on actual platform data
   const pulse =
-    0.35 * cadence +
-    0.25 * onTime +
-    0.2 * engagement +
-    0.1 * coverage +
-    0.1 * planProgress;
+    0.25 * cadence +           // Posting frequency consistency (platform data only)
+    0.20 * onTime +            // Scheduled post timing accuracy
+    0.20 * engagement +        // Engagement with trend analysis (platform data)
+    0.15 * consistency +       // Posting streak (platform data)
+    0.10 * successRate +       // Scheduled post success rate
+    0.05 * coverage +          // Platform usage coverage (platform data)
+    0.05 * platformDiversity;  // Multi-platform usage (platform data)
 
   // console.log("postsThisWeek", scheduledPosts);
 
   const thiwWeekPostSummaries = calculateThisWeekPostSummaries(
     projectTracking,
-    platformPosts
+    platformPostsLast7Days
   );
 
-  const streak = calculateGapsandPostsDaysThisMonth(planners, "1MONTH");
+  // Debug logging to help troubleshoot metrics
+  console.log(`📊 Project ${projectId} Enhanced Pulse Calculation (Platform Data Only):`, {
+    cadence,
+    onTime,
+    engagement,
+    consistency,
+    successRate,
+    coverage,
+    platformDiversity,
+    pulse: Math.round(pulse),
+    streak: streak.daysPosted,
+    gapDays: streak.gapDays,
+    postsLast7Days: platformPostsLast7Days.length,
+    postsPrevious7Days: platformPostsPrevious7Days.length,
+    postsFullMonth: platformPostsFullMonth.length,
+    totalConnectedPlatforms,
+    scheduledPostsCount: scheduledPosts.length,
+  });
 
   return {
     pulse: Math.round(pulse),
@@ -164,8 +326,11 @@ export async function getProjectPulse(projectId: string) {
       cadence,
       onTime,
       engagement,
+      consistency,
+      successRate,
       coverage,
-      planProgress,
+      platformDiversity,
+      planProgress: 0, // Removed from calculation, kept for backward compatibility
     },
     thiwWeekPostSummaries,
     ...streak,
