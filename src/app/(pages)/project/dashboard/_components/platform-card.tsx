@@ -90,7 +90,8 @@ export function PlatformCard({
       <div className="flex flex-wrap gap-2 mt-2">
         {activity.data
           ?.filter((entry) => entry.platform === platform)
-          ?.slice(0, 5) // Limit to last 5 dates
+          ?.slice(-5) // Limit to last 5 dates
+          ?.reverse()
           ?.map((entry, index) =>
             entry.url ? (
               <a
