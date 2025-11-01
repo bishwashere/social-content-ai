@@ -87,7 +87,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const { data: session } = useSession();
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
-  const [selectedTargetAudience, setSelectedTargetAudience] = useState<number>(2);   // 1=Light,   2=Moderate,   3=Aggresive
+  const [selectedTargetAudience, setSelectedTargetAudience] = useState<number>(3);   // 1=Light, 2=Light-Moderate, 3=Moderate, 4=Moderate-Aggressive, 5=Aggressive
   const [name, setName] = useState<string>('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(Object.keys(ICONS));
   const [showCampaignForm, setShowCampaignForm] = useState(false);
@@ -373,7 +373,7 @@ export default function CampaignPlannerPage({ project }: Props) {
               <div className="overflow-x-auto pt-3 pb-2 w-full">
                 <Slider
                   min={1}
-                  max={3}
+                  max={5}
                   step={1}
                   value={[selectedTargetAudience]}
                   className="w-full"
@@ -381,7 +381,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                 />
                 <div className="flex justify-between text-xs text-muted-foreground px-1 pt-1">
                   <span>Light</span>
+                  <span className="text-[10px]">Light-Mod</span>
                   <span>Moderate</span>
+                  <span className="text-[10px]">Mod-Agg</span>
                   <span>Aggressive</span>
                 </div>
               </div>
