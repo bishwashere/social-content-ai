@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Trash, VideoIcon } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Settings, Trash, VideoIcon, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -95,6 +95,8 @@ export default function CampaignPlannerPage({ project }: Props) {
   const { handleCoinsFinished } = usePricingModal()
 
   const [showPast, setShowPast] = useState(false);
+
+  const [isCampaignStartDateSettingsOpen, setIsCampaignStartDateSettingsOpen] = useState<string[]>([]);
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -433,6 +435,16 @@ export default function CampaignPlannerPage({ project }: Props) {
                   setIsCalenderOpen(isCalenderOpen.filter(id => id !== campaignId));
                 }
 
+                // Open / Close Campaign Start Date Settings modal
+                const openCampaignStartDateSettings = (campaignId: string) => {
+                  if (!isCampaignStartDateSettingsOpen.includes(campaignId)) {
+                    setIsCampaignStartDateSettingsOpen([...isCampaignStartDateSettingsOpen, campaignId]);
+                  }
+                }
+                const closeCampaignStartDateSettings = (campaignId: string) => {
+                  setIsCampaignStartDateSettingsOpen(isCampaignStartDateSettingsOpen.filter(id => id !== campaignId));
+                }
+
                 // To calculate next latest upcoming day to highlight the date
                 const baseDate = campaign.startDate ? new Date(campaign.startDate) : new Date();
                 const today = new Date();
@@ -480,7 +492,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                       >
                         <div className="flex flex-wrap justify-center items-center gap-2">
                           {campaign.name}
-                          <div onClick={(e) => e.stopPropagation()}>
+                          <div className="hidden sm:block" onClick={(e) => e.stopPropagation()}>
                             <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
                           </div>
                           <p className="text-sm max-md:hidden">• {campaign.goal}</p>
@@ -492,14 +504,14 @@ export default function CampaignPlannerPage({ project }: Props) {
                               day: "numeric",
                             })}
                           </p>
-                          <button onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}>
+                          <button className="hidden sm:block" onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}>
                             <Trash className="size-[14px] stroke-red-500" />
                           </button>
                         </div>
                         <div className="flex justify-end">
                           {isOpen && (
                             <div className="px-4 pb-4 space-y-4">
-                              <div className="flex gap-2 justify-end">
+                              <div className="hidden sm:flex gap-2 justify-end">
 
                                 <div onClick={(e) => e.stopPropagation()} className="z-50">
                                   <DatePicker
@@ -569,8 +581,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   <Play className="h-4 w-4 mr-1" />
                                 </Button>
                               </div>
-
-
+                              <div className="flex justify-end sm:hidden">
+                                <Button variant="outline" className="-mr-4" size="sm" onClick={(e) => { e.stopPropagation(); openCampaignStartDateSettings(campaign.id) }}><Settings /></Button>
+                              </div>
                             </div>
                           )}
                           <span className="ml-2 text-sm text-gray-500">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
@@ -795,6 +808,91 @@ export default function CampaignPlannerPage({ project }: Props) {
                       )}
                     </div>
                     {/* </div> */}
+                    <Dialog open={isCampaignStartDateSettingsOpen.includes(campaign.id)} onOpenChange={() => closeCampaignStartDateSettings(campaign.id)} key={campaign.id}>
+                      <DialogContent>
+                        <div className="flex justify-end">
+                          <button onClick={() => closeCampaignStartDateSettings(campaign.id)}><X className="size-4" /></button>
+                        </div>
+                        <div className="flex justify-center items-center gap-8">
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}>
+                            <Trash className="size-4 stroke-red-500" />
+                          </button>
+                        </div>
+                        <div className="flex justify-center gap-4">
+                          <div onClick={(e) => e.stopPropagation()} className="z-50">
+                            <DatePicker
+                              // selected={selectedDate}
+                              onChange={(date) => {
+                                if (date) {
+                                  updateCampaignData.mutate({ id: campaign.id, startDate: date })
+                                  closeCalendar(campaign.id);
+                                  closeCampaignStartDateSettings(campaign.id);
+                                }
+                              }}
+                              open={isCalenderOpen.includes(campaign.id)}
+                              onFocus={() => openCalendar(campaign.id)}
+                              onClickOutside={() => closeCalendar(campaign.id)}
+                              showPopperArrow={true}
+                              className="text-xs"
+                              customInput={
+                                <Button variant="outline" size="sm" className="w-fit text-xs">
+                                  <Calendar />
+                                  <span className="max-lg:hidden"> Start</span>
+                                </Button>
+                              }
+                              disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
+                                if (!selectedCampaignPlanner) {
+                                  toast.error("Failed to find plan");
+                                  return;
+                                }
+                                const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
+                                if (!intensityPlans) {
+                                  toast.error("Failed to find plan");
+                                  return;
+                                }
+                                const yes = await confirm({
+                                  title: "Regenerate all contents for this campaign?",
+                                  description: `Regenerating content will use your ${intensityPlans.data.length * campaign.platforms.length} coins`
+                                });
+                                if (!yes) return;
+
+                                const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
+
+                                const d = await campaignPlannerMutation.mutateAsync({
+                                  id: campaign.id,
+                                  projectId: projectId as string,
+                                  campaignName: campaign.name || "",
+                                  plan,
+                                  platforms: campaign.platforms
+                                });
+
+                                for (const chat of (d?.data?.chats || [])) {
+                                  if (chat.status === "PENDING") {
+                                    await generateChat(projectId as string, campaign.id, chat.day, chat.title);
+                                    await sleep(2000);
+                                    campaignPlannerData.refetch();
+                                  }
+                                }
+                              } catch { }
+                            }}
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 );
               })}
