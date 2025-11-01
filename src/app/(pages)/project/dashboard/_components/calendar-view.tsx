@@ -281,6 +281,26 @@ export default function CalendarView() {
     });
   }, [scheduledPosts.isLoading, scheduledPosts.data, scheduledPosts.error]);
 
+  // Calculate counts for labels
+  const manualEntryCount = useMemo(() => {
+    if (!projects.data) return 0;
+    return projects.data.reduce((total, project) => {
+      return total + (project.projectTrackings?.length || 0);
+    }, 0);
+  }, [projects.data]);
+
+  const campaignPlansCount = useMemo(() => {
+    if (!projects.data) return 0;
+    return projects.data.reduce((total, project) => {
+      const planners = project.campaignPlanners || [];
+      return total + planners.reduce((plannerTotal, planner) => {
+        if (!planner.startDate) return plannerTotal;
+        const chats = planner.chats || [];
+        return plannerTotal + chats.length;
+      }, 0);
+    }, 0);
+  }, [projects.data]);
+
   const events = useMemo(() => {
     const map = new Map<string, MyEvent>();
     const today = new Date();
@@ -488,7 +508,9 @@ export default function CalendarView() {
             />
             <label htmlFor="showTracking" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📊</span>
-              <span className="text-gray-600">Manual Entry</span>
+              <span className="text-gray-600">
+                Manual Entry{projects.data ? ` (${manualEntryCount})` : ''}
+              </span>
             </label>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -501,7 +523,9 @@ export default function CalendarView() {
             />
             <label htmlFor="showPlanned" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📋</span>
-              <span className="text-gray-600">Campaign Plans</span>
+              <span className="text-gray-600">
+                Campaign Plans{projects.data ? ` (${campaignPlansCount})` : ''}
+              </span>
             </label>
             {showPlanned && (
               <div className="ml-2 flex items-center gap-2">
