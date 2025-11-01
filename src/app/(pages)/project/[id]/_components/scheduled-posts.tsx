@@ -25,6 +25,9 @@ import {
   Trash,
   Pencil,
   Eye,
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Md from "react-markdown";
@@ -116,6 +119,7 @@ const formatDate = (date: Date | string) => {
 
 export function ScheduledPosts({ project }: Props) {
   const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
+  const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set());
 
   const queryClient = useQueryClient();
   const {
@@ -165,6 +169,156 @@ export function ScheduledPosts({ project }: Props) {
     deleteScheduledPost.mutate(id);
   };
 
+  const toggleCampaign = (campaignId: string) => {
+    setExpandedCampaigns((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(campaignId)) {
+        newSet.delete(campaignId);
+      } else {
+        newSet.add(campaignId);
+      }
+      return newSet;
+    });
+  };
+
+  const renderPostCard = (post: ScheduledPost & { oauthProvider: OauthProvider }) => (
+    <Card key={post.id} className="w-full">
+      <CardHeader className="pb-3">
+        <div className="relative flex items-center">
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2 rounded-full text-white ${getPlatformColor(
+                post.platform
+              )}`}
+            >
+              {getPlatformIcon(post.platform)}
+            </div>
+            <div>
+              <CardTitle className="text-lg capitalize flex flex-row gap-2">
+                {post.platform}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(post.status)}
+                </div>
+              </CardTitle>
+              <CardDescription className="flex items-center gap-2">
+                <Calendar className="h-3 w-3" />
+                Scheduled For: {formatDate(post.date)}
+              </CardDescription>
+            </div>
+          </div>
+          <div className="absolute -top-3 right-0 flex gap-2">
+            <ToggleGroup
+              variant={"outline"}
+              value={
+                viewContentEdit.includes(post.id) ? "edit" : "preview"
+              }
+              type="single"
+              onValueChange={() => {
+                setViewContentEdit((prev) =>
+                  viewContentEdit.includes(post.id)
+                    ? prev.filter((item) => item !== post.id)
+                    : [...prev, post.id]
+                );
+              }}
+            >
+              <ToggleGroupItem value="preview">
+                <Eye className="size-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="edit">
+                <Pencil className="size-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDeleteScheduledPost(post.id)}
+              loading={deleteScheduledPost.isPending}
+            >
+              <Trash className="stroke-red-500 size-5" />
+            </Button>
+          </div>
+        </div>
+        {post.error && (post.status === "error" || post.status === "failed") && (
+          <p className="text-sm text-destructive px-4">
+            {post.error}
+          </p>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-4 p-1">
+        <div className="flex w-full items-center justify-center ">
+          {post.platform === "facebook" ? (
+            <FacebookPostView
+              post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit}
+            />
+          ) : post.platform === "linkedin" ? (
+            <LinkedinPostView
+              post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit}
+            />
+          ) : post.platform === "twitter" ? (
+            <XPostView
+              post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit}
+            />
+          ) : post.platform === "threads" ? (
+            <ThreadsPostView
+              post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit}
+            />
+          ) : post.platform === "reddit" ? (
+            <RedditPostView
+              post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit}
+            />
+          ) : post.platform === "threads" ? (
+            <ThreadsPost post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit} />
+          ) : (
+            <div
+              className="text-sm text-muted-foreground w-full"
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              <Md>
+                {post.content
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter((line) => line.length > 0)
+                  .join("\n\n")}
+              </Md>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Separate posts into regular and campaign posts
+  const regularPosts = posts.filter((post) => {
+    const meta = post.meta as any;
+    return !meta || !meta.campaignId;
+  });
+
+  // Group campaign posts by campaignId
+  const campaignPostsMap = new Map<string, typeof posts>();
+  posts.forEach((post) => {
+    const meta = post.meta as any;
+    if (meta && meta.campaignId) {
+      const campaignId = meta.campaignId;
+      if (!campaignPostsMap.has(campaignId)) {
+        campaignPostsMap.set(campaignId, []);
+      }
+      campaignPostsMap.get(campaignId)!.push(post);
+    }
+  });
+
   if (error) {
     return (
       <div className="space-y-4">
@@ -196,6 +350,7 @@ export function ScheduledPosts({ project }: Props) {
         {!isLoading && posts.length > 0 && (
           <div className="text-sm text-muted-foreground">
             {posts.length} posts •{" "}
+            {campaignPostsMap.size > 0 && `${campaignPostsMap.size} campaigns • `}
             {
               posts.filter(
                 (p) => p.status === "success" || p.status === "published"
@@ -231,125 +386,84 @@ export function ScheduledPosts({ project }: Props) {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {posts.map((post) => {
+          {/* Campaign Posts - Grouped */}
+          {Array.from(campaignPostsMap.entries()).map(([campaignId, campaignPosts]) => {
+            const firstPost = campaignPosts[0];
+            const meta = firstPost.meta as any;
+            const campaignName = meta?.campaignName || `Campaign (${campaignId.slice(-6)})`;
+            const isExpanded = expandedCampaigns.has(campaignId);
+            const sortedPosts = [...campaignPosts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const earliestDate = sortedPosts[0]?.date;
+            const latestDate = sortedPosts[sortedPosts.length - 1]?.date;
+            const statuses = campaignPosts.map(p => p.status);
+            const pendingCount = statuses.filter(s => s === "pending" || s === "scheduled").length;
+            const successCount = statuses.filter(s => s === "success" || s === "published").length;
+            const failedCount = statuses.filter(s => s === "failed" || s === "error").length;
+
             return (
-              <Card key={post.id} className="w-full">
+              <Card key={campaignId} className="w-full">
                 <CardHeader className="pb-3">
-                  <div className="relative flex items-center">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-full text-white ${getPlatformColor(
-                          post.platform
-                        )}`}
-                      >
-                        {getPlatformIcon(post.platform)}
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg capitalize flex flex-row gap-2">
-                          {post.platform}
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(post.status)}
-                          </div>
+                  <button
+                    onClick={() => toggleCampaign(campaignId)}
+                    className="w-full relative flex items-center cursor-pointer hover:bg-muted/50 -m-4 p-4 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <FolderOpen className="h-5 w-5 text-blue-500" />
+                      <div className="flex-1 text-left">
+                        <CardTitle className="text-lg flex flex-row gap-2 items-center">
+                          {campaignName}
+                          <Badge variant="outline" className="text-xs">
+                            Campaign
+                          </Badge>
                         </CardTitle>
-                        <CardDescription className="flex items-center gap-2">
-                          <Calendar className="h-3 w-3" />
-                          Scheduled For: {formatDate(post.date)}
+                        <CardDescription className="flex items-center gap-4 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {campaignPosts.length} posts
+                          </span>
+                          {earliestDate && latestDate && (
+                            <span className="text-xs">
+                              {formatDate(earliestDate)} - {formatDate(latestDate)}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-2">
+                            {pendingCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {pendingCount} pending
+                              </Badge>
+                            )}
+                            {successCount > 0 && (
+                              <Badge variant="default" className="bg-green-500 text-xs">
+                                {successCount} published
+                              </Badge>
+                            )}
+                            {failedCount > 0 && (
+                              <Badge variant="destructive" className="text-xs">
+                                {failedCount} failed
+                              </Badge>
+                            )}
+                          </div>
                         </CardDescription>
                       </div>
                     </div>
-                    <div className="absolute -top-3 right-0 flex gap-2">
-                      <ToggleGroup
-                        variant={"outline"}
-                        value={
-                          viewContentEdit.includes(post.id) ? "edit" : "preview"
-                        }
-                        type="single"
-                        onValueChange={() => {
-                          setViewContentEdit((prev) =>
-                            viewContentEdit.includes(post.id)
-                              ? prev.filter((item) => item !== post.id)
-                              : [...prev, post.id]
-                          );
-                        }}
-                      >
-                        <ToggleGroupItem value="preview">
-                          <Eye className="size-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="edit">
-                          <Pencil className="size-4" />
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDeleteScheduledPost(post.id)}
-                        loading={deleteScheduledPost.isPending}
-                      >
-                        <Trash className="stroke-red-500 size-5" />
-                      </Button>
-                    </div>
-                  </div>
-                  {post.error && (post.status === "error" || post.status === "failed") && <p className="text-sm text-destructive px-4">
-                    {post.error}
-                  </p>}
+                  </button>
                 </CardHeader>
-
-                <CardContent className="space-y-4 p-1">
-                  <div className="flex w-full items-center justify-center ">
-                    {post.platform === "facebook" ? (
-                      <FacebookPostView
-                        post={post}
-                        viewContentEdit={viewContentEdit}
-                        setViewContentEdit={setViewContentEdit}
-                      />
-                    ) : post.platform === "linkedin" ? (
-                      <LinkedinPostView
-                        post={post}
-                        viewContentEdit={viewContentEdit}
-                        setViewContentEdit={setViewContentEdit}
-                      />
-                    ) : post.platform === "twitter" ? (
-                      <XPostView
-                        post={post}
-                        viewContentEdit={viewContentEdit}
-                        setViewContentEdit={setViewContentEdit}
-                      />
-                    ) : post.platform === "threads" ? (
-                      <ThreadsPostView
-                        post={post}
-                        viewContentEdit={viewContentEdit}
-                        setViewContentEdit={setViewContentEdit}
-                      />
-                    ) : post.platform === "reddit" ? (
-                      <RedditPostView
-                        post={post}
-                        viewContentEdit={viewContentEdit}
-                        setViewContentEdit={setViewContentEdit}
-                      />
-                    ) :
-                      post.platform === "threads" ? (
-                        <ThreadsPost post={post}
-                          viewContentEdit={viewContentEdit}
-                          setViewContentEdit={setViewContentEdit} />
-                      ) :
-                        <div
-                          className="text-sm text-muted-foreground w-full"
-                          style={{ whiteSpace: "pre-wrap" }}
-                        >
-                          <Md>
-                            {post.content
-                              .split("\n")
-                              .map((line) => line.trim())
-                              .filter((line) => line.length > 0)
-                              .join("\n\n")}
-                          </Md>
-                        </div>
-                    }
-                  </div>
-                </CardContent>
+                {isExpanded && (
+                  <CardContent className="pt-0 space-y-4">
+                    {sortedPosts.map((post) => renderPostCard(post))}
+                  </CardContent>
+                )}
               </Card>
             );
           })}
+
+          {/* Regular Posts */}
+          {regularPosts.map((post) => renderPostCard(post))}
         </div>
       )}
     </div>

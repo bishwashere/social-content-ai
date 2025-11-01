@@ -1,13 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { OauthPlatform } from "@prisma/client";
+import { OauthPlatform, Prisma } from "@prisma/client";
 
 type Props = {
   projectId: string;
   platform: string;
   content: string;
   date: string;
+  meta?: Prisma.InputJsonValue;
 };
 
 export const schedulePost = async (props: Props) => {
@@ -43,7 +44,8 @@ export const schedulePost = async (props: Props) => {
         content: props.content,
         date: props.date,
         status: "pending",
-        oauthProviderId: projectProvider.oauthProviderId
+        oauthProviderId: projectProvider.oauthProviderId,
+        ...(props.meta && { meta: props.meta })
       },
     });
 

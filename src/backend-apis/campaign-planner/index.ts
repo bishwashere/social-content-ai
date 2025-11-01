@@ -4,6 +4,7 @@ import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { getRandomInRange } from "@/lib/getRandomInRange";
 import { prisma } from "@/lib/prisma";
+import { schedulePost } from "@/server-actions/schedule-post";
 
 export const startCampaignPlanner = async (
   id: string | undefined,
@@ -130,6 +131,9 @@ export const getCampaignPlanner = async (projectId: string) => {
         startDate: p.startDate ? new Date(p.startDate) : null, // normalize
         projectId: p.projectId.toString(),
         platforms: p.platforms,
+        autoPostEnabled: p.autoPostEnabled,
+        autoPostTime: p.autoPostTime,
+        autoPostPlatforms: p.autoPostPlatforms || [],
       }))
       .sort((a, b) => {
         if (!a.startDate && b.startDate) return -1;
@@ -328,13 +332,19 @@ export const generateCampaignChat = async (props: {
 export const changeCampaignData = async (
   id: string,
   name?: string,
-  startDate?: Date
+  startDate?: Date,
+  autoPostEnabled?: boolean,
+  autoPostTime?: string,
+  autoPostPlatforms?: string[]
 ): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
 
     if (name !== undefined) updateFields.name = name;
     if (startDate !== undefined) updateFields.startDate = startDate;
+    if (autoPostEnabled !== undefined) updateFields.autoPostEnabled = autoPostEnabled;
+    if (autoPostTime !== undefined) updateFields.autoPostTime = autoPostTime;
+    if (autoPostPlatforms !== undefined) updateFields.autoPostPlatforms = autoPostPlatforms;
 
     console.log({ id });
     console.log(updateFields);
@@ -474,4 +484,115 @@ export const editChatContent = async ({
   });
 
   return updated.planner?.projectId || "";
+};
+
+export const scheduleCampaignPosts = async ({
+  campaignId,
+  projectId,
+  autoPostTime,
+  platforms,
+}: {
+  campaignId: string;
+  projectId: string;
+  autoPostTime: string; // Format: "HH:mm"
+  platforms: string[];
+}): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
+  try {
+    // Get campaign with chats
+    const campaign = await prisma.campaignPlanner.findFirst({
+      where: {
+        id: campaignId,
+        projectId: projectId,
+      },
+      include: {
+        chats: true,
+      },
+    });
+
+    if (!campaign) {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["Campaign not found"],
+      };
+    }
+
+    if (!campaign.startDate) {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["Campaign must have a start date"],
+      };
+    }
+
+    const errors: string[] = [];
+    let scheduledCount = 0;
+
+    // Parse time
+    const [hours, minutes] = autoPostTime.split(":").map(Number);
+
+    // For each chat in the campaign
+    for (const chat of campaign.chats) {
+      // Calculate the date for this chat: startDate + (day - 1) days
+      const chatDate = new Date(campaign.startDate);
+      chatDate.setDate(chatDate.getDate() + (chat.day - 1));
+      chatDate.setHours(hours, minutes, 0, 0);
+
+      // Skip if date is in the past
+      if (chatDate < new Date()) {
+        continue;
+      }
+
+      // Get contents
+      const contents = (chat.contents as Record<string, string>) || {};
+
+      // For each platform
+      for (const platform of platforms) {
+        const content = contents[platform];
+        if (!content) {
+          continue; // Skip if no content for this platform
+        }
+
+        // Convert platform name (x -> twitter)
+        const platformName = platform === "x" ? "twitter" : platform;
+
+        // Schedule the post
+        const scheduled = await schedulePost({
+          projectId: projectId,
+          platform: platformName,
+          content: content,
+          date: chatDate.toISOString(),
+          meta: {
+            campaignId: campaignId,
+            campaignName: campaign.name || "",
+            day: chat.day,
+            source: "campaign",
+          },
+        });
+
+        if (scheduled) {
+          scheduledCount++;
+        } else {
+          errors.push(
+            `Failed to schedule post for day ${chat.day} on ${platform}`
+          );
+        }
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      scheduledCount,
+      errors,
+    };
+  } catch (error) {
+    console.error("Error scheduling campaign posts:", error);
+    return {
+      success: false,
+      scheduledCount: 0,
+      errors: [
+        error instanceof Error ? error.message : "Unknown error occurred",
+      ],
+    };
+  }
 };

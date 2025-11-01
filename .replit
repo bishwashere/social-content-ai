@@ -23,7 +23,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm run dev"
+args = "pnpm run dev:replit"
 waitForPort = 5000
 
 [workflows.workflow.metadata]

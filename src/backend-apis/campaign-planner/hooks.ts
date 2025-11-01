@@ -6,6 +6,7 @@ import {
   editChatContent,
   generateCampaignChat,
   getCampaignPlanner,
+  scheduleCampaignPosts,
   startCampaignPlanner,
   toggleMarkAsComplete,
   toggleTickMark,
@@ -106,17 +107,62 @@ export const useChangeCampaignData = () => {
       id,
       name,
       startDate,
+      autoPostEnabled,
+      autoPostTime,
+      autoPostPlatforms,
     }: {
       id: string;
       name?: string;
       startDate?: Date;
-    }) => changeCampaignData(id, name, startDate),
+      autoPostEnabled?: boolean;
+      autoPostTime?: string;
+      autoPostPlatforms?: string[];
+    }) => changeCampaignData(id, name, startDate, autoPostEnabled, autoPostTime, autoPostPlatforms),
 
     onSuccess: (projectId: string | boolean) => {
       if (projectId)
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner", projectId],
         });
+    },
+  });
+};
+
+export const useScheduleCampaignPosts = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      campaignId,
+      projectId,
+      autoPostTime,
+      platforms,
+    }: {
+      campaignId: string;
+      projectId: string;
+      autoPostTime: string;
+      platforms: string[];
+    }) => scheduleCampaignPosts({ campaignId, projectId, autoPostTime, platforms }),
+
+    onSuccess: (result, variables) => {
+      if (result.success) {
+        toast.success(`Successfully scheduled ${result.scheduledCount} posts`);
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", variables.projectId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["scheduledPosts"],
+        });
+      } else {
+        if (result.errors.length > 0) {
+          toast.error(result.errors[0]);
+        } else {
+          toast.error("Failed to schedule some posts");
+        }
+      }
+    },
+    onError: () => {
+      toast.error("Failed to schedule campaign posts");
     },
   });
 };

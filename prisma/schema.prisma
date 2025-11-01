@@ -101,16 +101,19 @@ model ProjectTracking {
 }
 
 model CampaignPlanner {
-  id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  projectId      String         @db.ObjectId
-  goal           String
-  targetAudience String
-  name           String?
-  startDate      DateTime?
-  platforms      String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit"])
-  chats          CampaignChat[] @relation("PlannerChats")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  projectId         String         @db.ObjectId
+  goal              String
+  targetAudience    String
+  name              String?
+  startDate         DateTime?
+  platforms         String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit"])
+  autoPostEnabled   Boolean        @default(false)
+  autoPostTime      String?
+  autoPostPlatforms String[]
+  chats             CampaignChat[] @relation("PlannerChats")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   project Projects? @relation(fields: [projectId], references: [id])
 

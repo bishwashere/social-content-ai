@@ -7,13 +7,14 @@ import {
   useEditChatContent,
   useGenerateCampaignChat,
   useGetCampaignPlanner,
+  useScheduleCampaignPosts,
   useToggleTickMark
 } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Settings, Trash, VideoIcon, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Settings, Trash, VideoIcon, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -24,6 +25,10 @@ import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +52,7 @@ import { Projects } from "@prisma/client";
 import { SavePlatformCard } from "./save-platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { Switch } from "@/components/ui/switch";
+import { TimePickerDialog } from "@/components/common/time-picker";
 
 export const PLATFORMS = [
   { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" /> },
@@ -97,6 +103,10 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [showPast, setShowPast] = useState(false);
 
   const [isCampaignStartDateSettingsOpen, setIsCampaignStartDateSettingsOpen] = useState<string[]>([]);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState<Record<string, boolean>>({});
+  const [isPlatformSelectorOpen, setIsPlatformSelectorOpen] = useState<Record<string, boolean>>({});
+  const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
+  const scheduleCampaignPosts = useScheduleCampaignPosts();
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -536,6 +546,167 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
                                 />
                               </div>
+                              <div onClick={(e) => e.stopPropagation()} className="z-30 flex items-center gap-2 border rounded-md px-3 py-1.5">
+                                <Switch
+                                  checked={campaign.autoPostEnabled || false}
+                                  onCheckedChange={async (checked) => {
+                                    if (checked && !campaign.startDate) {
+                                      toast.error("Please set a start date first");
+                                      return;
+                                    }
+                                    if (checked) {
+                                      // Initialize selected platforms if not set
+                                      if (!selectedPlatformsForAutoPost[campaign.id]) {
+                                        setSelectedPlatformsForAutoPost({
+                                          ...selectedPlatformsForAutoPost,
+                                          [campaign.id]: campaign.autoPostPlatforms && campaign.autoPostPlatforms.length > 0 
+                                            ? campaign.autoPostPlatforms 
+                                            : campaign.platforms,
+                                        });
+                                      }
+                                      // Open platform selector first
+                                      setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                      return;
+                                    } else {
+                                      // Disable auto-post
+                                      await updateCampaignData.mutateAsync({
+                                        id: campaign.id,
+                                        autoPostEnabled: false,
+                                      });
+                                    }
+                                  }}
+                                />
+                                <Label className="text-xs cursor-pointer">Auto-post</Label>
+                                {campaign.autoPostEnabled && campaign.autoPostTime && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-1 text-xs"
+                                    onClick={() => {
+                                      // When editing, open platform selector first
+                                      setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                    }}
+                                  >
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {campaign.autoPostTime}
+                                  </Button>
+                                )}
+                              </div>
+                              {/* Platform Selection Dialog */}
+                              <Dialog
+                                open={isPlatformSelectorOpen[campaign.id] || false}
+                                onOpenChange={(open) => {
+                                  setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: open });
+                                }}
+                              >
+                                <DialogContent className="sm:max-w-[425px]">
+                                  <DialogHeader>
+                                    <DialogTitle>Select Platforms for Auto-Post</DialogTitle>
+                                    <DialogDescription>
+                                      Choose which platforms you want to auto-post for this campaign
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="py-4 space-y-3">
+                                    {campaign.platforms.map((platform) => {
+                                      const platformKey = platform as keyof typeof ICONS;
+                                      const isSelected = (selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms).includes(platform);
+                                      return (
+                                        <div key={platform} className="flex items-center space-x-2">
+                                          <Checkbox
+                                            id={`${campaign.id}-${platform}`}
+                                            checked={isSelected}
+                                            onCheckedChange={(checked) => {
+                                              const current = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
+                                              const updated = checked
+                                                ? [...current, platform]
+                                                : current.filter((p) => p !== platform);
+                                              setSelectedPlatformsForAutoPost({
+                                                ...selectedPlatformsForAutoPost,
+                                                [campaign.id]: updated,
+                                              });
+                                            }}
+                                          />
+                                          <label
+                                            htmlFor={`${campaign.id}-${platform}`}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2 cursor-pointer"
+                                          >
+                                            {ICONS[platformKey] && (
+                                              <Image
+                                                src={ICONS[platformKey]}
+                                                width={16}
+                                                height={16}
+                                                alt={platform}
+                                              />
+                                            )}
+                                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                                          </label>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <DialogFooter>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: false });
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        const platforms = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
+                                        if (platforms.length === 0) {
+                                          toast.error("Please select at least one platform");
+                                          return;
+                                        }
+                                        setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: false });
+                                        // Open time picker next
+                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
+                                      }}
+                                    >
+                                      Continue
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                              <TimePickerDialog
+                                value={campaign.autoPostTime || undefined}
+                                open={isTimePickerOpen[campaign.id] || false}
+                                onOpenChange={(open) => {
+                                  setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: open });
+                                }}
+                                onConfirm={async (time) => {
+                                  if (!time) return;
+                                  if (!campaign.startDate) {
+                                    toast.error("Please set a start date first");
+                                    return;
+                                  }
+                                  // Get selected platforms from state or use saved ones
+                                  const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
+                                  
+                                  if (platformsToUse.length === 0) {
+                                    toast.error("Please select at least one platform");
+                                    setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                    return;
+                                  }
+
+                                  // Save the time and enable auto-post
+                                  await updateCampaignData.mutateAsync({
+                                    id: campaign.id,
+                                    autoPostEnabled: true,
+                                    autoPostTime: time,
+                                    autoPostPlatforms: platformsToUse,
+                                  });
+                                  // Schedule posts
+                                  scheduleCampaignPosts.mutate({
+                                    campaignId: campaign.id,
+                                    projectId: campaign.projectId,
+                                    autoPostTime: time,
+                                    platforms: platformsToUse,
+                                  });
+                                }}
+                              />
                               <Button
                                 variant="outline"
                                 size="sm"
