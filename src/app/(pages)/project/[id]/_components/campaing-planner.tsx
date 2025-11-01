@@ -490,7 +490,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                         className="w-full flex justify-between items-center p-4 font-semibold"
                         onClick={toggleOpen}
                       >
-                        <div className="flex flex-wrap justify-center items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {campaign.name}
                           <div className="hidden sm:block" onClick={(e) => e.stopPropagation()}>
                             <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
