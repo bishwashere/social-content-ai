@@ -509,83 +509,83 @@ export default function CampaignPlannerPage({ project }: Props) {
                           </button>
                         </div>
                         <div className="flex justify-end">
-                          {isOpen && (
-                            <div className="px-4 pb-4 space-y-4">
-                              <div className="hidden sm:flex gap-2 justify-end">
+                          <div className="px-4 pb-4 space-y-4">
+                            <div className="hidden sm:flex gap-2 justify-end">
 
-                                <div onClick={(e) => e.stopPropagation()} className="z-50">
-                                  <DatePicker
-                                    // selected={selectedDate}
-                                    onChange={(date) => {
-                                      if (date) {
-                                        updateCampaignData.mutate({ id: campaign.id, startDate: date })
-                                        closeCalendar(campaign.id);
-                                      }
-                                    }}
-                                    open={isCalenderOpen.includes(campaign.id)}
-                                    onFocus={() => openCalendar(campaign.id)}
-                                    onClickOutside={() => closeCalendar(campaign.id)}
-                                    showPopperArrow={true}
-                                    className="text-xs"
-                                    customInput={
-                                      <Button variant="outline" size="sm" className="w-fit text-xs">
-                                        <Calendar />
-                                        <span className="max-lg:hidden"> Start</span>
-                                      </Button>
+                              <div onClick={(e) => e.stopPropagation()} className="z-30">
+                                <DatePicker
+                                  // selected={selectedDate}
+                                  onChange={(date) => {
+                                    if (date) {
+                                      updateCampaignData.mutate({ id: campaign.id, startDate: date })
+                                      closeCalendar(campaign.id);
                                     }
-                                    disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
-                                  />
-                                </div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    try {
-                                      const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
-                                      if (!selectedCampaignPlanner) {
-                                        toast.error("Failed to find plan");
-                                        return;
-                                      }
-                                      const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
-                                      if (!intensityPlans) {
-                                        toast.error("Failed to find plan");
-                                        return;
-                                      }
-                                      const yes = await confirm({
-                                        title: "Regenerate all contents for this campaign?",
-                                        description: `Regenerating content will use your ${intensityPlans.data.length * campaign.platforms.length} coins`
-                                      });
-                                      if (!yes) return;
-
-                                      const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
-
-                                      const d = await campaignPlannerMutation.mutateAsync({
-                                        id: campaign.id,
-                                        projectId: projectId as string,
-                                        campaignName: campaign.name || "",
-                                        plan,
-                                        platforms: campaign.platforms
-                                      });
-
-                                      for (const chat of (d?.data?.chats || [])) {
-                                        if (chat.status === "PENDING") {
-                                          await generateChat(projectId as string, campaign.id, chat.day, chat.title);
-                                          await sleep(2000);
-                                          campaignPlannerData.refetch();
-                                        }
-                                      }
-                                    } catch { }
                                   }}
-                                >
-                                  <Play className="h-4 w-4 mr-1" />
-                                </Button>
+                                  open={isCalenderOpen.includes(campaign.id)}
+                                  onFocus={() => openCalendar(campaign.id)}
+                                  onClickOutside={() => closeCalendar(campaign.id)}
+                                  showPopperArrow={true}
+                                  className="text-xs"
+                                  calendarClassName="!z-50"
+                                  customInput={
+                                    <Button variant="outline" size="sm" className="w-fit text-xs !z-0">
+                                      <Calendar />
+                                      <span className="max-lg:hidden"> Start</span>
+                                    </Button>
+                                  }
+                                  disabled={updateCampaignData.isPending || Boolean(campaign.startDate)}
+                                />
                               </div>
-                              <div className="flex justify-end sm:hidden">
-                                <Button variant="outline" className="-mr-4" size="sm" onClick={(e) => { e.stopPropagation(); openCampaignStartDateSettings(campaign.id) }}><Settings /></Button>
-                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
+                                    if (!selectedCampaignPlanner) {
+                                      toast.error("Failed to find plan");
+                                      return;
+                                    }
+                                    const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
+                                    if (!intensityPlans) {
+                                      toast.error("Failed to find plan");
+                                      return;
+                                    }
+                                    const yes = await confirm({
+                                      title: "Regenerate all contents for this campaign?",
+                                      description: `Regenerating content will use your ${intensityPlans.data.length * campaign.platforms.length} coins`
+                                    });
+                                    if (!yes) return;
+
+                                    const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
+
+                                    const d = await campaignPlannerMutation.mutateAsync({
+                                      id: campaign.id,
+                                      projectId: projectId as string,
+                                      campaignName: campaign.name || "",
+                                      plan,
+                                      platforms: campaign.platforms
+                                    });
+
+                                    for (const chat of (d?.data?.chats || [])) {
+                                      if (chat.status === "PENDING") {
+                                        await generateChat(projectId as string, campaign.id, chat.day, chat.title);
+                                        await sleep(2000);
+                                        campaignPlannerData.refetch();
+                                      }
+                                    }
+                                  } catch { }
+                                }}
+                              >
+                                <Play className="h-4 w-4 mr-1" />
+                              </Button>
                             </div>
-                          )}
+                            <div className="flex justify-end sm:hidden">
+                              <Button variant="outline" className="-mr-4" size="sm" onClick={(e) => { e.stopPropagation(); openCampaignStartDateSettings(campaign.id) }}><Settings /></Button>
+                            </div>
+                          </div>
+
                           <span className="ml-2 text-sm text-gray-500">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
                         </div>
                       </button>
