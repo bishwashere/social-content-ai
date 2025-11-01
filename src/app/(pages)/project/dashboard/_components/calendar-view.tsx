@@ -237,32 +237,49 @@ export default function CalendarView() {
   const [calendarHeight, setCalendarHeight] = useState(1050);
 
   // Initialize filter states from localStorage or defaults
-  const [showScheduled, setShowScheduled] = useState(false);
-  const [showTracking, setShowTracking] = useState(false);
-  const [showPlanned, setShowPlanned] = useState(false);
-  const [showFuturePlansOnly, setShowFuturePlansOnly] = useState(false);
+  const [showScheduled, setShowScheduled] = useState(true); // Default to true
+  const [showTracking, setShowTracking] = useState(true);
+  const [showPlanned, setShowPlanned] = useState(true);
+  const [showFuturePlansOnly, setShowFuturePlansOnly] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-
       const scheduled = localStorage.getItem('calendar-showScheduled');
-      setShowScheduled(scheduled !== null ? JSON.parse(scheduled) : true);
+      if (scheduled !== null) {
+        setShowScheduled(JSON.parse(scheduled));
+      }
 
       const tracking = localStorage.getItem('calendar-showTracking');
-      setShowTracking(tracking !== null ? JSON.parse(tracking) : true);
+      if (tracking !== null) {
+        setShowTracking(JSON.parse(tracking));
+      }
 
       const planned = localStorage.getItem('calendar-showPlanned');
-      setShowPlanned(planned !== null ? JSON.parse(planned) : true);
+      if (planned !== null) {
+        setShowPlanned(JSON.parse(planned));
+      }
 
       const futurePlansOnly = localStorage.getItem('calendar-showFuturePlansOnly');
-      setShowFuturePlansOnly(futurePlansOnly !== null ? JSON.parse(futurePlansOnly) : true);
-
-
+      if (futurePlansOnly !== null) {
+        setShowFuturePlansOnly(JSON.parse(futurePlansOnly));
+      }
     }
   }, [])
 
   const projects = useGetAllProjects();
   const scheduledPosts = useGetAllScheduledPosts();
+  
+  // Debug: Log scheduled posts query status
+  useEffect(() => {
+    console.log('🔍 useGetAllScheduledPosts status:', {
+      isLoading: scheduledPosts.isLoading,
+      isError: scheduledPosts.isError,
+      error: scheduledPosts.error,
+      hasData: !!scheduledPosts.data,
+      dataLength: scheduledPosts.data?.length ?? 0,
+      data: scheduledPosts.data,
+    });
+  }, [scheduledPosts.isLoading, scheduledPosts.data, scheduledPosts.error]);
 
   const events = useMemo(() => {
     const map = new Map<string, MyEvent>();
@@ -291,24 +308,81 @@ export default function CalendarView() {
     }
 
     if (showScheduled) {
+      // Debug: Log scheduled posts data
+      console.log('🔍 Debug - showScheduled check:', {
+        showScheduled,
+        hasData: !!scheduledPosts.data,
+        dataLength: scheduledPosts.data?.length ?? 0,
+        isLoading: scheduledPosts.isLoading,
+        error: scheduledPosts.error,
+      });
+      
+      if (scheduledPosts.data) {
+        console.log('📅 Calendar View - Scheduled Posts Data:', {
+          totalPosts: scheduledPosts.data.length,
+          showScheduled,
+          samplePost: scheduledPosts.data[0],
+          quickBillingPosts: scheduledPosts.data.filter((p: any) => p.project?.name?.includes('Quick Billing')),
+          allProjects: [...new Set(scheduledPosts.data.map((p: any) => p.project?.name))],
+        });
+      } else {
+        console.warn('⚠️ scheduledPosts.data is null/undefined');
+      }
+      
+      let processedCount = 0;
+      if (!scheduledPosts.data || scheduledPosts.data.length === 0) {
+        console.warn('⚠️ No scheduled posts data to process');
+      }
       scheduledPosts.data?.forEach((post: any) => {
-        const dayKey = format(new Date(post.date), "yyyy-MM-dd");
-        const key = `${post.title}-${dayKey}-scheduled`;
-        if (!map.has(key)) {
-          map.set(key, {
-            title: post.title,
-            start: new Date(post.date),
-            end: new Date(post.date),
-            platforms: [post.platform],
-            type: 'scheduled',
-            status: post.status,
-            content: post.content,
-            media: post.media,
-          });
-        } else {
-          map.get(key)!.platforms?.push(post.platform);
+        try {
+          const postDate = new Date(post.date);
+          if (isNaN(postDate.getTime())) {
+            console.error('❌ Invalid date for post:', post.id, post.date);
+            return;
+          }
+          const dayKey = format(postDate, "yyyy-MM-dd");
+          
+          // Generate a title - use campaign name if from campaign, otherwise use content preview or project name
+          const meta = post.meta as any;
+          let title = '';
+          if (meta?.campaignName) {
+            title = `${meta.campaignName} - Day ${meta.day || ''}`;
+          } else {
+            // Use first 50 chars of content or project name + platform
+            title = post.content 
+              ? (post.content.length > 50 ? post.content.substring(0, 50) + '...' : post.content)
+              : `${post.project?.name || 'Post'} - ${post.platform}`;
+          }
+          
+          // Use post ID + date as key to ensure uniqueness (multiple posts can be on same date)
+          const key = `${post.id}-${dayKey}-scheduled`;
+          if (!map.has(key)) {
+            map.set(key, {
+              title: title,
+              start: postDate,
+              end: postDate,
+              platforms: [post.platform],
+              type: 'scheduled',
+              status: post.status,
+              content: post.content,
+              media: post.media,
+              projectName: post.project?.name,
+              campaignName: meta?.campaignName,
+              day: meta?.day,
+            });
+            processedCount++;
+          } else {
+            // If same key exists, merge platforms
+            const existing = map.get(key)!;
+            if (!existing.platforms?.includes(post.platform)) {
+              existing.platforms?.push(post.platform);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error processing scheduled post:', post.id, error);
         }
       });
+      console.log(`✅ Processed ${processedCount} scheduled posts into events`);
     }
 
     if (showPlanned) {
@@ -349,7 +423,7 @@ export default function CalendarView() {
       });
     }
 
-    return Array.from(map.values()).map(item => ({
+    const eventsArray = Array.from(map.values()).map(item => ({
       title: item.title,
       start: item.start,
       end: item.end,
@@ -360,8 +434,19 @@ export default function CalendarView() {
       media: item.media,
       campaignName: item.campaignName,
       day: item.day,
+      platforms: item.platforms,
       allDay: true,
     }));
+    
+    // Debug: Log final events array
+    console.log('📊 Calendar View - Final Events Array:', {
+      totalEvents: eventsArray.length,
+      scheduledEvents: eventsArray.filter(e => e.type === 'scheduled').length,
+      sampleEvent: eventsArray[0],
+      eventDates: eventsArray.slice(0, 5).map(e => ({ title: e.title, start: e.start.toISOString() }))
+    });
+    
+    return eventsArray;
   }, [projects.data, scheduledPosts.data, showTracking, showScheduled, showPlanned, showFuturePlansOnly]);
 
   // Responsive height for mobile
@@ -388,7 +473,9 @@ export default function CalendarView() {
             />
             <label htmlFor="showScheduled" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📅</span>
-              <span className="text-gray-600">Scheduled Posts</span>
+              <span className="text-gray-600">
+                Scheduled Posts{scheduledPosts.data ? ` (${scheduledPosts.data.length})` : ''}
+              </span>
             </label>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -401,7 +488,7 @@ export default function CalendarView() {
             />
             <label htmlFor="showTracking" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📊</span>
-              <span className="text-gray-600">Project Tracking</span>
+              <span className="text-gray-600">Manual Entry</span>
             </label>
           </div>
           <div className="flex items-center gap-2 text-sm">

@@ -11,6 +11,9 @@ import { projectService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { getAllDayProjectPulse, getProjectPulse, getWebsiteDescription } from "./actions";
+import tryCatchAsync from "@/lib/try-catch-async";
+import api from "../axios";
+import { ApiError, ApiResponse } from "../types";
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -168,16 +171,36 @@ export const useGetAllScheduledPosts = () => {
   return useQuery({
     queryKey: ["allScheduledPosts"],
     queryFn: async () => {
-      const response = await fetch("/api/scheduled-posts/all", {
-        credentials: "include", // Include cookies for authentication
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
+      const [err, res] = await tryCatchAsync<ApiError, { data: any[] }>(
+        async () => {
+          const response = await api.get("/scheduled-posts/all");
+          return response;
+        }
+      );
+      if (err) {
+        if (err.response?.status === 401) {
           throw new Error("Please log in to view scheduled posts");
         }
-        throw new Error(`Failed to fetch scheduled posts: ${response.statusText}`);
+        throw new Error(err.response?.data?.message || "Failed to fetch scheduled posts");
       }
-      return response.json();
+      
+      // Debug: Log the raw response
+      console.log('🔍 useGetAllScheduledPosts - Raw API response:', {
+        fullResponse: res,
+        responseData: res.data,
+        dataType: typeof res.data,
+        isArray: Array.isArray(res.data),
+        length: Array.isArray(res.data) ? res.data.length : 'not an array',
+        firstItem: Array.isArray(res.data) && res.data.length > 0 ? res.data[0] : null,
+      });
+      
+      // The API returns the array directly, not wrapped in data.data
+      const result = res.data || [];
+      console.log('📦 useGetAllScheduledPosts - Returning:', {
+        resultLength: result.length,
+        isArray: Array.isArray(result),
+      });
+      return result;
     },
     retry: 1, // Only retry once
     retryDelay: 1000,
