@@ -13,7 +13,7 @@ export default function ChangeCampaignName({ campaignId, campaignName }: { campa
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button onClick={(e) => e.stopPropagation()}><PencilLine className="size-3 stroke-red-500" /></button>
+                <button onClick={(e) => e.stopPropagation()}><PencilLine className="size-4 sm:size-3 stroke-red-500" /></button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader className="text-lg font-semibold">Change Campaign Name</DialogHeader>
