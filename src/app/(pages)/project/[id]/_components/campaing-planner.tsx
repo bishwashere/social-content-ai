@@ -434,34 +434,55 @@ export default function CampaignPlannerPage({ project }: Props) {
                 </Button>
               </div>
             )}
-            {
-              campaignPlannerData.data?.chatsGroupedByCampaign
-                .filter((campaign) => {
-                  // If showing old campaigns, show everything
-                  if (showOldCampaigns) return true;
+            {(() => {
+              const allCampaigns = campaignPlannerData.data?.chatsGroupedByCampaign || [];
+              const filteredCampaigns = allCampaigns.filter((campaign) => {
+                // If showing old campaigns, show everything
+                if (showOldCampaigns) return true;
 
-                  // If campaign has no start date, show it (it's not scheduled yet)
-                  if (!campaign.startDate) return true;
+                // If campaign has no start date, show it (it's not scheduled yet)
+                if (!campaign.startDate) return true;
 
-                  // Check if campaign is old (all dates have passed)
-                  const baseDate = new Date(campaign.startDate);
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
+                // Check if campaign is old (all dates have passed)
+                const baseDate = new Date(campaign.startDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-                  // A campaign is considered "old" if all days have passed (regardless of completion)
-                  const allDaysPassed = campaign.chats.every((chat) => {
-                    const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
-                    chatDate.setHours(0, 0, 0, 0);
-                    return chatDate < today;
-                  });
+                // A campaign is considered "old" if all days have passed (regardless of completion)
+                const allDaysPassed = campaign.chats.every((chat) => {
+                  const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
+                  chatDate.setHours(0, 0, 0, 0);
+                  return chatDate < today;
+                });
 
-                  // Show campaign only if it's not old (has at least one upcoming day)
-                  return !allDaysPassed;
-                })
-                .map((campaign) => {
+                // Show campaign only if it's not old (has at least one upcoming day)
+                return !allDaysPassed;
+              });
 
-                // Toggle Open
-                const isOpen = openCampaigns[campaign.id] || false;
+              // Show message if there are campaigns but all are hidden
+              if (allCampaigns.length > 0 && filteredCampaigns.length === 0 && !showOldCampaigns) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <p className="text-lg font-medium text-muted-foreground">
+                      All campaigns completed
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowOldCampaigns(true)}
+                      className="mt-2 text-xs text-muted-foreground"
+                    >
+                      Show old campaigns
+                    </Button>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {filteredCampaigns.map((campaign) => {
+                    // Toggle Open
+                    const isOpen = openCampaigns[campaign.id] || false;
                 const toggleOpen = () => {
                   const prevOpenedCampaigns = openCampaigns;
                   const newOpenedCampaigns = { ...prevOpenedCampaigns, [campaign.id]: !isOpen };
@@ -1100,7 +1121,10 @@ export default function CampaignPlannerPage({ project }: Props) {
                     </Dialog>
                   </div>
                 );
-              })}
+                  })}
+                </>
+              );
+            })()}
           </>
         )
         }
