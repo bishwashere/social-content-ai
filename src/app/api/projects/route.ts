@@ -68,11 +68,14 @@ export const GET = applyMiddleware(
       userRole: "admin" // Project creator is always admin
     }));
 
-    // Add roles to invited projects
-    const invitedProjectsWithRoles = invitedProjects.map((invite) => ({
-      ...invite.project,
-      userRole: invite.role
-    }));
+    // Add roles to invited projects, but exclude projects the user owns
+    const ownedProjectIds = new Set(ownedProjects.map(p => p.id));
+    const invitedProjectsWithRoles = invitedProjects
+      .filter(invite => !ownedProjectIds.has(invite.project.id))
+      .map((invite) => ({
+        ...invite.project,
+        userRole: invite.role
+      }));
 
     // Combine and format projects
     const allProjects = [
