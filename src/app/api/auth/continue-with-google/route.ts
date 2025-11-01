@@ -10,6 +10,24 @@ import { authValidator, AuthValidatorType } from "@/validators/auth";
 import axios from "axios";
 
 /**
+ * Temporary GET handler for debugging
+ */
+export async function GET(req: Request) {
+  console.log("❌ GET request received (should be POST)");
+  console.log("Request URL:", req.url);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+  
+  return new Response(JSON.stringify({ 
+    error: "Method not allowed - use POST instead",
+    receivedMethod: "GET",
+    expectedMethod: "POST"
+  }), {
+    status: 405,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+
+/**
  * Continue with Google, create a new user or update the existing user
  * with the given data.
  */
