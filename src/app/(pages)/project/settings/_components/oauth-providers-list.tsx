@@ -97,6 +97,10 @@ export function OAuthProvidersList() {
                   onClick={() => {
                     if (platform === "threads") {
                       return authenticateWithThreads();
+                    }
+                    else if (platform === "linkedin") {
+                      const currentUrl = window.location.href;
+                      window.location.href = `/api/linkedin-login/auth?redirectTo=${encodeURIComponent(currentUrl)}`;
                     } else {
                       signIn(platform);
                     }
