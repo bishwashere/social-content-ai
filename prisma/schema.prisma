@@ -316,6 +316,42 @@ model PlatformPost {
   updatedAt DateTime @updatedAt
 
   oauthProvider OauthProvider @relation(fields: [oauthProviderId], references: [id], onDelete: Cascade)
+  insights      PostInsights?
+}
+
+model PostInsights {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  platformPostId    String   @unique @db.ObjectId
+  
+  // Post metadata (optional fields - only for platforms that provide them)
+  postType          String?  // "photo", "video", "link", "status"
+  story             String?
+  permalinkUrl      String?
+  fullPictureUrl    String?
+  linkUrl           String?
+  
+  // Reaction breakdowns (optional - only if platform provides them)
+  reactionsLike     Int?     @default(0)
+  reactionsLove     Int?     @default(0)
+  reactionsWow      Int?     @default(0)
+  reactionsHaha     Int?     @default(0)
+  reactionsSorry    Int?     @default(0)
+  reactionsAnger    Int?     @default(0)
+  
+  // Advanced metrics (optional - may require separate API calls)
+  postReach         Int?     // Different from impressions_unique
+  engagedUsers      Int?
+  postClicks        Int?
+  negativeFeedback  Int?
+  
+  // Metadata
+  insightsFetchedAt DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  platformPost PlatformPost @relation(fields: [platformPostId], references: [id], onDelete: Cascade)
+
+  @@map("post-insights")
 }
 
 model ProjectPulse {

@@ -97,17 +97,36 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
     });
     const metrics = await fb.getMyPostInsights(projectOauthProvider[0].pageId);
 
-    // Step 4: Map API response to DB structure
-    const postsToSave = metrics.map((post) => ({
-      postId: post.id,
-      content: post.message || "No message",
-      date: new Date(post.date),
-      shares: post.shares || 0,
-      likes: post.reactions || 0,
-      comments: post.comments || 0,
-      impressions: post.impressions,
-      uniqueImpressions: post.uniqueImpressions,
-    }));
+    // Step 4: Map API response to DB structure with insights
+    const postsToSave = metrics.map((post) => {
+      const postData = {
+        postId: post.id,
+        content: post.message || "No message",
+        date: new Date(post.date),
+        shares: post.shares || 0,
+        likes: post.reactions || 0,
+        comments: post.comments || 0,
+        impressions: post.impressions,
+        uniqueImpressions: post.uniqueImpressions,
+        // Include insights if we have additional metadata
+        insights: (post.postType || post.permalinkUrl || post.fullPictureUrl || post.linkUrl || post.story) ? {
+          create: {
+            postType: post.postType || null,
+            permalinkUrl: post.permalinkUrl || null,
+            fullPictureUrl: post.fullPictureUrl || null,
+            linkUrl: post.linkUrl || null,
+            story: post.story || null,
+            // Reaction breakdowns and detailed insights will be fetched separately
+            // to avoid blocking the main flow
+          },
+        } : undefined,
+      };
+      // Remove insights if undefined to avoid Prisma errors
+      if (!postData.insights) {
+        delete (postData as any).insights;
+      }
+      return postData;
+    });
 
     // Step 5: Save to DB
     const data = await prisma.oauthProvider.update({
@@ -118,8 +137,79 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
         },
       },
       include: {
-        pagePosts: true,
+        pagePosts: {
+          include: {
+            insights: true,
+          },
+        },
       },
+    });
+
+    // Step 6: Fetch detailed insights asynchronously (don't block response)
+    // This includes: engaged users, clicks, negative feedback, reach, reaction breakdowns
+    // We do this in the background so it doesn't slow down the main request
+    Promise.all(
+      data.pagePosts.map(async (savedPost) => {
+        try {
+          // Find the corresponding metric to get metadata we already fetched
+          const metric = metrics.find((m) => m.id === savedPost.postId);
+          
+          // Fetch detailed insights and reaction breakdowns
+          const [detailedInsights, reactionBreakdown] = await Promise.all([
+            fb.getPostDetailedInsights(savedPost.postId),
+            fb.getPostReactionBreakdown(savedPost.postId),
+          ]);
+
+          // Upsert insights with all data (create if doesn't exist, update if it does)
+          await prisma.postInsights.upsert({
+            where: { platformPostId: savedPost.id },
+            create: {
+              platformPostId: savedPost.id,
+              postType: metric?.postType || null,
+              permalinkUrl: metric?.permalinkUrl || null,
+              fullPictureUrl: metric?.fullPictureUrl || null,
+              linkUrl: metric?.linkUrl || null,
+              story: metric?.story || null,
+              engagedUsers: detailedInsights.engagedUsers || null,
+              postClicks: detailedInsights.postClicks || null,
+              negativeFeedback: detailedInsights.negativeFeedback || null,
+              postReach: detailedInsights.postReach || null,
+              reactionsLike: reactionBreakdown.like || null,
+              reactionsLove: reactionBreakdown.love || null,
+              reactionsWow: reactionBreakdown.wow || null,
+              reactionsHaha: reactionBreakdown.haha || null,
+              reactionsSorry: reactionBreakdown.sorry || null,
+              reactionsAnger: reactionBreakdown.anger || null,
+            },
+            update: {
+              // Update metadata if not already set
+              postType: metric?.postType || undefined,
+              permalinkUrl: metric?.permalinkUrl || undefined,
+              fullPictureUrl: metric?.fullPictureUrl || undefined,
+              linkUrl: metric?.linkUrl || undefined,
+              story: metric?.story || undefined,
+              // Always update detailed insights
+              engagedUsers: detailedInsights.engagedUsers || null,
+              postClicks: detailedInsights.postClicks || null,
+              negativeFeedback: detailedInsights.negativeFeedback || null,
+              postReach: detailedInsights.postReach || null,
+              reactionsLike: reactionBreakdown.like || null,
+              reactionsLove: reactionBreakdown.love || null,
+              reactionsWow: reactionBreakdown.wow || null,
+              reactionsHaha: reactionBreakdown.haha || null,
+              reactionsSorry: reactionBreakdown.sorry || null,
+              reactionsAnger: reactionBreakdown.anger || null,
+              updatedAt: new Date(),
+            },
+          });
+        } catch (error) {
+          // Silently fail - insights fetching is optional
+          console.warn(`Failed to fetch detailed insights for post ${savedPost.postId}:`, error);
+        }
+      })
+    ).catch((error) => {
+      // Don't throw - this is background processing
+      console.warn("Error fetching detailed insights in background:", error);
     });
 
     return {

@@ -80,11 +80,27 @@ class Fb {
   }
 
   private _getMyPostInsightsApiUrl(pageId: string) {
+    // Extended fields to include metadata that can be fetched in the main posts query
+    const fields = [
+      "id",
+      "message",
+      "shares",
+      "created_time",
+      "type", // post type: photo, video, link, status
+      "permalink_url",
+      "full_picture",
+      "link",
+      "story",
+      "reactions.type(LIKE).summary(total_count).limit(0)",
+      "comments.summary(total_count).limit(0)",
+      "insights.metric(post_impressions,post_impressions_unique)",
+    ].join(",");
+    
     return (
       this._baseUrl +
       "/" +
       pageId +
-      "/posts?fields=id,message,shares,created_time,reactions.type(LIKE).summary(total_count).limit(0),comments.summary(total_count).limit(0),insights.metric(post_impressions,post_impressions_unique)&access_token=" +
+      "/posts?fields=" + fields + "&access_token=" +
       this._accessToken
     );
   }
@@ -97,9 +113,16 @@ class Fb {
 
       let posts: {
         id: string;
-        message: string;
+        message?: string;
         created_time: string;
-        shares: number;
+        shares?: {
+          count: number;
+        };
+        type?: string;
+        permalink_url?: string;
+        full_picture?: string;
+        link?: string;
+        story?: string;
         reactions: {
           summary: {
             total_count: number;
@@ -142,7 +165,7 @@ class Fb {
         id: post.id,
         message: post.message,
         date: new Date(post.created_time),
-        shares: post.shares || 0,
+        shares: post.shares?.count || 0,
         reactions: post.reactions?.summary?.total_count,
         comments: post.comments?.summary?.total_count,
         impressions: post.insights?.data?.find(
@@ -151,11 +174,116 @@ class Fb {
         uniqueImpressions: post.insights?.data?.find(
           (item) => item.name === "post_impressions_unique"
         )?.values?.[0]?.value,
+        // Additional metadata for insights
+        postType: post.type,
+        permalinkUrl: post.permalink_url,
+        fullPictureUrl: post.full_picture,
+        linkUrl: post.link,
+        story: post.story,
       }));
 
       return normalizedData;
     } catch {
       return [];
+    }
+  }
+
+  /**
+   * Fetch detailed insights for a specific post
+   * This requires a separate API call per post
+   */
+  async getPostDetailedInsights(postId: string) {
+    try {
+      const url = `https://graph.facebook.com/v23.0/${postId}/insights`;
+      const params = {
+        access_token: this._accessToken,
+        metric: [
+          "post_engaged_users",
+          "post_clicks",
+          "post_negative_feedback",
+          "post_reach",
+        ].join(","),
+      };
+
+      const response = await axios.get(url, { params });
+      const insights = response.data?.data || [];
+
+      const result: {
+        engagedUsers?: number;
+        postClicks?: number;
+        negativeFeedback?: number;
+        postReach?: number;
+      } = {};
+
+      insights.forEach((insight: any) => {
+        const value = insight.values?.[0]?.value;
+        switch (insight.name) {
+          case "post_engaged_users":
+            result.engagedUsers = value;
+            break;
+          case "post_clicks":
+            result.postClicks = value;
+            break;
+          case "post_negative_feedback":
+            result.negativeFeedback = value;
+            break;
+          case "post_reach":
+            result.postReach = value;
+            break;
+        }
+      });
+
+      return result;
+    } catch (error) {
+      // Silently fail - insights might not be available for all posts
+      console.warn(`Failed to fetch insights for post ${postId}:`, error);
+      return {};
+    }
+  }
+
+  /**
+   * Fetch reaction breakdowns for a post
+   * Note: Facebook API v23.0 only allows one reactions query per request
+   * So we need separate calls for each reaction type or use a workaround
+   */
+  async getPostReactionBreakdown(postId: string) {
+    try {
+      // Fetch all reaction types separately
+      const reactionTypes = ["LIKE", "LOVE", "WOW", "HAHA", "SORRY", "ANGER"];
+      const reactions: {
+        like?: number;
+        love?: number;
+        wow?: number;
+        haha?: number;
+        sorry?: number;
+        anger?: number;
+      } = {};
+
+      for (const type of reactionTypes) {
+        try {
+          const url = `https://graph.facebook.com/v23.0/${postId}`;
+          const response = await axios.get(url, {
+            params: {
+              access_token: this._accessToken,
+              fields: `reactions.type(${type}).summary(total_count).limit(0)`,
+            },
+          });
+
+          const count =
+            response.data?.reactions?.summary?.total_count || 0;
+          if (count > 0) {
+            reactions[type.toLowerCase() as keyof typeof reactions] = count;
+          }
+        } catch {
+          // Skip this reaction type if it fails
+          continue;
+        }
+      }
+
+      return reactions;
+    } catch (error) {
+      console.warn(`Failed to fetch reaction breakdown for post ${postId}:`, error);
+      return {};
     }
   }
 
