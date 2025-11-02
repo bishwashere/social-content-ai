@@ -2,8 +2,23 @@ import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTrac
 import { addDays, isBefore, startOfMonth, eachDayOfInterval, startOfDay, subDays } from "date-fns";
 
 // Type for PlatformPost with oauthProvider relation included
-type PlatformPostWithProvider = PlatformPost & {
-    oauthProvider?: OauthProvider | null;
+// oauthProvider can be partial (at minimum just platform) or full OauthProvider object
+export type PlatformPostWithProvider = PlatformPost & {
+    oauthProvider?: {
+        platform: OauthProvider['platform'];
+        id?: string;
+        createdAt?: Date;
+        updatedAt?: Date;
+        userId?: string;
+        accessToken?: string;
+        refreshToken?: string | null;
+        expiresAt?: number | null;
+        pageId?: string | null;
+        pageName?: string | null;
+        pageProfilePhoto?: string | null;
+        isPersonal?: boolean;
+        pageFollowers?: number;
+    } | null;
 };
 
 /**

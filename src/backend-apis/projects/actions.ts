@@ -14,6 +14,7 @@ import {
   calculateConsistency,
   calculateSuccessRate,
   calculatePlatformDiversity,
+  type PlatformPostWithProvider,
 } from "./analytics";
 import { startOfDay, subDays } from "date-fns";
 
@@ -212,49 +213,46 @@ export async function getProjectPulse(projectId: string) {
 
   // Platform posts for last 7 days (engagement, coverage, this week summaries)
   // Map posts with their provider's platform for easier access
-  const platformPostsLast7Days = oauthProvidersLast7Days.flatMap(
+  const platformPostsLast7Days: PlatformPostWithProvider[] = oauthProvidersLast7Days.flatMap(
     (projectProvider) => {
       const provider = projectProvider.oauthProvider;
       if (!provider) return [];
       return (provider.pagePosts || []).map(post => ({
         ...post,
         // Ensure oauthProvider relation is set with platform from parent provider
-        oauthProvider: post.oauthProvider || {
-          id: provider.id,
+        oauthProvider: (post.oauthProvider || {
           platform: provider.platform,
-        } as any,
+        }) as { platform: typeof provider.platform },
       }));
     }
   );
 
   // Platform posts for previous 7 days (engagement trend analysis)
-  const platformPostsPrevious7Days = oauthProvidersPrevious7Days.flatMap(
+  const platformPostsPrevious7Days: PlatformPostWithProvider[] = oauthProvidersPrevious7Days.flatMap(
     (projectProvider) => {
       const provider = projectProvider.oauthProvider;
       if (!provider) return [];
       return (provider.pagePosts || []).map(post => ({
         ...post,
         // Ensure oauthProvider relation is set with platform from parent provider
-        oauthProvider: post.oauthProvider || {
-          id: provider.id,
+        oauthProvider: (post.oauthProvider || {
           platform: provider.platform,
-        } as any,
+        }) as { platform: typeof provider.platform },
       }));
     }
   );
 
   // Platform posts for full month (streak calculation)
-  const platformPostsFullMonth = oauthProvidersFullMonth.flatMap(
+  const platformPostsFullMonth: PlatformPostWithProvider[] = oauthProvidersFullMonth.flatMap(
     (projectProvider) => {
       const provider = projectProvider.oauthProvider;
       if (!provider) return [];
       return (provider.pagePosts || []).map(post => ({
         ...post,
         // Ensure oauthProvider relation is set with platform from parent provider
-        oauthProvider: post.oauthProvider || {
-          id: provider.id,
+        oauthProvider: (post.oauthProvider || {
           platform: provider.platform,
-        } as any,
+        }) as { platform: typeof provider.platform },
       }));
     }
   );
