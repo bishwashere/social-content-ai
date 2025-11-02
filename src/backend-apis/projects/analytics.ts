@@ -1,5 +1,10 @@
-import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTracking } from "@prisma/client";
+import { ScheduledPost, CampaignChat, CampaignPlanner, PlatformPost, ProjectTracking, OauthProvider } from "@prisma/client";
 import { addDays, isBefore, startOfMonth, eachDayOfInterval, startOfDay, subDays } from "date-fns";
+
+// Type for PlatformPost with oauthProvider relation included
+type PlatformPostWithProvider = PlatformPost & {
+    oauthProvider?: OauthProvider | null;
+};
 
 /**
  * Cadence = posting frequency/consistency based purely on platform data
@@ -8,8 +13,8 @@ import { addDays, isBefore, startOfMonth, eachDayOfInterval, startOfDay, subDays
  * 100% = posting at same or better rate than previous week
  */
 export function calculateCadence(
-    platformPosts: PlatformPost[],
-    previousPeriodPosts: PlatformPost[]
+    platformPosts: PlatformPostWithProvider[],
+    previousPeriodPosts: PlatformPostWithProvider[]
 ): number {
     const endDate = startOfDay(new Date()); // today 00:00
     const startDate = startOfDay(subDays(endDate, 7)); // 7 days before today 00:00
@@ -71,7 +76,7 @@ export function calculateOnTime(posts: ScheduledPost[]): number {
  * Based purely on platform data - measures how many platforms are actively being used
  */
 export function calculateCoverage(
-    platformPosts: PlatformPost[],
+    platformPosts: PlatformPostWithProvider[],
     totalConnectedPlatforms: number
 ): number {
     if (totalConnectedPlatforms === 0) return 0;
@@ -120,7 +125,7 @@ export function calculateSuccessRate(posts: ScheduledPost[]): number {
  * Rewards using multiple platforms
  */
 export function calculatePlatformDiversity(
-    platformPosts: PlatformPost[],
+    platformPosts: PlatformPostWithProvider[],
     totalConnectedPlatforms: number
 ): number {
     if (totalConnectedPlatforms === 0) return 0;
@@ -170,8 +175,8 @@ export function calculatePlanProgress(
  * Compares current period to previous period to reward improvement
  */
 export function calculateEngagement(
-    posts: PlatformPost[],
-    previousPeriodPosts: PlatformPost[]
+    posts: PlatformPostWithProvider[],
+    previousPeriodPosts: PlatformPostWithProvider[]
 ): number {
     const engagementRates: number[] = [];
     for (const post of posts) {
@@ -220,7 +225,7 @@ export function calculateEngagement(
 
 export function calculateThisWeekPostSummaries(
     trackings: ProjectTracking[],
-    posts: PlatformPost[]
+    posts: PlatformPostWithProvider[]
 ) {
     // Use PlatformPost count instead of ProjectTracking count for consistency with left panel analytics
     // PlatformPost represents actual published posts from platform APIs, which is the source of truth
@@ -261,7 +266,7 @@ export function calculateThisWeekPostSummaries(
  * A single day gap is forgiven - the streak continues.
  */
 export function calculateGapsandPostsDaysThisMonth(
-    platformPosts: PlatformPost[],
+    platformPosts: PlatformPostWithProvider[],
     type: '1MONTH' | '1WEEK'
 ) {
     const today = startOfDay(new Date());
