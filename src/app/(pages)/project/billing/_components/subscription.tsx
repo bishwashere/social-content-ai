@@ -40,7 +40,43 @@ const Subscription = () => {
 
   if (isLoading) return <Loading className="h-[70vh]" />;
 
-  if (!activeSubscription) return null;
+  // If no subscription, show subscribe button
+  if (!activeSubscription) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscription</CardTitle>
+          <CardDescription>
+            Subscribe to unlock premium features
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Get unlimited projects, users, and completions with our Pro plan.
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Button
+            loading={payment.isPending}
+            onClick={async () => {
+              try {
+                // Use existing purchase flow - same as pricing modal
+                const res = await payment.mutateAsync("subscription");
+                if (res?.data?.redirectUrl) {
+                  router.push(res.data.redirectUrl);
+                }
+              } catch (error) {
+                console.error("Error creating checkout session:", error);
+              }
+            }}
+            className="w-full sm:w-auto"
+          >
+            {payment.isSuccess ? "Redirecting..." : "Start Trial"}
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
 
   const status = isSubscriptionExpired(activeSubscription.endsAt);
 
