@@ -119,8 +119,12 @@ const AnalyticsTabs = () => {
   const { data: session } = useSession();
 
   useEffect(() => {
-    if (projects.data)
-      setSelectedProject(projects.data?.filter(project => project.userRole === "admin")[0].id || null)
+    if (projects.data && projects.data.length > 0) {
+      const adminProjects = projects.data.filter(project => project.userRole === "admin");
+      if (adminProjects.length > 0 && adminProjects[0]?.id) {
+        setSelectedProject(adminProjects[0].id);
+      }
+    }
   }, [projects.data])
 
   const adminProjects = projects.data?.filter(project => project.userRole === "admin") || [];
