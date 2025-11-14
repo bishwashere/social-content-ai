@@ -20,32 +20,38 @@ export const POST = applyMiddleware(
     // @ts-expect-error - user is not defined in Request type
     const user = req.parsed.user;
 
-    // check if the user has remaining chat generations
+    // Check if the user has remaining chat generations (tokens)
+    // If user has tokens, allow generation regardless of subscription status
+    // This allows users with basic tokens (10 tokens) to use the service without subscription
     if (user.remainingChatGenerations <= 0) {
+      // User has no tokens - check subscription status
+      const subs = await prisma.subscription.findFirst({
+        where: { userId: user.id },
+      });
+
+      if (!subs) {
+        return sendNextResponse({
+          status: 403,
+          message: "You have exhausted your tokens. Please purchase more tokens or subscribe to continue.",
+        });
+      }
+
+      if (isSubscriptionExpired(subs.endsAt.toISOString()).isExpired) {
+        return sendNextResponse({
+          status: 403,
+          message: "You have exhausted your tokens and your subscription has expired. Please purchase tokens or renew your subscription.",
+        });
+      }
+
+      // User has subscription but no tokens - they need to purchase coins
       return sendNextResponse({
         status: 403,
-        message: "You have exhausted your chat generations for this month",
+        message: "You have exhausted your tokens. Please purchase more tokens to continue.",
       });
     }
 
-    // check if subscription is expired
-    const subs = await prisma.subscription.findFirst({
-      where: { userId: user.id },
-    });
-
-    if (!subs) {
-      return sendNextResponse({
-        status: 403,
-        message: "You do not have an active subscription",
-      });
-    }
-
-    if (isSubscriptionExpired(subs.endsAt.toISOString()).isExpired) {
-      return sendNextResponse({
-        status: 403,
-        message: "Your subscription has expired",
-      });
-    }
+    // User has tokens - allow generation regardless of subscription status
+    // This enables token-based usage for users without subscriptions
 
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["createChat"];
