@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,9 @@ import { useRouter } from "next/navigation";
 import {
   useGetAllProjects,
 } from "@/backend-apis/projects/hooks";
+import { useSession } from "@/backend-apis/auth/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import Loading from "@/components/common/loading";
 import HomepageProjectDropdown from "./_components/homepage-project-dropdown";
 import AdvanceCustomization from "./_components/advance-customization";
 import { CompactStatsCards } from "./_components/compact-stats-cards";
@@ -23,17 +25,38 @@ export default function Home() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState<'normal' | 'advanced'>('normal');
-
+  const { isLoading: sessionLoading, isError: sessionError } = useSession();
   const projects = useGetAllProjects();
 
   const handleSelectProject = (projectId: string) => {
     router.push(`/project/${projectId}`);
   };
 
+  // Redirect if not authenticated (SessionProvider should handle this, but this is a safety check)
+  useEffect(() => {
+    if (!sessionLoading && sessionError) {
+      // Use setTimeout to avoid state update during render
+      const timer = setTimeout(() => {
+        router.replace("/");
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionLoading, sessionError, router]);
+
+  // Show loading while session is being checked
+  if (sessionLoading) {
+    return <Loading className="h-screen" />;
+  }
+
+  // Don't render if not authenticated - SessionProvider will redirect
+  if (sessionError) {
+    return null;
+  }
+
   // Handle case when query is disabled (user not authenticated)
-  // SessionProvider should redirect, but this prevents errors if component renders briefly
-  if (projects.isLoading === false && projects.data === undefined && projects.error) {
-    return null; // SessionProvider will handle redirect
+  // This should not happen if session check passes, but handle it gracefully
+  if (!projects.isLoading && !projects.data && projects.error) {
+    return <Loading className="h-screen" />;
   }
 
   return (

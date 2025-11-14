@@ -1,8 +1,7 @@
 "use client";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Loading from "@/components/common/loading";
-import React, { useEffect } from "react";
-import HomePage from "@/app/get/page"; // Import the home page component
+import React, { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 type Props = {
@@ -27,14 +26,22 @@ const SessionProvider = ({ children }: Props) => {
   const { isLoading, isError } = useSession();
   const path = usePathname();
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      hasRedirected.current = false;
+      return;
+    }
 
     // Allow public access to landing page and blogs
-    if (isPublic(path)) return;
+    if (isPublic(path)) {
+      hasRedirected.current = false;
+      return;
+    }
 
-    if (isError) {
+    if (isError && !hasRedirected.current) {
+      hasRedirected.current = true;
       router.replace("/"); // ✅ Redirect to the home page (replace to avoid adding to history)
     }
   }, [isError, isLoading, router, path]);
@@ -50,7 +57,8 @@ const SessionProvider = ({ children }: Props) => {
   if (isError) {
     // Allow public access to landing page and blogs
     if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return children;
-    return <HomePage />; // ✅ Show the home page instead of UnauthorizedError
+    // Show loading while redirecting to prevent render errors
+    return <Loading className="h-screen" />;
   }
 
   return children;
