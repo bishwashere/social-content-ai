@@ -168,27 +168,15 @@ export default function PricingModal({ open, setOpen }: Props) {
               loading={payment.isPending || manage.isPending}
               onClick={async () => {
                 try {
-
-                  if (
-                    data?.subscription &&
-                    isSubscriptionExpired(data.subscription.endsAt).isExpired
-                    && !data?.subscription?.customerId?.startsWith("trial__")
-                  ) {
-                    try {
-                      const res = await manage.mutateAsync();
-                      console.log("Managaing subscription", res);
-                      router.push(res.data.url);
-                    } catch {
-                      const res = await payment.mutateAsync("subscription");
-                      router.push(res.data.redirectUrl);
-                      console.log("Creating checkout session", res);
-                    }
-                  } else {
-                    const res = await payment.mutateAsync("subscription");
+                  // Use existing purchase flow - create checkout session
+                  const res = await payment.mutateAsync("subscription");
+                  if (res?.data?.redirectUrl) {
                     router.push(res.data.redirectUrl);
-                    console.log("Creating checkout session", res);
                   }
-                } catch { }
+                } catch (error) {
+                  // Error handling is done by the hook (toast notification)
+                  console.error("Error creating checkout session:", error);
+                }
               }}
               className="w-full"
             >
