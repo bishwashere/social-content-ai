@@ -71,3 +71,21 @@ export const useLogout = () => {
     },
   });
 };
+
+/**
+ * Hook to assign basic tokens to a user who skips payment
+ **/
+export const useAssignBasicTokens = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      return authService.assignBasicTokens(queryClient);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Basic tokens assigned successfully");
+    },
+  });
+};

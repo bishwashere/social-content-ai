@@ -91,6 +91,35 @@ class AuthService {
     router.replace("/");
     return "You have been logged out";
   }
+
+  /**
+   * Assign basic tokens to a user who skips payment
+   */
+  async assignBasicTokens(queryClient: QueryClient) {
+    const [err, res] = await tryCatchAsync<ApiError, ApiResponse<{ remainingChatGenerations: number }>>(
+      async () => {
+        const response = await api.post(apiRoutes.AUTH.ASSIGN_BASIC_TOKENS());
+        return response;
+      }
+    );
+
+    if (err) throw new Error(err.response?.data?.message);
+
+    // Update session cache with new token count
+    await queryClient.setQueryData<GetUserSessionResponse>(["session"], (data) => {
+      return data
+        ? {
+            ...data,
+            user: {
+              ...data.user,
+              remainingChatGenerations: res.data.data.remainingChatGenerations,
+            },
+          }
+        : data;
+    });
+
+    return res.data;
+  }
 }
 
 export const authService = new AuthService();

@@ -22,12 +22,18 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
   const [open, setOpen] = useState(false);
   const [coinsModalOpen, setCoinsModalOpen] = useState(false);
   const handleCoinsFinished = () => {
-    if (data?.subscription?.status === "trial" || data?.subscription?.status === "trialing") {
-      setOpen(true)
+    // If user has no tokens and no subscription, show pricing modal
+    const hasNoTokens = (data?.user?.remainingChatGenerations || 0) <= 0;
+    const hasNoSubscription = !data?.subscription;
+    
+    if (hasNoTokens && hasNoSubscription) {
+      setOpen(true);
+    } else if (data?.subscription?.status === "trial" || data?.subscription?.status === "trialing") {
+      setOpen(true);
     } else {
-      setCoinsModalOpen(true)
+      setCoinsModalOpen(true);
     }
-  }
+  };
   return (
     <PricingModalContext.Provider value={{ open, setOpen, coinsModalOpen, setCoinsModalOpen, handleCoinsFinished }}>
       <PricingModal open={open} setOpen={setOpen} />

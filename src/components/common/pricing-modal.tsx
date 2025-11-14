@@ -22,11 +22,10 @@ import {
   useManageSubscription,
 } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
-import { useLogout, useSession } from "@/backend-apis/auth/hooks";
+import { useAssignBasicTokens, useSession } from "@/backend-apis/auth/hooks";
 import { useEffect, useState } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
-// import { claimFreeTrial } from "@/server-actions/claim-free-trial"; // COMMENTED OUT: Using Stripe native trials
-// import { toast } from "sonner"; // COMMENTED OUT: No longer needed for custom trial claims
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
@@ -42,28 +41,25 @@ export default function PricingModal({ open, setOpen }: Props) {
   // const [isLoading, setIsLoading] = useState(false); // COMMENTED OUT: No longer needed for custom trial claims
   const queryClient = useQueryClient();
 
-  // only open the modal if the user doesn't have an active subscription
+  // only open the modal if the user doesn't have an active subscription or has no tokens
   useEffect(() => {
-    // open the modal if the user doesn't have a subscription or subscription is expired
+    // Don't show modal if user has tokens and no subscription (they're using basic tokens)
+    // Show modal if:
+    // 1. No subscription or subscription is expired AND no tokens
+    // 2. User has exhausted their tokens
+    const hasNoTokens = (data?.user?.remainingChatGenerations || 0) <= 0;
+    const hasNoSubscription = !data?.subscription || 
+      (data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired);
 
-    // if open in last 10 sec, don't open
-    // const lastOpen = localStorage.getItem(`lastOpen__${data?.user?.id}`);
-    // if (lastOpen && Date.now() - Number(lastOpen) < 10 * 1000) {
-    //   console.log("lastOpen", lastOpen);
-    //   return;
-    // }
-
-    // Show modal if no subscription or subscription is expired
-    if (
-      !data?.subscription || 
-      (data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired)
-    ) {
+    if (hasNoSubscription && hasNoTokens) {
       setOpen(true);
+    } else if (hasNoTokens && data?.subscription) {
+      // User has subscription but no tokens - show coins modal instead
+      setOpen(false);
     } else {
-      console.log("data.subscription", data.subscription);
       setOpen(false);
     }
-  }, [data?.subscription, data?.user?.id, setOpen]);
+  }, [data?.subscription, data?.user?.remainingChatGenerations, data?.user?.id, setOpen]);
 
   // COMMENTED OUT: Custom trial claim logic - now handled by Stripe
   // const claimTrial = async () => {
@@ -85,17 +81,23 @@ export default function PricingModal({ open, setOpen }: Props) {
   //   } catch { }
   // }
 
-const logout = useLogout()
+  const assignBasicTokens = useAssignBasicTokens();
+
   return (
     <Dialog open={open} >
       <DialogContent className="sm:max-w-md">
         <DialogClose
           onClick={async () => {
-            // COMMENTED OUT: Custom trial claim - now handled by Stripe
-            // await claimTrial();
-            localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
-            setOpen(false);
-            logout.mutate()
+            // Assign basic tokens instead of logging out
+            try {
+              await assignBasicTokens.mutateAsync();
+              localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
+              setOpen(false);
+              toast.success("You've been assigned 10 free tokens to get started!");
+            } catch (error) {
+              // If assignment fails, just close the modal
+              setOpen(false);
+            }
           }}
         />
         <DialogHeader>
