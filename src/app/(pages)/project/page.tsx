@@ -30,6 +30,12 @@ export default function Home() {
     router.push(`/project/${projectId}`);
   };
 
+  // Handle case when query is disabled (user not authenticated)
+  // SessionProvider should redirect, but this prevents errors if component renders briefly
+  if (projects.isLoading === false && projects.data === undefined && projects.error) {
+    return null; // SessionProvider will handle redirect
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="text-center">

@@ -14,6 +14,7 @@ import { getAllDayProjectPulse, getProjectPulse, getWebsiteDescription } from ".
 import tryCatchAsync from "@/lib/try-catch-async";
 import api from "../axios";
 import { ApiError, ApiResponse } from "../types";
+import { useSession } from "../auth/hooks";
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -40,9 +41,13 @@ export const useGetProjectById = (projectId: string) => {
 };
 
 export const useGetAllProjects = () => {
+  const { data: session, isLoading: sessionLoading, isError: sessionError } = useSession();
+
   return useQuery({
     queryFn: projectService.getProjects,
     queryKey: ["projects"],
+    enabled: !sessionLoading && !sessionError && !!session, // Only fetch when authenticated
+    retry: 0, // Don't retry on auth errors
   });
 };
 

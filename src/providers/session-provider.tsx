@@ -35,7 +35,7 @@ const SessionProvider = ({ children }: Props) => {
     if (isPublic(path)) return;
 
     if (isError) {
-      router.push("/"); // ✅ Redirect to the home page
+      router.replace("/"); // ✅ Redirect to the home page (replace to avoid adding to history)
     }
   }, [isError, isLoading, router, path]);
 

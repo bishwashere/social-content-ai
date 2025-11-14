@@ -51,7 +51,10 @@ const GoogleLoginButton = ({
 
   const [tab, setTab] = useState<"google" | "email">("google");
 
-  console.log(trigger);
+  // Always show the trigger button, but conditionally show login dialog or dashboard button
+  // This ensures the button is always visible, preventing hydration issues
+  const isAuthenticated = !isLoading && !isError;
+  
   return (
     <Dialog
       open={open}
@@ -62,7 +65,7 @@ const GoogleLoginButton = ({
         }
       }}
     >
-      {!isLoading && !isError ? (
+      {isAuthenticated ? (
         gotoDashboard ?? (
           <Button
             className={triggerClassName}
