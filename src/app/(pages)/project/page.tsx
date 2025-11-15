@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,13 +20,19 @@ import HomepageProjectDropdown from "./_components/homepage-project-dropdown";
 import AdvanceCustomization from "./_components/advance-customization";
 import { CompactStatsCards } from "./_components/compact-stats-cards";
 import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
+import { OnboardingModal } from "./_components/onboarding-modal";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 export default function Home() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [content, setContent] = useState<'normal' | 'advanced'>('normal');
   const { isLoading: sessionLoading, isError: sessionError } = useSession();
   const projects = useGetAllProjects();
+  const { open: pricingModalOpen } = usePricingModal();
+  const onboardingShownRef = useRef(false);
+  const projectSelectionCallbackRef = useRef<((projectId: string) => void) | null>(null);
 
   const handleSelectProject = (projectId: string) => {
     router.push(`/project/${projectId}`);
@@ -42,6 +48,51 @@ export default function Home() {
       return () => clearTimeout(timer);
     }
   }, [sessionLoading, sessionError, router]);
+
+  // Auto-open onboarding modal for first-time users (zero projects)
+  // BUT only after payment wall is handled (pricing modal is closed)
+  useEffect(() => {
+    if (sessionLoading || sessionError) return;
+    if (projects.isLoading) return;
+    
+    // Don't show onboarding if pricing modal is open (payment wall should show first)
+    if (pricingModalOpen) {
+      setOnboardingOpen(false);
+      // Reset the ref when pricing modal opens so onboarding can show after it closes
+      onboardingShownRef.current = false;
+      return;
+    }
+    
+    // Check if user has zero projects
+    if (projects.data?.length === 0) {
+      // Show onboarding after payment modal closes (if user has zero projects)
+      if (!onboardingShownRef.current) {
+        setOnboardingOpen(true);
+        onboardingShownRef.current = true;
+      }
+    } else if (projects.data && projects.data.length > 0) {
+      // Reset the ref when user has projects (allows modal to show again if they delete all projects)
+      onboardingShownRef.current = false;
+      // Close modal if it's open (in case projects were created outside the modal)
+      if (onboardingOpen) {
+        setOnboardingOpen(false);
+      }
+    }
+  }, [projects.isLoading, projects.data, sessionLoading, sessionError, onboardingOpen, pricingModalOpen]);
+
+  const handleProjectCreated = (projectId: string) => {
+    setOnboardingOpen(false);
+    // Reset the ref so modal can show again if user deletes all projects
+    onboardingShownRef.current = false;
+    // Call the callback to select the project in the dropdown
+    if (projectSelectionCallbackRef.current) {
+      projectSelectionCallbackRef.current(projectId);
+    }
+    // Navigate to the newly created project page
+    setTimeout(() => {
+      router.push(`/project/${projectId}`);
+    }, 400);
+  };
 
   // Show loading while session is being checked
   if (sessionLoading) {
@@ -77,7 +128,7 @@ export default function Home() {
 
       {/* Main Content */}
       {content === "normal" ?
-        <HomepageProjectDropdown />
+        <HomepageProjectDropdown onProjectSelectRef={projectSelectionCallbackRef} />
         :
         <AdvanceCustomization />
       }
@@ -135,6 +186,10 @@ export default function Home() {
       </Dialog>
 
       <AddGuidedProjectModal />
+      <OnboardingModal 
+        open={onboardingOpen} 
+        onProjectCreated={handleProjectCreated}
+      />
     </div>
   );
 }

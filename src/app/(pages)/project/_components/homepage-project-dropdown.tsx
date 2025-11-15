@@ -5,15 +5,66 @@ import PostToWall from "@/components/common/post-to-wall";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, RefreshCcw } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import Markdown from "react-markdown";
 import { toast } from "sonner";
 
+type HomepageProjectDropdownProps = {
+  onProjectSelectRef?: React.MutableRefObject<((projectId: string) => void) | null>;
+};
 
-export default function HomepageProjectDropdown() {
-  const projects = useGetAllProjects();
-  const [selectedProject, setSelectedProject] = useState<string>("BLANK");
-  const chat = useGenerateProjectContent();
+export type HomepageProjectDropdownHandle = {
+  selectProject: (projectId: string) => void;
+};
+
+const HomepageProjectDropdown = forwardRef<HomepageProjectDropdownHandle, HomepageProjectDropdownProps>(
+  ({ onProjectSelectRef }, ref) => {
+    const projects = useGetAllProjects();
+    const [selectedProject, setSelectedProject] = useState<string>("BLANK");
+    const chat = useGenerateProjectContent();
+
+    // Expose selectProject method via ref
+    useImperativeHandle(ref, () => ({
+      selectProject: (projectId: string) => {
+        setSelectedProject(projectId);
+        localStorage.setItem("LastHomepageProjectSelect", projectId);
+      },
+    }));
+
+    // Set up callback ref for parent component
+    useEffect(() => {
+      if (onProjectSelectRef) {
+        onProjectSelectRef.current = (projectId: string) => {
+          // Function to select the project
+          const selectProject = () => {
+            if (projects.data && projects.data.length > 0) {
+              const projectExists = projects.data.find(p => p.id === projectId);
+              if (projectExists) {
+                setSelectedProject(projectId);
+                localStorage.setItem("LastHomepageProjectSelect", projectId);
+                return true;
+              }
+            }
+            return false;
+          };
+
+          // Try to select immediately
+          if (!selectProject()) {
+            // If project not found, wait a bit for query to update and try again
+            const retrySelect = () => {
+              if (selectProject()) {
+                return;
+              }
+              // Retry one more time after a longer delay
+              setTimeout(() => {
+                selectProject();
+              }, 500);
+            };
+            setTimeout(retrySelect, 200);
+          }
+        };
+      }
+    }, [onProjectSelectRef, projects.data]);
 
   const onGenerate = async () => {
     if (!selectedProject || selectedProject === "BLANK") {
@@ -156,5 +207,9 @@ export default function HomepageProjectDropdown() {
         ))}
       </div>
     </div>
-  )
-}
+  );
+});
+
+HomepageProjectDropdown.displayName = "HomepageProjectDropdown";
+
+export default HomepageProjectDropdown;

@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 
 type Props = {
   open: boolean;
@@ -40,18 +41,31 @@ export default function PricingModal({ open, setOpen }: Props) {
   const { data } = useSession();
   // const [isLoading, setIsLoading] = useState(false); // COMMENTED OUT: No longer needed for custom trial claims
   const queryClient = useQueryClient();
+  const projects = useGetAllProjects();
 
   // only open the modal if the user doesn't have an active subscription or has no tokens
+  // Payment wall shows FIRST, before onboarding
+  // Also show every time user logs in if they have zero projects (haven't onboarded)
   useEffect(() => {
-    // Don't show modal if user has tokens and no subscription (they're using basic tokens)
-    // Show modal if:
-    // 1. No subscription or subscription is expired AND no tokens
-    // 2. User has exhausted their tokens
+    // Wait for projects to load
+    if (projects.isLoading) {
+      return;
+    }
+
     const hasNoTokens = (data?.user?.remainingChatGenerations || 0) <= 0;
     const hasNoSubscription = !data?.subscription || 
       (data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired);
+    const hasNoProjects = !projects.data || projects.data.length === 0;
 
-    if (hasNoSubscription && hasNoTokens) {
+    // Show payment wall if:
+    // 1. User has zero projects (hasn't onboarded) - show EVERY TIME they login, regardless of tokens
+    // 2. OR no subscription/subscription expired AND no tokens (for users who have projects)
+    if (hasNoProjects) {
+      // Always show payment wall if they haven't onboarded (zero projects)
+      // This ensures they see it every time they login until they complete onboarding
+      setOpen(true);
+    } else if (hasNoSubscription && hasNoTokens) {
+      // Show if no subscription and no tokens (for users who have projects)
       setOpen(true);
     } else if (hasNoTokens && data?.subscription) {
       // User has subscription but no tokens - show coins modal instead
@@ -59,7 +73,7 @@ export default function PricingModal({ open, setOpen }: Props) {
     } else {
       setOpen(false);
     }
-  }, [data?.subscription, data?.user?.remainingChatGenerations, data?.user?.id, setOpen]);
+  }, [data?.subscription, data?.user?.remainingChatGenerations, data?.user?.id, setOpen, projects.isLoading, projects.data]);
 
   // COMMENTED OUT: Custom trial claim logic - now handled by Stripe
   // const claimTrial = async () => {
