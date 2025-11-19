@@ -8,6 +8,7 @@ export type UpdateFirstViewTooltipData = {
     contentPlanner?: boolean;
     quickGenerate?: boolean;
     videoGeneration?: boolean;
+    dismissedProjectAlerts?: string[];
   };
 };
 
@@ -24,6 +25,7 @@ export async function getFirstViewTooltip(userId: string) {
         contentPlanner: false,
         quickGenerate: false,
         videoGeneration: false,
+        dismissedProjectAlerts: [],
       },
     });
   }

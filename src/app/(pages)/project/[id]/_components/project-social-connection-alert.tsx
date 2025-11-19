@@ -8,9 +8,10 @@ import { useSession } from "@/backend-apis/auth/hooks"
 import { checkProjectOAuthProvider } from "@/server-actions/check-project-oauth-provider"
 import { mapProjectToOAuthProvider } from "@/server-actions/map-project-oauth-provider"
 import { toast } from "sonner"
-import { LinkIcon } from "lucide-react"
+import { X } from "lucide-react"
 import Image from "next/image"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
+import { getFirstViewTooltip, updateFirstViewTooltip } from "@/server-actions/first-view-tooltip/actions"
 
 type AvailableProvider = {
   id: string
@@ -34,6 +35,31 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const [hasFacebookConnected, setHasFacebookConnected] = useState(false)
   const [hasLinkedinConnected, setHasLinkedinConnected] = useState(false)
 
+  // Check if user has dismissed this alert for this project
+  const { data: tooltipData } = useQuery({
+    queryKey: ["first-view-tooltip", session?.user?.id],
+    queryFn: () => getFirstViewTooltip(session?.user?.id || ""),
+    enabled: !!session?.user?.id,
+  })
+
+  const dismissAlertMutation = useMutation({
+    mutationFn: async () => {
+      if (!session?.user?.id) return
+
+      const currentDismissed = tooltipData?.dismissedProjectAlerts || []
+      await updateFirstViewTooltip({
+        userId: session.user.id,
+        updateData: {
+          dismissedProjectAlerts: [...currentDismissed, projectId],
+        },
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["first-view-tooltip", session?.user?.id] })
+      setShowAlert(false)
+    },
+  })
+
   const checkAvailableProviders = useCallback(async () => {
     if (!session?.user?.id || !projectId) return
 
@@ -56,8 +82,11 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       setFacebookProviders(fbAvailable)
       setLinkedinProviders(liAvailable)
 
-      // Show alert only if there are unmapped providers
-      if (fbAvailable.length > 0 || liAvailable.length > 0) {
+      // Check if alert has been dismissed for this project
+      const isDismissed = tooltipData?.dismissedProjectAlerts?.includes(projectId) || false
+
+      // Show alert only if there are unmapped providers AND not dismissed
+      if ((fbAvailable.length > 0 || liAvailable.length > 0) && !isDismissed) {
         setShowAlert(true)
       } else {
         setShowAlert(false)
@@ -65,7 +94,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     } catch (error) {
       console.error("Error checking available providers:", error)
     }
-  }, [projectId, session?.user?.id])
+  }, [projectId, session?.user?.id, tooltipData?.dismissedProjectAlerts])
 
   useEffect(() => {
     checkAvailableProviders()
@@ -124,9 +153,17 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
 
   return (
     <div className="px-6 mb-4 max-w-4xl mx-auto">
-      <Alert className="border-orange-500 bg-orange-50/50">
+      <Alert className="border-orange-500 bg-orange-50/50 relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-6 w-6 hover:bg-orange-100"
+          onClick={() => dismissAlertMutation.mutate()}
+        >
+          <X className="h-4 w-4 text-orange-600" />
+        </Button>
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pr-8">
             {facebookProviders.length > 0 && (
               <div className="flex-1">
                 <Select 
