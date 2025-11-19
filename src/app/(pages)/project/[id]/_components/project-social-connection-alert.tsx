@@ -101,18 +101,12 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     <div className="px-6 mb-4 max-w-4xl mx-auto">
       <Alert className="border-orange-500 bg-orange-50/50">
         <div className="flex flex-col gap-3">
-          <AlertTitle className="text-orange-600 font-semibold flex items-center gap-2">
-            <LinkIcon className="h-4 w-4" />
-            No socials are connected to this project
-          </AlertTitle>
-          
-          <div className="flex flex-col sm:flex-row gap-3 items-end">
+          <div className="flex items-center gap-3">
             {facebookProviders.length > 0 && (
-              <div className="flex-1 w-full">
-                <label className="text-xs text-gray-600 mb-1 block">Connect Facebook</label>
+              <div className="flex-1">
                 <Select value={selectedFacebook} onValueChange={setSelectedFacebook}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Facebook account" />
+                    <SelectValue placeholder="Connect Facebook" />
                   </SelectTrigger>
                   <SelectContent>
                     {facebookProviders.map((provider) => (
@@ -127,11 +121,10 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
             )}
 
             {linkedinProviders.length > 0 && (
-              <div className="flex-1 w-full">
-                <label className="text-xs text-gray-600 mb-1 block">Connect LinkedIn</label>
+              <div className="flex-1">
                 <Select value={selectedLinkedin} onValueChange={setSelectedLinkedin}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select LinkedIn account" />
+                    <SelectValue placeholder="Connect LinkedIn" />
                   </SelectTrigger>
                   <SelectContent>
                     {linkedinProviders.map((provider) => (
