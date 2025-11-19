@@ -26,9 +26,8 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const [showAlert, setShowAlert] = useState(false)
   const [facebookProviders, setFacebookProviders] = useState<AvailableProvider[]>([])
   const [linkedinProviders, setLinkedinProviders] = useState<AvailableProvider[]>([])
-  const [selectedFacebook, setSelectedFacebook] = useState<string>("")
-  const [selectedLinkedin, setSelectedLinkedin] = useState<string>("")
-  const [isMapping, setIsMapping] = useState(false)
+  const [isMappingFacebook, setIsMappingFacebook] = useState(false)
+  const [isMappingLinkedin, setIsMappingLinkedin] = useState(false)
 
   const checkAvailableProviders = useCallback(async () => {
     if (!session?.user?.id || !projectId) return
@@ -60,38 +59,39 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     checkAvailableProviders()
   }, [checkAvailableProviders])
 
-  const handleConnect = async () => {
-    if (!session?.user?.id) return
-    if (!selectedFacebook && !selectedLinkedin) {
-      toast.error("Please select at least one account to connect")
-      return
-    }
+  const handleConnectFacebook = async (providerId: string) => {
+    if (!session?.user?.id || !providerId) return
 
-    setIsMapping(true)
+    setIsMappingFacebook(true)
     try {
-      // Map Facebook if selected
-      if (selectedFacebook) {
-        await mapProjectToOAuthProvider(projectId, selectedFacebook, session.user.id)
-        toast.success("Facebook account connected to project!")
-      }
-
-      // Map LinkedIn if selected
-      if (selectedLinkedin) {
-        await mapProjectToOAuthProvider(projectId, selectedLinkedin, session.user.id)
-        toast.success("LinkedIn account connected to project!")
-      }
-
-      // Recheck available providers and hide alert if all are now mapped
-      await checkAvailableProviders()
+      await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
+      toast.success("Facebook account connected to project!")
       
-      // Reset selections
-      setSelectedFacebook("")
-      setSelectedLinkedin("")
+      // Recheck available providers - this will hide Facebook dropdown
+      await checkAvailableProviders()
     } catch (error) {
-      console.error("Error mapping provider:", error)
-      toast.error("Failed to connect account")
+      console.error("Error mapping Facebook provider:", error)
+      toast.error("Failed to connect Facebook account")
     } finally {
-      setIsMapping(false)
+      setIsMappingFacebook(false)
+    }
+  }
+
+  const handleConnectLinkedin = async (providerId: string) => {
+    if (!session?.user?.id || !providerId) return
+
+    setIsMappingLinkedin(true)
+    try {
+      await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
+      toast.success("LinkedIn account connected to project!")
+      
+      // Recheck available providers - this will hide LinkedIn dropdown
+      await checkAvailableProviders()
+    } catch (error) {
+      console.error("Error mapping LinkedIn provider:", error)
+      toast.error("Failed to connect LinkedIn account")
+    } finally {
+      setIsMappingLinkedin(false)
     }
   }
 
@@ -104,9 +104,13 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
           <div className="flex items-center gap-3">
             {facebookProviders.length > 0 && (
               <div className="flex-1">
-                <Select value={selectedFacebook} onValueChange={setSelectedFacebook}>
+                <Select 
+                  value={isMappingFacebook ? "connecting" : ""} 
+                  onValueChange={handleConnectFacebook}
+                  disabled={isMappingFacebook}
+                >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Connect Facebook" />
+                    <SelectValue placeholder={isMappingFacebook ? "Connecting..." : "Connect Facebook"} />
                   </SelectTrigger>
                   <SelectContent>
                     {facebookProviders.map((provider) => (
@@ -122,9 +126,13 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
 
             {linkedinProviders.length > 0 && (
               <div className="flex-1">
-                <Select value={selectedLinkedin} onValueChange={setSelectedLinkedin}>
+                <Select 
+                  value={isMappingLinkedin ? "connecting" : ""} 
+                  onValueChange={handleConnectLinkedin}
+                  disabled={isMappingLinkedin}
+                >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Connect LinkedIn" />
+                    <SelectValue placeholder={isMappingLinkedin ? "Connecting..." : "Connect LinkedIn"} />
                   </SelectTrigger>
                   <SelectContent>
                     {linkedinProviders.map((provider) => (
@@ -137,15 +145,6 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
                 </Select>
               </div>
             )}
-
-            <Button 
-              onClick={handleConnect}
-              disabled={isMapping || (!selectedFacebook && !selectedLinkedin)}
-              className="whitespace-nowrap"
-              size="default"
-            >
-              {isMapping ? "Connecting..." : "Connect"}
-            </Button>
           </div>
         </div>
       </Alert>
