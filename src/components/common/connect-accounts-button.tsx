@@ -28,9 +28,10 @@ export function ConnectAccountsButton() {
       const response = await fetch(`/api/check-oauth-providers?userId=${session.user.id}`, {
         cache: 'no-store',
       })
-      const data = await response.json()
+      const result = await response.json()
+      const data = result.data || result
       return {
-        hasProviders: data.hasProviders,
+        hasProviders: data.hasProviders || false,
         hasFacebook: data.hasFacebook || false,
         hasLinkedin: data.hasLinkedin || false,
         providers: data.providers || []
