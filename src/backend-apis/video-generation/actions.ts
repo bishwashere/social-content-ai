@@ -66,9 +66,9 @@ export const saveVideoDataToDb = async ({
   folderId: string;
   text: string;
   userId: string;
-  projectId: string;
-  campaignPlannerId: string;
-  day: number;
+  projectId?: string;
+  campaignPlannerId?: string;
+  day?: number;
 }) => {
   await prisma.uploadedVideo.create({
     data: {

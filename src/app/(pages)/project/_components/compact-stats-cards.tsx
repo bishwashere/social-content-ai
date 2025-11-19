@@ -1,19 +1,8 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGetAllProjects, useGetAllScheduledPosts } from "@/backend-apis/projects/hooks";
 import { useMemo } from "react";
-import { format, startOfWeek, endOfWeek, isWithinInterval, isToday } from "date-fns";
-import { 
-  TrendingUp, 
-  Calendar, 
-  Target, 
-  BarChart3, 
-  Clock, 
-  CheckCircle,
-  AlertCircle,
-  PlayCircle
-} from "lucide-react";
+import { startOfWeek, endOfWeek, isWithinInterval, isToday } from "date-fns";
 
 export function CompactStatsCards() {
   const projects = useGetAllProjects();
@@ -118,75 +107,41 @@ export function CompactStatsCards() {
   const statCards = [
     {
       title: "Posts Today",
-      value: stats.postsToday,
-      icon: TrendingUp,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      description: "Content posted today"
+      value: stats.postsToday
     },
     {
-      title: "Posts This Week",
-      value: stats.postsThisWeek,
-      icon: BarChart3,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      description: "Content posted this week"
+      title: "Posts(Week)",
+      value: stats.postsThisWeek
     },
     {
-      title: "Active Campaigns",
-      value: stats.activeCampaigns,
-      icon: Target,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      description: "Campaigns currently running"
+      title: "Campaigns",
+      value: stats.activeCampaigns
     },
     {
-      title: "Scheduled Posts",
-      value: stats.scheduledPostsCount,
-      icon: Calendar,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      description: "Total posts scheduled"
+      title: "Scheduled",
+      value: stats.scheduledPostsCount
     },
     {
-      title: "Upcoming (7 days)",
-      value: stats.upcomingScheduledPosts,
-      icon: Clock,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50",
-      description: "Posts scheduled this week"
+      title: "Upcoming",
+      value: stats.upcomingScheduledPosts
     },
     {
-      title: "Active Projects",
-      value: `${stats.activeProjects}/${stats.totalProjects}`,
-      icon: CheckCircle,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-      description: "Projects with recent activity"
+      title: "Projects",
+      value: `${stats.activeProjects}/${stats.totalProjects}`
     }
   ];
 
   return (
     <div className="flex flex-wrap justify-center gap-3">
       {statCards.map((card, index) => (
-        <Card key={index} className="hover:shadow-md transition-shadow border border-gray-200 min-h-[120px] w-[280px] sm:w-[200px] md:w-[220px] lg:w-[180px]">
-          <CardHeader className="flex flex-col items-center space-y-1 pb-2 px-3 pt-3">
-            <div className={`p-2 rounded-full ${card.bgColor} mb-1`}>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
-            </div>
-            <CardTitle className="text-xs font-medium text-gray-600 text-center leading-tight max-w-full break-words">
-              {card.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3">
-            <div className="text-lg font-bold text-gray-900 text-center mb-1">
-              {card.value}
-            </div>
-            <p className="text-xs text-gray-500 text-center leading-tight max-w-full break-words">
-              {card.description}
-            </p>
-          </CardContent>
-        </Card>
+        <div key={index} className="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-lg p-3 min-w-[90px]">
+          <div className="text-xs font-medium text-gray-600 mb-1 text-center">
+            {card.title}
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {card.value}
+          </div>
+        </div>
       ))}
     </div>
   );

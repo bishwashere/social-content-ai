@@ -115,7 +115,7 @@ export default function Home() {
       <div className="text-center">
         Welcome to NextPostAI!
         <br />
-        Select a project from the left to get started, or click ‘Add Project’ to
+        Select a project from the left to get started, or click &apos;Add Project&apos; to
         create a new one.
       </div>
 
@@ -123,6 +123,65 @@ export default function Home() {
       <div className="w-full max-w-6xl mx-auto mb-6 flex justify-center">
         <div className="w-full">
           <CompactStatsCards />
+        </div>
+      </div>
+
+      {/* Quick Video Maker Card */}
+      <div className="w-full max-w-4xl mx-auto">
+        <div 
+          onClick={() => router.push('/project/video-maker')}
+          className="group relative overflow-hidden rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 hover:shadow-xl transition-all duration-300 cursor-pointer"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-purple-300/40 transition-colors" />
+          <div className="relative p-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg group-hover:scale-110 transition-transform">
+                <svg 
+                  className="w-8 h-8 text-white" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" 
+                  />
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-700 transition-colors">
+                  Quick Video Maker
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Create engaging videos in 3 simple steps - no project setup required!
+                </p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all">
+              <span className="font-semibold text-sm">Try Now</span>
+              <svg 
+                className="w-4 h-4 group-hover:translate-x-1 transition-transform" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 5l7 7-7 7" 
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 

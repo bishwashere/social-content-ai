@@ -4,7 +4,7 @@ export type GenerateVideoProps = {
   video: File | string;
   text: string;
   musicId: string | null | undefined;
-  projectId: string;
-  campaignPlannerId: string;
-  day: number;
+  projectId?: string;
+  campaignPlannerId?: string;
+  day?: number;
 };

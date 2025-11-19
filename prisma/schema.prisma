@@ -264,11 +264,11 @@ model FirstViewTooltip {
 model UploadedVideo {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   userId            String   @db.ObjectId
-  projectId         String   @db.ObjectId
-  campaignPlannerId String   @db.ObjectId
+  projectId         String?  @db.ObjectId
+  campaignPlannerId String?  @db.ObjectId
   folderId          String
   text              String
-  day               Int
+  day               Int?
   status            String   @default("pending")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

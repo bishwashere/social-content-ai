@@ -10,6 +10,7 @@ import {
   Users,
   BarChart3,
   TrendingUp,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -161,6 +162,33 @@ export function ProjectSidebar() {
               {!sidebar.open && (
                 <TooltipContent side="right">
                   Analytics
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Video Maker Link */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  onClick={() => {
+                    if (window.innerWidth <= 768) {
+                      toggleSidebar()
+                    }
+                  }}
+                  href="/project/video-maker"
+                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 transition-colors ${
+                    !sidebar.open ? 'justify-center' : ''
+                  } ${pathname === '/project/video-maker' ? 'ring-2 ring-purple-400' : ''}`}
+                >
+                  <Video className="h-4 w-4 text-purple-600" />
+                  {sidebar.open && <span className="ml-2 text-purple-900 font-semibold">Video Maker</span>}
+                </Link>
+              </TooltipTrigger>
+              {!sidebar.open && (
+                <TooltipContent side="right">
+                  Video Maker
                 </TooltipContent>
               )}
             </Tooltip>
