@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Upload, SparklesIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -16,6 +16,10 @@ import { VideoCard } from "../../[id]/video/_components/video-card"
 import SelectVideoDialog from "../../[id]/video/_components/select-video-dialog"
 import { MediaSelectionDialog } from "../../[id]/video/_components/select-music-dialog"
 import VideoPreview from "../../[id]/video/_components/video-preview"
+import { VideoCreditWarningDialog } from "@/components/common/video-credit-warning-dialog"
+import { useSession } from "@/backend-apis/auth/hooks"
+import { useQuery } from "@tanstack/react-query"
+import { getFirstViewTooltip } from "@/server-actions/first-view-tooltip/actions"
 
 
 export default function QuickVideoMaker() {
@@ -25,13 +29,18 @@ export default function QuickVideoMaker() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null)
   const [selectedMusic, setSelectedMusic] = useState<string | null>(null)
+  const [showWarningDialog, setShowWarningDialog] = useState(false)
   const viralVideos = useQueryViralVideos()
   const generate = useGenerateVideo()
+  const { data: session } = useSession()
+
+  const { data: tooltipData } = useQuery({
+    queryKey: ["first-view-tooltip", session?.user?.id],
+    queryFn: () => getFirstViewTooltip(session?.user?.id || ""),
+    enabled: !!session?.user?.id,
+  })
 
   const handleGenerate = () => {
-
-    console.log("Generating video...", selectedVideo, hookText, uploadedVideo)
-
     if (!selectedVideo) {
       return toast.error("Please select a video!")
     }
@@ -40,23 +49,27 @@ export default function QuickVideoMaker() {
       return toast.error("Please enter a text!")
     }
 
-    console.log("Generating video...", uploadedVideo)
-
     if (!uploadedVideo) {
       return toast.error("Please upload a video!")
     }
 
-    console.log(uploadedVideo)
+    // Check if we should show the warning dialog
+    if (!tooltipData?.videoGeneration) {
+      setShowWarningDialog(true)
+    } else {
+      proceedWithGeneration()
+    }
+  }
 
+  const proceedWithGeneration = () => {
     generate.mutate({
       name: typeof uploadedVideo === "string" ? uploadedVideo.split("/").pop() || `${hookText}.mp4` : uploadedVideo.name || `${hookText}.mp4`,
-      viralVideoId: selectedVideo,
-      video: uploadedVideo,
+      viralVideoId: selectedVideo!,
+      video: uploadedVideo!,
       text: hookText,
       musicId: selectedMusic?.split("/").pop() || "",
       // No projectId, campaignPlannerId, or day - standalone video maker
     })
-
   }
 
 
@@ -224,6 +237,13 @@ export default function QuickVideoMaker() {
           Generate <SparklesIcon className="ml-2 h-4 w-4" />
         </Button>
       </div>
+
+      {/* Credit Warning Dialog */}
+      <VideoCreditWarningDialog
+        open={showWarningDialog}
+        onOpenChange={setShowWarningDialog}
+        onConfirm={proceedWithGeneration}
+      />
 
     </div >
   )

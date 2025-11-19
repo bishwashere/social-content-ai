@@ -43,9 +43,6 @@ export default function VideoSelectionPage() {
   }, [searchParams])
 
   const handleGenerate = () => {
-
-    console.log("Generating video...", selectedVideo, hookText, uploadedVideo)
-
     if (!selectedVideo) {
       return toast.error("Please select a video!")
     }
@@ -54,25 +51,29 @@ export default function VideoSelectionPage() {
       return toast.error("Please enter a text!")
     }
 
-    console.log("Generating video...", uploadedVideo)
-
     if (!uploadedVideo) {
       return toast.error("Please upload a video!")
     }
 
-    console.log(uploadedVideo)
+    // Check if we should show the warning dialog
+    if (!tooltipData?.videoGeneration) {
+      setShowWarningDialog(true)
+    } else {
+      proceedWithGeneration()
+    }
+  }
 
+  const proceedWithGeneration = () => {
     generate.mutate({
       name: typeof uploadedVideo === "string" ? uploadedVideo.split("/").pop() || `${hookText}.mp4` : uploadedVideo.name || `${hookText}.mp4`,
-      viralVideoId: selectedVideo,
-      video: uploadedVideo,
+      viralVideoId: selectedVideo!,
+      video: uploadedVideo!,
       text: hookText,
       musicId: selectedMusic?.split("/").pop() || "",
       projectId: id as string,
       campaignPlannerId: searchParams.get("campaignId") || "",
       day: Number(searchParams.get("day") || 0),
     })
-
   }
 
 
@@ -240,6 +241,13 @@ export default function VideoSelectionPage() {
           Generate <SparklesIcon className="ml-2 h-4 w-4" />
         </Button>
       </div>
+
+      {/* Credit Warning Dialog */}
+      <VideoCreditWarningDialog
+        open={showWarningDialog}
+        onOpenChange={setShowWarningDialog}
+        onConfirm={proceedWithGeneration}
+      />
 
     </div >
   )

@@ -70,6 +70,22 @@ export const saveVideoDataToDb = async ({
   campaignPlannerId?: string;
   day?: number;
 }) => {
+  // Check if user has enough credits
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const CREDITS_PER_VIDEO = 2;
+
+  if (user.remainingChatGenerations < CREDITS_PER_VIDEO) {
+    throw new Error(`Insufficient credits. You need ${CREDITS_PER_VIDEO} credits to generate a video.`);
+  }
+
+  // Create video record
   await prisma.uploadedVideo.create({
     data: {
       folderId,
@@ -78,6 +94,16 @@ export const saveVideoDataToDb = async ({
       projectId,
       campaignPlannerId,
       day,
+    },
+  });
+
+  // Deduct credits
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      remainingChatGenerations: {
+        decrement: CREDITS_PER_VIDEO,
+      },
     },
   });
 
