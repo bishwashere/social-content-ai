@@ -62,10 +62,12 @@ export default function QuickVideoMaker() {
   }
 
   const proceedWithGeneration = () => {
+    if (!uploadedVideo || !selectedVideo) return
+
     generate.mutate({
       name: typeof uploadedVideo === "string" ? uploadedVideo.split("/").pop() || `${hookText}.mp4` : uploadedVideo.name || `${hookText}.mp4`,
-      viralVideoId: selectedVideo!,
-      video: uploadedVideo!,
+      viralVideoId: selectedVideo,
+      video: uploadedVideo,
       text: hookText,
       musicId: selectedMusic?.split("/").pop() || "",
       // No projectId, campaignPlannerId, or day - standalone video maker

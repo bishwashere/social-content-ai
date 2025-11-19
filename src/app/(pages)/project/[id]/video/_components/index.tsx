@@ -17,6 +17,10 @@ import SelectVideoDialog from "./select-video-dialog"
 import { MediaSelectionDialog } from "./select-music-dialog"
 import VideoPreview from "./video-preview"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { VideoCreditWarningDialog } from "@/components/common/video-credit-warning-dialog"
+import { useSession } from "@/backend-apis/auth/hooks"
+import { useQuery } from "@tanstack/react-query"
+import { getFirstViewTooltip } from "@/server-actions/first-view-tooltip/actions"
 
 
 export default function VideoSelectionPage() {
@@ -26,11 +30,19 @@ export default function VideoSelectionPage() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null)
   const [selectedMusic, setSelectedMusic] = useState<string | null>(null)
+  const [showWarningDialog, setShowWarningDialog] = useState(false)
   const viralVideos = useQueryViralVideos()
   const generate = useGenerateVideo()
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter()
+  const { data: session } = useSession()
+
+  const { data: tooltipData } = useQuery({
+    queryKey: ["first-view-tooltip", session?.user?.id],
+    queryFn: () => getFirstViewTooltip(session?.user?.id || ""),
+    enabled: !!session?.user?.id,
+  })
 
   useEffect(() => {
     const day = searchParams.get("day")
@@ -64,10 +76,12 @@ export default function VideoSelectionPage() {
   }
 
   const proceedWithGeneration = () => {
+    if (!uploadedVideo || !selectedVideo) return
+
     generate.mutate({
       name: typeof uploadedVideo === "string" ? uploadedVideo.split("/").pop() || `${hookText}.mp4` : uploadedVideo.name || `${hookText}.mp4`,
-      viralVideoId: selectedVideo!,
-      video: uploadedVideo!,
+      viralVideoId: selectedVideo,
+      video: uploadedVideo,
       text: hookText,
       musicId: selectedMusic?.split("/").pop() || "",
       projectId: id as string,
