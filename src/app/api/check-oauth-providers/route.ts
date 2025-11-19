@@ -24,20 +24,26 @@ export async function GET(req: NextRequest) {
       },
       select: {
         platform: true,
+        projectToOAuthProviders: true,
       },
     });
 
-    // Get unique platforms
+    // Filter providers that are mapped to at least one project
+    const mappedProviders = providers.filter(
+      (p) => p.projectToOAuthProviders.length > 0
+    );
+
+    // Get unique platforms that are mapped to projects
     const uniquePlatforms = Array.from(
-      new Set(providers.map((p) => p.platform))
+      new Set(mappedProviders.map((p) => p.platform))
     ).map((platform) => ({ platform }));
 
     return sendNextResponse({
       status: 200,
       message: "OAuth providers checked successfully",
       data: {
-        hasProviders: providers.length > 0,
-        count: providers.length,
+        hasProviders: mappedProviders.length > 0,
+        count: mappedProviders.length,
         providers: uniquePlatforms,
       },
     });
