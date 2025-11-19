@@ -79,10 +79,13 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("Facebook account connected to project!")
       
+      // Immediately hide Facebook dropdown
+      setFacebookProviders([])
+      
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
       
-      // Recheck available providers - this will hide Facebook dropdown
+      // Recheck available providers to update state
       await checkAvailableProviders()
     } catch (error) {
       console.error("Error mapping Facebook provider:", error)
@@ -100,10 +103,13 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("LinkedIn account connected to project!")
       
+      // Immediately hide LinkedIn dropdown
+      setLinkedinProviders([])
+      
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
       
-      // Recheck available providers - this will hide LinkedIn dropdown
+      // Recheck available providers to update state
       await checkAvailableProviders()
     } catch (error) {
       console.error("Error mapping LinkedIn provider:", error)
