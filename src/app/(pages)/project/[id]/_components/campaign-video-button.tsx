@@ -36,7 +36,13 @@ const CampaignVideoButton = ({
     )
   }
 
-  if (data === "pending") return null;
+  if (data === "pending") {
+    return (
+      <div className={cn(buttonVariants({ variant: "outline", size: "sm" }), "border-orange-400 bg-orange-50 cursor-not-allowed")}>
+        <Loader2 className='size-4 animate-spin text-orange-600' />
+      </div>
+    )
+  }
 
   return (
     <Link
