@@ -13,23 +13,58 @@ import { useQuery } from "@tanstack/react-query"
 import { signIn } from "next-auth/react"
 import Image from "next/image"
 
+type ConnectedProvider = {
+  platform: string
+}
+
 export function ConnectAccountsButton() {
   const { data: session } = useSession()
   
-  const { data: hasConnectedAccounts, isLoading } = useQuery({
+  const { data: accountsData, isLoading } = useQuery({
     queryKey: ["connected-accounts", session?.user?.id],
     queryFn: async () => {
-      if (!session?.user?.id) return true // Hide if no session
+      if (!session?.user?.id) return { hasProviders: false, providers: [] }
       
       const response = await fetch(`/api/check-oauth-providers?userId=${session.user.id}`)
       const data = await response.json()
-      return data.hasProviders
+      return {
+        hasProviders: data.hasProviders,
+        providers: data.providers || []
+      }
     },
     enabled: !!session?.user?.id,
   })
 
-  // Hide button if user has connected accounts or still loading
-  if (isLoading || hasConnectedAccounts) {
+  // Show connected platform icons if user has connected accounts
+  if (accountsData?.hasProviders && accountsData.providers.length > 0) {
+    return (
+      <div className="flex items-center gap-2">
+        {accountsData.providers.map((provider: ConnectedProvider) => (
+          <div key={provider.platform} className="opacity-40">
+            {provider.platform === "facebook" && (
+              <Image 
+                src="/facebook.svg" 
+                alt="Facebook connected" 
+                width={20} 
+                height={20}
+              />
+            )}
+            {provider.platform === "linkedin" && (
+              <Image 
+                src="/linkedin.png" 
+                alt="LinkedIn connected" 
+                width={20} 
+                height={20}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Hide if still loading
+  if (isLoading) {
     return null
   }
 

@@ -22,6 +22,7 @@ import { CompactStatsCards } from "./_components/compact-stats-cards";
 import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
 import { OnboardingModal } from "./_components/onboarding-modal";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 export default function Home() {
   const router = useRouter();
@@ -112,6 +113,19 @@ export default function Home() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Autopost Alert */}
+      <div className="px-6 mb-2 max-w-4xl mx-auto -mt-6">
+        <Alert
+          className="cursor-pointer flex items-center gap-2 border-orange-500 px-2 py-2"
+        >
+          <div className="h-3">
+            <AlertTitle className="text-orange-400 text-xs">
+              Autopost Supported: Facebook, LinkedIn
+            </AlertTitle>
+          </div>
+        </Alert>
+      </div>
+
       <div className="text-center">
         Welcome to NextPostAI!
         <br />

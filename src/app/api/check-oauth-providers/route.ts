@@ -27,12 +27,18 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Get unique platforms
+    const uniquePlatforms = Array.from(
+      new Set(providers.map((p) => p.platform))
+    ).map((platform) => ({ platform }));
+
     return sendNextResponse({
       status: 200,
       message: "OAuth providers checked successfully",
       data: {
         hasProviders: providers.length > 0,
         count: providers.length,
+        providers: uniquePlatforms,
       },
     });
   } catch (error) {
