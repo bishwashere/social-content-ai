@@ -11,6 +11,7 @@ import {
   BarChart3,
   TrendingUp,
   Video,
+  PlaySquare,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -189,6 +190,33 @@ export function ProjectSidebar() {
               {!sidebar.open && (
                 <TooltipContent side="right">
                   Video Maker
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* My Videos Link */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  onClick={() => {
+                    if (window.innerWidth <= 768) {
+                      toggleSidebar()
+                    }
+                  }}
+                  href="/project/my-videos"
+                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    !sidebar.open ? 'justify-center' : ''
+                  } ${pathname === '/project/my-videos' ? 'bg-gray-200' : ''}`}
+                >
+                  <PlaySquare className="h-4 w-4" />
+                  {sidebar.open && <span className="ml-2">My Videos</span>}
+                </Link>
+              </TooltipTrigger>
+              {!sidebar.open && (
+                <TooltipContent side="right">
+                  My Videos
                 </TooltipContent>
               )}
             </Tooltip>

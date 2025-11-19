@@ -78,15 +78,24 @@ export const useGenerateVideo = () => {
         campaignPlannerId: data.campaignPlannerId,
         day: data.day,
       });
+
+      return { hasProjectContext: !!(data.projectId && data.campaignPlannerId) };
     },
 
     onError: (error) => {
       console.error("Upload error:", error);
       toast.error("Failed to upload video");
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Video added to queue for render!");
-      router.back();
+      
+      // If video has project context (from campaign planner), go back
+      // Otherwise (from Quick Video Maker), redirect to My Videos
+      if (result.hasProjectContext) {
+        router.back();
+      } else {
+        router.push("/project/my-videos");
+      }
     },
   });
 };
