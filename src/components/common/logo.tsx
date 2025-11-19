@@ -7,7 +7,7 @@ interface LogoProps {
 }
 
 export const Logo = ({ iconOnly = false }: LogoProps) => (
-  <Link href="/" className={`font-bold text-primary flex items-center ${iconOnly ? 'gap-0' : 'gap-3 text-xl'}`}>
+  <Link href="/project" className={`font-bold text-primary flex items-center ${iconOnly ? 'gap-0' : 'gap-3 text-xl'}`}>
     <Image src="/logo.png" width="100" height="100" alt="NextPostAi" className="size-6" />
     {!iconOnly && <span>NextPostAI</span>}
   </Link>
