@@ -23,50 +23,52 @@ export function ConnectAccountsButton() {
   const { data: accountsData, isLoading } = useQuery({
     queryKey: ["connected-accounts", session?.user?.id],
     queryFn: async () => {
-      if (!session?.user?.id) return { hasProviders: false, providers: [] }
+      if (!session?.user?.id) return { hasProviders: false, hasFacebook: false, hasLinkedin: false, providers: [] }
       
       const response = await fetch(`/api/check-oauth-providers?userId=${session.user.id}`)
       const data = await response.json()
       return {
         hasProviders: data.hasProviders,
+        hasFacebook: data.hasFacebook || false,
+        hasLinkedin: data.hasLinkedin || false,
         providers: data.providers || []
       }
     },
     enabled: !!session?.user?.id,
   })
 
-  // Show connected platform icons if user has connected accounts
-  if (accountsData?.hasProviders && accountsData.providers.length > 0) {
-    return (
-      <div className="flex items-center gap-2">
-        {accountsData.providers.map((provider: ConnectedProvider) => (
-          <div key={provider.platform} className="opacity-40">
-            {provider.platform === "facebook" && (
-              <Image 
-                src="/facebook.svg" 
-                alt="Facebook connected" 
-                width={20} 
-                height={20}
-              />
-            )}
-            {provider.platform === "linkedin" && (
-              <Image 
-                src="/linkedin.png" 
-                alt="LinkedIn connected" 
-                width={20} 
-                height={20}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   // Hide if still loading
   if (isLoading) {
     return null
   }
+
+  // Show icons if both Facebook AND LinkedIn are connected
+  if (accountsData?.hasFacebook && accountsData?.hasLinkedin) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="opacity-40">
+          <Image 
+            src="/facebook.svg" 
+            alt="Facebook connected" 
+            width={20} 
+            height={20}
+          />
+        </div>
+        <div className="opacity-40">
+          <Image 
+            src="/linkedin.png" 
+            alt="LinkedIn connected" 
+            width={20} 
+            height={20}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // If at least one is not connected, show the dropdown with available options
+  const hasFacebook = accountsData?.hasFacebook || false
+  const hasLinkedin = accountsData?.hasLinkedin || false
 
   const handleFacebookConnect = () => {
     signIn("facebook")
@@ -90,26 +92,30 @@ export function ConnectAccountsButton() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem onClick={handleFacebookConnect} className="cursor-pointer">
-          <Image 
-            src="/facebook.svg" 
-            alt="Facebook" 
-            width={16} 
-            height={16} 
-            className="mr-2" 
-          />
-          <span>Connect Facebook</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleLinkedInConnect} className="cursor-pointer">
-          <Image 
-            src="/linkedin.png" 
-            alt="LinkedIn" 
-            width={16} 
-            height={16} 
-            className="mr-2" 
-          />
-          <span>Connect LinkedIn</span>
-        </DropdownMenuItem>
+        {!hasFacebook && (
+          <DropdownMenuItem onClick={handleFacebookConnect} className="cursor-pointer">
+            <Image 
+              src="/facebook.svg" 
+              alt="Facebook" 
+              width={16} 
+              height={16} 
+              className="mr-2" 
+            />
+            <span>Connect Facebook</span>
+          </DropdownMenuItem>
+        )}
+        {!hasLinkedin && (
+          <DropdownMenuItem onClick={handleLinkedInConnect} className="cursor-pointer">
+            <Image 
+              src="/linkedin.png" 
+              alt="LinkedIn" 
+              width={16} 
+              height={16} 
+              className="mr-2" 
+            />
+            <span>Connect LinkedIn</span>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Check if user has any Facebook or LinkedIn providers
+    // Check if user has any Facebook or LinkedIn providers (connected to user account)
     const providers = await prisma.oauthProvider.findMany({
       where: {
         userId,
@@ -24,26 +24,26 @@ export async function GET(req: NextRequest) {
       },
       select: {
         platform: true,
-        projectToOAuthProviders: true,
       },
     });
 
-    // Filter providers that are mapped to at least one project
-    const mappedProviders = providers.filter(
-      (p) => p.projectToOAuthProviders.length > 0
-    );
-
-    // Get unique platforms that are mapped to projects
+    // Get unique platforms connected to user account
     const uniquePlatforms = Array.from(
-      new Set(mappedProviders.map((p) => p.platform))
+      new Set(providers.map((p) => p.platform))
     ).map((platform) => ({ platform }));
+
+    // Check which platforms are connected
+    const hasFacebook = uniquePlatforms.some(p => p.platform === "facebook");
+    const hasLinkedin = uniquePlatforms.some(p => p.platform === "linkedin");
 
     return sendNextResponse({
       status: 200,
       message: "OAuth providers checked successfully",
       data: {
-        hasProviders: mappedProviders.length > 0,
-        count: mappedProviders.length,
+        hasProviders: providers.length > 0,
+        hasFacebook,
+        hasLinkedin,
+        count: providers.length,
         providers: uniquePlatforms,
       },
     });
