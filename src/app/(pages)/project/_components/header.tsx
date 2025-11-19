@@ -34,6 +34,7 @@ import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/ho
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectEditModal } from "./project-edit-modal";
 import Image from "next/image";
+import { ConnectAccountsButton } from "@/components/common/connect-accounts-button";
 
 export function Header() {
   const { data } = useSession();
@@ -93,6 +94,7 @@ export function Header() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <ConnectAccountsButton />
           <Subscription />
           <button onClick={() => resetTooltip.mutate(data?.user.id || "")}>
             <FaRegQuestionCircle className="size-5" />
