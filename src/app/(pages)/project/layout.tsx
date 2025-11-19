@@ -39,7 +39,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
             >
               <div className="h-3">
                 <AlertTitle className="text-orange-400 text-xs ">
-                  Autopost Supported: Facebook, X, Threads, Reddit. Autopost Pending: Linkedin, Instagram
+                  Autopost Supported: Facebook, LinkedIn
                 </AlertTitle>
               </div>
             </Alert>
