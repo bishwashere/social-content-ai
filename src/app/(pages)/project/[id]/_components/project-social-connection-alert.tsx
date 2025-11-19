@@ -113,35 +113,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     }
   }
 
-  // Show connected icons if platforms are already connected
-  if (hasFacebookConnected || hasLinkedinConnected) {
-    return (
-      <div className="px-6 mb-4 max-w-4xl mx-auto flex justify-start gap-2">
-        {hasFacebookConnected && (
-          <div className="opacity-40">
-            <Image 
-              src="/facebook.svg" 
-              alt="Facebook connected" 
-              width={24} 
-              height={24}
-            />
-          </div>
-        )}
-        {hasLinkedinConnected && (
-          <div className="opacity-40">
-            <Image 
-              src="/linkedin.png" 
-              alt="LinkedIn connected" 
-              width={24} 
-              height={24}
-            />
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Show connection alert if there are unmapped providers
+  // Don't show anything if platforms are already connected or no unmapped providers
   if (!showAlert) return null
 
   return (
