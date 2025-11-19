@@ -10,6 +10,7 @@ import { mapProjectToOAuthProvider } from "@/server-actions/map-project-oauth-pr
 import { toast } from "sonner"
 import { LinkIcon } from "lucide-react"
 import Image from "next/image"
+import { useQueryClient } from "@tanstack/react-query"
 
 type AvailableProvider = {
   id: string
@@ -24,6 +25,7 @@ type Props = {
 
 export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const { data: session } = useSession()
+  const queryClient = useQueryClient()
   const [showAlert, setShowAlert] = useState(false)
   const [facebookProviders, setFacebookProviders] = useState<AvailableProvider[]>([])
   const [linkedinProviders, setLinkedinProviders] = useState<AvailableProvider[]>([])
@@ -77,6 +79,9 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("Facebook account connected to project!")
       
+      // Invalidate header's connected accounts cache
+      queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
+      
       // Recheck available providers - this will hide Facebook dropdown
       await checkAvailableProviders()
     } catch (error) {
@@ -94,6 +99,9 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     try {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("LinkedIn account connected to project!")
+      
+      // Invalidate header's connected accounts cache
+      queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
       
       // Recheck available providers - this will hide LinkedIn dropdown
       await checkAvailableProviders()
