@@ -19,6 +19,7 @@ import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";
 import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import ProjectAnalytics from "./_components/project-analytics";
+import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
 
 const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled", "analytics"] as const;
 
@@ -72,6 +73,7 @@ function ProjectPage() {
 
   return (
     <div className="flex-grow max-w-5xl mx-auto py-6 px-6 md:px-14 xl:px-20 space-y-6 -mt-5">
+      <ProjectSocialConnectionAlert projectId={id as string} />
       {projectPulse && <ProjectPulseMetrics projectPulse={projectPulse} />}
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
