@@ -34,6 +34,8 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const [isMappingLinkedin, setIsMappingLinkedin] = useState(false)
   const [hasFacebookConnected, setHasFacebookConnected] = useState(false)
   const [hasLinkedinConnected, setHasLinkedinConnected] = useState(false)
+  const [justConnectedFacebook, setJustConnectedFacebook] = useState(false)
+  const [justConnectedLinkedin, setJustConnectedLinkedin] = useState(false)
 
   // Check if user has dismissed this alert for this project
   const { data: tooltipData } = useQuery({
@@ -78,9 +80,13 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       setHasFacebookConnected(fbResult.isProjectMapped)
       setHasLinkedinConnected(liResult.isProjectMapped)
 
-      // Update provider lists
-      setFacebookProviders(fbAvailable)
-      setLinkedinProviders(liAvailable)
+      // Update provider lists - but don't override if we just connected
+      if (!justConnectedFacebook) {
+        setFacebookProviders(fbAvailable)
+      }
+      if (!justConnectedLinkedin) {
+        setLinkedinProviders(liAvailable)
+      }
 
       // Check if alert has been dismissed for this project
       const isDismissed = tooltipData?.dismissedProjectAlerts?.includes(projectId) || false
@@ -108,17 +114,16 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("Facebook account connected to project!")
       
-      // Immediately hide Facebook dropdown
+      // Set flag to prevent repopulation and immediately hide Facebook dropdown
+      setJustConnectedFacebook(true)
       setFacebookProviders([])
       
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
-      
-      // Recheck available providers to update state
-      await checkAvailableProviders()
     } catch (error) {
       console.error("Error mapping Facebook provider:", error)
       toast.error("Failed to connect Facebook account")
+      setJustConnectedFacebook(false)
     } finally {
       setIsMappingFacebook(false)
     }
@@ -132,17 +137,16 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("LinkedIn account connected to project!")
       
-      // Immediately hide LinkedIn dropdown
+      // Set flag to prevent repopulation and immediately hide LinkedIn dropdown
+      setJustConnectedLinkedin(true)
       setLinkedinProviders([])
       
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
-      
-      // Recheck available providers to update state
-      await checkAvailableProviders()
     } catch (error) {
       console.error("Error mapping LinkedIn provider:", error)
       toast.error("Failed to connect LinkedIn account")
+      setJustConnectedLinkedin(false)
     } finally {
       setIsMappingLinkedin(false)
     }
