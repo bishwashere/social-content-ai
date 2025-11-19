@@ -58,8 +58,9 @@ export async function checkProjectOAuthProvider(
       provider.projectToOAuthProviders.some(p => p.projectId === projectId)
     );
 
+    // Filter providers that are NOT mapped to THIS specific project
     const filteredProviders = providers.filter(
-      provider => provider.projectToOAuthProviders.length === 0
+      provider => !provider.projectToOAuthProviders.some(p => p.projectId === projectId)
     );
 
     return {

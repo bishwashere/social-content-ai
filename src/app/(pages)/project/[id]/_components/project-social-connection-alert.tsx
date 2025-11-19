@@ -9,6 +9,7 @@ import { checkProjectOAuthProvider } from "@/server-actions/check-project-oauth-
 import { mapProjectToOAuthProvider } from "@/server-actions/map-project-oauth-provider"
 import { toast } from "sonner"
 import { LinkIcon } from "lucide-react"
+import Image from "next/image"
 
 type AvailableProvider = {
   id: string
@@ -28,6 +29,8 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const [linkedinProviders, setLinkedinProviders] = useState<AvailableProvider[]>([])
   const [isMappingFacebook, setIsMappingFacebook] = useState(false)
   const [isMappingLinkedin, setIsMappingLinkedin] = useState(false)
+  const [hasFacebookConnected, setHasFacebookConnected] = useState(false)
+  const [hasLinkedinConnected, setHasLinkedinConnected] = useState(false)
 
   const checkAvailableProviders = useCallback(async () => {
     if (!session?.user?.id || !projectId) return
@@ -39,14 +42,21 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       // Check LinkedIn providers
       const liResult = await checkProjectOAuthProvider(projectId, session.user.id, "linkedin")
 
-      // Show alert if user has providers but none are mapped to this project
-      const hasFbAvailable = fbResult.hasProviderConnected && !fbResult.isProjectMapped && fbResult.availableProviders && fbResult.availableProviders.length > 0
-      const hasLiAvailable = liResult.hasProviderConnected && !liResult.isProjectMapped && liResult.availableProviders && liResult.availableProviders.length > 0
+      // Get available providers that are not mapped to this project
+      const fbAvailable = fbResult.availableProviders || []
+      const liAvailable = liResult.availableProviders || []
 
-      if (hasFbAvailable || hasLiAvailable) {
+      // Check if platforms are already connected to this project
+      setHasFacebookConnected(fbResult.isProjectMapped)
+      setHasLinkedinConnected(liResult.isProjectMapped)
+
+      // Update provider lists
+      setFacebookProviders(fbAvailable)
+      setLinkedinProviders(liAvailable)
+
+      // Show alert only if there are unmapped providers
+      if (fbAvailable.length > 0 || liAvailable.length > 0) {
         setShowAlert(true)
-        setFacebookProviders(fbResult.availableProviders || [])
-        setLinkedinProviders(liResult.availableProviders || [])
       } else {
         setShowAlert(false)
       }
@@ -95,6 +105,35 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     }
   }
 
+  // Show connected icons if platforms are already connected
+  if (hasFacebookConnected || hasLinkedinConnected) {
+    return (
+      <div className="px-6 mb-4 max-w-4xl mx-auto flex justify-start gap-2">
+        {hasFacebookConnected && (
+          <div className="opacity-40">
+            <Image 
+              src="/facebook.svg" 
+              alt="Facebook connected" 
+              width={24} 
+              height={24}
+            />
+          </div>
+        )}
+        {hasLinkedinConnected && (
+          <div className="opacity-40">
+            <Image 
+              src="/linkedin.png" 
+              alt="LinkedIn connected" 
+              width={24} 
+              height={24}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Show connection alert if there are unmapped providers
   if (!showAlert) return null
 
   return (
