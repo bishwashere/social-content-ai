@@ -28,14 +28,12 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const [showAlert, setShowAlert] = useState(false)
+  const [showFacebookDropdown, setShowFacebookDropdown] = useState(false)
+  const [showLinkedinDropdown, setShowLinkedinDropdown] = useState(false)
   const [facebookProviders, setFacebookProviders] = useState<AvailableProvider[]>([])
   const [linkedinProviders, setLinkedinProviders] = useState<AvailableProvider[]>([])
   const [isMappingFacebook, setIsMappingFacebook] = useState(false)
   const [isMappingLinkedin, setIsMappingLinkedin] = useState(false)
-  const [hasFacebookConnected, setHasFacebookConnected] = useState(false)
-  const [hasLinkedinConnected, setHasLinkedinConnected] = useState(false)
-  const [justConnectedFacebook, setJustConnectedFacebook] = useState(false)
-  const [justConnectedLinkedin, setJustConnectedLinkedin] = useState(false)
 
   // Check if user has dismissed this alert for this project
   const { data: tooltipData } = useQuery({
@@ -72,27 +70,20 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       // Check LinkedIn providers
       const liResult = await checkProjectOAuthProvider(projectId, session.user.id, "linkedin")
 
-      // Get available providers that are not mapped to this project
-      const fbAvailable = fbResult.availableProviders || []
-      const liAvailable = liResult.availableProviders || []
+      // Simple logic: If Facebook is mapped to this project, don't show Facebook dropdown
+      const showFacebook = !fbResult.isProjectMapped && (fbResult.availableProviders || []).length > 0
+      const showLinkedin = !liResult.isProjectMapped && (liResult.availableProviders || []).length > 0
 
-      // Check if platforms are already connected to this project
-      setHasFacebookConnected(fbResult.isProjectMapped)
-      setHasLinkedinConnected(liResult.isProjectMapped)
-
-      // Update provider lists - but don't override if we just connected
-      if (!justConnectedFacebook) {
-        setFacebookProviders(fbAvailable)
-      }
-      if (!justConnectedLinkedin) {
-        setLinkedinProviders(liAvailable)
-      }
+      setShowFacebookDropdown(showFacebook)
+      setShowLinkedinDropdown(showLinkedin)
+      setFacebookProviders(fbResult.availableProviders || [])
+      setLinkedinProviders(liResult.availableProviders || [])
 
       // Check if alert has been dismissed for this project
       const isDismissed = tooltipData?.dismissedProjectAlerts?.includes(projectId) || false
 
-      // Show alert only if there are unmapped providers AND not dismissed
-      if ((fbAvailable.length > 0 || liAvailable.length > 0) && !isDismissed) {
+      // Show alert only if at least one dropdown should show AND not dismissed
+      if ((showFacebook || showLinkedin) && !isDismissed) {
         setShowAlert(true)
       } else {
         setShowAlert(false)
@@ -100,7 +91,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     } catch (error) {
       console.error("Error checking available providers:", error)
     }
-  }, [projectId, session?.user?.id, tooltipData?.dismissedProjectAlerts])
+  }, [projectId, session?.user?.id, tooltipData])
 
   useEffect(() => {
     checkAvailableProviders()
@@ -114,16 +105,17 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("Facebook account connected to project!")
       
-      // Set flag to prevent repopulation and immediately hide Facebook dropdown
-      setJustConnectedFacebook(true)
-      setFacebookProviders([])
+      // Immediately hide Facebook dropdown
+      setShowFacebookDropdown(false)
       
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
+      
+      // Recheck to update state
+      await checkAvailableProviders()
     } catch (error) {
       console.error("Error mapping Facebook provider:", error)
       toast.error("Failed to connect Facebook account")
-      setJustConnectedFacebook(false)
     } finally {
       setIsMappingFacebook(false)
     }
@@ -137,16 +129,17 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
       toast.success("LinkedIn account connected to project!")
       
-      // Set flag to prevent repopulation and immediately hide LinkedIn dropdown
-      setJustConnectedLinkedin(true)
-      setLinkedinProviders([])
+      // Immediately hide LinkedIn dropdown
+      setShowLinkedinDropdown(false)
       
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
+      
+      // Recheck to update state
+      await checkAvailableProviders()
     } catch (error) {
       console.error("Error mapping LinkedIn provider:", error)
       toast.error("Failed to connect LinkedIn account")
-      setJustConnectedLinkedin(false)
     } finally {
       setIsMappingLinkedin(false)
     }
@@ -168,7 +161,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
         </Button>
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3 pr-8">
-            {facebookProviders.length > 0 && (
+            {showFacebookDropdown && facebookProviders.length > 0 && (
               <div className="flex-1">
                 <Select 
                   value={isMappingFacebook ? "connecting" : ""} 
@@ -190,7 +183,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
               </div>
             )}
 
-            {linkedinProviders.length > 0 && (
+            {showLinkedinDropdown && linkedinProviders.length > 0 && (
               <div className="flex-1">
                 <Select 
                   value={isMappingLinkedin ? "connecting" : ""} 
