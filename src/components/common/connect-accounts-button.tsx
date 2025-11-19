@@ -25,7 +25,9 @@ export function ConnectAccountsButton() {
     queryFn: async () => {
       if (!session?.user?.id) return { hasProviders: false, hasFacebook: false, hasLinkedin: false, providers: [] }
       
-      const response = await fetch(`/api/check-oauth-providers?userId=${session.user.id}`)
+      const response = await fetch(`/api/check-oauth-providers?userId=${session.user.id}`, {
+        cache: 'no-store',
+      })
       const data = await response.json()
       return {
         hasProviders: data.hasProviders,
@@ -35,6 +37,9 @@ export function ConnectAccountsButton() {
       }
     },
     enabled: !!session?.user?.id,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   })
 
   // Hide if still loading
