@@ -28,6 +28,7 @@ model User {
   firstViewTooltips FirstViewTooltip[]
   uploadedVideos    UploadedVideo[]
   projectFolders    ProjectFolder[]
+  referralSignup    ReferralSignup?
 
   @@map("users")
 }
@@ -398,4 +399,45 @@ model ProjectFolderItem {
 
   @@unique([folderId, projectId])
   @@map("project-folder-items")
+}
+
+model ReferralPartner {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String
+  username  String   @unique
+  password  String   // Hashed password
+  code      String   @unique // Unique referral code for URL
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clicks  ReferralClick[]
+  signups ReferralSignup[]
+
+  @@map("referral-partners")
+}
+
+model ReferralClick {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  referralPartnerId String   @db.ObjectId
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime @default(now())
+
+  referralPartner ReferralPartner @relation(fields: [referralPartnerId], references: [id], onDelete: Cascade)
+
+  @@map("referral-clicks")
+}
+
+model ReferralSignup {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  referralPartnerId String   @db.ObjectId
+  userId            String   @db.ObjectId
+  createdAt         DateTime @default(now())
+
+  referralPartner ReferralPartner @relation(fields: [referralPartnerId], references: [id], onDelete: Cascade)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId]) // A user can only sign up once through a referral
+  @@map("referral-signups")
 }

@@ -13,7 +13,8 @@ const isPublic = (path: string) => {
     path === "/" ||
     path.startsWith("/blogs") ||
     path.startsWith("/get") ||
-    path.startsWith("/privacy")
+    path.startsWith("/privacy") ||
+    path.startsWith("/referral")
   );
 };
 
@@ -49,14 +50,14 @@ const SessionProvider = ({ children }: Props) => {
   if (isPublic(path)) return children;
 
   if (isLoading) {
-    // Allow public access to landing page and blogs
-    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return children;
+    // Allow public access to landing page, blogs, and referral pages
+    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get") || path.startsWith("/referral")) return children;
     return <Loading className="h-screen" />;
   }
 
   if (isError) {
-    // Allow public access to landing page and blogs
-    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get")) return children;
+    // Allow public access to landing page, blogs, and referral pages
+    if (path === "/" || path.startsWith("/blogs") || path.startsWith("/get") || path.startsWith("/referral")) return children;
     // Show loading while redirecting to prevent render errors
     return <Loading className="h-screen" />;
   }

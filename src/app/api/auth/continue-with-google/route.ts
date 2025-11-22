@@ -64,6 +64,39 @@ export const POST = applyMiddleware(
 
     if (isNewUser) {
       console.log(`New user signup: ${savedUser.email}`);
+      
+      // Track referral signup if referral username exists
+      try {
+        const { cookies } = await import("next/headers");
+        const cookieStore = cookies();
+        const referralUsername = cookieStore.get("referral_username")?.value;
+        
+        if (referralUsername) {
+          const partner = await prisma.referralPartner.findUnique({
+            where: { username: referralUsername },
+          });
+          
+          if (partner) {
+            // Check if user already signed up through a referral
+            const existingSignup = await prisma.referralSignup.findUnique({
+              where: { userId: savedUser.id },
+            });
+            
+            if (!existingSignup) {
+              await prisma.referralSignup.create({
+                data: {
+                  referralPartnerId: partner.id,
+                  userId: savedUser.id,
+                },
+              });
+              console.log(`✅ Referral signup tracked for partner: ${partner.name}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error tracking referral signup:", error);
+      }
+      
       try {
         const res = await axios.post(
           process.env.TRAXN_WORKFLOW_SIGNUP_INBOUND_WEBHOOK_URL as string,
