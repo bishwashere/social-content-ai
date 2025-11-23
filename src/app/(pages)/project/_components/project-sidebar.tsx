@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Video,
   PlaySquare,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -168,6 +169,38 @@ export function ProjectSidebar() {
             </Tooltip>
           </TooltipProvider>
 
+          {/* Templates Link */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  onClick={() => {
+                    if (window.innerWidth <= 768) {
+                      toggleSidebar()
+                    }
+                  }}
+                  href="/project/templates"
+                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    !sidebar.open ? 'justify-center' : ''
+                  } ${pathname === '/project/templates' || pathname?.startsWith('/project/templates/') ? 'bg-gray-200' : ''}`}
+                >
+                  <FileText className="h-4 w-4" />
+                  {sidebar.open && (
+                    <span className="ml-2 flex flex-col">
+                      <span>Templates</span>
+                      <span className="text-xs text-gray-500">(under development)</span>
+                    </span>
+                  )}
+                </Link>
+              </TooltipTrigger>
+              {!sidebar.open && (
+                <TooltipContent side="right">
+                  Templates (under development)
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Video Maker Link */}
           <TooltipProvider>
             <Tooltip>
@@ -221,6 +254,7 @@ export function ProjectSidebar() {
               )}
             </Tooltip>
           </TooltipProvider>
+
           {/* Project Folders */}
           <div className="mt-6">
             {sidebar.open && (

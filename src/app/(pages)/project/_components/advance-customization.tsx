@@ -14,8 +14,13 @@ import { randomizeOptions } from "../projectPageUtils/randomizeOptions";
 import { copyToClipboard } from "../projectPageUtils/clipboard";
 import { PLATFORMS } from "@/lib/prompt";
 import { Switch } from "@/components/ui/switch";
+import { Projects as Project } from "@prisma/client";
 
-export default function AdvanceCustomization() {
+interface AdvanceCustomizationProps {
+  project?: Project;
+}
+
+export default function AdvanceCustomization({ project: initialProject }: AdvanceCustomizationProps = {} as AdvanceCustomizationProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(true);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -28,7 +33,7 @@ export default function AdvanceCustomization() {
   const [theme, setTheme] = useState("business");
   const [output, setOutput] = useState<Record<string, string>>({});
   const [selectedPlatform, setSelectedPlatform] = useState("facebook");
-  const [selectedProject, setSelectedProject] = useState<string>("BLANK");
+  const [selectedProject, setSelectedProject] = useState<string>(initialProject?.id || "BLANK");
   const [checked, setChecked] = useState(true);
 
   const chat = useGenerateProjectContent();
@@ -65,8 +70,17 @@ export default function AdvanceCustomization() {
     }
   };
 
-  // set project id that was remembered last time
+  // set project id that was remembered last time (only if no initial project provided)
   useEffect(() => {
+    if (initialProject) {
+      // If project is provided, use it and set description
+      setSelectedProject(initialProject.id);
+      if (initialProject.description) {
+        setDescription(initialProject.description);
+      }
+      return;
+    }
+    
     if (projects.isLoading) return;
     if (projects.data) {
       const savedProjectId = localStorage.getItem("LastHomepageProjectSelect");
@@ -77,7 +91,7 @@ export default function AdvanceCustomization() {
       }
       setSelectedProject("BLANK");
     }
-  }, [projects.isLoading, projects.data])
+  }, [projects.isLoading, projects.data, initialProject])
 
   const onProjectSelectChange = (value: string) => {
     chat.reset();

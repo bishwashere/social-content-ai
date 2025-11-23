@@ -11,7 +11,8 @@
     "postinstall": "prisma generate",
     "db:gen": "prisma generate",
     "db:push": "prisma db push",
-    "test:facebook": "npx tsx scripts/test-facebook-api.ts"
+    "test:facebook": "npx tsx scripts/test-facebook-api.ts",
+    "seed:templates": "npx tsx scripts/seed-templates.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

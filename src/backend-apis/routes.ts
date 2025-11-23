@@ -29,6 +29,10 @@ class ApiRoutes {
   };
 
   WALL = Object.assign(() => "/wall", {});
+
+  TEMPLATES = Object.assign(() => "/api/templates", {
+    BY_ID: (id: string) => `/api/templates/${id}`,
+  });
 }
 
 export const apiRoutes = new ApiRoutes();

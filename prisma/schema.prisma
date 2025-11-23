@@ -441,3 +441,29 @@ model ReferralSignup {
   @@unique([userId]) // A user can only sign up once through a referral
   @@map("referral-signups")
 }
+
+enum TemplateCategory {
+  ALL
+  TIP
+  CASE_STUDY
+  STORY
+  HOW_TO
+  QUESTION
+  OPINION
+  LIST
+  BEHIND_THE_SCENES
+}
+
+model Template {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  category    TemplateCategory
+  content     String // Template content with {{placeholders}}
+  icon        String? // Icon name or identifier
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("templates")
+}

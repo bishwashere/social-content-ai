@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -20,6 +20,7 @@ import { ScheduledPosts } from "./_components/scheduled-posts";
 import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import ProjectAnalytics from "./_components/project-analytics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
+import AdvanceCustomization from "../_components/advance-customization";
 
 const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled", "analytics"] as const;
 
@@ -27,6 +28,7 @@ function ProjectPage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [contentMode, setContentMode] = useState<'normal' | 'advanced'>('normal');
 
   const projects = useGetAllProjects();
   const project = useMemo(
@@ -98,7 +100,18 @@ function ProjectPage() {
         </TabsList>
 
         <TabsContent value="generate">
-          <QuickGenerate project={project} />
+          {contentMode === "normal" ? (
+            <QuickGenerate project={project} />
+          ) : (
+            <AdvanceCustomization project={project} />
+          )}
+          <div className="w-full mt-4 flex items-center justify-center">
+            {contentMode === "normal" ? (
+              <p className="text-xs font-medium">Need Advanced Customizations? <button className="text-blue-500" onClick={() => setContentMode("advanced")}>Click Here</button></p>
+            ) : (
+              <p className="text-xs font-medium">Want Quick Generate? <button className="text-blue-500" onClick={() => setContentMode("normal")}>Click Here</button></p>
+            )}
+          </div>
         </TabsContent>
         <TabsContent value="campaign">
           <CampaignPlannerPage project={project} />
