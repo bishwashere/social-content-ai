@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Template } from "@prisma/client";
+import { Template } from "@/backend-apis/templates/index";
 import { useState } from "react";
 import { TemplateDetailDialog } from "./template-detail-dialog";
 
@@ -20,8 +20,8 @@ export function TemplateCard({ template }: TemplateCardProps) {
       >
         <CardHeader className="p-6">
           <div className="flex items-start gap-4 mb-3">
-            {template.emoji && (
-              <div className="text-4xl flex-shrink-0">{template.emoji}</div>
+            {template.icon && (
+              <div className="text-4xl flex-shrink-0">{template.icon}</div>
             )}
             <div className="flex-1">
               <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors text-xl mb-2">

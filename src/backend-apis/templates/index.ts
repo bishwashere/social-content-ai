@@ -49,7 +49,7 @@ class TemplateService {
 
     if (err) {
       console.error('[TemplateService] Error fetching templates:', err.response?.data || err.message);
-      throw new Error(err.response?.data?.message || err.response?.data?.error || err.message);
+      throw new Error(err.response?.data?.message || err.message);
     }
 
     console.log('[TemplateService] Templates response:', res?.data);
