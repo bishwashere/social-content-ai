@@ -461,6 +461,8 @@ model Template {
   category    TemplateCategory
   content     String // Template content with {{placeholders}}
   icon        String? // Icon name or identifier
+  source      String?
+  sourcePostId  String?
 
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt

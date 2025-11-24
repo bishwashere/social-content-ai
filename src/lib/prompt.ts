@@ -173,7 +173,8 @@ class Prompt {
     extraInformation?: {
       reddit?: {
         popularPost?: string;
-      };
+      },
+      template?: string;
     };
   }): Promise<string> {
     console.log("extraInformation", extraInformation);
@@ -188,11 +189,6 @@ class Prompt {
       userPrompt ? ` Also ${userPrompt}` : ""
     }`;
 
-    console.log(
-      `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
-      finalfinalPrompt
-    );
-
     if (
       platform === AVAILABLE_PLATFORMS.REDDIT &&
       extraInformation?.reddit?.popularPost
@@ -200,6 +196,19 @@ class Prompt {
       console.log("Adding popular post to prompt for reddit");
       finalfinalPrompt += `[CRITICAL] Write this post in similar style as this post tasking as reference [POST]:  ${extraInformation?.reddit?.popularPost}`;
     }
+
+    if (
+      platform === AVAILABLE_PLATFORMS.LINKEDIN &&
+      extraInformation?.template
+    ) {
+      console.log("Adding template for linkedin");
+      finalfinalPrompt += `[CRITICAL] Write this post according to the given template:  ${extraInformation?.template}`;
+    }
+
+    console.log(
+      `\nPLATFORM SPECIFIC PROMPT FOR [${platform}] : \n`,
+      finalfinalPrompt
+    );
 
     return finalfinalPrompt;
   }

@@ -41,6 +41,7 @@ export type GenerateProjectContentProps = ProjectValidatorType["createChat"] & {
     reddit?: {
       popularPost?: string;
     };
+    template?: string;
   };
 };
 

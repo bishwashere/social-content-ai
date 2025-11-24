@@ -119,32 +119,32 @@ export const getCampaignPlanner = async (projectId: string) => {
   });
 
   if (planners)
-  return {
-    chatsGroupedByCampaign: planners
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        chats: p.chats.sort((a, b) => a.day - b.day), // day 1, 2, 3
-        goal: p.goal,
-        targetAudience: p.targetAudience,
-        date: p.updatedAt,
-        startDate: p.startDate ? new Date(p.startDate) : null, // normalize
-        projectId: p.projectId.toString(),
-        platforms: p.platforms,
-        autoPostEnabled: p.autoPostEnabled,
-        autoPostTime: p.autoPostTime,
-        autoPostPlatforms: p.autoPostPlatforms || [],
-      }))
-      .sort((a, b) => {
-        if (!a.startDate && b.startDate) return -1;
-        if (a.startDate && !b.startDate) return 1;
-        if (!a.startDate && !b.startDate) return 0;
+    return {
+      chatsGroupedByCampaign: planners
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          chats: p.chats.sort((a, b) => a.day - b.day), // day 1, 2, 3
+          goal: p.goal,
+          targetAudience: p.targetAudience,
+          date: p.updatedAt,
+          startDate: p.startDate ? new Date(p.startDate) : null, // normalize
+          projectId: p.projectId.toString(),
+          platforms: p.platforms,
+          autoPostEnabled: p.autoPostEnabled,
+          autoPostTime: p.autoPostTime,
+          autoPostPlatforms: p.autoPostPlatforms || [],
+        }))
+        .sort((a, b) => {
+          if (!a.startDate && b.startDate) return -1;
+          if (a.startDate && !b.startDate) return 1;
+          if (!a.startDate && !b.startDate) return 0;
 
-        // both valid dates
-        // return a.startDate!.getTime() - b.startDate!.getTime(); // ascending
-        return b.startDate!.getTime() - a.startDate!.getTime() // descending
-      }),
-  };
+          // both valid dates
+          // return a.startDate!.getTime() - b.startDate!.getTime(); // ascending
+          return b.startDate!.getTime() - a.startDate!.getTime() // descending
+        }),
+    };
 
 };
 
@@ -254,6 +254,13 @@ export const generateCampaignChat = async (props: {
     }
   }
   console.log("redditPopularPost", redditPopularPost);
+
+  const templateLength = await prisma.template.count();
+  const randomIndex = Math.floor(Math.random() * templateLength);
+  const randomTemplate = await prisma.template.findFirst({
+    skip: randomIndex,
+  });
+
   // Get selected platforms for this campaign
   const platforms = projectCampaign.platforms || [
     "x",
@@ -277,6 +284,14 @@ export const generateCampaignChat = async (props: {
           reddit: {
             popularPost: redditPopularPost,
           },
+          template: randomTemplate?.content
+        },
+      }
+      : {}),
+      ...(randomTemplate
+      ? {
+        extraInformation: {
+          template: randomTemplate?.content
         },
       }
       : {}),
@@ -308,7 +323,7 @@ export const generateCampaignChat = async (props: {
     data: {
       contents: chatFromAI,
       status: "GENERATED",
-      subreddit: subreddit,
+      // subreddit: subreddit,
       referencePostContent: redditPopularPost?.slice(0, 50) || "",
     },
   });
