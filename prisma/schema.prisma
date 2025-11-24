@@ -452,6 +452,7 @@ enum TemplateCategory {
   OPINION
   LIST
   BEHIND_THE_SCENES
+  HUMOR
 }
 
 model Template {
@@ -464,8 +465,8 @@ model Template {
   source      String?
   sourcePostId  String?
 
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime?        @default(now())
+  updatedAt   DateTime?        @updatedAt
 
   @@map("templates")
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useGetTemplates } from "@/backend-apis/templates/hooks";
+import { useState, useMemo } from "react";
+import { useGetTemplates, useGetTemplateCategories } from "@/backend-apis/templates/hooks";
 import { TemplateCategory } from "@prisma/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Info, FileText, Lightbulb, BookOpen, Book, HelpCircle, MessageSquare, List, Camera } from "lucide-react";
+import { Info, FileText } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,31 +15,40 @@ import {
 import { TemplateDetailDialog } from "@/components/template-detail-dialog";
 import { Template } from "@/backend-apis/templates/index";
 
-const CATEGORIES = [
-  { value: "ALL", label: "All", icon: FileText },
-  { value: "TIP", label: "Tip", icon: Lightbulb },
-  { value: "CASE_STUDY", label: "Case Study", icon: BookOpen },
-  { value: "STORY", label: "Story", icon: Book },
-  { value: "HOW_TO", label: "How-to", icon: HelpCircle },
-  { value: "QUESTION", label: "Question", icon: MessageSquare },
-  { value: "OPINION", label: "Opinion", icon: MessageSquare },
-  { value: "LIST", label: "List", icon: List },
-  { value: "BEHIND_THE_SCENES", label: "Behind the Scenes", icon: Camera },
-] as const;
+// Helper function to format category name (e.g., "CASE_STUDY" -> "Case Study")
+const formatCategoryName = (category: string): string => {
+  return category
+    .split("_")
+    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(" ");
+};
 
 const getCategoryIcon = (category: string) => {
-  const cat = CATEGORIES.find(c => c.value === category);
-  return cat?.icon || FileText;
+  return FileText; // Default icon for all categories
 };
 
 export default function TemplatesPage() {
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory>("ALL");
   const { data: templates, isLoading, error } = useGetTemplates(selectedCategory);
+  const { data: categories, isLoading: categoriesLoading } = useGetTemplateCategories();
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const visibleCategories = CATEGORIES.slice(0, 8);
-  const moreCategories = CATEGORIES.slice(8);
+  // Build categories array with "ALL" first, then categories from DB
+  const categoriesList = useMemo(() => {
+    if (!categories) return [{ value: "ALL", label: "All", icon: FileText }];
+    return [
+      { value: "ALL", label: "All", icon: FileText },
+      ...categories.map(cat => ({
+        value: cat,
+        label: formatCategoryName(cat),
+        icon: FileText,
+      })),
+    ];
+  }, [categories]);
+
+  const visibleCategories = categoriesList.slice(0, 8);
+  const moreCategories = categoriesList.slice(8);
 
   const handleTemplateClick = (template: Template) => {
     setSelectedTemplate(template);

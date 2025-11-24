@@ -9,6 +9,13 @@ export function useGetTemplates(category?: TemplateCategory) {
   });
 }
 
+export function useGetTemplateCategories() {
+  return useQuery<TemplateCategory[]>({
+    queryKey: ["template-categories"],
+    queryFn: () => templateService.getCategories(),
+  });
+}
+
 export function useGetTemplate(id: string) {
   return useQuery<Template>({
     queryKey: ["template", id],

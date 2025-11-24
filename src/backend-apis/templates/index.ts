@@ -10,8 +10,8 @@ export interface Template {
   content: string;
   category: TemplateCategory;
   icon?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface CreateTemplateProps {
@@ -32,6 +32,26 @@ export interface UpdateTemplateProps {
 }
 
 class TemplateService {
+  /**
+   * Get unique categories from templates
+   */
+  async getCategories() {
+    const [err, res] = await tryCatchAsync<
+      ApiError,
+      ApiResponse<TemplateCategory[]>
+    >(async () => {
+      const response = await api.get("/templates?getCategories=true");
+      return response;
+    });
+
+    if (err) {
+      console.error('[TemplateService] Error fetching categories:', err.response?.data || err.message);
+      throw new Error(err.response?.data?.message || err.message);
+    }
+
+    return res.data.data;
+  }
+
   /**
    * Get all templates, optionally filtered by category
    */
