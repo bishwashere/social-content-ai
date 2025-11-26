@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
 import FacebookProvider from "next-auth/providers/facebook";
+import TiktokProvider from "next-auth/providers/tiktok";
 // import LinkedInProvider from "next-auth/providers/linkedin";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
@@ -14,6 +15,7 @@ import { Fb } from "./3rd-providers/fb";
 import { Twitter } from "./3rd-providers/twitter";
 import { Linkedin } from "./3rd-providers/linkedin";
 import { authenticateWithThreads } from "./auth/threads";
+import { TikTok } from "./3rd-providers/tiktok";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -58,6 +60,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
+    TiktokProvider({
+      authorization: {
+        params: {
+          scope: "user.info.basic video.publishvideo.upload user.info.stats video.list",
+        },
+      },
+    })
   ],
   pages: {
     error: "/error/auth",
@@ -199,6 +208,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 pageName: profileData.username,
                 pageProfilePhoto: profileData.profile_image_url,
                 isPersonal: true, // twitter is always personal
+              });
+
+              break;
+
+              case "tiktok":
+              const tiktok = new TikTok({
+                accessToken: account.access_token!,
+                refreshToken: account.refresh_token!,
+                expiresAt: account.expires_at!,
+              });
+
+              const tiktokUser = await tiktok.getUserInfo();
+
+              if (!tiktokUser) {
+                return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
+              }
+
+              authProviders.push({
+                userId: googleUser.id,
+                platform: "tiktok",
+                pageId: tiktokUser.open_id,
+                accessToken: account.access_token,
+                refreshToken: account.refresh_token!,
+                expiresAt: account.expires_at!,
+                pageName: tiktokUser.username || "",
+                pageProfilePhoto: tiktokUser.avatar_url,
+                isPersonal: true, // tiktok is always personal
               });
 
               break;
