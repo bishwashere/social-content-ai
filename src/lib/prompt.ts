@@ -7,6 +7,7 @@ export const PLATFORM_CHARACTER_LIMITS = {
   linkedin: 500,
   reddit: 1500,
   threads: 250,
+  tiktok: 0,
 } as const;
 
 export const PLATFORM_CUSTOM_PROMPTS = {
@@ -41,6 +42,7 @@ export const AVAILABLE_PLATFORMS = {
   LINKEDIN: "linkedin",
   THREADS: "threads",
   REDDIT: "reddit",
+  TIKTOK: "tiktok",
 } as const;
 
 export const PLATFORMS = Object.values(AVAILABLE_PLATFORMS);

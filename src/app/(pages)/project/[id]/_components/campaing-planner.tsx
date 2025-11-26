@@ -60,7 +60,8 @@ export const PLATFORMS = [
   { key: 'linkedin', label: 'LinkedIn', icon: <Image src="/linkedin.png" width={16} height={16} alt="LinkedIn" /> },
   { key: 'instagram', label: 'Instagram', icon: <Image src="/instagram.svg" width={16} height={16} alt="Instagram" /> },
   { key: 'threads', label: 'Threads', icon: <Image src="/threads.svg" width={16} height={16} alt="Threads" /> },
-  { key: 'reddit', label: 'Reddit', icon: <Image src="/reddit.svg" width={16} height={16} alt="Reddit" /> }
+  { key: 'reddit', label: 'Reddit', icon: <Image src="/reddit.svg" width={16} height={16} alt="Reddit" /> },
+  { key: 'tiktok', label: 'TikTok', icon: <Image src="/tiktok.svg" width={16} height={16} alt="TikTok" /> }
 ];
 
 const ICONS = {
@@ -69,7 +70,8 @@ const ICONS = {
   linkedin: "/linkedin.png",
   instagram: "/instagram.svg",
   threads: "/threads.svg",
-  reddit: "/reddit.svg"
+  reddit: "/reddit.svg",
+  tiktok: "/tiktok.svg"
 };
 
 const getPrompt = (str: string) => `
@@ -919,6 +921,23 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         </div>
                                       </div>
                                       <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px] p-5 sm:p-8 scrollbar-none">
+                                        {/* TikTok Video Link Card */}
+                                        {campaign.platforms.includes('tiktok') && (
+                                          <Card className="rounded-lg border mb-5">
+                                            <CardHeader className="flex justify-between items-center flex-row">
+                                              <CardTitle>TikTok</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="text-sm text-muted-foreground flex flex-col items-center justify-center py-8">
+                                              <VideoIcon className="w-12 h-12 mb-4 text-muted-foreground/50" />
+                                              <p className="mb-4 text-center">Create a video for TikTok</p>
+                                              <Button asChild variant="outline">
+                                                <Link href={`/project/${projectId}/video?campaignId=${campaign.id}&day=${timeline.day}`}>
+                                                  Generate Video →
+                                                </Link>
+                                              </Button>
+                                            </CardContent>
+                                          </Card>
+                                        )}
                                         {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
                                           <Card key={platform} className="rounded-lg border mb-5">
                                             <div className="flex flex-col gap-0">

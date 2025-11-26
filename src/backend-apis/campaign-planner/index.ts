@@ -261,15 +261,15 @@ export const generateCampaignChat = async (props: {
     skip: randomIndex,
   });
 
-  // Get selected platforms for this campaign
-  const platforms = projectCampaign.platforms || [
+  // Get selected platforms for this campaign (exclude tiktok - video only)
+  const platforms = (projectCampaign.platforms || [
     "x",
     "facebook",
     "linkedin",
     "instagram",
     "threads",
     "reddit",
-  ];
+  ]).filter(p => p !== "tiktok");
 
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",

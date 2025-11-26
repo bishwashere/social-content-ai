@@ -108,7 +108,7 @@ model CampaignPlanner {
   targetAudience    String
   name              String?
   startDate         DateTime?
-  platforms         String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit"])
+  platforms         String[]       @default(["twitter", "linkedin", "instagram", "facebook", "threads", "reddit", "tiktok"])
   autoPostEnabled   Boolean        @default(false)
   autoPostTime      String?
   autoPostPlatforms String[]
@@ -152,6 +152,7 @@ enum OauthPlatform {
   instagram
   threads
   reddit
+  tiktok
 }
 
 model OauthProvider {
