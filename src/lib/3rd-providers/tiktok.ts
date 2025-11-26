@@ -23,9 +23,6 @@ type TikTokUser = {
     union_id: string;
     avatar_url: string;
     display_name?: string;
-    bio_description?: string;
-    profile_deep_link?: string;
-    is_verified?: boolean;
     username?: string;
     follower_count?: number;
     following_count?: number;
@@ -109,7 +106,6 @@ class TikTok {
     // private _openId?: string;
     private _clientKey = process.env.TIKTOK_CLIENT_ID;
     private _clientSecret = process.env.TIKTOK_CLIENT_SECRET;
-    private _isAccessTokenRefreshed = false;
 
     constructor(args: {
         accessToken: string;
@@ -131,10 +127,9 @@ class TikTok {
         const now = Date.now();
         const fiveMinutes = 5 * 60 * 1000;
 
-        if (this._expiresAt - now < fiveMinutes) {
-            await this._refreshAccessToken();
-            this._isAccessTokenRefreshed = true;
-        }
+        // if (this._expiresAt - now < fiveMinutes) {
+        //     await this._refreshAccessToken();
+        // }
     }
 
     private async _refreshAccessToken(): Promise<void> {
@@ -190,9 +185,6 @@ class TikTok {
                 "union_id",
                 "avatar_url",
                 "display_name",
-                "bio_description",
-                "profile_deep_link",
-                "is_verified",
                 "follower_count",
                 "following_count",
                 "likes_count",

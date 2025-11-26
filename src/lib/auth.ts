@@ -68,11 +68,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // scope: "user.info.basic video.publish video.upload user.info.stats video.list",
           scope: [
             'user.info.basic',
-            // 'user.info.profile',
-            // 'user.info.stats',
-            // 'video.list',
-            // 'video.upload',
-            // 'video.publish'
+            'user.info.stats',
+            'video.list',
+            'video.upload',
+            'video.publish'
           ]
         },
       },
@@ -223,6 +222,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               break;
 
             case "tiktok":
+              console.log(account)
+              console.log(user)
               const tiktok = new TikTok({
                 accessToken: account.access_token!,
                 refreshToken: account.refresh_token!,
