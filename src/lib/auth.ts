@@ -65,7 +65,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "user.info.basic video.publishvideo.upload user.info.stats video.list",
+          // scope: "user.info.basic video.publish video.upload user.info.stats video.list",
+          scope: [
+            'user.info.basic',
+            // 'user.info.profile',
+            // 'user.info.stats',
+            // 'video.list',
+            // 'video.upload',
+            // 'video.publish'
+          ]
         },
       },
     })
@@ -214,7 +222,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
               break;
 
-              case "tiktok":
+            case "tiktok":
               const tiktok = new TikTok({
                 accessToken: account.access_token!,
                 refreshToken: account.refresh_token!,
