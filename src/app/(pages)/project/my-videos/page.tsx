@@ -8,11 +8,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Download, ExternalLink, Clock, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
+import { useOAuthProviders } from '@/server-actions/oauth-providers/hooks'
+import { signIn } from 'next-auth/react'
 
 const MyVideosPage = () => {
   const { data: videos, isLoading } = useQueryAllUploadedVideos()
+  const { data: oauthProviders, isLoading: isLoading2 } = useOAuthProviders();
 
-  if (isLoading) {
+  if (isLoading || isLoading2) {
     return (
       <div className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
         <div className="mb-6">
@@ -32,28 +35,31 @@ const MyVideosPage = () => {
 
   return (
     <div className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">My Videos</h1>
-        <p className="text-muted-foreground mt-2">
-          All your generated videos in one place
-        </p>
+      <div className="flex justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">My Videos</h1>
+          <p className="text-muted-foreground mt-2">
+            All your generated videos in one place
+          </p>
+        </div>
+        {!!!oauthProviders?.find(provider => provider.platform === "tiktok") && <Button variant="default" size="sm" onClick={() => signIn("tiktok")}>Connect Tiktok</Button>}
       </div>
 
       {(!videos || videos.length === 0) ? (
         <Card className="p-12">
           <div className="flex flex-col items-center justify-center text-center space-y-4">
             <div className="p-4 bg-purple-100 rounded-full">
-              <svg 
-                className="w-12 h-12 text-purple-600" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-12 h-12 text-purple-600"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                 />
               </svg>
             </div>
@@ -62,7 +68,7 @@ const MyVideosPage = () => {
               <p className="text-muted-foreground mb-4">
                 Create your first video using the Quick Video Maker!
               </p>
-              <Button 
+              <Button
                 onClick={() => window.location.href = '/project/video-maker'}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
@@ -101,7 +107,7 @@ const MyVideosPage = () => {
                   )}
                 </div>
               </div>
-              
+
               <CardContent className="p-4 space-y-3">
                 <div>
                   <p className="font-semibold text-sm line-clamp-2 mb-1">
