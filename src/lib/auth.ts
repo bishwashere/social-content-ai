@@ -61,6 +61,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
     TiktokProvider({
+      clientId: process.env.TIKTOK_CLIENT_ID!,
+      clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
       authorization: {
         params: {
           scope: "user.info.basic video.publishvideo.upload user.info.stats video.list",

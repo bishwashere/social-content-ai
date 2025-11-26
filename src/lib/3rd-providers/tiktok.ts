@@ -107,7 +107,7 @@ class TikTok {
     private _expiresAt: number;
     private _refreshToken: string;
     // private _openId?: string;
-    private _clientKey = process.env.TIKTOK_CLIENT_KEY;
+    private _clientKey = process.env.TIKTOK_CLIENT_ID;
     private _clientSecret = process.env.TIKTOK_CLIENT_SECRET;
     private _isAccessTokenRefreshed = false;
 
