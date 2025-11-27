@@ -276,6 +276,7 @@ model UploadedVideo {
   status            String   @default("pending")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  isPublised        Boolean  @default(false)
 
   user    User?     @relation(fields: [userId], references: [id])
   project Projects? @relation(fields: [projectId], references: [id])

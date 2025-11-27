@@ -42,9 +42,7 @@ export const addMetadataToVideo = async ({
 
   const file2 = {
     name: "metadata.txt",
-    content: `viral_video: ${viralVideoId}\ndemo_video: ${demoVideoId}\nviral_music: ${
-      musicId || ""
-    }`,
+    content: `viral_video: ${viralVideoId}\ndemo_video: ${demoVideoId}\nviral_music: ${musicId || ""}`,
   };
 
   await Promise.all([

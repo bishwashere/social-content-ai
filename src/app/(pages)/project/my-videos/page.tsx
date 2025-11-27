@@ -1,19 +1,38 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useQueryAllUploadedVideos } from '@/backend-apis/video-generation/hooks'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Download, ExternalLink, Clock, CheckCircle2 } from 'lucide-react'
+import { Download, ExternalLink, Clock, CheckCircle2, Share } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
 import { useOAuthProviders } from '@/server-actions/oauth-providers/hooks'
 import { signIn } from 'next-auth/react'
+import { uploadToTiktok } from '@/server-actions/upload-tiktok'
+import { toast } from 'sonner'
 
 const MyVideosPage = () => {
   const { data: videos, isLoading } = useQueryAllUploadedVideos()
   const { data: oauthProviders, isLoading: isLoading2 } = useOAuthProviders();
+  const [uploading, setUploading] = useState(false);
+
+  const uploadVideoToTiktok = async (mediaId: string, userId: string) => {
+    setUploading(true);
+    try {
+      const res = await uploadToTiktok(mediaId, userId);
+      if (res.success) {
+        toast.success(res.message);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (e) {
+      console.log("Error while posting video.", e);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   if (isLoading || isLoading2) {
     return (
@@ -97,7 +116,7 @@ const MyVideosPage = () => {
                   {video.status === "completed" ? (
                     <Badge className="bg-green-600 hover:bg-green-700">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Completed
+                      {video.isPublised ? 'Published' : 'Completed'}
                     </Badge>
                   ) : (
                     <Badge className="bg-orange-500 hover:bg-orange-600">
@@ -118,19 +137,33 @@ const MyVideosPage = () => {
                   </p>
                 </div>
 
-                {video.status === "completed" && video.output && (
+                {(video.status === "completed" || video.status === "published") && video.output && (
                   <div className="flex gap-2">
-                    <Button
-                      asChild
-                      size="sm"
-                      className="flex-1"
-                      variant="secondary"
-                    >
-                      <a href={video.output} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        View
-                      </a>
-                    </Button>
+                    {video.status !== "published" && oauthProviders?.find(provider => provider.platform === "tiktok") ?
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        variant="secondary"
+                        onClick={() => uploadVideoToTiktok(video.id, video.userId)}
+                        disabled={uploading}
+                      >
+                        {!uploading && <Share className="w-4 h-4 mr-2" />}
+                        {uploading ? 'Uploading...' : 'Upload to Tiktok'}
+                      </Button>
+                      :
+                      <Button
+                        asChild
+                        size="sm"
+                        className="flex-1"
+                        variant="secondary"
+                      >
+                        <a href={video.output} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View
+                        </a>
+                      </Button>
+                    }
+
                     <Button
                       asChild
                       size="sm"
@@ -144,7 +177,7 @@ const MyVideosPage = () => {
                   </div>
                 )}
 
-                {video.status !== "completed" && (
+                {video.status === "pending" && (
                   <div className="text-xs text-center text-muted-foreground py-2 bg-muted rounded">
                     Your video is being processed. Check back soon!
                   </div>

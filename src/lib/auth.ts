@@ -221,27 +221,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               break;
 
             case "tiktok":
-              console.log(account)
-              console.log(user)
-              // const tiktok = new TikTok({
-              //   accessToken: account.access_token!,
-              //   refreshToken: account.refresh_token!,
-              //   expiresAt: account.expires_at!,
-              // });
-
-              // const tiktokUser = await tiktok.getUserInfo();
-
-              // if (!tiktokUser) {
-              //   return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
-              // }
-
               authProviders.push({
                 userId: googleUser.id,
                 platform: "tiktok",
                 pageId: String(account.open_id) || "",
                 accessToken: account.access_token,
                 refreshToken: account.refresh_token!,
-                expiresAt: account.expires_at!,
+                expiresAt: Number(account.expires_at)*1000!,
                 pageName: user.name || "",
                 pageProfilePhoto: user.image || "",
                 isPersonal: true, // tiktok is always personal
