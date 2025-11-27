@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 import fs from "fs";
 import { prisma } from "../prisma";
 
@@ -103,7 +103,6 @@ class TikTok {
     private _client: AxiosInstance;
     private _expiresAt: number;
     private _refreshToken: string;
-    // private _openId?: string;
     private _clientKey = process.env.TIKTOK_CLIENT_ID;
     private _clientSecret = process.env.TIKTOK_CLIENT_SECRET;
 
@@ -111,12 +110,10 @@ class TikTok {
         accessToken: string;
         refreshToken: string;
         expiresAt: number;
-        // openId?: string;
     }) {
         this._accessToken = args.accessToken;
         this._refreshToken = args.refreshToken;
         this._expiresAt = args.expiresAt;
-        // if (args.openId) this._openId = args.openId;
 
         this._client = axios.create({
             baseURL: "https://open.tiktokapis.com",
@@ -126,10 +123,9 @@ class TikTok {
     private async _ensureAccessTokenValid(): Promise<void> {
         const now = Date.now();
         const fiveMinutes = 5 * 60 * 1000;
-
-        // if (this._expiresAt - now < fiveMinutes) {
-        //     await this._refreshAccessToken();
-        // }
+        if (this._expiresAt - now < fiveMinutes) {
+            await this._refreshAccessToken();
+        }
     }
 
     private async _refreshAccessToken(): Promise<void> {
@@ -154,8 +150,6 @@ class TikTok {
 
             const data: TikTokTokenRefreshResponse = res.data;
             this._expiresAt = Date.now() + data.expires_in * 1000;
-            // this._openId = data.open_id;
-            // update token in db
             await prisma.oauthProvider.update({
                 where: {
                     accessToken: this._accessToken
@@ -193,9 +187,8 @@ class TikTok {
 
             const queryFields = fields || defaultFields;
 
-            const res = await this._client.post(
+            const res = await this._client.get(
                 `/v2/user/info/?fields=${queryFields.join(",")}`,
-                {},
                 {
                     headers: {
                         Authorization: `Bearer ${this._accessToken}`,
@@ -211,31 +204,6 @@ class TikTok {
         }
     }
 
-    /**
-     * Get user statistics (followers, likes, etc.)
-     */
-    async getUserStatistics(): Promise<UserStatistics | null> {
-        try {
-            const userInfo = await this.getUserInfo([
-                "follower_count",
-                "following_count",
-                "likes_count",
-                "video_count",
-            ]);
-
-            if (!userInfo) return null;
-
-            return {
-                follower_count: userInfo.follower_count || 0,
-                following_count: userInfo.following_count || 0,
-                likes_count: userInfo.likes_count || 0,
-                video_count: userInfo.video_count || 0,
-            };
-        } catch (error) {
-            console.error("Failed to get user statistics:", error);
-            return null;
-        }
-    }
 
     /**
      * Get list of user's videos
@@ -391,7 +359,8 @@ class TikTok {
                 upload_url: res.data.data.upload_url,
             };
         } catch (error) {
-            console.error("Failed to initialize video upload:", error);
+            const err = error as AxiosError;
+            console.error("Failed to initialize video upload:", err?.response?.data);
             return null;
         }
     }
@@ -493,7 +462,8 @@ class TikTok {
 
             return { publish_id: initResult.publish_id };
         } catch (error) {
-            console.error("Failed to post video from URL:", error);
+            const err = error as AxiosError;
+            console.error("Failed to post video from URL:", err?.response?.data);
             return null;
         }
     }
