@@ -5,6 +5,7 @@ import {
   getFacebookMetrics,
   getLinkedinMetrics,
   getThreadsMetrics,
+  getTiktokMetrics,
 } from "./actions";
 
 export type RedditPostData = {
@@ -59,5 +60,14 @@ export const useGetAllPlatformMetrics = (userId: string, selectedProjectId: stri
     queryKey: ["all-metrics", userId, selectedProjectId],
     queryFn: () => getAllPlatformMetrics(userId, selectedProjectId),
     enabled: !!userId && !!selectedProjectId,
+  });
+};
+
+export const useGetTiktokMetrics = (userId: string, projectId: string | null) => {
+  return useQuery({
+    queryKey: ["tiktok-metrics", projectId],
+    queryFn: () => getTiktokMetrics(userId, projectId),
+    enabled: !!projectId && !!userId,
+    refetchOnWindowFocus: false,
   });
 };

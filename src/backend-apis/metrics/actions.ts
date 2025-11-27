@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import axios from "axios";
 import { Threads } from "@/lib/3rd-providers/threads";
+import { TikTok } from "@/lib/3rd-providers/tiktok";
 
 export const fetchRedditPostsData = async (
   urls: string[]
@@ -83,7 +84,7 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
       };
     }
 
-    if(!projectOauthProvider[0].pageId) {
+    if (!projectOauthProvider[0].pageId) {
       return {
         success: false,
         message: "Facebook page not found",
@@ -153,7 +154,7 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
         try {
           // Find the corresponding metric to get metadata we already fetched
           const metric = metrics.find((m) => m.id === savedPost.postId);
-          
+
           // Fetch detailed insights and reaction breakdowns
           const [detailedInsights, reactionBreakdown] = await Promise.all([
             fb.getPostDetailedInsights(savedPost.postId),
@@ -380,6 +381,86 @@ export const getThreadsMetrics = async (userId: string, projectId: string | null
   } catch (error) {
     console.error("Error fetching Threads metrics:", error);
     throw new Error("Could not load Threads data!");
+  }
+};
+
+export const getTiktokMetrics = async (userId: string, projectId: string | null) => {
+  // TODO: Make this function work like other functions after getting tiktok production api
+  try {
+    // Step 1: Find the Tiktok OAuth provider and existing posts
+    const oauthProvider = await prisma.oauthProvider.findFirst({
+      where: {
+        userId,
+        platform: "tiktok",
+      },
+      // include: {
+      //   pagePosts: true,
+      //   projectToOAuthProviders: true,
+      // },
+      // orderBy: {
+      //   createdAt: 'desc'
+      // }
+    });
+    // const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
+
+    if (!oauthProvider) {
+      return {
+        success: false,
+        message: "Tiktok account not found",
+      };
+    }
+
+    // Step 2: Return from DB if posts already exist
+    // const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
+    // if (posts.length) {
+    //   return {
+    //     success: true,
+    //     data: posts,
+    //   };
+    // }
+
+    // Step 3: Fetch from Threads API if not in DB
+    const t = new TikTok({
+      accessToken: oauthProvider.accessToken!,
+      refreshToken: oauthProvider.refreshToken!,
+      expiresAt: oauthProvider.expiresAt!
+    });
+
+    // const userInfo = await t.getUserInfo();
+    const videosList = await t.getVideoList();
+
+    // Step 4: Transform metrics to match DB structure
+    const posts = videosList?.videos.map((post) => ({
+      postId: post.id,
+      content: post.title,
+      likes: post.like_count,
+      comments: post.comment_count,
+      shares: post.share_count,
+      impressions: post.view_count,
+      uniqueImpressions: post.view_count,
+      date: post.create_time ? new Date(post.create_time) : new Date(),
+    }));
+
+    // Step 5: Save to DB
+    // const data = await prisma.oauthProvider.update({
+    //   where: { id: projectOauthProvider[0].id },
+    //   data: {
+    //     pagePosts: {
+    //       create: postsToSave,
+    //     },
+    //   },
+    //   include: {
+    //     pagePosts: true,
+    //   },
+    // });
+
+    return {
+      success: true,
+      data: posts,
+    };
+  } catch (error) {
+    console.error("Error fetching Tiktok metrics:", error);
+    throw new Error("Could not load Tiktok data!");
   }
 };
 

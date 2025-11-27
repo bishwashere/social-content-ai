@@ -13,6 +13,7 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks"
 import { useGetAllPlatformMetrics } from '@/backend-apis/metrics/hooks'
 import { useSession } from '@/backend-apis/auth/hooks'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tiktok } from "./tiktok"
 
 export const timeRangeOptions = [
   { label: "1 week", value: 7 },
@@ -30,7 +31,7 @@ export type AnalyticsPlatformsProps = {
 // Mini chart component for project cards
 const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: string; userId: string; timeRange?: number }) => {
   const { data, isLoading } = useGetAllPlatformMetrics(userId, projectId);
-  
+
   const chartData = useMemo(() => {
     // Default empty data (show flat line at 0)
     const defaultData = Array.from({ length: 7 }, (_, i) => ({
@@ -43,7 +44,7 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
     if (isLoading || !data?.data || data.data.length === 0) {
       return defaultData;
     }
-    
+
     const now = new Date();
     const cutoffDate = new Date(now);
     cutoffDate.setDate(now.getDate() - timeRange);
@@ -85,23 +86,23 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis hide />
           <YAxis hide domain={[0, 1]} />
-          <Bar 
-            dataKey="impressions" 
-            fill="#4285F4" 
+          <Bar
+            dataKey="impressions"
+            fill="#4285F4"
             radius={[1, 1, 0, 0]}
             maxBarSize={4}
           />
-          <Line 
-            type="monotone" 
-            dataKey="likes" 
-            stroke="#FF4500" 
+          <Line
+            type="monotone"
+            dataKey="likes"
+            stroke="#FF4500"
             strokeWidth={1}
             dot={false}
           />
-          <Line 
-            type="monotone" 
-            dataKey="comments" 
-            stroke="#FFA500" 
+          <Line
+            type="monotone"
+            dataKey="comments"
+            stroke="#FFA500"
             strokeWidth={1}
             dot={false}
           />
@@ -136,8 +137,9 @@ const AnalyticsTabs = () => {
         <TabsTrigger value="Facebook">Facebook</TabsTrigger>
         <TabsTrigger value="Linkedin">Linkedin</TabsTrigger>
         <TabsTrigger value="Threads">Threads</TabsTrigger>
+        <TabsTrigger value="Tiktok">Tiktok</TabsTrigger>
       </TabsList>
-      
+
       {/* Project Selector Cards - Below platform tabs */}
       <div className="w-full mt-4 mb-4">
         {adminProjects.length > 0 && (
@@ -147,19 +149,17 @@ const AnalyticsTabs = () => {
               return (
                 <Card
                   key={project.id}
-                  className={`flex flex-col gap-1.5 p-2 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer min-w-[100px] sm:min-w-[120px] ${
-                    isSelected
+                  className={`flex flex-col gap-1.5 p-2 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer min-w-[100px] sm:min-w-[120px] ${isSelected
                       ? 'bg-blue-50 border-2 border-blue-300'
                       : 'bg-white'
-                  }`}
+                    }`}
                   onClick={() => setSelectedProject(project.id || null)}
                 >
                   <div className="flex flex-row items-center gap-1.5">
-                    <div className={`p-1 rounded-full ${
-                      isSelected
+                    <div className={`p-1 rounded-full ${isSelected
                         ? 'text-blue-600 bg-blue-100'
                         : 'text-gray-600 bg-gray-100'
-                    }`}>
+                      }`}>
                       <Folder className="w-3 h-3" />
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
@@ -172,8 +172,8 @@ const AnalyticsTabs = () => {
                   {/* Mini Chart Preview */}
                   {session?.user.id && project.id && (
                     <div className="w-full flex justify-center -mx-2">
-                      <MiniProjectChart 
-                        projectId={project.id} 
+                      <MiniProjectChart
+                        projectId={project.id}
                         userId={session.user.id}
                         timeRange={30}
                       />
@@ -218,6 +218,9 @@ const AnalyticsTabs = () => {
       </TabsContent>
       <TabsContent value="Threads">
         <Threads timerange={timerange} selectedProject={selectedProject} />
+      </TabsContent>
+      <TabsContent value="Tiktok">
+        <Tiktok timerange={timerange} selectedProject={selectedProject} />
       </TabsContent>
     </Tabs>
   )
