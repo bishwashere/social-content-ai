@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 const roboto = Roboto({ subsets: ["latin"], weight: ["300", "400", "500", "700", "900"] })
 
 export const metadata: Metadata = {
-  title: "NextPostAI - AI-powered Social Media Content Generator",
+  title: "NextPostAI - Your AI-Powered Marketing Assistant for Apps & Products",
   description: "Generate engaging social media content with AI",
 };
 
