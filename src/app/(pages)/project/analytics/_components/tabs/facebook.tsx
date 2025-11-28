@@ -60,11 +60,11 @@ const Facebook = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
         console.error("Error processing Facebook analytics data:", error);
         // Keep default analytics state on error
       }
-    } else if (!selectedProject) {
+    } else {
       // Reset to default if no project selected
       setAnalytics({ totalComments: 0, totalFollowers: 0, totalImpressions: 0, totalLikes: 0, totalPosts: 0, chartData: [] });
     }
-  }, [fb.data, timerange, selectedProject]);
+  }, [fb.data, timerange]);
 
 
   if (fb.isLoading) return <ViewAnalyticsSkeleton />
