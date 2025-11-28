@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useSession } from "@/backend-apis/auth/hooks"
-import { checkProjectOAuthProvider } from "@/server-actions/check-project-oauth-provider"
+import { checkAllProjectOAuthProviders } from "@/server-actions/check-project-oauth-provider"
 import { mapProjectToOAuthProvider } from "@/server-actions/map-project-oauth-provider"
 import { toast } from "sonner"
 import { X } from "lucide-react"
-import Image from "next/image"
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
 import { getFirstViewTooltip, updateFirstViewTooltip } from "@/server-actions/first-view-tooltip/actions"
+import { OauthPlatform } from "@prisma/client"
 
 type AvailableProvider = {
   id: string
@@ -20,20 +20,46 @@ type AvailableProvider = {
   isPersonal?: boolean
 }
 
+type PlatformState = {
+  showDropdown: boolean
+  providers: AvailableProvider[]
+  isMapping: boolean
+}
+
 type Props = {
   projectId: string
+}
+
+const SUPPORTED_PLATFORMS: OauthPlatform[] = [
+  "facebook",
+  "linkedin",
+  "twitter",
+  "reddit",
+  "tiktok",
+  "threads",
+  "instagram"
+]
+
+const PLATFORM_LABELS: Record<OauthPlatform, string> = {
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  twitter: "Twitter",
+  reddit: "Reddit",
+  tiktok: "TikTok",
+  threads: "Threads",
+  instagram: "Instagram"
 }
 
 export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const [showAlert, setShowAlert] = useState(false)
-  const [showFacebookDropdown, setShowFacebookDropdown] = useState(false)
-  const [showLinkedinDropdown, setShowLinkedinDropdown] = useState(false)
-  const [facebookProviders, setFacebookProviders] = useState<AvailableProvider[]>([])
-  const [linkedinProviders, setLinkedinProviders] = useState<AvailableProvider[]>([])
-  const [isMappingFacebook, setIsMappingFacebook] = useState(false)
-  const [isMappingLinkedin, setIsMappingLinkedin] = useState(false)
+  const [platformStates, setPlatformStates] = useState<Record<OauthPlatform, PlatformState>>(
+    SUPPORTED_PLATFORMS.reduce((acc, platform) => ({
+      ...acc,
+      [platform]: { showDropdown: false, providers: [], isMapping: false }
+    }), {} as Record<OauthPlatform, PlatformState>)
+  )
 
   // Check if user has dismissed this alert for this project
   const { data: tooltipData } = useQuery({
@@ -64,26 +90,38 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     if (!session?.user?.id || !projectId) return
 
     try {
-      // Check Facebook providers
-      const fbResult = await checkProjectOAuthProvider(projectId, session.user.id, "facebook")
-      
-      // Check LinkedIn providers
-      const liResult = await checkProjectOAuthProvider(projectId, session.user.id, "linkedin")
+      // Single function call to check all platforms at once
+      const results = await checkAllProjectOAuthProviders(
+        projectId,
+        session.user.id,
+        SUPPORTED_PLATFORMS
+      )
 
-      // Simple logic: If Facebook is mapped to this project, don't show Facebook dropdown
-      const showFacebook = !fbResult.isProjectMapped && (fbResult.availableProviders || []).length > 0
-      const showLinkedin = !liResult.isProjectMapped && (liResult.availableProviders || []).length > 0
+      const newPlatformStates = { ...platformStates }
+      let hasAnyDropdown = false
 
-      setShowFacebookDropdown(showFacebook)
-      setShowLinkedinDropdown(showLinkedin)
-      setFacebookProviders(fbResult.availableProviders || [])
-      setLinkedinProviders(liResult.availableProviders || [])
+      SUPPORTED_PLATFORMS.forEach(platform => {
+        const result = results[platform]
+        const showDropdown = !result.isProjectMapped && (result.availableProviders || []).length > 0
+
+        newPlatformStates[platform] = {
+          showDropdown,
+          providers: result.availableProviders || [],
+          isMapping: false
+        }
+
+        if (showDropdown) {
+          hasAnyDropdown = true
+        }
+      })
+
+      setPlatformStates(newPlatformStates)
 
       // Check if alert has been dismissed for this project
       const isDismissed = tooltipData?.dismissedProjectAlerts?.includes(projectId) || false
 
       // Show alert only if at least one dropdown should show AND not dismissed
-      if ((showFacebook || showLinkedin) && !isDismissed) {
+      if (hasAnyDropdown && !isDismissed) {
         setShowAlert(true)
       } else {
         setShowAlert(false)
@@ -97,60 +135,52 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     checkAvailableProviders()
   }, [checkAvailableProviders])
 
-  const handleConnectFacebook = async (providerId: string) => {
+  const handleConnectPlatform = async (platform: OauthPlatform, providerId: string) => {
     if (!session?.user?.id || !providerId) return
 
-    setIsMappingFacebook(true)
+    setPlatformStates(prev => ({
+      ...prev,
+      [platform]: { ...prev[platform], isMapping: true }
+    }))
+
     try {
       await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
-      toast.success("Facebook account connected to project!")
-      
-      // Immediately hide Facebook dropdown
-      setShowFacebookDropdown(false)
-      
+      toast.success(`${PLATFORM_LABELS[platform]} account connected to this project`)
+
+      // Immediately hide platform dropdown
+      setPlatformStates(prev => ({
+        ...prev,
+        [platform]: { ...prev[platform], showDropdown: false, isMapping: false }
+      }))
+
       // Invalidate header's connected accounts cache
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
-      
+
       // Recheck to update state
       await checkAvailableProviders()
     } catch (error) {
-      console.error("Error mapping Facebook provider:", error)
-      toast.error("Failed to connect Facebook account")
-    } finally {
-      setIsMappingFacebook(false)
-    }
-  }
+      console.error(`Error mapping ${platform} provider:`, error)
+      toast.error(`Failed to connect ${PLATFORM_LABELS[platform]} account`)
 
-  const handleConnectLinkedin = async (providerId: string) => {
-    if (!session?.user?.id || !providerId) return
-
-    setIsMappingLinkedin(true)
-    try {
-      await mapProjectToOAuthProvider(projectId, providerId, session.user.id)
-      toast.success("LinkedIn account connected to project!")
-      
-      // Immediately hide LinkedIn dropdown
-      setShowLinkedinDropdown(false)
-      
-      // Invalidate header's connected accounts cache
-      queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
-      
-      // Recheck to update state
-      await checkAvailableProviders()
-    } catch (error) {
-      console.error("Error mapping LinkedIn provider:", error)
-      toast.error("Failed to connect LinkedIn account")
-    } finally {
-      setIsMappingLinkedin(false)
+      setPlatformStates(prev => ({
+        ...prev,
+        [platform]: { ...prev[platform], isMapping: false }
+      }))
     }
   }
 
   // Don't show anything if platforms are already connected or no unmapped providers
   if (!showAlert) return null
 
+  const visiblePlatforms = SUPPORTED_PLATFORMS.filter(
+    platform => platformStates[platform].showDropdown && platformStates[platform].providers.length > 0
+  )
+
+  if (visiblePlatforms.length === 0) return null
+
   return (
     <div className="px-6 mb-4 max-w-4xl mx-auto">
-      <Alert className="border-orange-500 bg-orange-50/50 relative">
+      <Alert className="border-orange-500 bg-orange-50/50 w-full relative">
         <Button
           variant="ghost"
           size="icon"
@@ -159,55 +189,37 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
         >
           <X className="h-4 w-4 text-orange-600" />
         </Button>
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3 pr-8">
-            {showFacebookDropdown && facebookProviders.length > 0 && (
-              <div className="flex-1">
-                <Select 
-                  value={isMappingFacebook ? "connecting" : ""} 
-                  onValueChange={handleConnectFacebook}
-                  disabled={isMappingFacebook}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={isMappingFacebook ? "Connecting..." : "Connect Facebook"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facebookProviders.map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.pageName || provider.pageId || 'Unnamed Account'} 
-                        {provider.isPersonal ? ' (Personal)' : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {showLinkedinDropdown && linkedinProviders.length > 0 && (
-              <div className="flex-1">
-                <Select 
-                  value={isMappingLinkedin ? "connecting" : ""} 
-                  onValueChange={handleConnectLinkedin}
-                  disabled={isMappingLinkedin}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={isMappingLinkedin ? "Connecting..." : "Connect LinkedIn"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {linkedinProviders.map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.pageName || provider.pageId || 'Unnamed Account'}
-                        {provider.isPersonal ? ' (Personal)' : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+        <AlertDescription className="w-full">
+          <div className="flex items-center gap-3 pr-8 flex-wrap">
+            {visiblePlatforms.map(platform => {
+              const state = platformStates[platform]
+              return (
+                <div key={platform} className="min-w-[200px]">
+                  <Select
+                    value={state.isMapping ? "connecting" : ""}
+                    onValueChange={(providerId) => handleConnectPlatform(platform, providerId)}
+                    disabled={state.isMapping}
+                  >
+                    <SelectTrigger className="w-full focus:outline-none">
+                      <SelectValue
+                        placeholder={state.isMapping ? "Connecting..." : `Connect ${PLATFORM_LABELS[platform]}`}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {state.providers.map((provider) => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.pageName || provider.pageId || 'Unnamed Account'}
+                          {provider.isPersonal ? ' (Personal)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )
+            })}
           </div>
-        </div>
+        </AlertDescription>
       </Alert>
     </div>
   )
 }
-

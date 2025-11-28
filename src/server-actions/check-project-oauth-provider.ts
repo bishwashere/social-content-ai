@@ -10,8 +10,110 @@ type CheckProjectOAuthProviderResult = {
     id: string;
     pageName?: string | null;
     pageId?: string | null;
+    isPersonal?: boolean;
+  }>;
+  mappedProviders?: Array<{
+    id: string;
+    pageName?: string | null;
+    pageId?: string | null;
+    isPersonal?: boolean;
   }>;
 };
+
+type CheckAllProjectOAuthProvidersResult = Record<OauthPlatform, CheckProjectOAuthProviderResult>;
+
+export async function checkAllProjectOAuthProviders(
+  projectId: string,
+  userId: string,
+  platforms: OauthPlatform[]
+): Promise<CheckAllProjectOAuthProvidersResult> {
+  try {
+    // First, check if the user is the project owner
+    const project = await prisma.projects.findUnique({
+      where: { id: projectId },
+      select: { userId: true },
+    });
+
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    const isOwner = project.userId === userId;
+
+    if (!isOwner) {
+      return platforms.reduce((acc, platform) => ({
+        ...acc,
+        [platform]: {
+          hasProviderConnected: false,
+          isProjectMapped: false,
+        }
+      }), {} as CheckAllProjectOAuthProvidersResult);
+    }
+
+    // Fetch all OAuth providers for all platforms in a single query
+    const providers = await prisma.oauthProvider.findMany({
+      where: {
+        userId: project.userId,
+        platform: {
+          in: platforms,
+        },
+      },
+      select: {
+        id: true,
+        platform: true,
+        pageName: true,
+        pageId: true,
+        isPersonal: true,
+        projectToOAuthProviders: {
+          where: {
+            projectId: projectId,
+          },
+        },
+      },
+    });
+
+    // Group providers by platform
+    const result: CheckAllProjectOAuthProvidersResult = {} as CheckAllProjectOAuthProvidersResult;
+
+    platforms.forEach(platform => {
+      const platformProviders = providers.filter(p => p.platform === platform);
+      const hasProviderConnected = platformProviders.length > 0;
+      const isProjectMapped = platformProviders.some(
+        provider => provider.projectToOAuthProviders.length > 0
+      );
+
+      // Filter providers that are NOT mapped to THIS specific project
+      const filteredProviders = platformProviders.filter(
+        provider => provider.projectToOAuthProviders.length === 0
+      );
+
+
+      result[platform] = {
+        hasProviderConnected,
+        isProjectMapped,
+        availableProviders: hasProviderConnected
+          ? filteredProviders.map((p) => ({
+            id: p.id,
+            pageName: p.pageName,
+            pageId: p.pageId,
+            isPersonal: p.isPersonal,
+          }))
+          : undefined,
+        mappedProviders: platformProviders.map((p) => ({
+          id: p.id,
+          pageName: p.pageName,
+          pageId: p.pageId,
+          isPersonal: p.isPersonal,
+        })),
+      };
+    });
+
+    return result;
+  } catch (error) {
+    console.error("Error checking project OAuth providers:", error);
+    throw error;
+  }
+}
 
 export async function checkProjectOAuthProvider(
   projectId: string,
@@ -72,7 +174,6 @@ export async function checkProjectOAuthProvider(
           pageName: p.pageName,
           pageId: p.pageId,
           isPersonal: p.isPersonal,
-          projectooauth: p.projectToOAuthProviders,
         }))
         : undefined,
     };
@@ -83,28 +184,11 @@ export async function checkProjectOAuthProvider(
 }
 
 export async function getOauthPages(
-  // projectId: string,
   userId: string,
   platform: OauthPlatform
 ): Promise<{ id: string; pageId: string | null; pageName: string | null }[]> {
   try {
-    // First, check if the user is the project owner
-    // const project = await prisma.projects.findUnique({
-    //   where: { id: projectId },
-    //   select: { userId: true },
-    // });
-
-    // if (!project) {
-    //   throw new Error("Project not found");
-    // }
-
-    // const isOwner = project.userId === userId;
-
-    // if (!isOwner) {
-    //   throw new Error("Project not found");
-    // }
-
-    // Check if the owner has any OAuth providers for the platform
+    // Check if the user has any OAuth providers for the platform
     const providers = await prisma.oauthProvider.findMany({
       where: {
         userId: userId,

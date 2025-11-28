@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       where: {
         userId,
         platform: {
-          in: ["facebook", "linkedin"],
+          in: ["facebook", "linkedin", "twitter", "threads", "tiktok", "reddit"],
         },
       },
       select: {
@@ -35,6 +35,10 @@ export async function GET(req: NextRequest) {
     // Check which platforms are connected
     const hasFacebook = uniquePlatforms.some(p => p.platform === "facebook");
     const hasLinkedin = uniquePlatforms.some(p => p.platform === "linkedin");
+    const hasTwitter = uniquePlatforms.some(p => p.platform === "twitter");
+    const hasThreads = uniquePlatforms.some(p => p.platform === "threads");
+    const hasTiktok = uniquePlatforms.some(p => p.platform === "tiktok");
+    const hasReddit = uniquePlatforms.some(p => p.platform === "reddit");
 
     return sendNextResponse({
       status: 200,
@@ -43,6 +47,10 @@ export async function GET(req: NextRequest) {
         hasProviders: providers.length > 0,
         hasFacebook,
         hasLinkedin,
+        hasTwitter,
+        hasThreads,
+        hasTiktok,
+        hasReddit,
         count: providers.length,
         providers: uniquePlatforms,
       },

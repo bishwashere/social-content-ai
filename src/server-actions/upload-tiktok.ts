@@ -4,7 +4,7 @@ import { TikTok, VideoUploadOptions } from "@/lib/3rd-providers/tiktok";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export const uploadToTiktok = async (id: string, userId: string) => {
+export const uploadToTiktok = async (id: string, providerId: string) => {
     const video = await prisma.uploadedVideo.findUnique({
         where: {
             id: id
@@ -12,7 +12,7 @@ export const uploadToTiktok = async (id: string, userId: string) => {
     });
     const tiktok = await prisma.oauthProvider.findFirst({
         where: {
-            userId: userId,
+            id: providerId,
             platform: "tiktok"
         }
     });
