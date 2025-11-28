@@ -388,25 +388,25 @@ export const getTiktokMetrics = async (userId: string, projectId: string | null)
   // TODO: Make this function work like other functions after getting tiktok production api
   try {
     // Step 1: Find the Tiktok OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findFirst({
+    const oauthProvider = await prisma.oauthProvider.findMany({
       where: {
         userId,
         platform: "tiktok",
       },
-      // include: {
-      //   pagePosts: true,
-      //   projectToOAuthProviders: true,
-      // },
-      // orderBy: {
-      //   createdAt: 'desc'
-      // }
+      include: {
+        // pagePosts: true,
+        projectToOAuthProviders: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
-    // const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
+    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
-    if (!oauthProvider) {
+    if (!oauthProvider.length) {
       return {
         success: false,
-        message: "Tiktok account not found",
+        message: "Threads account not found",
       };
     }
 
@@ -419,11 +419,11 @@ export const getTiktokMetrics = async (userId: string, projectId: string | null)
     //   };
     // }
 
-    // Step 3: Fetch from Threads API if not in DB
+    // Step 3: Fetch from Tiktok API if not in DB
     const t = new TikTok({
-      accessToken: oauthProvider.accessToken!,
-      refreshToken: oauthProvider.refreshToken!,
-      expiresAt: oauthProvider.expiresAt!
+      accessToken: projectOauthProvider[0].accessToken!,
+      refreshToken: projectOauthProvider[0].refreshToken!,
+      expiresAt: projectOauthProvider[0].expiresAt!
     });
 
     // const userInfo = await t.getUserInfo();
@@ -438,7 +438,7 @@ export const getTiktokMetrics = async (userId: string, projectId: string | null)
       shares: post.share_count,
       impressions: post.view_count,
       uniqueImpressions: post.view_count,
-      date: post.create_time ? new Date(post.create_time) : new Date(),
+      date: post.create_time ? new Date(post.create_time * 1000) : new Date(),
     }));
 
     // Step 5: Save to DB

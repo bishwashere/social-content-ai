@@ -12,16 +12,40 @@ import { useOAuthProviders } from '@/server-actions/oauth-providers/hooks'
 import { signIn } from 'next-auth/react'
 import { uploadToTiktok } from '@/server-actions/upload-tiktok'
 import { toast } from 'sonner'
+import { checkAllProjectOAuthProviders } from '@/server-actions/check-project-oauth-provider'
+import { useSession } from '@/backend-apis/auth/hooks'
 
 const MyVideosPage = () => {
-  const { data: videos, isLoading } = useQueryAllUploadedVideos()
-  const { data: oauthProviders, isLoading: isLoading2 } = useOAuthProviders();
+  const { data: session } = useSession();
+  const { data: videos, isLoading } = useQueryAllUploadedVideos();
+  // const { data: oauthProviders, isLoading: isLoading2 } = useOAuthProviders();
   const [uploading, setUploading] = useState(false);
 
-  const uploadVideoToTiktok = async (mediaId: string, userId: string) => {
+  const uploadVideoToTiktok = async (mediaId: string, projectId: string) => {
+    if (!session?.user.id) return;
+    if (!projectId) {
+      toast.error("Video not related to project");
+      return;
+    }
     setUploading(true);
+    const oauthProviders = await checkAllProjectOAuthProviders(
+      projectId,
+      session.user.id,
+      ["tiktok"]
+    );
+    const tiktokProvider = oauthProviders["tiktok"];
+    if (!tiktokProvider.hasProviderConnected) {
+      toast.error("Error: Tiktok account not connected")
+      setUploading(false);
+      return;
+    }
+    if (!tiktokProvider.isProjectMapped || !tiktokProvider.mappedProviders) {
+      toast.error("Error: Tiktok account not connected with project")
+      setUploading(false);
+      return;
+    }
     try {
-      const res = await uploadToTiktok(mediaId, userId);
+      const res = await uploadToTiktok(mediaId, tiktokProvider.mappedProviders[0].id);
       if (res.success) {
         toast.success(res.message);
       } else {
@@ -29,12 +53,13 @@ const MyVideosPage = () => {
       }
     } catch (e) {
       console.log("Error while posting video.", e);
+      toast.error("Some error occurred!")
     } finally {
       setUploading(false);
     }
   }
 
-  if (isLoading || isLoading2) {
+  if (isLoading) {
     return (
       <div className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
         <div className="mb-6">
@@ -61,7 +86,7 @@ const MyVideosPage = () => {
             All your generated videos in one place
           </p>
         </div>
-        {!!!oauthProviders?.find(provider => provider.platform === "tiktok") && <Button variant="default" size="sm" onClick={() => signIn("tiktok")}>Connect Tiktok</Button>}
+        {/* {!!!oauthProviders?.find(provider => provider.platform === "tiktok") && <Button variant="default" size="sm" onClick={() => signIn("tiktok")}>Connect Tiktok</Button>} */}
       </div>
 
       {(!videos || videos.length === 0) ? (
@@ -139,12 +164,12 @@ const MyVideosPage = () => {
 
                 {(video.status === "completed" || video.status === "published") && video.output && (
                   <div className="flex gap-2">
-                    {video.status !== "published" && oauthProviders?.find(provider => provider.platform === "tiktok") ?
+                    {video.status !== "published" ?
                       <Button
                         size="sm"
                         className="flex-1"
                         variant="secondary"
-                        onClick={() => uploadVideoToTiktok(video.id, video.userId)}
+                        onClick={() => uploadVideoToTiktok(video.id, video.projectId || "")}
                         disabled={uploading}
                       >
                         {!uploading && <Share className="w-4 h-4 mr-2" />}
