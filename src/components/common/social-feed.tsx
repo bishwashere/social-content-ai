@@ -64,7 +64,7 @@ export default function SocialFeed() {
   };
 
   return (
-    <div className="flex-grow max-w-3xl mx-auto items-center justify-center p-6 space-y-6">
+    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto items-center justify-center py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6">
       <div className="flex items-center justify-center p-3 border-b">
         <h2 className="text-base font-medium">For you</h2>
       </div>

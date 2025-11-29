@@ -65,7 +65,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex-grow max-w-3xl mx-auto justify-center px-4 space-y-4">
+    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto justify-center px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-4">
       {projectChats.isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-8" />

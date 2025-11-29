@@ -11,7 +11,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-4">
+      <div className="max-w-7xl 2xl:max-w-[90%] mx-auto p-6 md:p-8 lg:p-12 xl:p-16 2xl:p-20 space-y-4">
         <Skeleton className="h-8 w-[200px]" />
         <Skeleton className="h-[400px] w-full" />
       </div>
@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
   if (!session) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-7xl 2xl:max-w-[90%] mx-auto p-6 md:p-8 lg:p-12 xl:p-16 2xl:p-20">
         <Card>
           <CardHeader>
             <CardTitle>Settings</CardTitle>

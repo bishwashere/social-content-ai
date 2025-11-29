@@ -12,7 +12,9 @@ import {
   TrendingUp,
   Video,
   PlaySquare,
-  FileText,
+  Calendar,
+  Newspaper,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -75,7 +77,7 @@ export function ProjectSidebar() {
   };
   const { data: projects, isLoading } = useGetAllProjects();
   const { data: folders, isLoading: foldersLoading } = useGetProjectFolders();
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar } = useSidebar();
 
   return (
     <Sidebar className="border-r" collapsible="icon">
@@ -101,7 +103,7 @@ export function ProjectSidebar() {
                     !sidebar.open ? 'justify-center' : ''
                   }`}
                 >
-                  <Users className="h-4 w-4" />
+                  <Newspaper className="h-4 w-4" />
                   {sidebar.open && <span className="ml-2">For You</span>}
                 </Link>
               </TooltipTrigger>
@@ -129,7 +131,7 @@ export function ProjectSidebar() {
                       !sidebar.open ? 'justify-center' : ''
                     }`}
                   >
-                    <BarChart3 className="h-4 w-4" />
+                    <Calendar className="h-4 w-4" />
                     {sidebar.open && <span className="ml-2">Content Planner</span>}
                   </Link>
                 </TooltipTrigger>
@@ -184,7 +186,7 @@ export function ProjectSidebar() {
                     !sidebar.open ? 'justify-center' : ''
                   } ${pathname === '/project/templates' || pathname?.startsWith('/project/templates/') ? 'bg-gray-200' : ''}`}
                 >
-                  <FileText className="h-4 w-4" />
+                  <Layers className="h-4 w-4" />
                   {sidebar.open && (
                     <span className="ml-2 flex flex-col">
                       <span>Templates</span>

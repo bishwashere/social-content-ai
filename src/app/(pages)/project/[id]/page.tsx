@@ -74,7 +74,7 @@ function ProjectPage() {
     );
 
   return (
-    <div className="flex-grow max-w-5xl mx-auto py-6 px-6 md:px-14 xl:px-20 space-y-6 -mt-5">
+    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5">
       <ProjectSocialConnectionAlert projectId={id as string} />
       {projectPulse && <ProjectPulseMetrics projectPulse={projectPulse} />}
       <Tabs value={currentTab} className="w-full">

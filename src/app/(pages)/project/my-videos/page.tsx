@@ -61,7 +61,7 @@ const MyVideosPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">My Videos</h1>
           <p className="text-muted-foreground mt-2">
@@ -78,7 +78,7 @@ const MyVideosPage = () => {
   }
 
   return (
-    <div className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
+    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6">
       <div className="flex justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">My Videos</h1>

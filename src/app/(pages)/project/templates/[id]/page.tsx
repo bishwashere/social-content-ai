@@ -73,7 +73,7 @@ export default function TemplateDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="flex-grow max-w-4xl mx-auto py-8 px-6 md:px-14 xl:px-20">
+      <main className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -84,7 +84,7 @@ export default function TemplateDetailPage() {
 
   if (!template) {
     return (
-      <main className="flex-grow max-w-4xl mx-auto py-8 px-6 md:px-14 xl:px-20">
+      <main className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
         <div className="text-center py-12">
           <p className="text-gray-500">Template not found</p>
           <Button onClick={() => router.push("/project/templates")} className="mt-4">

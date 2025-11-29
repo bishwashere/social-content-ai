@@ -3,7 +3,7 @@ import Subscription from "./_components/subscription";
 
 export default function BillingPage() {
   return (
-    <div className="container py-6 space-y-8 max-w-5xl mx-auto pb-16">
+    <div className="container py-6 space-y-8 max-w-7xl 2xl:max-w-[90%] mx-auto px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 pb-16">
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
         <p className="text-muted-foreground">
