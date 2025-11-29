@@ -33,6 +33,7 @@ export default function Home() {
   const projects = useGetAllProjects();
   const { open: pricingModalOpen } = usePricingModal();
   const onboardingShownRef = useRef(false);
+  const pricingModalWasOpenRef = useRef(false);
   const projectSelectionCallbackRef = useRef<((projectId: string) => void) | null>(null);
 
   const handleSelectProject = (projectId: string) => {
@@ -50,30 +51,46 @@ export default function Home() {
     }
   }, [sessionLoading, sessionError, router]);
 
+  // Track when pricing modal opens/closes
+  // This ensures payment screen always shows first, before onboarding
+  useEffect(() => {
+    if (pricingModalOpen) {
+      pricingModalWasOpenRef.current = true;
+      setOnboardingOpen(false); // Always close onboarding when pricing modal opens
+      onboardingShownRef.current = false; // Reset so onboarding can show after payment modal closes
+    }
+  }, [pricingModalOpen]);
+
   // Auto-open onboarding modal for first-time users (zero projects)
-  // BUT only after payment wall is handled (pricing modal is closed)
+  // BUT only after payment wall is handled (pricing modal has been closed)
   useEffect(() => {
     if (sessionLoading || sessionError) return;
     if (projects.isLoading) return;
     
-    // Don't show onboarding if pricing modal is open (payment wall should show first)
+    // NEVER show onboarding if pricing modal is currently open (payment wall must show first)
     if (pricingModalOpen) {
       setOnboardingOpen(false);
-      // Reset the ref when pricing modal opens so onboarding can show after it closes
-      onboardingShownRef.current = false;
       return;
     }
     
     // Check if user has zero projects
     if (projects.data?.length === 0) {
-      // Show onboarding after payment modal closes (if user has zero projects)
-      if (!onboardingShownRef.current) {
-        setOnboardingOpen(true);
-        onboardingShownRef.current = true;
+      // Only show onboarding if:
+      // 1. Pricing modal was opened at some point (user saw payment screen)
+      // 2. Pricing modal is now closed (not currently open)
+      // 3. Onboarding hasn't been shown yet
+      if (pricingModalWasOpenRef.current && !onboardingShownRef.current) {
+        // Small delay to ensure pricing modal is fully closed and UI is ready
+        const timer = setTimeout(() => {
+          setOnboardingOpen(true);
+          onboardingShownRef.current = true;
+        }, 500);
+        return () => clearTimeout(timer);
       }
     } else if (projects.data && projects.data.length > 0) {
-      // Reset the ref when user has projects (allows modal to show again if they delete all projects)
+      // Reset the refs when user has projects (allows modals to show again if they delete all projects)
       onboardingShownRef.current = false;
+      pricingModalWasOpenRef.current = false; // Reset for next time
       // Close modal if it's open (in case projects were created outside the modal)
       if (onboardingOpen) {
         setOnboardingOpen(false);

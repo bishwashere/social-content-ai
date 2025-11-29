@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,6 +26,8 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [textareaHeight, setTextareaHeight] = useState(96); // Default h-24 = 96px
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const createProject = useCreateProject();
   const desc = useGetWebsiteDescription();
   const queryClient = useQueryClient();
@@ -41,13 +43,33 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
     }
   }, [open]);
 
+  // Auto-resize textarea based on content - simple and reliable
+  useEffect(() => {
+    if (step === 2 && textareaRef.current) {
+      // Set height to auto first to get accurate scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Get the actual content height
+      const scrollHeight = textareaRef.current.scrollHeight;
+      // Set the height to match content (min 96px)
+      const newHeight = Math.max(scrollHeight, 96);
+      textareaRef.current.style.height = `${newHeight}px`;
+      setTextareaHeight(newHeight);
+    }
+  }, [description, step]);
+
   const handleNext = async () => {
     // When on URL step (step 1), fetch description before moving to description step
     if (step === 1 && url) {
-      const description = await desc.mutateAsync(url);
-      setDescription(description || "");
+      const fetchedDescription = await desc.mutateAsync(url);
+      // Set description first, then move to next step
+      setDescription(fetchedDescription || "");
+      // Move to next step after a brief delay to ensure description is set
+      setTimeout(() => {
+        setStep((prev) => prev + 1);
+      }, 0);
+    } else {
+      setStep((prev) => prev + 1);
     }
-    setStep((prev) => prev + 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,11 +141,14 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
     <div key="description" className="space-y-2">
       <Label htmlFor="onboarding-description">Could you give a brief description of what it&apos;s about?</Label>
       <Textarea
+        ref={textareaRef}
         id="onboarding-description"
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e) => {
+          setDescription(e.target.value);
+        }}
         placeholder="A campaign to promote eco-friendly products through creative storytelling"
-        className="h-24"
+        className="min-h-24 resize-none overflow-y-auto"
       />
     </div>,
   ];

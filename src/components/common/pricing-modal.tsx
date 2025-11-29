@@ -23,7 +23,7 @@ import {
 } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
 import { useAssignBasicTokens, useSession } from "@/backend-apis/auth/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,6 +42,7 @@ export default function PricingModal({ open, setOpen }: Props) {
   // const [isLoading, setIsLoading] = useState(false); // COMMENTED OUT: No longer needed for custom trial claims
   const queryClient = useQueryClient();
   const projects = useGetAllProjects();
+  const userDismissedRef = useRef(false); // Track if user explicitly closed the modal
 
   // only open the modal if the user doesn't have an active subscription or has no tokens
   // Payment wall shows FIRST, before onboarding
@@ -49,6 +50,11 @@ export default function PricingModal({ open, setOpen }: Props) {
   useEffect(() => {
     // Wait for projects to load
     if (projects.isLoading) {
+      return;
+    }
+
+    // Don't auto-open if user has explicitly dismissed the modal
+    if (userDismissedRef.current && !open) {
       return;
     }
 
@@ -63,17 +69,31 @@ export default function PricingModal({ open, setOpen }: Props) {
     if (hasNoProjects) {
       // Always show payment wall if they haven't onboarded (zero projects)
       // This ensures they see it every time they login until they complete onboarding
-      setOpen(true);
+      // But only if user hasn't dismissed it
+      if (!userDismissedRef.current) {
+        setOpen(true);
+      }
     } else if (hasNoSubscription && hasNoTokens) {
       // Show if no subscription and no tokens (for users who have projects)
-      setOpen(true);
+      if (!userDismissedRef.current) {
+        setOpen(true);
+      }
     } else if (hasNoTokens && data?.subscription) {
       // User has subscription but no tokens - show coins modal instead
       setOpen(false);
+      userDismissedRef.current = false; // Reset when conditions change
     } else {
       setOpen(false);
+      userDismissedRef.current = false; // Reset when conditions change
     }
-  }, [data?.subscription, data?.user?.remainingChatGenerations, data?.user?.id, setOpen, projects.isLoading, projects.data]);
+  }, [data?.subscription, data?.user?.remainingChatGenerations, data?.user?.id, setOpen, projects.isLoading, projects.data, open]);
+
+  // Reset dismissal flag when user gets projects (they've onboarded)
+  useEffect(() => {
+    if (projects.data && projects.data.length > 0) {
+      userDismissedRef.current = false;
+    }
+  }, [projects.data]);
 
   // COMMENTED OUT: Custom trial claim logic - now handled by Stripe
   // const claimTrial = async () => {
@@ -97,22 +117,32 @@ export default function PricingModal({ open, setOpen }: Props) {
 
   const assignBasicTokens = useAssignBasicTokens();
 
+  const handleClose = async () => {
+    // Mark that user explicitly dismissed the modal
+    userDismissedRef.current = true;
+    
+    // Assign basic tokens instead of logging out
+    try {
+      await assignBasicTokens.mutateAsync();
+      localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
+      setOpen(false);
+      toast.success("You've been assigned 10 free tokens to get started!");
+    } catch (error) {
+      // If assignment fails, just close the modal
+      setOpen(false);
+    }
+  };
+
   return (
-    <Dialog open={open} >
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        // User is closing the modal (via ESC, outside click, or close button)
+        handleClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogClose
-          onClick={async () => {
-            // Assign basic tokens instead of logging out
-            try {
-              await assignBasicTokens.mutateAsync();
-              localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
-              setOpen(false);
-              toast.success("You've been assigned 10 free tokens to get started!");
-            } catch (error) {
-              // If assignment fails, just close the modal
-              setOpen(false);
-            }
-          }}
+          onClick={handleClose}
         />
         <DialogHeader>
           <DialogTitle>Start 7 day FREE Trial</DialogTitle>

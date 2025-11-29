@@ -86,6 +86,7 @@ export default function HomeV3() {
             <hr className="my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]" />
             <div className="flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5">
               <div className="flex flex-col gap-2 lg:gap-8 items-center lg:items-start p-3 lg:p-0">
+                <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mb-4 lg:mb-0" />
                 <p className="text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold">
                   Plan Smarter. Post Faster. Grow Consistently.
                 </p>
@@ -95,7 +96,6 @@ export default function HomeV3() {
                   content, and stay consistent — so your product gets the
                   attention it deserves.
                 </p>
-                <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
               </div>
               <Image
                 src="/tmpu3cg1514.webp"

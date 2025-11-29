@@ -14,7 +14,9 @@
     "test:facebook": "npx tsx scripts/test-facebook-api.ts",
     "seed:templates": "npx tsx scripts/seed-templates.ts",
     "fix:template-dates": "npx tsx scripts/fix-template-dates.ts",
-    "fix:template-date-strings": "npx tsx scripts/fix-template-date-strings.ts"
+    "fix:template-date-strings": "npx tsx scripts/fix-template-date-strings.ts",
+    "delete:user": "npx tsx scripts/delete-user.ts",
+    "migrate:platform-icons": "npx tsx scripts/add-platform-icons-onboarding-field.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

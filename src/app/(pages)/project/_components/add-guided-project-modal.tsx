@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,26 +20,91 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { isSubscriptionExpired } from "@/lib/sub";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 export function AddGuidedProjectModal() {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [textareaHeight, setTextareaHeight] = useState(96); // Default h-24 = 96px
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
   const createProject = useCreateProject();
   const desc = useGetWebsiteDescription()
   const sidebar = useSidebar();
   const { data } = useSession();
   const projects = useGetAllProjects();
+  const { open: pricingModalOpen } = usePricingModal();
+  const pricingModalWasOpenRef = useRef(false);
+  const modalShownRef = useRef(false);
+
+  // Track when pricing modal opens/closes
+  useEffect(() => {
+    if (pricingModalOpen) {
+      pricingModalWasOpenRef.current = true;
+      setOpen(false); // Always close this modal when pricing modal opens
+      modalShownRef.current = false; // Reset so modal can show after payment modal closes
+    }
+  }, [pricingModalOpen]);
 
   useEffect(() => {
     if (!data) return;
     if (!projects || !projects.data) return;
-    if (data.subscription && !isSubscriptionExpired(data.subscription.endsAt).isExpired && !projects.data?.length) {
-      setOpen(true);
+    
+    // Reset refs when user has projects (allows modal to show again if they delete all projects)
+    if (projects.data.length > 0) {
+      modalShownRef.current = false;
+      pricingModalWasOpenRef.current = false;
+      if (open) {
+        setOpen(false);
+      }
+      return;
     }
-  }, [data?.subscription, data?.user?.id, projects.data])
+    
+    // NEVER show this modal if pricing modal is currently open (payment wall must show first)
+    if (pricingModalOpen) {
+      setOpen(false);
+      return;
+    }
+    
+    // Only show if:
+    // 1. User has subscription (not expired)
+    // 2. User has zero projects
+    // 3. Pricing modal was opened at some point (user saw payment screen)
+    // 4. Pricing modal is now closed
+    // 5. Modal hasn't been shown yet
+    if (
+      data.subscription && 
+      !isSubscriptionExpired(data.subscription.endsAt).isExpired && 
+      !projects.data?.length &&
+      pricingModalWasOpenRef.current &&
+      !modalShownRef.current
+    ) {
+      // Small delay to ensure pricing modal is fully closed and UI is ready
+      const timer = setTimeout(() => {
+        setOpen(true);
+        modalShownRef.current = true;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [data?.subscription, data?.user?.id, projects.data, pricingModalOpen, open])
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current && description) {
+      // Reset height to auto to get the correct scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Calculate new height based on content (min 96px, max 300px)
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 96), 300);
+      textareaRef.current.style.height = `${newHeight}px`;
+      setTextareaHeight(newHeight);
+    } else if (textareaRef.current && !description) {
+      // Reset to default height when empty
+      textareaRef.current.style.height = '96px';
+      setTextareaHeight(96);
+    }
+  }, [description]);
 
   const handleNext = async () => {
     if (step === 1 && url) {
@@ -59,6 +124,9 @@ export function AddGuidedProjectModal() {
       setName("");
       setUrl("");
       setDescription("");
+      // Reset refs when project is created
+      modalShownRef.current = false;
+      pricingModalWasOpenRef.current = false;
     } catch { }
   };
 
@@ -92,13 +160,15 @@ export function AddGuidedProjectModal() {
       />
     </div>,
     <div key="description" className="space-y-2">
-      <Label htmlFor="description">Could you give a brief description of what it’s about?</Label>
+      <Label htmlFor="description">Could you give a brief description of what it&apos;s about?</Label>
       <Textarea
+        ref={textareaRef}
         id="description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="A campaign to promote eco-friendly products through creative storytelling"
-        className="h-24"
+        className="min-h-24 resize-none overflow-y-auto"
+        style={{ height: `${textareaHeight}px` }}
       />
     </div>,
   ];

@@ -256,6 +256,7 @@ model FirstViewTooltip {
   contentPlanner             Boolean  @default(false)
   quickGenerate              Boolean  @default(false)
   videoGeneration            Boolean  @default(false)
+  platformIconsOnboarding    Boolean  @default(false)
   dismissedProjectAlerts     String[] @default([])
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt

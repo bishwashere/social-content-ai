@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,10 +24,29 @@ export function AddProjectButton() {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [textareaHeight, setTextareaHeight] = useState(96); // Default h-24 = 96px
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
   const createProject = useCreateProject();
   const desc = useGetWebsiteDescription()
   const sidebar = useSidebar()
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current && description) {
+      // Reset height to auto to get the correct scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Calculate new height based on content (min 96px, max 300px)
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 96), 300);
+      textareaRef.current.style.height = `${newHeight}px`;
+      setTextareaHeight(newHeight);
+    } else if (textareaRef.current && !description) {
+      // Reset to default height when empty
+      textareaRef.current.style.height = '96px';
+      setTextareaHeight(96);
+    }
+  }, [description]);
+
   const handleNext = async () => {
     if (step === 1 && url) {
       const description = await desc.mutateAsync(url)
@@ -72,11 +91,13 @@ export function AddProjectButton() {
     <div key="description" className="space-y-2">
       <Label htmlFor="description">Description</Label>
       <Textarea
+        ref={textareaRef}
         id="description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="A campaign to promote eco-friendly products through creative storytelling"
-        className="h-24"
+        className="min-h-24 resize-none overflow-y-auto"
+        style={{ height: `${textareaHeight}px` }}
       />
     </div>,
   ];

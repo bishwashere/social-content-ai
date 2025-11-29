@@ -4,8 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
-  FolderOpen,
-  Folder,
   ChevronDown,
   ChevronRight,
   PlusCircleIcon,
@@ -66,7 +64,7 @@ export function ProjectFolderItem({
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(folder.name);
   const [editDescription, setEditDescription] = useState(folder.description || "");
-  const [editColor, setEditColor] = useState(folder.color || "#3B82F6");
+  const [editColor, setEditColor] = useState(folder.color || null);
 
   const activeProjectId = (path: string) => {
     const match = path.match(/project\/([^/]+)/);
@@ -87,7 +85,7 @@ export function ProjectFolderItem({
       id: folder.id,
       name: editName.trim(),
       description: editDescription.trim() || undefined,
-      color: editColor,
+      color: editColor || undefined,
     });
 
     setEditOpen(false);
@@ -177,14 +175,11 @@ export function ProjectFolderItem({
           <div className="w-[calc(var(--sidebar-width)-1rem)]">
             <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200">
               <div className="flex items-center gap-2 truncate flex-1">
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: folder.color || "#3B82F6" }}
-                />
-                {isOpen ? (
-                  <FolderOpen className="h-4 w-4 shrink-0" />
-                ) : (
-                  <Folder className="h-4 w-4 shrink-0" />
+                {folder.color && (
+                  <div
+                    className="w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: folder.color }}
+                  />
                 )}
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="font-medium truncate">{folder.name}</span>
@@ -330,6 +325,17 @@ export function ProjectFolderItem({
             <div className="space-y-2">
               <Label>Folder Color</Label>
               <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  className={`w-8 h-8 rounded border-2 transition-all flex items-center justify-center ${!editColor
+                      ? "border-gray-800 scale-110 bg-gray-100"
+                      : "border-gray-300 hover:border-gray-500 bg-gray-50"
+                    }`}
+                  onClick={() => setEditColor(null)}
+                  title="No color"
+                >
+                  <span className="text-xs text-gray-500">×</span>
+                </button>
                 {colorOptions.map((colorOption) => (
                   <button
                     key={colorOption}

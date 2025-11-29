@@ -1,14 +1,14 @@
 "use client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Markdown from "react-markdown";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyIcon, RefreshCcw, Share2Icon, Sparkle, Pencil } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useGenerateProjectContent } from "@/backend-apis/projects/hooks";
+import { useGenerateProjectContent, useGetAllProjects } from "@/backend-apis/projects/hooks";
 import Link from "next/link";
 import { Projects as Project, ProjectChat } from "@prisma/client";
 import { editChatContent } from "@/server-actions/edit-chat-content";
@@ -18,6 +18,9 @@ import { Switch } from "@/components/ui/switch";
 import AutoPost from "@/components/common/auto-post";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "@/backend-apis/auth/hooks";
+import { useGetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
+import { PlatformIconsOnboarding } from "@/components/common/platform-icons-onboarding";
 
 interface ContentGeneratorProps {
   project: Project;
@@ -25,11 +28,35 @@ interface ContentGeneratorProps {
 
 export function ContentGenerator({ project }: ContentGeneratorProps) {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const projects = useGetAllProjects();
+  const tooltipData = useGetFirstViewTooltip(session?.user?.id || "");
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(true);
   const [prompt, setPrompt] = useState("");
   const generateProjectContent = useGenerateProjectContent();
+  const [isSaving, setIsSaving] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const platformCardRefs = useRef<Record<string, HTMLElement | null>>({});
+  const iconRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Check if should show onboarding
+  useEffect(() => {
+    if (
+      generateProjectContent.data &&
+      projects.data &&
+      projects.data.length === 1 &&
+      tooltipData.data &&
+      !tooltipData.data.platformIconsOnboarding
+    ) {
+      // Small delay to ensure cards and icons are rendered
+      setTimeout(() => {
+        setShowOnboarding(true);
+      }, 500);
+    }
+  }, [generateProjectContent.data, projects.data, tooltipData.data]);
+
   const copyToClipboard = useMemo(
     () => (text: string, platform: string) => {
       navigator.clipboard.writeText(text).then(
@@ -44,7 +71,6 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
     },
     [],
   );
-  const [isSaving, setIsSaving] = useState(false);
   return (
     <div className="space-y-4 w-full mt-5">
       <div className="flex items-center justify-between">
@@ -98,42 +124,113 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
       {generateProjectContent.data && (
         <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
           <ScrollArea className="">
-            {Object.entries(generateProjectContent.data.contents || {}).map(
-              ([platform, text]) => (
-                <Card key={platform} className="rounded-lg border mb-5">
+            {Object.entries(generateProjectContent.data.contents || {}).slice(0, 4).map(
+              ([platform, text], index) => {
+                const isFirstPlatform = index === 0;
+                return (
+                <Card 
+                  key={platform} 
+                  className="rounded-lg border mb-5"
+                  ref={(el) => {
+                    if (el) {
+                      platformCardRefs.current[platform] = el;
+                    }
+                  }}
+                >
                   <CardHeader className="flex justify-between items-center mb-2 flex-row">
                     <CardTitle>
                       {platform.charAt(0).toUpperCase() + platform.slice(1)}
                     </CardTitle>
                     <div className="flex flex-row gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditedContent({ ...editedContent, [platform]: text });
-                          setEditingPlatform(platform);
-                        }}
-                      >
-                        <Pencil />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(text, platform)}
-                      >
-                        <CopyIcon />
-                      </Button>
-                      <PostToWall
-                        content={text}
-                        platform={platform}
-                        projectId={project.id}
-                        prompt={generateProjectContent.data.prompt}
-                      />
-                      <AutoPost
-                        platform={platform as any}
-                        content={text}
-                        projectId={project.id}
-                      />
+                      {isFirstPlatform ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            ref={(el) => {
+                              if (el) {
+                                iconRefs.current['edit'] = el;
+                              }
+                            }}
+                            onClick={() => {
+                              setEditedContent({ ...editedContent, [platform]: text });
+                              setEditingPlatform(platform);
+                            }}
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            ref={(el) => {
+                              if (el) {
+                                iconRefs.current['copy'] = el;
+                              }
+                            }}
+                            onClick={() => copyToClipboard(text, platform)}
+                          >
+                            <CopyIcon />
+                          </Button>
+                          <div
+                            ref={(el) => {
+                              if (el) {
+                                iconRefs.current['postToWall'] = el;
+                              }
+                            }}
+                          >
+                            <PostToWall
+                              content={text}
+                              platform={platform}
+                              projectId={project.id}
+                              prompt={generateProjectContent.data.prompt}
+                            />
+                          </div>
+                          <div
+                            ref={(el) => {
+                              if (el) {
+                                iconRefs.current['autoPost'] = el;
+                              }
+                            }}
+                          >
+                            <AutoPost
+                              platform={platform as any}
+                              content={text}
+                              projectId={project.id}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditedContent({ ...editedContent, [platform]: text });
+                              setEditingPlatform(platform);
+                            }}
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyToClipboard(text, platform)}
+                          >
+                            <CopyIcon />
+                          </Button>
+                          <PostToWall
+                            content={text}
+                            platform={platform}
+                            projectId={project.id}
+                            prompt={generateProjectContent.data.prompt}
+                          />
+                          <AutoPost
+                            platform={platform as any}
+                            content={text}
+                            projectId={project.id}
+                          />
+                        </>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -191,10 +288,20 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                     </div>
                   </CardContent>
                 </Card>
-              )
+              );
+              }
             )}
           </ScrollArea>
         </div>
+      )}
+
+      {/* Platform Icons Onboarding */}
+      {showOnboarding && generateProjectContent.data && (
+        <PlatformIconsOnboarding
+          isOpen={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          iconRefs={iconRefs.current}
+        />
       )}
     </div>
   );

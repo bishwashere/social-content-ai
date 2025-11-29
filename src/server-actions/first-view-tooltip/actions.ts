@@ -8,6 +8,7 @@ export type UpdateFirstViewTooltipData = {
     contentPlanner?: boolean;
     quickGenerate?: boolean;
     videoGeneration?: boolean;
+    platformIconsOnboarding?: boolean;
     dismissedProjectAlerts?: string[];
   };
 };
@@ -20,11 +21,14 @@ export async function getFirstViewTooltip(userId: string) {
   if (!doc) {
     return prisma.firstViewTooltip.create({
       data: {
-        userId,
+        user: {
+          connect: { id: userId },
+        },
         addProject: false,
         contentPlanner: false,
         quickGenerate: false,
         videoGeneration: false,
+        platformIconsOnboarding: false,
         dismissedProjectAlerts: [],
       },
     });
@@ -50,7 +54,9 @@ export async function updateFirstViewTooltip({
 
   return prisma.firstViewTooltip.create({
     data: {
-      userId,
+      user: {
+        connect: { id: userId },
+      },
       ...updateData,
     },
   });
@@ -62,6 +68,7 @@ export async function resetFirstViewTooltip(userId: string) {
     contentPlanner: false,
     quickGenerate: false,
     videoGeneration: false,
+    platformIconsOnboarding: false,
   };
 
   const existingTooltip = await prisma.firstViewTooltip.findFirst({
@@ -77,7 +84,9 @@ export async function resetFirstViewTooltip(userId: string) {
 
   return prisma.firstViewTooltip.create({
     data: {
-      userId,
+      user: {
+        connect: { id: userId },
+      },
       ...resetData,
     },
   });

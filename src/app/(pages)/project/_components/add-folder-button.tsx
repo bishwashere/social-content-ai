@@ -21,7 +21,7 @@ export function AddFolderButton() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [color, setColor] = useState("#3B82F6");
+  const [color, setColor] = useState<string | null>(null);
   
   const { data: session } = useSession();
   const createFolder = useCreateProjectFolder();
@@ -37,7 +37,7 @@ export function AddFolderButton() {
       await createFolder.mutateAsync({
         name: name.trim(),
         description: description.trim() || undefined,
-        color,
+        color: color || undefined,
       });
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -47,7 +47,7 @@ export function AddFolderButton() {
     // Reset form and close dialog
     setName("");
     setDescription("");
-    setColor("#3B82F6");
+    setColor(null);
     setOpen(false);
   };
 
@@ -103,6 +103,18 @@ export function AddFolderButton() {
           <div className="space-y-2">
             <Label>Folder Color</Label>
             <div className="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                className={`w-8 h-8 rounded border-2 transition-all flex items-center justify-center ${
+                  !color
+                    ? "border-gray-800 scale-110 bg-gray-100"
+                    : "border-gray-300 hover:border-gray-500 bg-gray-50"
+                }`}
+                onClick={() => setColor(null)}
+                title="No color"
+              >
+                <span className="text-xs text-gray-500">×</span>
+              </button>
               {colorOptions.map((colorOption) => (
                 <button
                   key={colorOption}
