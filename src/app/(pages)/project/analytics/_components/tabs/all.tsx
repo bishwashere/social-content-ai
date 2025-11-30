@@ -6,10 +6,22 @@ import { AnalyticsPlatformsProps } from '.';
 
 const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
   const { data: session } = useSession();
-  const { isLoading, data } = useGetAllPlatformMetrics(session?.user.id || "", selectedProject);
+  const { isLoading, data, error } = useGetAllPlatformMetrics(session?.user.id || "", selectedProject);
   const [analytics, setAnalytics] = useState<ViewAnalyticsProps>({ totalComments: 0, totalFollowers: 0, totalImpressions: 0, totalLikes: 0, totalPosts: 0, chartData: [] });
 
   useEffect(() => {
+    // Check for errors first
+    if (error) {
+      console.error("[All Analytics] Error:", error);
+      return;
+    }
+
+    // Check if request was unsuccessful
+    if (data && 'success' in data && data.success === false) {
+      console.error("[All Analytics] API returned error:", data.message);
+      return;
+    }
+
     if (data?.data && Array.isArray(data.data) && timerange) {
       try {
         const now = new Date();
@@ -66,6 +78,42 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
   }, [data, timerange, selectedProject]);
 
   if (isLoading) return <ViewAnalyticsSkeleton />
+
+  // Show error message if there's an error
+  if (error) {
+    return (
+      <div className='w-full p-4'>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 font-medium">Error loading analytics</p>
+          <p className="text-red-600 text-sm mt-1">{error.message || "An unexpected error occurred"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if API returned an error
+  if (data && 'success' in data && data.success === false) {
+    return (
+      <div className='w-full p-4'>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800 font-medium">No analytics data available</p>
+          <p className="text-yellow-600 text-sm mt-1">{data.message || "Please connect and link social media accounts to this project"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no project selected
+  if (!selectedProject) {
+    return (
+      <div className='w-full p-4'>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 font-medium">Select a project</p>
+          <p className="text-blue-600 text-sm mt-1">Please select a project from above to view analytics</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='w-full'>

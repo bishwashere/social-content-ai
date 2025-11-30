@@ -76,15 +76,30 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
 
     // Step 2: Return from DB if posts already exist
     const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
+    
+    console.log(`[getFacebookMetrics] User: ${userId}, Project: ${projectId}`);
+    console.log(`[getFacebookMetrics] Total OAuth providers: ${oauthProvider.length}`);
+    console.log(`[getFacebookMetrics] Providers linked to project: ${projectOauthProvider.length}`);
+    
+    if (projectOauthProvider.length === 0) {
+      console.log(`[getFacebookMetrics] No Facebook providers linked to project ${projectId}`);
+      return {
+        success: false,
+        message: "No Facebook page linked to this project. Please link a Facebook page in project settings.",
+      };
+    }
+    
     const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
     if (posts.length) {
+      console.log(`[getFacebookMetrics] Returning ${posts.length} posts from database`);
       return {
         success: true,
         data: posts,
       };
     }
 
-    if (!projectOauthProvider[0].pageId) {
+    if (!projectOauthProvider[0]?.pageId) {
+      console.log(`[getFacebookMetrics] Provider has no pageId`);
       return {
         success: false,
         message: "Facebook page not found",
@@ -240,7 +255,20 @@ export const getLinkedinMetrics = async (userId: string, projectId: string | nul
     });
     const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
-    if (!projectOauthProvider.length || !projectOauthProvider[0].pageId || !projectOauthProvider[0].expiresAt) {
+    console.log(`[getLinkedinMetrics] User: ${userId}, Project: ${projectId}`);
+    console.log(`[getLinkedinMetrics] Total OAuth providers: ${oauthProvider.length}`);
+    console.log(`[getLinkedinMetrics] Providers linked to project: ${projectOauthProvider.length}`);
+
+    if (!projectOauthProvider.length) {
+      console.log(`[getLinkedinMetrics] No LinkedIn providers linked to project ${projectId}`);
+      return {
+        success: false,
+        message: "No LinkedIn page linked to this project. Please link a LinkedIn page in project settings.",
+      };
+    }
+
+    if (!projectOauthProvider[0].pageId || !projectOauthProvider[0].expiresAt) {
+      console.log(`[getLinkedinMetrics] Provider missing pageId or expiresAt`);
       return {
         success: false,
         message: "Linkedin page not found",
@@ -466,7 +494,17 @@ export const getTiktokMetrics = async (userId: string, projectId: string | null)
 
 export const getAllPlatformMetrics = async (userId: string, projectId: string | null) => {
   try {
-    // console.log(userId)
+    console.log(`[getAllPlatformMetrics] User: ${userId}, Project: ${projectId}`);
+    
+    if (!projectId) {
+      console.log(`[getAllPlatformMetrics] No projectId provided`);
+      return {
+        success: false,
+        message: "No project selected",
+        data: [],
+      };
+    }
+    
     const oauthProvider = await prisma.oauthProvider.findMany({
       where: {
         userId,
@@ -476,25 +514,47 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
         projectToOAuthProviders: true,
       },
     });
-    // console.log(oauthProvider)
 
-    if (!oauthProvider) {
+    console.log(`[getAllPlatformMetrics] Total OAuth providers: ${oauthProvider.length}`);
+
+    if (!oauthProvider || oauthProvider.length === 0) {
+      console.log(`[getAllPlatformMetrics] No OAuth providers found for user`);
       return {
         success: false,
-        message: "Account not found",
+        message: "No social media accounts connected",
+        data: [],
       };
     }
 
-    const posts = oauthProvider
-      .filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
-      .flatMap(provider => provider.pagePosts || []);
+    // Filter providers linked to the selected project
+    const linkedProviders = oauthProvider.filter(provider => 
+      provider.projectToOAuthProviders.some(data => data.projectId === projectId)
+    );
+    
+    console.log(`[getAllPlatformMetrics] Providers linked to project: ${linkedProviders.length}`);
+    linkedProviders.forEach(p => {
+      console.log(`  - ${p.platform} (${p.pageName}): ${p.pagePosts.length} posts`);
+    });
+
+    if (linkedProviders.length === 0) {
+      console.log(`[getAllPlatformMetrics] No providers linked to project ${projectId}`);
+      return {
+        success: false,
+        message: "No social media accounts linked to this project. Please link accounts in project settings.",
+        data: [],
+      };
+    }
+
+    const posts = linkedProviders.flatMap(provider => provider.pagePosts || []);
+    
+    console.log(`[getAllPlatformMetrics] Total posts found: ${posts.length}`);
 
     return {
       success: true,
       data: posts,
     };
   } catch (error) {
-    console.error("Error fetching metrics:", error);
+    console.error("[getAllPlatformMetrics] Error fetching metrics:", error);
     throw new Error("Could not load data!");
   }
 }
