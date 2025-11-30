@@ -64,7 +64,7 @@ export const TooltipManagerProvider = ({ children }: { children: React.ReactNode
       setFirstViewTooltipKeys((prev) => (prev ? { ...prev, [tooltipKey]: true } : prev));
       // await updateFirstViewTooltip(data.user.id, { [tooltipKey]: true });
     },
-    [data?.user?.id]
+    [data?.user?.id, updateTooltipData]
   );
 
   // Sort tooltip keys by order

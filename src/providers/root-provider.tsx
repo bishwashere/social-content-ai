@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import SessionProvider from "./session-provider";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { PricingModalProvider } from "./pricing-modal-provider";
 
 const queryClient = new QueryClient({
   defaultOptions: {

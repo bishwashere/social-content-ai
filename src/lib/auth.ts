@@ -13,9 +13,7 @@ import { AUTH_ERROR_CODES } from "@/constants/auth-error";
 import { OauthProvider } from "@prisma/client";
 import { Fb } from "./3rd-providers/fb";
 import { Twitter } from "./3rd-providers/twitter";
-import { Linkedin } from "./3rd-providers/linkedin";
 import { authenticateWithThreads } from "./auth/threads";
-import { TikTok } from "./3rd-providers/tiktok";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [

@@ -292,5 +292,5 @@ export const campaignPlanner = [
   }
 ];
 
-const plan = {goal: "", ...campaignPlanner[0].intensityPlans[0]}
-export type CampaignPlanner =  typeof plan;
+const _plan = {goal: "", ...campaignPlanner[0].intensityPlans[0]}
+export type CampaignPlanner =  typeof _plan;
