@@ -283,9 +283,6 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
                   <p className="text-sm font-medium text-blue-900">
                     The system connected this project to &quot;{autoLink.pageName}&quot; from {PLATFORM_LABELS[autoLink.platform]}.
                   </p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    Please confirm if this is correct.
-                  </p>
                 </div>
                 <div className="flex items-center gap-2 ml-4">
                   <Button
