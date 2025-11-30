@@ -172,19 +172,19 @@ export function ProjectFolderItem({
     <>
       <Collapsible open={isOpen} onOpenChange={onToggle}>
         <CollapsibleTrigger asChild>
-          <div className="w-[calc(var(--sidebar-width)-1rem)]">
-            <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200">
-              <div className="flex items-center gap-2 truncate flex-1">
+          <div className="w-full max-w-full min-w-0">
+            <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                 {folder.color && (
                   <div
                     className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: folder.color }}
                   />
                 )}
-                <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                   <span className="font-medium truncate">{folder.name}</span>
                   {folder.description && (
-                    <span className="text-xs text-gray-400 leading-tight break-words">
+                    <span className="text-xs text-gray-400 leading-tight truncate">
                       {folder.description}
                     </span>
                   )}
@@ -271,10 +271,10 @@ export function ProjectFolderItem({
                   "bg-accent text-accent-foreground",
                 )}
               >
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-current opacity-60" />
-                    <span className="truncate max-w-[150px]">{item.project.name}</span>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                    <div className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
+                    <span className="truncate min-w-0">{item.project.name}</span>
                   </div>
 
                   {/* Progress Bar */}

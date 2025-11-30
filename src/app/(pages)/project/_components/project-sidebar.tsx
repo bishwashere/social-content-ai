@@ -94,10 +94,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         <Logo iconOnly={!sidebar.open} />
       </SidebarHeader>
       <ScrollArea className="h-[calc(100vh-5rem)] overflow-y-auto">
-        <SidebarContent className="p-2 space-y-3 min-w-0">
+        <SidebarContent className="p-2 space-y-3 min-w-0 max-w-full overflow-hidden">
           {/* Navigation Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1 min-w-0">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1 min-w-0 max-w-full overflow-hidden">
             <div
               ref={(el) => {
                 if (elementRefs && el) {
@@ -327,10 +327,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           
           {/* What's this? button */}
           {onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-end mt-2 min-w-0">
               <button
                 onClick={onNavigationTourStart}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="text-xs text-gray-500 hover:text-gray-700 truncate"
               >
                 What&apos;s this?
               </button>
@@ -341,7 +341,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Folders Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0" data-folders-section>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-folders-section>
             {sidebar.open && (
               <div className="flex items-center justify-between px-2 mb-2">
                 <p className="text-sm font-semibold">Folders</p>
@@ -371,10 +371,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             
             {/* What's this? button */}
             {onFoldersTourStart && (settings?.guidedTourEnabled ?? true) && (
-              <div className="flex justify-end mt-2">
+              <div className="flex justify-end mt-2 min-w-0">
                 <button
                   onClick={onFoldersTourStart}
-                  className="text-xs text-gray-500 hover:text-gray-700"
+                  className="text-xs text-gray-500 hover:text-gray-700 truncate"
                 >
                   What&apos;s this?
                 </button>
@@ -385,7 +385,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Projects Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0" data-projects-section-card>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-projects-section-card>
           <Collapsible open={openSections.includes("projects")} onOpenChange={() => handleSectionToggle("projects")}>
             <CollapsibleTrigger asChild>
               <div 
@@ -434,10 +434,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           
           {/* What's this? button */}
           {onProjectsTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-end mt-2 min-w-0">
               <button
                 onClick={onProjectsTourStart}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="text-xs text-gray-500 hover:text-gray-700 truncate"
               >
                 What&apos;s this?
               </button>
