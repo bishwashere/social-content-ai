@@ -14,6 +14,7 @@ import { OauthProvider } from "@prisma/client";
 import { Fb } from "./3rd-providers/fb";
 import { Twitter } from "./3rd-providers/twitter";
 import { authenticateWithThreads } from "./auth/threads";
+import { autoLinkProviderToAllProjects } from "@/server-actions/auto-link-oauth-providers";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [

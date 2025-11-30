@@ -6,6 +6,8 @@
 
 2. `src/app/api/recent-activity/route.ts:202` - `'draft.planner' is possibly 'null'`
 
+3. `src/lib/auth.ts:283:15` - `Cannot find name 'autoLinkProviderToAllProjects'` - Missing import statement
+
 ## React/JSX Errors
 
 1. `src/app/(pages)/project/_components/your-today-panel.tsx:68:22` - `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`
