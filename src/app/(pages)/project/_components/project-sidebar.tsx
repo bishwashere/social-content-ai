@@ -93,11 +93,11 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       <SidebarHeader className="border-b p-4 flex justify-center">
         <Logo iconOnly={!sidebar.open} />
       </SidebarHeader>
-      <ScrollArea className="h-[calc(100vh-5rem)]">
-        <SidebarContent className="p-2 space-y-3">
+      <ScrollArea className="h-[calc(100vh-5rem)] overflow-y-auto">
+        <SidebarContent className="p-2 space-y-3 min-w-0">
           {/* Navigation Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1 min-w-0">
             <div
               ref={(el) => {
                 if (elementRefs && el) {
@@ -341,7 +341,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Folders Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3" data-folders-section>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0" data-folders-section>
             {sidebar.open && (
               <div className="flex items-center justify-between px-2 mb-2">
                 <p className="text-sm font-semibold">Folders</p>
@@ -385,7 +385,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Projects Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3" data-projects-section-card>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0" data-projects-section-card>
           <Collapsible open={openSections.includes("projects")} onOpenChange={() => handleSectionToggle("projects")}>
             <CollapsibleTrigger asChild>
               <div 
@@ -533,7 +533,7 @@ function ProjectItem({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 cursor-pointer",
+        "flex flex-col gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 cursor-pointer min-w-0",
         activeProjectId(currentPath) === project.id &&
         "bg-gray-200",
       )}
@@ -545,10 +545,10 @@ function ProjectItem({
         router.push(`/project/${project.id}${tab ? `?tab=${tab}` : ''}`)
       }}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Folder className="h-4 w-4 shrink-0" />
-          <span className="font-medium max-w-[9rem] overflow-hidden text-ellipsis">{project.name}</span>
+          <span className="font-medium truncate min-w-0">{project.name}</span>
         </div>
 
         <div className="flex items-center gap-2">
