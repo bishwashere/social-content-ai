@@ -259,6 +259,7 @@ model FirstViewTooltip {
   videoGeneration            Boolean  @default(false)
   platformIconsOnboarding    Boolean  @default(false)
   dismissedProjectAlerts     String[] @default([])
+  approvedAutoLinks          Json     @default("[]")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 

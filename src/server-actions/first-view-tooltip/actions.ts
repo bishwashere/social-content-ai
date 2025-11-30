@@ -10,6 +10,7 @@ export type UpdateFirstViewTooltipData = {
     videoGeneration?: boolean;
     platformIconsOnboarding?: boolean;
     dismissedProjectAlerts?: string[];
+    approvedAutoLinks?: string[];
   };
 };
 
@@ -30,6 +31,7 @@ export async function getFirstViewTooltip(userId: string) {
         videoGeneration: false,
         platformIconsOnboarding: false,
         dismissedProjectAlerts: [],
+        approvedAutoLinks: [],
       },
     });
   }
@@ -69,6 +71,7 @@ export async function resetFirstViewTooltip(userId: string) {
     quickGenerate: false,
     videoGeneration: false,
     platformIconsOnboarding: false,
+    approvedAutoLinks: [],
   };
 
   const existingTooltip = await prisma.firstViewTooltip.findFirst({

@@ -8,10 +8,16 @@ import { useSession } from "@/backend-apis/auth/hooks"
 import { checkAllProjectOAuthProviders } from "@/server-actions/check-project-oauth-provider"
 import { mapProjectToOAuthProvider } from "@/server-actions/map-project-oauth-provider"
 import { toast } from "sonner"
-import { X } from "lucide-react"
+import { X, Check, XCircle } from "lucide-react"
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
 import { getFirstViewTooltip, updateFirstViewTooltip } from "@/server-actions/first-view-tooltip/actions"
 import { OauthPlatform } from "@prisma/client"
+import { 
+  autoLinkOAuthProviders, 
+  getPendingAutoLinkedProviders,
+  approveAutoLinkedProvider,
+  cancelAutoLinkedProvider 
+} from "@/server-actions/auto-link-oauth-providers"
 
 type AvailableProvider = {
   id: string
@@ -27,6 +33,13 @@ type PlatformState = {
 }
 
 type Props = {
+  projectId: string
+}
+
+type PendingAutoLink = {
+  oauthProviderId: string
+  platform: OauthPlatform
+  pageName: string | null
   projectId: string
 }
 
@@ -54,6 +67,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const [showAlert, setShowAlert] = useState(false)
+  const [pendingAutoLinks, setPendingAutoLinks] = useState<PendingAutoLink[]>([])
   const [platformStates, setPlatformStates] = useState<Record<OauthPlatform, PlatformState>>(
     SUPPORTED_PLATFORMS.reduce((acc, platform) => ({
       ...acc,
@@ -131,9 +145,97 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     }
   }, [projectId, session?.user?.id, tooltipData])
 
+  // Auto-link providers on mount
+  useEffect(() => {
+    const performAutoLink = async () => {
+      if (!session?.user?.id || !projectId) return
+
+      try {
+        // Auto-link providers based on name matching
+        await autoLinkOAuthProviders(projectId, session.user.id)
+        
+        // Get pending auto-links that need approval
+        const pending = await getPendingAutoLinkedProviders(projectId, session.user.id)
+        setPendingAutoLinks(pending)
+      } catch (error) {
+        console.error("Error auto-linking providers:", error)
+      }
+    }
+
+    performAutoLink()
+  }, [projectId, session?.user?.id])
+
   useEffect(() => {
     checkAvailableProviders()
   }, [checkAvailableProviders])
+
+  // Refresh pending auto-links when providers change
+  useEffect(() => {
+    const fetchPendingAutoLinks = async () => {
+      if (!session?.user?.id || !projectId) return
+
+      try {
+        const pending = await getPendingAutoLinkedProviders(projectId, session.user.id)
+        setPendingAutoLinks(pending)
+      } catch (error) {
+        console.error("Error fetching pending auto-links:", error)
+      }
+    }
+
+    fetchPendingAutoLinks()
+  }, [projectId, session?.user?.id, platformStates])
+
+  const handleApproveAutoLink = async (autoLink: PendingAutoLink) => {
+    if (!session?.user?.id) return
+
+    try {
+      await approveAutoLinkedProvider(
+        autoLink.projectId,
+        autoLink.oauthProviderId,
+        session.user.id
+      )
+      
+      // Remove from pending list
+      setPendingAutoLinks(prev => 
+        prev.filter(p => p.oauthProviderId !== autoLink.oauthProviderId)
+      )
+      
+      toast.success(`${PLATFORM_LABELS[autoLink.platform]} connection approved`)
+      
+      // Refresh providers
+      await checkAvailableProviders()
+      queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
+    } catch (error) {
+      console.error("Error approving auto-link:", error)
+      toast.error("Failed to approve connection")
+    }
+  }
+
+  const handleCancelAutoLink = async (autoLink: PendingAutoLink) => {
+    if (!session?.user?.id) return
+
+    try {
+      await cancelAutoLinkedProvider(
+        autoLink.projectId,
+        autoLink.oauthProviderId,
+        session.user.id
+      )
+      
+      // Remove from pending list
+      setPendingAutoLinks(prev => 
+        prev.filter(p => p.oauthProviderId !== autoLink.oauthProviderId)
+      )
+      
+      toast.success(`${PLATFORM_LABELS[autoLink.platform]} connection removed`)
+      
+      // Refresh providers
+      await checkAvailableProviders()
+      queryClient.invalidateQueries({ queryKey: ["connected-accounts", session.user.id] })
+    } catch (error) {
+      console.error("Error canceling auto-link:", error)
+      toast.error("Failed to remove connection")
+    }
+  }
 
   const handleConnectPlatform = async (platform: OauthPlatform, providerId: string) => {
     if (!session?.user?.id || !providerId) return
@@ -167,6 +269,50 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
         [platform]: { ...prev[platform], isMapping: false }
       }))
     }
+  }
+
+  // Show auto-link approval messages first
+  if (pendingAutoLinks.length > 0) {
+    return (
+      <div className="px-6 mb-4 max-w-4xl mx-auto space-y-3">
+        {pendingAutoLinks.map((autoLink) => (
+          <Alert key={autoLink.oauthProviderId} className="border-blue-500 bg-blue-50/50 w-full">
+            <AlertDescription className="w-full">
+              <div className="flex items-center justify-between pr-8">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">
+                    The system connected this project to &quot;{autoLink.pageName}&quot; from {PLATFORM_LABELS[autoLink.platform]}.
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Please confirm if this is correct.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleApproveAutoLink(autoLink)}
+                    className="gap-1 border-green-500 text-green-700 hover:bg-green-50"
+                  >
+                    <Check className="h-4 w-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCancelAutoLink(autoLink)}
+                    className="gap-1 border-red-500 text-red-700 hover:bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        ))}
+      </div>
+    )
   }
 
   // Don't show anything if platforms are already connected or no unmapped providers
