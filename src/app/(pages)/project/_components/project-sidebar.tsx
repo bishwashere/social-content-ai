@@ -42,11 +42,20 @@ import { AddFolderButton } from "./add-folder-button";
 import { ProjectFolderItem } from "./project-folder-item";
 import { useGetProjectFolders } from "@/backend-apis/project-folders/hooks";
 import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 
-export function ProjectSidebar() {
+interface ProjectSidebarProps {
+  elementRefs?: React.MutableRefObject<Record<string, HTMLElement | null>>;
+  onNavigationTourStart?: () => void;
+  onFoldersTourStart?: () => void;
+  onProjectsTourStart?: () => void;
+}
+
+export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTourStart, onProjectsTourStart }: ProjectSidebarProps) {
   const params = useParams();
   const pathname = usePathname();
   const sidebar = useSidebar();
+  const { data: settings } = useUserSettings();
   
   // Initialize open sections from localStorage or default values
   const [openSections, setOpenSections] = React.useState<string[]>(() => {
@@ -77,7 +86,7 @@ export function ProjectSidebar() {
   };
   const { data: projects, isLoading } = useGetAllProjects();
   const { data: folders, isLoading: foldersLoading } = useGetProjectFolders();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar } = sidebar;
 
   return (
     <Sidebar className="border-r" collapsible="icon">
@@ -85,38 +94,28 @@ export function ProjectSidebar() {
         <Logo iconOnly={!sidebar.open} />
       </SidebarHeader>
       <ScrollArea className="h-[calc(100vh-5rem)]">
-        <SidebarContent className="p-2">
-          <AddProjectButton />
-          
-          {/* For You Link */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  onClick={() => {
-                    if (window.innerWidth <= 768) {
-                      toggleSidebar()
-                    }
-                  }}
-                  href="/project/wall"
-                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
-                    !sidebar.open ? 'justify-center' : ''
-                  }`}
-                >
-                  <Newspaper className="h-4 w-4" />
-                  {sidebar.open && <span className="ml-2">For You</span>}
-                </Link>
-              </TooltipTrigger>
-              {!sidebar.open && (
-                <TooltipContent side="right">
-                  For You
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Dashboard Link */}
-          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="You can log what was posted here along with date. This helps you plan for future posts.">
+        <SidebarContent className="p-2 space-y-3">
+          {/* Navigation Section */}
+          {sidebar.open && (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1">
+            <div
+              ref={(el) => {
+                if (elementRefs && el) {
+                  elementRefs.current.addProject = el;
+                }
+              }}
+            >
+              <AddProjectButton />
+            </div>
+            
+            {/* For You Link */}
+          <div
+            ref={(el) => {
+              if (elementRefs && el) {
+                elementRefs.current.forYou = el;
+              }
+            }}
+          >
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -126,142 +125,226 @@ export function ProjectSidebar() {
                         toggleSidebar()
                       }
                     }}
-                    href="/project/dashboard"
+                    href="/project/wall"
                     className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
                     }`}
                   >
-                    <Calendar className="h-4 w-4" />
-                    {sidebar.open && <span className="ml-2">Content Planner</span>}
+                    <Newspaper className="h-4 w-4" />
+                    {sidebar.open && <span className="ml-2">For You</span>}
                   </Link>
                 </TooltipTrigger>
                 {!sidebar.open && (
                   <TooltipContent side="right">
-                    Content Planner
+                    For You
                   </TooltipContent>
                 )}
               </Tooltip>
             </TooltipProvider>
+          </div>
+
+          {/* Dashboard Link */}
+          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="You can log what was posted here along with date. This helps you plan for future posts.">
+            <div
+              ref={(el) => {
+                if (elementRefs && el) {
+                  elementRefs.current.contentPlanner = el;
+                }
+              }}
+            >
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      onClick={() => {
+                        if (window.innerWidth <= 768) {
+                          toggleSidebar()
+                        }
+                      }}
+                      href="/project/dashboard"
+                      className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                        !sidebar.open ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Calendar className="h-4 w-4" />
+                      {sidebar.open && <span className="ml-2">Content Planner</span>}
+                    </Link>
+                  </TooltipTrigger>
+                  {!sidebar.open && (
+                    <TooltipContent side="right">
+                      Content Planner
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </FirstViewTooltip>
 
           {/* Analytics Link */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  onClick={() => {
-                    if (window.innerWidth <= 768) {
-                      toggleSidebar()
-                    }
-                  }}
-                  href="/project/analytics"
-                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
-                    !sidebar.open ? 'justify-center' : ''
-                  }`}
-                >
-                  <TrendingUp className="h-4 w-4" />
-                  {sidebar.open && <span className="ml-2">Analytics</span>}
-                </Link>
-              </TooltipTrigger>
-              {!sidebar.open && (
-                <TooltipContent side="right">
-                  Analytics
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <div
+            ref={(el) => {
+              if (elementRefs && el) {
+                elementRefs.current.analytics = el;
+              }
+            }}
+          >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    onClick={() => {
+                      if (window.innerWidth <= 768) {
+                        toggleSidebar()
+                      }
+                    }}
+                    href="/project/analytics"
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                      !sidebar.open ? 'justify-center' : ''
+                    }`}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    {sidebar.open && <span className="ml-2">Analytics</span>}
+                  </Link>
+                </TooltipTrigger>
+                {!sidebar.open && (
+                  <TooltipContent side="right">
+                    Analytics
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           {/* Templates Link */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  onClick={() => {
-                    if (window.innerWidth <= 768) {
-                      toggleSidebar()
-                    }
-                  }}
-                  href="/project/templates"
-                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
-                    !sidebar.open ? 'justify-center' : ''
-                  } ${pathname === '/project/templates' || pathname?.startsWith('/project/templates/') ? 'bg-gray-200' : ''}`}
-                >
-                  <Layers className="h-4 w-4" />
-                  {sidebar.open && (
-                    <span className="ml-2 flex flex-col">
-                      <span>Templates</span>
-                      <span className="text-xs text-gray-500">(under development)</span>
-                    </span>
-                  )}
-                </Link>
-              </TooltipTrigger>
-              {!sidebar.open && (
-                <TooltipContent side="right">
-                  Templates (under development)
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <div
+            ref={(el) => {
+              if (elementRefs && el) {
+                elementRefs.current.template = el;
+              }
+            }}
+          >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    onClick={() => {
+                      if (window.innerWidth <= 768) {
+                        toggleSidebar()
+                      }
+                    }}
+                    href="/project/templates"
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                      !sidebar.open ? 'justify-center' : ''
+                    } ${pathname === '/project/templates' || pathname?.startsWith('/project/templates/') ? 'bg-gray-200' : ''}`}
+                  >
+                    <Layers className="h-4 w-4" />
+                    {sidebar.open && (
+                      <span className="ml-2 flex flex-col">
+                        <span>Templates</span>
+                        <span className="text-xs text-gray-500">(under development)</span>
+                      </span>
+                    )}
+                  </Link>
+                </TooltipTrigger>
+                {!sidebar.open && (
+                  <TooltipContent side="right">
+                    Templates (under development)
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           {/* Video Maker Link */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  onClick={() => {
-                    if (window.innerWidth <= 768) {
-                      toggleSidebar()
-                    }
-                  }}
-                  href="/project/video-maker"
-                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 transition-colors ${
-                    !sidebar.open ? 'justify-center' : ''
-                  } ${pathname === '/project/video-maker' ? 'ring-2 ring-purple-400' : ''}`}
-                >
-                  <Video className="h-4 w-4 text-purple-600" />
-                  {sidebar.open && <span className="ml-2 text-purple-900 font-semibold">Video Maker</span>}
-                </Link>
-              </TooltipTrigger>
-              {!sidebar.open && (
-                <TooltipContent side="right">
-                  Video Maker
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <div
+            ref={(el) => {
+              if (elementRefs && el) {
+                elementRefs.current.videoMaker = el;
+              }
+            }}
+          >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    onClick={() => {
+                      if (window.innerWidth <= 768) {
+                        toggleSidebar()
+                      }
+                    }}
+                    href="/project/video-maker"
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 transition-colors ${
+                      !sidebar.open ? 'justify-center' : ''
+                    } ${pathname === '/project/video-maker' ? 'ring-2 ring-purple-400' : ''}`}
+                  >
+                    <Video className="h-4 w-4 text-purple-600" />
+                    {sidebar.open && <span className="ml-2 text-purple-900 font-semibold">Video Maker</span>}
+                  </Link>
+                </TooltipTrigger>
+                {!sidebar.open && (
+                  <TooltipContent side="right">
+                    Video Maker
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           {/* My Videos Link */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  onClick={() => {
-                    if (window.innerWidth <= 768) {
-                      toggleSidebar()
-                    }
-                  }}
-                  href="/project/my-videos"
-                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
-                    !sidebar.open ? 'justify-center' : ''
-                  } ${pathname === '/project/my-videos' ? 'bg-gray-200' : ''}`}
-                >
-                  <PlaySquare className="h-4 w-4" />
-                  {sidebar.open && <span className="ml-2">My Videos</span>}
-                </Link>
-              </TooltipTrigger>
-              {!sidebar.open && (
-                <TooltipContent side="right">
-                  My Videos
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <div
+            ref={(el) => {
+              if (elementRefs && el) {
+                elementRefs.current.myVideos = el;
+              }
+            }}
+          >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    onClick={() => {
+                      if (window.innerWidth <= 768) {
+                        toggleSidebar()
+                      }
+                    }}
+                    href="/project/my-videos"
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                      !sidebar.open ? 'justify-center' : ''
+                    } ${pathname === '/project/my-videos' ? 'bg-gray-200' : ''}`}
+                  >
+                    <PlaySquare className="h-4 w-4" />
+                    {sidebar.open && <span className="ml-2">My Videos</span>}
+                  </Link>
+                </TooltipTrigger>
+                {!sidebar.open && (
+                  <TooltipContent side="right">
+                    My Videos
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          {/* What's this? button */}
+          {onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={onNavigationTourStart}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                What&apos;s this?
+              </button>
+            </div>
+          )}
+          </div>
+          )}
 
-          {/* Project Folders */}
-          <div className="mt-6">
+          {/* Folders Section */}
+          {sidebar.open && (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3" data-folders-section>
             {sidebar.open && (
               <div className="flex items-center justify-between px-2 mb-2">
-                <p className="text-sm font-semibold">Project Folders</p>
+                <p className="text-sm font-semibold">Folders</p>
               </div>
             )}
             <AddFolderButton />
@@ -271,25 +354,49 @@ export function ProjectSidebar() {
               ))
               : folders && folders.length > 0
               ? folders.map((folder: any) => (
-                  <ProjectFolderItem
-                    key={folder.id}
-                    folder={folder}
-                    isOpen={openSections.includes(folder.id)}
-                    onToggle={() => handleSectionToggle(folder.id)}
-                    currentPath={pathname}
-                  />
+                  <div key={folder.id} data-folder-item>
+                    <ProjectFolderItem
+                      folder={folder}
+                      isOpen={openSections.includes(folder.id)}
+                      onToggle={() => handleSectionToggle(folder.id)}
+                      currentPath={pathname}
+                    />
+                  </div>
                 ))
               : (
                 <div className="text-xs text-gray-500 px-3 py-2 text-center">
                   No project folders yet
                 </div>
               )}
+            
+            {/* What's this? button */}
+            {onFoldersTourStart && (settings?.guidedTourEnabled ?? true) && (
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={onFoldersTourStart}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  What&apos;s this?
+                </button>
+              </div>
+            )}
           </div>
+          )}
 
-                    {/* Projects */}
+          {/* Projects Section */}
+          {sidebar.open && (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3" data-projects-section-card>
           <Collapsible open={openSections.includes("projects")} onOpenChange={() => handleSectionToggle("projects")}>
             <CollapsibleTrigger asChild>
-              <div className="mt-6 cursor-pointer">
+              <div 
+                ref={(el) => {
+                  if (elementRefs && el) {
+                    elementRefs.current.projects = el;
+                  }
+                }}
+                className="cursor-pointer"
+                data-collapsible-trigger
+              >
                 {sidebar.open ? (
                   <div className="flex items-center justify-between px-2 mb-2">
                     <p className="text-sm font-semibold">Projects</p>
@@ -307,22 +414,37 @@ export function ProjectSidebar() {
               </div>
             </CollapsibleTrigger>
             
-            <CollapsibleContent>
+            <CollapsibleContent data-projects-section>
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-8" />
                 ))
                 : projects?.map((project) => (
-                  <ProjectItem
-                    key={project.id}
-                    project={project}
-                    isOpen={false}
-                    onToggle={() => {}}
-                    currentPath={pathname}
-                  />
+                  <div key={project.id} data-project-item>
+                    <ProjectItem
+                      project={project}
+                      isOpen={false}
+                      onToggle={() => {}}
+                      currentPath={pathname}
+                    />
+                  </div>
                 ))}
             </CollapsibleContent>
           </Collapsible>
+          
+          {/* What's this? button */}
+          {onProjectsTourStart && (settings?.guidedTourEnabled ?? true) && (
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={onProjectsTourStart}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                What&apos;s this?
+              </button>
+            </div>
+          )}
+          </div>
+          )}
         </SidebarContent>
       </ScrollArea>
     </Sidebar>

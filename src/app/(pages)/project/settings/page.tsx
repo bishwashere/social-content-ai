@@ -43,7 +43,6 @@ export default function SettingsPage() {
           <Tabs defaultValue="oauth" className="w-full">
             <TabsList>
               <TabsTrigger value="oauth">Connected Accounts</TabsTrigger>
-              {/* Add more tabs here as needed */}
             </TabsList>
             <TabsContent value="oauth" className="mt-4">
               <OAuthProvidersList />

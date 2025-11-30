@@ -29,21 +29,28 @@ import { useLogout, useSession } from "@/backend-apis/auth/hooks";
 import GoogleLoginButton from "@/components/common/auth/google-login-button";
 import Subscription from "@/components/common/subscription";
 import { useParams, useRouter } from "next/navigation";
-import { FaRegQuestionCircle } from "react-icons/fa";
-import { useResetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectEditModal } from "./project-edit-modal";
 import Image from "next/image";
 import { ConnectAccountsButton } from "@/components/common/connect-accounts-button";
+import { useUserSettings, useUpdateUserSettings } from "@/backend-apis/user-settings/hooks";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
-export function Header() {
+interface HeaderProps {
+  onTourStart?: () => void;
+  connectSocialsRef?: React.RefObject<HTMLDivElement>;
+  subscribeRef?: React.RefObject<HTMLDivElement>;
+}
+
+export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderProps) {
   const { data } = useSession();
   const logout = useLogout();
   const router = useRouter();
-  const resetTooltip = useResetFirstViewTooltip();
   const { id } = useParams();
   const projects = useGetAllProjects();
   const sidebar = useSidebar();
+  const { data: settings } = useUserSettings();
 
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
@@ -91,14 +98,23 @@ export function Header() {
               );
               return project ? <ProjectEditModal project={project} /> : null;
             })()}
+            {onTourStart && data?.user && (settings?.guidedTourEnabled ?? true) && (
+              <button
+                onClick={onTourStart}
+                className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+              >
+                Gimme a quick tour
+              </button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <ConnectAccountsButton />
-          <Subscription />
-          <button onClick={() => resetTooltip.mutate(data?.user.id || "")}>
-            <FaRegQuestionCircle className="size-5" />
-          </button>
+          <div ref={connectSocialsRef}>
+            <ConnectAccountsButton />
+          </div>
+          <div ref={subscribeRef}>
+            <Subscription />
+          </div>
           {!data?.user ? (
             <GoogleLoginButton triggerClassName="py-3 px-10 h-12 text-lg font-semibold text-white rounded-lg hover:bg-gray-700" />
           ) : (
@@ -148,6 +164,8 @@ export function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <OnboardingToggles />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => logout.mutate()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
@@ -156,6 +174,30 @@ export function Header() {
             </DropdownMenu>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OnboardingToggles() {
+  const { data: settings } = useUserSettings();
+  const updateSettings = useUpdateUserSettings();
+
+  return (
+    <div className="px-2 py-1.5">
+      <div className="flex items-center justify-between gap-4">
+        <Label htmlFor="dropdown-guided-tour" className="text-sm font-normal cursor-pointer flex-1">
+          Feature Tips
+        </Label>
+        <Switch
+          id="dropdown-guided-tour"
+          checked={settings?.guidedTourEnabled ?? true}
+          onCheckedChange={(checked) => {
+            updateSettings.mutate({ guidedTourEnabled: checked });
+          }}
+          disabled={updateSettings.isPending}
+          onClick={(e) => e.stopPropagation()}
+        />
       </div>
     </div>
   );

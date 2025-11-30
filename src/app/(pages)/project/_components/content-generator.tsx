@@ -20,6 +20,7 @@ import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
+import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 import { PlatformIconsOnboarding } from "@/components/common/platform-icons-onboarding";
 
 interface ContentGeneratorProps {
@@ -28,6 +29,7 @@ interface ContentGeneratorProps {
 
 export function ContentGenerator({ project }: ContentGeneratorProps) {
   const queryClient = useQueryClient();
+  const { data: settings } = useUserSettings();
   const { data: session } = useSession();
   const projects = useGetAllProjects();
   const tooltipData = useGetFirstViewTooltip(session?.user?.id || "");
@@ -40,6 +42,13 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const platformCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const iconRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  const handleShowOnboarding = () => {
+    // Small delay to ensure cards and icons are rendered
+    setTimeout(() => {
+      setShowOnboarding(true);
+    }, 100);
+  };
 
   // Check if should show onboarding
   useEffect(() => {
@@ -141,65 +150,66 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                     <CardTitle>
                       {platform.charAt(0).toUpperCase() + platform.slice(1)}
                     </CardTitle>
-                    <div className="flex flex-row gap-2">
-                      {isFirstPlatform ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            ref={(el) => {
-                              if (el) {
-                                iconRefs.current['edit'] = el;
-                              }
-                            }}
-                            onClick={() => {
-                              setEditedContent({ ...editedContent, [platform]: text });
-                              setEditingPlatform(platform);
-                            }}
-                          >
-                            <Pencil />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            ref={(el) => {
-                              if (el) {
-                                iconRefs.current['copy'] = el;
-                              }
-                            }}
-                            onClick={() => copyToClipboard(text, platform)}
-                          >
-                            <CopyIcon />
-                          </Button>
-                          <div
-                            ref={(el) => {
-                              if (el) {
-                                iconRefs.current['postToWall'] = el;
-                              }
-                            }}
-                          >
-                            <PostToWall
-                              content={text}
-                              platform={platform}
-                              projectId={project.id}
-                              prompt={generateProjectContent.data.prompt}
-                            />
-                          </div>
-                          <div
-                            ref={(el) => {
-                              if (el) {
-                                iconRefs.current['autoPost'] = el;
-                              }
-                            }}
-                          >
-                            <AutoPost
-                              platform={platform as any}
-                              content={text}
-                              projectId={project.id}
-                            />
-                          </div>
-                        </>
-                      ) : (
+                    <div className="flex flex-col gap-1 items-center">
+                      <div className="flex flex-row gap-2">
+                        {isFirstPlatform ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              ref={(el) => {
+                                if (el) {
+                                  iconRefs.current['edit'] = el;
+                                }
+                              }}
+                              onClick={() => {
+                                setEditedContent({ ...editedContent, [platform]: text });
+                                setEditingPlatform(platform);
+                              }}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              ref={(el) => {
+                                if (el) {
+                                  iconRefs.current['copy'] = el;
+                                }
+                              }}
+                              onClick={() => copyToClipboard(text, platform)}
+                            >
+                              <CopyIcon />
+                            </Button>
+                            <div
+                              ref={(el) => {
+                                if (el) {
+                                  iconRefs.current['postToWall'] = el;
+                                }
+                              }}
+                            >
+                              <PostToWall
+                                content={text}
+                                platform={platform}
+                                projectId={project.id}
+                                prompt={generateProjectContent.data.prompt}
+                              />
+                            </div>
+                            <div
+                              ref={(el) => {
+                                if (el) {
+                                  iconRefs.current['autoPost'] = el;
+                                }
+                              }}
+                            >
+                              <AutoPost
+                                platform={platform as any}
+                                content={text}
+                                projectId={project.id}
+                              />
+                            </div>
+                          </>
+                        ) : (
                         <>
                           <Button
                             variant="ghost"
@@ -230,6 +240,15 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                             projectId={project.id}
                           />
                         </>
+                      )}
+                      </div>
+                      {isFirstPlatform && (settings?.guidedTourEnabled ?? true) && (
+                        <button
+                          onClick={handleShowOnboarding}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Explain these icons
+                        </button>
                       )}
                     </div>
                   </CardHeader>

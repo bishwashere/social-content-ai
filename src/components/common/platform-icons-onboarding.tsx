@@ -74,9 +74,23 @@ export function PlatformIconsOnboarding({
         inline: "center",
       });
 
-      // Add highlight effect
+      // Add highlight effect - ensure it's above the overlay with white background and no blur
       setTimeout(() => {
-        iconElement?.classList.add("ring-4", "ring-blue-500", "ring-offset-2", "z-50", "relative", "rounded");
+        iconElement?.classList.add("ring-4", "ring-blue-500", "ring-offset-2", "z-[60]", "relative", "rounded", "backdrop-blur-0");
+        // Force white background and ensure no blur
+        iconElement.style.backgroundColor = 'white';
+        iconElement.style.background = 'white';
+        iconElement.style.filter = 'none';
+        // Add padding if element doesn't have much padding to make white background more visible
+        const computedStyle = window.getComputedStyle(iconElement);
+        const padding = computedStyle.padding;
+        if (!padding || padding === '0px') {
+          iconElement.style.padding = '8px';
+        }
+        // Ensure the element and its parent are not affected by any blur
+        if (iconElement.parentElement) {
+          iconElement.parentElement.style.filter = 'none';
+        }
         
         // Use the icon element for positioning (already resolved to button if available)
         const positionElement = iconElement;
@@ -128,7 +142,17 @@ export function PlatformIconsOnboarding({
             targetElement = button;
           }
           if (targetElement) {
-            targetElement.classList.remove("ring-4", "ring-blue-500", "ring-offset-2", "z-50", "relative", "rounded");
+            targetElement.classList.remove("ring-4", "ring-blue-500", "ring-offset-2", "z-[60]", "relative", "rounded", "backdrop-blur-0");
+            targetElement.style.backgroundColor = '';
+            targetElement.style.background = '';
+            targetElement.style.filter = '';
+            // Remove padding if we added it
+            if (targetElement.style.padding === '8px') {
+              targetElement.style.padding = '';
+            }
+            if (targetElement.parentElement) {
+              targetElement.parentElement.style.filter = '';
+            }
           }
         }
       });
@@ -226,16 +250,20 @@ export function PlatformIconsOnboarding({
 
   return (
     <>
-      {/* Subtle dark overlay for entire page - very light */}
+      {/* Dark overlay for entire page - darker background, no blur */}
       <div 
-        className="fixed inset-0 bg-black/10 z-40"
+        className="fixed inset-0 bg-black/30 z-40"
+        style={{ 
+          backdropFilter: 'none', 
+          filter: 'none',
+        }}
         onClick={handleFinish}
       />
       
-      {/* Dialog box - no background overlay applied, appears above overlay */}
+      {/* Dialog box - positioned above overlay */}
       <div
         ref={tooltipRef}
-        className="fixed z-50 w-80 max-w-[calc(100vw-2rem)]"
+        className="fixed z-[60] w-80 max-w-[calc(100vw-2rem)]"
         style={{
           top: `${position.top}px`,
           left: `${position.left}px`,

@@ -17,6 +17,7 @@ model User {
   remainingChatGenerations         Int       @default(0)
   hasClaimedFreeTrial              Boolean   @default(false)
   lastInformedAboutInactiveProject DateTime? @default(now())
+  guidedTourEnabled                Boolean   @default(true)
   createdAt                        DateTime  @default(now())
   updatedAt                        DateTime  @updatedAt
 

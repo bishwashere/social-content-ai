@@ -16,7 +16,8 @@
     "fix:template-dates": "npx tsx scripts/fix-template-dates.ts",
     "fix:template-date-strings": "npx tsx scripts/fix-template-date-strings.ts",
     "delete:user": "npx tsx scripts/delete-user.ts",
-    "migrate:platform-icons": "npx tsx scripts/add-platform-icons-onboarding-field.ts"
+    "migrate:platform-icons": "npx tsx scripts/add-platform-icons-onboarding-field.ts",
+    "migrate:onboarding-settings": "npx tsx scripts/add-onboarding-settings-fields.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
