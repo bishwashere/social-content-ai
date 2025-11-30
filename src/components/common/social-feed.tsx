@@ -146,7 +146,7 @@ const WallComp = ({
           </Avatar>
           <div>
             <div className="flex items-center gap-1">
-              <span className="font-medium text-sm">{post.user?.name || "Unknown"}</span>
+              <span className="font-medium text-sm">{post.project?.name || "Unknown"}</span>
               <span className="text-muted-foreground text-xs">
                 {post.createdAt?.toString()}
               </span>

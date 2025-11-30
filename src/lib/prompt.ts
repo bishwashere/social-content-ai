@@ -98,7 +98,9 @@ class Prompt {
     const role = `
     You are a professional content creator. Your job is to generate content that is engaging, relevant, and unique.
     RULES: 
-    - Only generate one piece of content, do not give multiple options, Only give the posts body
+    - Only generate ONE piece of content, do not give multiple options or variations
+    - Only give the post's body text, nothing else
+    - Do not provide multiple formats (e.g., do not provide both a regular post AND a carousel - choose ONE)
     - Never ever use any placeholder for missing data, only use the data provided.
      `;
     if (!options) {
@@ -187,7 +189,7 @@ class Prompt {
     // Combine custom prompt with the core prompt
     const finalPrompt = `${corePrompt}\n\n${customPrompt}`;
 
-    let finalfinalPrompt = `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. Direct one answer without choice. Never mention platform name.${
+    let finalfinalPrompt = `${finalPrompt} For ${platform}, ensure it is around ${characterLimit} characters. CRITICAL: Generate ONLY ONE answer - do not provide multiple options, variations, or formats. Write a single post body only. Never mention platform name.${
       userPrompt ? ` Also ${userPrompt}` : ""
     }`;
 
@@ -204,7 +206,7 @@ class Prompt {
       extraInformation?.template
     ) {
       console.log("Adding template for linkedin");
-      finalfinalPrompt += `[CRITICAL] Write this post according to the given template:  ${extraInformation?.template}`;
+      finalfinalPrompt += `[CRITICAL] You MUST follow this exact template format. The template is: ${extraInformation?.template}. Write the post content following the template structure exactly. Generate ONLY the post body text that matches the template format - do not provide multiple formats, options, or variations. If the template shows a carousel format, write only the carousel content. If it shows a regular post, write only the regular post. Choose ONE format from the template and write only that.`;
     }
 
     console.log(

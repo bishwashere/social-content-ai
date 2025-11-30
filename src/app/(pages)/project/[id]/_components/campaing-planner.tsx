@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
 import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Settings, Trash, VideoIcon, X } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -135,9 +135,21 @@ export default function CampaignPlannerPage({ project }: Props) {
       return;
     }
 
+    // Calculate initial coins needed (only for 1 day of initial data)
+    // Coins needed = number of selected platforms (1 coin per platform for 1 day)
+    const initialCoins = selectedPlatforms.length;
+    const userCoins = session?.user?.remainingChatGenerations || 0;
+
+    // Check if user has enough coins for initial generation
+    if (userCoins < initialCoins) {
+      toast.error(`You need ${initialCoins} coins to generate the initial campaign data.`);
+      handleCoinsFinished();
+      return;
+    }
+
     const yes = await confirm({
       title: 'Do you want to generate campaign?',
-      description: `Generating Campaign will use ${selectedPlatforms.length} coins initially.`
+      description: `Generating Campaign will use ${initialCoins} coins initially for the first day of content.`
     })
     if (!yes) return;
 
@@ -782,9 +794,17 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       toast.error("Failed to find plan");
                                       return;
                                     }
+                                    const requiredCoins = intensityPlans.data.length * campaign.platforms.length;
+                                    const userCoins = session?.user?.remainingChatGenerations || 0;
+                                    
+                                    if (userCoins < requiredCoins) {
+                                      toast.error(`You need ${requiredCoins} coins to regenerate all content. You have ${userCoins} coins.`);
+                                      return;
+                                    }
+                                    
                                     const yes = await confirm({
                                       title: "Regenerate all contents for this campaign?",
-                                      description: `Regenerating content will use your ${intensityPlans.data.length * campaign.platforms.length} coins`
+                                      description: `Regenerating content will use your ${requiredCoins} coins`
                                     });
                                     if (!yes) return;
 
@@ -1109,9 +1129,17 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   toast.error("Failed to find plan");
                                   return;
                                 }
+                                const requiredCoins = intensityPlans.data.length * campaign.platforms.length;
+                                const userCoins = session?.user?.remainingChatGenerations || 0;
+                                
+                                if (userCoins < requiredCoins) {
+                                  toast.error(`You need ${requiredCoins} coins to regenerate all content. You have ${userCoins} coins.`);
+                                  return;
+                                }
+                                
                                 const yes = await confirm({
                                   title: "Regenerate all contents for this campaign?",
-                                  description: `Regenerating content will use your ${intensityPlans.data.length * campaign.platforms.length} coins`
+                                  description: `Regenerating content will use your ${requiredCoins} coins`
                                 });
                                 if (!yes) return;
 

@@ -78,6 +78,16 @@ export const POST = applyMiddleware(
         });
       }
 
+      // Clean up content: remove ** (markdown bold markers) from all platform content
+      const cleanedContent: Record<string, string> = {};
+      for (const [platform, content] of Object.entries(chatFromAI)) {
+        if (typeof content === 'string') {
+          cleanedContent[platform] = content.replace(/\*\*/g, '');
+        } else {
+          cleanedContent[platform] = content;
+        }
+      }
+
       await prisma.user.update({
         where: { id: user.id },
         data: { remainingChatGenerations: user.remainingChatGenerations - 1 },
@@ -86,7 +96,7 @@ export const POST = applyMiddleware(
       return sendNextResponse({
         status: 200,
         message: "Chat generated successfully",
-        data: { contents: chatFromAI },
+        data: { contents: cleanedContent },
       });
     } else {
       let projectId = body.projectId || "";
@@ -170,8 +180,18 @@ export const POST = applyMiddleware(
         });
       }
 
+      // Clean up content: remove ** (markdown bold markers) from all platform content
+      const cleanedContent: Record<string, string> = {};
+      for (const [platform, content] of Object.entries(chatFromAI)) {
+        if (typeof content === 'string') {
+          cleanedContent[platform] = content.replace(/\*\*/g, '');
+        } else {
+          cleanedContent[platform] = content;
+        }
+      }
+
       const chatName = await ai.generateChatName({
-        content: JSON.stringify(chatFromAI),
+        content: JSON.stringify(cleanedContent),
         prompt: body.userPrompt || "",
       });
 
@@ -183,7 +203,7 @@ export const POST = applyMiddleware(
           },
           data: {
             updatedAt: new Date(),
-            contents: chatFromAI,
+            contents: cleanedContent,
             title: chatName || "Untitled",
             prompt: body.userPrompt || "",
           },
@@ -209,7 +229,7 @@ export const POST = applyMiddleware(
       } else {
         const projectChat = await prisma.projectChat.create({
           data: {
-            contents: chatFromAI,
+            contents: cleanedContent,
             title: chatName || "Untitled",
             prompt: body.userPrompt || "",
             projectId: projectId,

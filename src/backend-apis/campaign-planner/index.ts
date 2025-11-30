@@ -48,13 +48,13 @@ export const startCampaignPlanner = async (
     };
   }
 
-  // Calculate required coins based on number of platforms and chats
-  const requiredCoins = platforms.length * plan.data.length;
-
-  if (user.remainingChatGenerations < requiredCoins) {
+  // Allow creating empty campaigns without checking for all coins upfront
+  // Coins will be deducted when generating individual chat content
+  // Only check if user has at least 1 coin to create the campaign structure
+  if (user.remainingChatGenerations < 1) {
     return {
       success: false,
-      message: `You need ${requiredCoins} coins to generate chat for ${platforms.length} platforms across ${plan.data.length} days.`,
+      message: `You need at least 1 coin to create a campaign.`,
       insufficientCoins: true,
     };
   }
@@ -257,9 +257,60 @@ export const generateCampaignChat = async (props: {
 
   const templateLength = await prisma.template.count();
   const randomIndex = Math.floor(Math.random() * templateLength);
-  const randomTemplate = await prisma.template.findFirst({
-    skip: randomIndex,
-  });
+  
+  // Handle date conversion errors for templates
+  let randomTemplate;
+  try {
+    randomTemplate = await prisma.template.findFirst({
+      skip: randomIndex,
+    });
+  } catch (dateError: any) {
+    // If error is due to date conversion, use raw query
+    if (dateError?.code === 'P2023' || dateError?.message?.includes('Failed to convert')) {
+      console.warn('[Campaign Planner] Template date conversion error, using raw query');
+      const rawTemplates = await prisma.$runCommandRaw({
+        find: "templates",
+        filter: {},
+      }) as any;
+      
+      const rawData = rawTemplates.cursor?.firstBatch || [];
+      if (rawData.length > 0) {
+        const template = rawData[randomIndex % rawData.length];
+        // Helper to safely convert date from MongoDB
+        const safeDate = (dateValue: any): Date => {
+          if (!dateValue) return new Date();
+          if (dateValue instanceof Date) {
+            return isNaN(dateValue.getTime()) ? new Date() : dateValue;
+          }
+          if (typeof dateValue === 'string') {
+            const parsed = new Date(dateValue);
+            return isNaN(parsed.getTime()) ? new Date() : parsed;
+          }
+          // Handle MongoDB date format { $date: "..." }
+          if (dateValue && typeof dateValue === 'object' && dateValue.$date) {
+            const parsed = new Date(dateValue.$date);
+            return isNaN(parsed.getTime()) ? new Date() : parsed;
+          }
+          return new Date();
+        };
+
+        randomTemplate = {
+          id: template._id?.$oid || template._id?.toString() || template._id,
+          title: template.title,
+          description: template.description,
+          category: template.category,
+          content: template.content,
+          icon: template.icon || null,
+          source: template.source || null,
+          sourcePostId: template.sourcePostId || null,
+          createdAt: safeDate(template.createdAt),
+          updatedAt: safeDate(template.updatedAt),
+        };
+      }
+    } else {
+      throw dateError;
+    }
+  }
 
   // Get selected platforms for this campaign (exclude tiktok - video only)
   const platforms = (projectCampaign.platforms || [
@@ -304,6 +355,16 @@ export const generateCampaignChat = async (props: {
     };
   }
 
+  // Clean up content: remove ** (markdown bold markers) from all platform content
+  const cleanedContent: Record<string, string> = {};
+  for (const [platform, content] of Object.entries(chatFromAI)) {
+    if (typeof content === 'string') {
+      cleanedContent[platform] = content.replace(/\*\*/g, '');
+    } else {
+      cleanedContent[platform] = content;
+    }
+  }
+
   // Find the specific chat for the given day
   const chatToUpdate = projectCampaign.chats.find(
     (chat) => chat.day === props.day
@@ -321,14 +382,14 @@ export const generateCampaignChat = async (props: {
       id: chatToUpdate.id,
     },
     data: {
-      contents: chatFromAI,
+      contents: cleanedContent,
       status: "GENERATED",
       // subreddit: subreddit,
       referencePostContent: redditPopularPost?.slice(0, 50) || "",
     },
   });
 
-  // Deduct coins based on number of platforms
+  // Deduct coins based on number of platforms (1 coin per platform)
   const coinsToDeduct = projectCampaign.platforms.length;
   await prisma.user.update({
     where: { id: user.id },
