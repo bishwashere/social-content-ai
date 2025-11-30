@@ -327,10 +327,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           
           {/* What's this? button */}
           {onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end mt-2 min-w-0">
+            <div className="flex justify-end mt-2 w-full">
               <button
                 onClick={onNavigationTourStart}
-                className="text-xs text-gray-500 hover:text-gray-700 truncate"
+                className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
               >
                 What&apos;s this?
               </button>
@@ -371,10 +371,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             
             {/* What's this? button */}
             {onFoldersTourStart && (settings?.guidedTourEnabled ?? true) && (
-              <div className="flex justify-end mt-2 min-w-0">
+              <div className="flex justify-end mt-2 w-full">
                 <button
                   onClick={onFoldersTourStart}
-                  className="text-xs text-gray-500 hover:text-gray-700 truncate"
+                  className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
                 >
                   What&apos;s this?
                 </button>
@@ -434,10 +434,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           
           {/* What's this? button */}
           {onProjectsTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end mt-2 min-w-0">
+            <div className="flex justify-end mt-2 w-full">
               <button
                 onClick={onProjectsTourStart}
-                className="text-xs text-gray-500 hover:text-gray-700 truncate"
+                className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
               >
                 What&apos;s this?
               </button>
