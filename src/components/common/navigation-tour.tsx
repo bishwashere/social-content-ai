@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { 
+import {
   PlusCircle,
   Newspaper,
   Calendar,
@@ -66,6 +66,7 @@ export function NavigationTour({
   const [currentStep, setCurrentStep] = useState(0);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const [highlightRect, setHighlightRect] = useState<DOMRect | undefined>();
 
   useEffect(() => {
     if (!isOpen) {
@@ -77,7 +78,7 @@ export function NavigationTour({
     const currentElementKey = NAVIGATION_ORDER[currentStep];
     let element: HTMLElement | null = elementRefs[currentElementKey];
     const originalElement = element;
-    
+
     // Try to find button or link inside if element is a wrapper
     if (element) {
       const button = element.querySelector('button, a');
@@ -85,7 +86,9 @@ export function NavigationTour({
         element = button as HTMLElement;
       }
     }
-    
+    const rect = element?.getBoundingClientRect();
+    setHighlightRect(rect);
+
     if (element) {
       // Scroll into view
       element.scrollIntoView({
@@ -102,50 +105,50 @@ export function NavigationTour({
           element.style.setProperty('filter', 'none', 'important');
           element.style.setProperty('position', 'relative', 'important');
         }
-        
+
         // Also apply to original element if it's different
         if (originalElement && originalElement !== element) {
           originalElement.classList.add("z-[60]", "relative", "rounded");
           originalElement.style.setProperty('filter', 'none', 'important');
         }
-        
+
         // Use the element for positioning
         const positionElement = element;
-        
+
         if (positionElement) {
           const rect = positionElement.getBoundingClientRect();
-          
+
           // Tooltip width (w-80 = 320px)
           const maxTooltipWidth = 320;
           const viewportWidth = window.innerWidth;
           const padding = 16;
           const actualTooltipWidth = Math.min(maxTooltipWidth, viewportWidth - (padding * 2));
-          
+
           // Calculate centered position
           let left = rect.left + (rect.width / 2);
-          
+
           // Check if tooltip would overflow right edge
           const rightEdge = left + (actualTooltipWidth / 2);
           if (rightEdge > viewportWidth - padding) {
             left = viewportWidth - padding - (actualTooltipWidth / 2);
           }
-          
+
           // Check if tooltip would overflow left edge
           const leftEdge = left - (actualTooltipWidth / 2);
           if (leftEdge < padding) {
             left = padding + (actualTooltipWidth / 2);
           }
-          
+
           // Check if element is on the left side (sidebar)
           const isSidebarElement = rect.left < 300;
-          
+
           let top: number;
           let finalLeft: number;
-          
+
           if (isSidebarElement) {
             // For sidebar elements, position dialog on the right side
             finalLeft = rect.right + 16;
-            
+
             // Check if dialog would overflow right edge
             if (finalLeft + actualTooltipWidth > viewportWidth - padding) {
               finalLeft = rect.left - actualTooltipWidth - 16;
@@ -153,7 +156,7 @@ export function NavigationTour({
                 finalLeft = padding;
               }
             }
-            
+
             // Position vertically centered with the element
             top = rect.top + (rect.height / 2) - 100;
             if (top < padding) {
@@ -164,7 +167,7 @@ export function NavigationTour({
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
             const tooltipHeight = 200;
-            
+
             if (spaceBelow >= tooltipHeight + 8 || spaceAbove < spaceBelow) {
               top = rect.bottom + 8;
             } else {
@@ -172,7 +175,7 @@ export function NavigationTour({
             }
             finalLeft = left;
           }
-          
+
           setPosition({
             top,
             left: finalLeft,
@@ -195,7 +198,7 @@ export function NavigationTour({
             targetElement.classList.remove("ring-4", "ring-blue-500", "ring-offset-2", "z-[60]", "relative", "rounded", "backdrop-blur-0");
             targetElement.style.removeProperty('filter');
           }
-          
+
           if (originalElement !== targetElement) {
             originalElement.classList.remove("z-[60]", "relative", "rounded");
             originalElement.style.removeProperty('filter');
@@ -212,49 +215,49 @@ export function NavigationTour({
     const updatePosition = () => {
       const currentElementKey = NAVIGATION_ORDER[currentStep];
       let element: HTMLElement | null = elementRefs[currentElementKey];
-      
+
       if (element) {
         const button = element.querySelector('button, a');
         if (button) {
           element = button as HTMLElement;
         }
       }
-      
+
       if (element) {
         const rect = element.getBoundingClientRect();
-        
+
         const maxTooltipWidth = 320;
         const viewportWidth = window.innerWidth;
         const padding = 16;
         const actualTooltipWidth = Math.min(maxTooltipWidth, viewportWidth - (padding * 2));
-        
+
         let left = rect.left + (rect.width / 2);
-        
+
         const rightEdge = left + (actualTooltipWidth / 2);
         if (rightEdge > viewportWidth - padding) {
           left = viewportWidth - padding - (actualTooltipWidth / 2);
         }
-        
+
         const leftEdge = left - (actualTooltipWidth / 2);
         if (leftEdge < padding) {
           left = padding + (actualTooltipWidth / 2);
         }
-        
+
         const isSidebarElement = rect.left < 300;
-        
+
         let top: number;
         let finalLeft: number;
-        
+
         if (isSidebarElement) {
           finalLeft = rect.right + 16;
-          
+
           if (finalLeft + actualTooltipWidth > viewportWidth - padding) {
             finalLeft = rect.left - actualTooltipWidth - 16;
             if (finalLeft < padding) {
               finalLeft = padding;
             }
           }
-          
+
           top = rect.top + (rect.height / 2) - 100;
           if (top < padding) {
             top = padding;
@@ -263,7 +266,7 @@ export function NavigationTour({
           const spaceBelow = window.innerHeight - rect.bottom;
           const spaceAbove = rect.top;
           const tooltipHeight = 200;
-          
+
           if (spaceBelow >= tooltipHeight + 8 || spaceAbove < spaceBelow) {
             top = rect.bottom + 8;
           } else {
@@ -271,7 +274,7 @@ export function NavigationTour({
           }
           finalLeft = left;
         }
-        
+
         setPosition({
           top,
           left: finalLeft,
@@ -312,15 +315,33 @@ export function NavigationTour({
   return (
     <>
       {/* Dark overlay */}
-      <div 
-        className="fixed inset-0 bg-black/30 z-40"
-        style={{ 
-          backdropFilter: 'none', 
-          filter: 'none',
-        }}
+      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+        <defs>
+          <mask id="spotlight-mask">
+            <rect width="100%" height="100%" fill="white" />
+            <rect
+              x={highlightRect ? highlightRect.left - 5 : 0}
+              y={highlightRect ? highlightRect.top - 5 : 0}
+              width={highlightRect ? highlightRect.width + 10 : 0}
+              height={highlightRect ? highlightRect.height + 9 : 0}
+              rx="8"  // This creates rounded corners
+              ry="8"
+              fill="black"
+            />
+          </mask>
+        </defs>
+        <rect
+          width="100%"
+          height="100%"
+          fill="rgba(0, 0, 0, 0.3)"
+          mask="url(#spotlight-mask)"
+        />
+      </svg>
+      <div
+        className="fixed inset-0 z-40"
         onClick={handleFinish}
       />
-      
+
       {/* Dialog box */}
       <div
         ref={tooltipRef}
@@ -335,13 +356,13 @@ export function NavigationTour({
       >
         <div className="bg-white rounded-lg border border-gray-200 shadow-lg p-4">
           {/* Arrow pointing to element */}
-          <div 
+          <div
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full w-0 h-0 border-t-8 border-b-8 border-r-8 border-transparent border-r-white"
             style={{
               left: '-8px',
             }}
           ></div>
-        
+
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-blue-100 shrink-0">
               <IconComponent className="h-6 w-6 text-blue-600" />

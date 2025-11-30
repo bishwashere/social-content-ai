@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Folder, 
+import {
+  Folder,
   Link as LinkIcon,
   Coins,
 } from "lucide-react";
@@ -70,7 +70,7 @@ export function DashboardTour({
 
     // Get the current element key
     const currentElementKey = TOUR_ORDER[currentStep];
-    
+
     // If it's the topSections step, create a blue box around all 6 sections and show dialog
     if (currentElementKey === 'topSections') {
       setTimeout(() => {
@@ -89,14 +89,14 @@ export function DashboardTour({
             }
           }
         });
-        
+
         if (elements.length > 0) {
           // Calculate bounding box for all elements
           let minTop = Infinity;
           let maxBottom = -Infinity;
           let minLeft = Infinity;
           let maxRight = -Infinity;
-          
+
           elements.forEach((el) => {
             const rect = el.getBoundingClientRect();
             minTop = Math.min(minTop, rect.top);
@@ -104,11 +104,11 @@ export function DashboardTour({
             minLeft = Math.min(minLeft, rect.left);
             maxRight = Math.max(maxRight, rect.right);
           });
-          
+
           // Create a wrapper div for the blue box
           const sidebar = elements[0]?.closest('[data-sidebar]') || elements[0]?.closest('.sidebar') || document.querySelector('[class*="sidebar"]');
           const container = sidebar || elements[0]?.parentElement?.parentElement;
-          
+
           if (container) {
             // Create highlight box
             const highlightBox = document.createElement('div');
@@ -124,28 +124,28 @@ export function DashboardTour({
             highlightBox.style.pointerEvents = 'none';
             highlightBox.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
             document.body.appendChild(highlightBox);
-            
+
             // Store rect for positioning
             setHighlightedRect(new DOMRect(minLeft - 8, minTop - 8, maxRight - minLeft + 16, maxBottom - minTop + 16));
-            
+
             // Position dialog on the right side
             const dialogWidth = 400;
             const padding = 16;
             const viewportWidth = window.innerWidth;
-            
+
             let finalLeft = maxRight + 16;
             if (finalLeft + dialogWidth > viewportWidth - padding) {
               finalLeft = padding;
             }
-            
+
             const top = Math.max(padding, minTop);
             setPosition({ top, left: finalLeft });
           }
         }
-        
+
         setShowTopSectionsDialog(true);
       }, 300);
-      
+
       // Cleanup
       return () => {
         const highlightBox = document.getElementById('tour-highlight-box');
@@ -155,11 +155,11 @@ export function DashboardTour({
         setShowTopSectionsDialog(false);
       };
     }
-    
+
     // Regular single element highlighting for other steps
     let element: HTMLElement | null = elementRefs[currentElementKey];
     const originalElement = element; // Keep reference to original element
-    
+
     // Try to find button or link inside if element is a wrapper
     if (element) {
       const button = element.querySelector('button, a');
@@ -167,7 +167,7 @@ export function DashboardTour({
         element = button as HTMLElement;
       }
     }
-    
+
     if (element) {
       // Scroll into view
       element.scrollIntoView({
@@ -183,7 +183,7 @@ export function DashboardTour({
           const rect = element.getBoundingClientRect();
           setHighlightedRect(rect);
         }
-        
+
         // Apply to the element we found (button/link) or original
         // Use Tailwind classes like the ring - just the ring, no white background
         element?.classList.add("ring-4", "ring-blue-500", "ring-offset-2", "z-[60]", "relative", "rounded", "backdrop-blur-0");
@@ -192,53 +192,53 @@ export function DashboardTour({
           element.style.setProperty('filter', 'none', 'important');
           element.style.setProperty('position', 'relative', 'important');
         }
-        
+
         // Also apply to original element if it's different (for wrapper divs like Projects)
         if (originalElement && originalElement !== element) {
           // Just ensure proper z-index and positioning, no white background
           originalElement.classList.add("z-[60]", "relative", "rounded");
           originalElement.style.setProperty('filter', 'none', 'important');
         }
-        
-        
+
+
         // Use the element for positioning
         const positionElement = element;
-        
+
         if (positionElement) {
           const rect = positionElement.getBoundingClientRect();
-          
+
           // Tooltip width (w-80 = 320px), but account for max-width constraint
           const maxTooltipWidth = 320;
           const viewportWidth = window.innerWidth;
           const padding = 16; // 1rem padding on each side
           const actualTooltipWidth = Math.min(maxTooltipWidth, viewportWidth - (padding * 2));
-          
+
           // Calculate centered position
           let left = rect.left + (rect.width / 2);
-          
+
           // Check if tooltip would overflow right edge
           const rightEdge = left + (actualTooltipWidth / 2);
           if (rightEdge > viewportWidth - padding) {
             left = viewportWidth - padding - (actualTooltipWidth / 2);
           }
-          
+
           // Check if tooltip would overflow left edge
           const leftEdge = left - (actualTooltipWidth / 2);
           if (leftEdge < padding) {
             left = padding + (actualTooltipWidth / 2);
           }
-          
+
           // Check if element is on the left side (sidebar) - if left edge is less than 300px, it's likely in sidebar
           const isSidebarElement = rect.left < 300;
-          
+
           let top: number;
           let finalLeft: number;
-          
+
           if (isSidebarElement) {
             // For sidebar elements, position dialog on the right side
             // Position to the right of the element with some gap
             finalLeft = rect.right + 16; // 16px gap from element
-            
+
             // Check if dialog would overflow right edge
             if (finalLeft + actualTooltipWidth > viewportWidth - padding) {
               // If it would overflow, position it to the left instead
@@ -248,7 +248,7 @@ export function DashboardTour({
                 finalLeft = padding;
               }
             }
-            
+
             // Position vertically centered with the element
             top = rect.top + (rect.height / 2) - 100; // Center vertically, adjust for dialog height
             if (top < padding) {
@@ -259,7 +259,7 @@ export function DashboardTour({
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
             const tooltipHeight = 200;
-            
+
             if (spaceBelow >= tooltipHeight + 8 || spaceAbove < spaceBelow) {
               top = rect.bottom + 8;
             } else {
@@ -267,7 +267,7 @@ export function DashboardTour({
             }
             finalLeft = left;
           }
-          
+
           setPosition({
             top,
             left: finalLeft,
@@ -281,7 +281,7 @@ export function DashboardTour({
       setHighlightedRect(null); // Clear highlighted rect
       TOUR_ORDER.forEach((key) => {
         if (key === 'topSections') return; // Skip topSections, handled above
-        
+
         const originalElement = elementRefs[key];
         if (originalElement) {
           let targetElement = originalElement;
@@ -296,7 +296,7 @@ export function DashboardTour({
               targetElement.parentElement.style.removeProperty('filter');
             }
           }
-          
+
           // Cleanup original element if different
           if (originalElement !== targetElement) {
             originalElement.classList.remove("z-[60]", "relative", "rounded");
@@ -314,55 +314,55 @@ export function DashboardTour({
     const updatePosition = () => {
       const currentElementKey = TOUR_ORDER[currentStep];
       if (currentElementKey === 'topSections') return;
-      
+
       let element: HTMLElement | null = elementRefs[currentElementKey];
-      
+
       if (element) {
         const button = element.querySelector('button, a');
         if (button) {
           element = button as HTMLElement;
         }
       }
-      
+
       if (element) {
         const rect = element.getBoundingClientRect();
         // Update highlighted rect for overlay exclusion
         setHighlightedRect(rect);
-        
+
         const maxTooltipWidth = 320;
         const viewportWidth = window.innerWidth;
         const padding = 16;
         const actualTooltipWidth = Math.min(maxTooltipWidth, viewportWidth - (padding * 2));
-        
+
         let left = rect.left + (rect.width / 2);
-        
+
         const rightEdge = left + (actualTooltipWidth / 2);
         if (rightEdge > viewportWidth - padding) {
           left = viewportWidth - padding - (actualTooltipWidth / 2);
         }
-        
+
         const leftEdge = left - (actualTooltipWidth / 2);
         if (leftEdge < padding) {
           left = padding + (actualTooltipWidth / 2);
         }
-        
+
         // Check if element is on the left side (sidebar)
         const isSidebarElement = rect.left < 300;
-        
+
         let top: number;
         let finalLeft: number;
-        
+
         if (isSidebarElement) {
           // For sidebar elements, position dialog on the right side
           finalLeft = rect.right + 16;
-          
+
           if (finalLeft + actualTooltipWidth > viewportWidth - padding) {
             finalLeft = rect.left - actualTooltipWidth - 16;
             if (finalLeft < padding) {
               finalLeft = padding;
             }
           }
-          
+
           top = rect.top + (rect.height / 2) - 100;
           if (top < padding) {
             top = padding;
@@ -371,7 +371,7 @@ export function DashboardTour({
           const spaceBelow = window.innerHeight - rect.bottom;
           const spaceAbove = rect.top;
           const tooltipHeight = 200;
-          
+
           if (spaceBelow >= tooltipHeight + 8 || spaceAbove < spaceBelow) {
             top = rect.bottom + 8;
           } else {
@@ -379,7 +379,7 @@ export function DashboardTour({
           }
           finalLeft = left;
         }
-        
+
         setPosition({
           top,
           left: finalLeft,
@@ -426,12 +426,32 @@ export function DashboardTour({
     return (
       <>
         {/* Dark overlay */}
-        <div 
-          className="fixed inset-0 bg-black/30 z-40"
-          style={{ 
-            backdropFilter: 'none', 
-            filter: 'none',
-          }}
+        <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+          <defs>
+            <mask id="folders-spotlight-mask">
+              <rect width="100%" height="100%" fill="white" />
+              {highlightedRect && (
+                <rect
+                  x={highlightedRect.left}
+                  y={highlightedRect.top}
+                  width={highlightedRect.width}
+                  height={highlightedRect.height}
+                  rx="8"
+                  ry="8"
+                  fill="black"
+                />
+              )}
+            </mask>
+          </defs>
+          <rect
+            width="100%"
+            height="100%"
+            fill="rgba(0, 0, 0, 0.3)"
+            mask="url(#folders-spotlight-mask)"
+          />
+        </svg>
+        <div
+          className="fixed inset-0 z-40"
           onClick={handleFinish}
         />
         {/* Custom dialog positioned on the right side */}
@@ -471,15 +491,35 @@ export function DashboardTour({
   return (
     <>
       {/* Dark overlay - simple single overlay, elements above will show through */}
-      <div 
-        className="fixed inset-0 bg-black/30 z-40"
-        style={{ 
-          backdropFilter: 'none', 
-          filter: 'none',
-        }}
+      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+        <defs>
+          <mask id="folders-spotlight-mask">
+            <rect width="100%" height="100%" fill="white" />
+            {highlightedRect && (
+              <rect
+                x={highlightedRect.left - 6}
+                y={highlightedRect.top - 6}
+                width={highlightedRect.width + 10}
+                height={highlightedRect.height + 11}
+                rx="8"
+                ry="8"
+                fill="black"
+              />
+            )}
+          </mask>
+        </defs>
+        <rect
+          width="100%"
+          height="100%"
+          fill="rgba(0, 0, 0, 0.3)"
+          mask="url(#folders-spotlight-mask)"
+        />
+      </svg>
+      <div
+        className="fixed inset-0 z-40"
         onClick={handleFinish}
       />
-      
+
       {/* Dialog box - positioned above overlay with isolation */}
       <div
         ref={tooltipRef}
@@ -495,14 +535,14 @@ export function DashboardTour({
         <div className="bg-white rounded-lg border border-gray-200 shadow-lg p-4">
           {/* Arrow pointing to element */}
           {isSidebarElement ? (
-            <div 
+            <div
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full w-0 h-0 border-t-8 border-b-8 border-r-8 border-transparent border-r-white"
               style={{
                 left: '-8px',
               }}
             ></div>
           ) : (
-            <div 
+            <div
               className="absolute -top-2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"
               style={{
                 left: arrowOffset,
@@ -510,7 +550,7 @@ export function DashboardTour({
               }}
             ></div>
           )}
-        
+
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-blue-100 shrink-0">
               <IconComponent className="h-6 w-6 text-blue-600" />

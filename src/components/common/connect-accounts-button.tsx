@@ -53,62 +53,6 @@ export function ConnectAccountsButton() {
     return null
   }
 
-  // Show icons if both Facebook AND LinkedIn are connected
-  if (accountsData?.hasFacebook && accountsData?.hasLinkedin && accountsData?.hasThreads && accountsData?.hasTiktok && accountsData.hasTwitter) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="opacity-40">
-          <Image
-            src="/facebook.svg"
-            alt="Facebook connected"
-            width={20}
-            height={20}
-          />
-        </div>
-        <div className="opacity-40">
-          <Image
-            src="/linkedin.png"
-            alt="LinkedIn connected"
-            width={20}
-            height={20}
-          />
-        </div>
-        <div className="opacity-40">
-          <Image
-            src="/x.svg"
-            alt="X connected"
-            width={20}
-            height={20}
-          />
-        </div>
-        <div className="opacity-40">
-          <Image
-            src="/reddit.svg"
-            alt="Reddit connected"
-            width={20}
-            height={20}
-          />
-        </div>
-        <div className="opacity-40">
-          <Image
-            src="tiktok.svg"
-            alt="Tiktok connected"
-            width={20}
-            height={20}
-          />
-        </div>
-        <div className="opacity-40">
-          <Image
-            src="threads.svg"
-            alt="Threads connected"
-            width={20}
-            height={20}
-          />
-        </div>
-      </div>
-    )
-  }
-
   // If at least one is not connected, show the dropdown with available options
   const hasFacebook = accountsData?.hasFacebook || false
   const hasLinkedin = accountsData?.hasLinkedin || false
@@ -144,92 +88,145 @@ export function ConnectAccountsButton() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
-        >
-          <LinkIcon className="h-4 w-4" />
-          Connect Socials
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        {!hasFacebook && (
-          <DropdownMenuItem onClick={handleFacebookConnect} className="cursor-pointer">
-            <Image
-              src="/facebook.svg"
-              alt="Facebook"
-              width={16}
-              height={16}
-              className="mr-2"
-            />
-            <span>Connect Facebook</span>
-          </DropdownMenuItem>
-        )}
-        {!hasLinkedin && (
-          <DropdownMenuItem onClick={handleLinkedInConnect} className="cursor-pointer">
-            <Image
-              src="/linkedin.png"
-              alt="LinkedIn"
-              width={16}
-              height={16}
-              className="mr-2"
-            />
-            <span>Connect LinkedIn</span>
-          </DropdownMenuItem>
-        )}
-        {!hasTwitter && (
-          <DropdownMenuItem onClick={handleTwitterConnect} className="cursor-pointer">
-            <Image
-              src="/x.svg"
-              alt="X"
-              width={16}
-              height={16}
-              className="mr-2"
-            />
-            <span>Connect X</span>
-          </DropdownMenuItem>
-        )}
-        {!hasReddit && (
-          <DropdownMenuItem onClick={handleRedditConnect} className="cursor-pointer">
-            <Image
-              src="/reddit.svg"
-              alt="Reddit"
-              width={16}
-              height={16}
-              className="mr-2"
-            />
-            <span>Connect Reddit</span>
-          </DropdownMenuItem>
-        )}
-        {!hasTiktok && (
-          <DropdownMenuItem onClick={handleTiktokConnect} className="cursor-pointer">
-            <Image
-              src="/tiktok.svg"
-              alt="Tiktok"
-              width={16}
-              height={16}
-              className="mr-2"
-            />
-            <span>Connect Tiktok</span>
-          </DropdownMenuItem>
-        )}
-        {!hasThreads && (
-          <DropdownMenuItem onClick={handleThreadsConnect} className="cursor-pointer">
-            <Image
-              src="/threads.svg"
-              alt="Threads"
-              width={16}
-              height={16}
-              className="mr-2"
-            />
-            <span>Connect Threads</span>
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex gap-3 justify-center items-center">
+      {hasFacebook && <div className="opacity-40">
+        <Image
+          src="/facebook.svg"
+          alt="Facebook connected"
+          width={20}
+          height={20}
+        />
+      </div>}
+      {hasLinkedin && <div className="opacity-40">
+        <Image
+          src="/linkedin.png"
+          alt="LinkedIn connected"
+          width={20}
+          height={20}
+        />
+      </div>}
+      {hasTwitter && <div className="opacity-40">
+        <Image
+          src="/x.svg"
+          alt="X connected"
+          width={20}
+          height={20}
+        />
+      </div>}
+      {hasReddit && <div className="opacity-40">
+        <Image
+          src="/reddit.svg"
+          alt="Reddit connected"
+          width={20}
+          height={20}
+        />
+      </div>}
+      {hasTiktok && <div className="opacity-40">
+        <Image
+          src="tiktok.svg"
+          alt="Tiktok connected"
+          width={20}
+          height={20}
+        />
+      </div>}
+      {hasThreads && <div className="opacity-40">
+        <Image
+          src="threads.svg"
+          alt="Threads connected"
+          width={20}
+          height={20}
+        />
+      </div>}
+
+      {(!hasFacebook || !hasLinkedin || !hasReddit || !hasThreads || !hasTiktok || !hasTwitter) &&
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+            >
+              <LinkIcon className="h-4 w-4" />
+              Connect Socials
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            {!hasFacebook && (
+              <DropdownMenuItem onClick={handleFacebookConnect} className="cursor-pointer">
+                <Image
+                  src="/facebook.svg"
+                  alt="Facebook"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect Facebook</span>
+              </DropdownMenuItem>
+            )}
+            {!hasLinkedin && (
+              <DropdownMenuItem onClick={handleLinkedInConnect} className="cursor-pointer">
+                <Image
+                  src="/linkedin.png"
+                  alt="LinkedIn"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect LinkedIn</span>
+              </DropdownMenuItem>
+            )}
+            {!hasTwitter && (
+              <DropdownMenuItem onClick={handleTwitterConnect} className="cursor-pointer">
+                <Image
+                  src="/x.svg"
+                  alt="X"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect X</span>
+              </DropdownMenuItem>
+            )}
+            {!hasReddit && (
+              <DropdownMenuItem onClick={handleRedditConnect} className="cursor-pointer">
+                <Image
+                  src="/reddit.svg"
+                  alt="Reddit"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect Reddit</span>
+              </DropdownMenuItem>
+            )}
+            {!hasTiktok && (
+              <DropdownMenuItem onClick={handleTiktokConnect} className="cursor-pointer">
+                <Image
+                  src="/tiktok.svg"
+                  alt="Tiktok"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect Tiktok</span>
+              </DropdownMenuItem>
+            )}
+            {!hasThreads && (
+              <DropdownMenuItem onClick={handleThreadsConnect} className="cursor-pointer">
+                <Image
+                  src="/threads.svg"
+                  alt="Threads"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect Threads</span>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      }
+    </div>
   )
 }
 
