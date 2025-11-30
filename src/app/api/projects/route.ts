@@ -5,6 +5,7 @@ import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import axios from "axios";
 import { AI } from "@/lib/ai";
+import { autoLinkAllProvidersToAllProjects } from "@/server-actions/auto-link-oauth-providers";
 
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -83,6 +84,11 @@ export const GET = applyMiddleware(
       ...invitedProjectsWithRoles,
     ];
 
+    // Auto-link all providers to all projects (background operation)
+    autoLinkAllProvidersToAllProjects(user.id).catch(err => {
+      console.error("Error auto-linking providers to projects:", err);
+    });
+
     return sendNextResponse({
       status: 200,
       message: "Projects retrieved successfully",
@@ -135,6 +141,11 @@ export const POST = applyMiddleware(
         userId: user.id,
         role: "admin",
       },
+    });
+
+    // Auto-link all providers to this new project (background operation)
+    autoLinkAllProvidersToAllProjects(user.id).catch(err => {
+      console.error("Error auto-linking providers to new project:", err);
     });
 
     try {

@@ -3,6 +3,7 @@ import { verifyJWT } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { autoLinkProviderToAllProjects } from "@/server-actions/auto-link-oauth-providers";
 
 interface ThreadsTokenResponse {
   access_token: string;
@@ -152,8 +153,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    let providerId: string;
     if (existingProvider) {
-      await prisma.oauthProvider.update({
+      const updated = await prisma.oauthProvider.update({
         where: {
           id: existingProvider.id,
         },
@@ -169,8 +171,9 @@ export async function GET(request: NextRequest) {
             : undefined,
         },
       });
+      providerId = updated.id;
     } else {
-      await prisma.oauthProvider.create({
+      const created = await prisma.oauthProvider.create({
         data: {
           userId: googleUser.id,
           platform: "threads",
@@ -185,7 +188,13 @@ export async function GET(request: NextRequest) {
           pageProfilePhoto: userData.threads_profile_picture_url,
         },
       });
+      providerId = created.id;
     }
+
+    // Auto-link this provider to matching projects (background operation)
+    autoLinkProviderToAllProjects(providerId, googleUser.id).catch(err => {
+      console.error("Error auto-linking provider:", err);
+    });
 
     return NextResponse.redirect(
       new URL(`${returnUrl}${separator}`, request.url)

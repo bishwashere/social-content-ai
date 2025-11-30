@@ -6,6 +6,7 @@ import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { verifyJWT } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { OauthPlatform } from "@prisma/client";
+import { autoLinkProviderToAllProjects } from "@/server-actions/auto-link-oauth-providers";
 
 
 export async function GET(req: NextRequest) {
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
     }));
 
     for (const item of pageData) {
-        await prisma.oauthProvider.upsert({
+        const result = await prisma.oauthProvider.upsert({
             where: {
                 userId_pageId_platform: {
                     userId: item.userId,
@@ -96,6 +97,9 @@ export async function GET(req: NextRequest) {
             update: item,
             create: item,
         });
+
+        // Auto-link this provider to matching projects
+        await autoLinkProviderToAllProjects(result.id, googleUser.id);
     }
 
     // Redirect user back to the original page

@@ -58,6 +58,7 @@ export async function checkAllProjectOAuthProviders(
     }
 
     // Fetch all OAuth providers for all platforms in a single query
+    // Include ALL project mappings to check if provider is linked to any project
     const providers = await prisma.oauthProvider.findMany({
       where: {
         userId: project.userId,
@@ -65,15 +66,11 @@ export async function checkAllProjectOAuthProviders(
           in: platforms,
         },
       },
-      select: {
-        id: true,
-        platform: true,
-        pageName: true,
-        pageId: true,
-        isPersonal: true,
+      include: {
         projectToOAuthProviders: {
-          where: {
-            projectId: projectId,
+          // Get all mappings, not just for this project
+          select: {
+            projectId: true,
           },
         },
       },
@@ -89,14 +86,27 @@ export async function checkAllProjectOAuthProviders(
       const platformProviders = providers.filter(p => p.platform === platform);
       const hasProviderConnected = platformProviders.length > 0;
       const isProjectMapped = platformProviders.some(
-        provider => provider.projectToOAuthProviders.length > 0
+        provider => provider.projectToOAuthProviders.some(
+          mapping => mapping.projectId === projectId
+        )
       );
 
       // Filter providers that:
       // 1. Are NOT mapped to THIS specific project
-      // 2. Do NOT match the project name (to hide auto-link candidates)
+      // 2. Are NOT mapped to ANY other project (hide providers already linked elsewhere)
+      // 3. Do NOT match the project name (to hide auto-link candidates)
       const filteredProviders = platformProviders.filter(provider => {
-        // Exclude if already mapped
+        // Check if mapped to THIS specific project
+        const isMappedToThisProject = provider.projectToOAuthProviders.some(
+          mapping => mapping.projectId === projectId
+        );
+        
+        // Exclude if already mapped to this project
+        if (isMappedToThisProject) {
+          return false;
+        }
+        
+        // Exclude if mapped to ANY other project (already linked elsewhere)
         if (provider.projectToOAuthProviders.length > 0) {
           return false;
         }

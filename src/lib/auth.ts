@@ -253,9 +253,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 },
               });
 
+              let providerId: string;
               if (existingProvider) {
                 // Update the existing provider
-                await prisma.oauthProvider.update({
+                const updated = await prisma.oauthProvider.update({
                   where: {
                     id: existingProvider.id,
                   },
@@ -269,12 +270,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     pageId: authProvider.pageId,
                   },
                 });
+                providerId = updated.id;
               } else {
                 // Create a new provider
-                await prisma.oauthProvider.create({
+                const created = await prisma.oauthProvider.create({
                   data: authProvider,
                 });
+                providerId = created.id;
               }
+
+              // Auto-link this provider to matching projects (background operation)
+              autoLinkProviderToAllProjects(providerId, googleUser.id).catch(err => {
+                console.error("Error auto-linking provider:", err);
+              });
             }
             return true;
           }

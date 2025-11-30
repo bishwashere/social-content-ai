@@ -18,6 +18,130 @@ function normalizeForComparison(str: string): string {
 }
 
 /**
+ * Auto-link a specific OAuth provider to all matching projects for a user
+ * This is called when a new OAuth provider is connected
+ */
+export async function autoLinkProviderToAllProjects(
+  oauthProviderId: string,
+  userId: string
+): Promise<void> {
+  try {
+    // Get the OAuth provider
+    const provider = await prisma.oauthProvider.findUnique({
+      where: { id: oauthProviderId },
+      select: {
+        id: true,
+        pageName: true,
+        userId: true,
+      },
+    });
+
+    if (!provider || !provider.pageName || provider.userId !== userId) {
+      return;
+    }
+
+    const normalizedPageName = normalizeForComparison(provider.pageName);
+
+    // Get all user's projects
+    const projects = await prisma.projects.findMany({
+      where: { userId },
+      select: { id: true, name: true },
+    });
+
+    // Auto-link to matching projects
+    for (const project of projects) {
+      const normalizedProjectName = normalizeForComparison(project.name);
+      
+      if (normalizedPageName === normalizedProjectName) {
+        // Check if mapping already exists
+        const existingMapping = await prisma.projectToOAuthProvider.findFirst({
+          where: {
+            projectId: project.id,
+            oauthProviderId: provider.id,
+          },
+        });
+
+        if (!existingMapping) {
+          await prisma.projectToOAuthProvider.create({
+            data: {
+              projectId: project.id,
+              oauthProviderId: provider.id,
+            },
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error auto-linking provider to all projects:", error);
+    // Don't throw - this is a background operation
+  }
+}
+
+/**
+ * Auto-link all OAuth providers to all matching projects for a user
+ * This is called when projects are fetched or when a new project is created
+ */
+export async function autoLinkAllProvidersToAllProjects(
+  userId: string
+): Promise<void> {
+  try {
+    // Get all user's projects
+    const projects = await prisma.projects.findMany({
+      where: { userId },
+      select: { id: true, name: true },
+    });
+
+    if (projects.length === 0) {
+      return;
+    }
+
+    // Get all OAuth providers for the user
+    const providers = await prisma.oauthProvider.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        pageName: true,
+        projectToOAuthProviders: {
+          select: {
+            projectId: true,
+          },
+        },
+      },
+    });
+
+    // For each project, find matching providers and link them
+    for (const project of projects) {
+      const normalizedProjectName = normalizeForComparison(project.name);
+
+      for (const provider of providers) {
+        if (!provider.pageName) continue;
+
+        // Skip if already linked to this project
+        const isAlreadyLinked = provider.projectToOAuthProviders.some(
+          mapping => mapping.projectId === project.id
+        );
+        if (isAlreadyLinked) continue;
+
+        // Check if names match
+        const normalizedPageName = normalizeForComparison(provider.pageName);
+        if (normalizedPageName === normalizedProjectName) {
+          // Create the mapping
+          await prisma.projectToOAuthProvider.create({
+            data: {
+              projectId: project.id,
+              oauthProviderId: provider.id,
+            },
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error auto-linking all providers to all projects:", error);
+    // Don't throw - this is a background operation
+  }
+}
+
+/**
  * Auto-link OAuth providers to projects based on name matching
  * Returns providers that were auto-linked and need user approval
  */
