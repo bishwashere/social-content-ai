@@ -35,7 +35,6 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { ProjectWithChats } from "@/backend-apis/projects/types";
-import FirstViewTooltip from "@/components/common/first-view-tooltip";
 import { Logo } from "@/components/common/logo";
 import { AddProjectToFolder } from "./add-project-to-folder";
 import { AddFolderButton } from "./add-folder-button";
@@ -144,41 +143,39 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           </div>
 
           {/* Dashboard Link */}
-          <FirstViewTooltip tooltipKey="contentPlanner" order={3} content="You can log what was posted here along with date. This helps you plan for future posts.">
-            <div
-              ref={(el) => {
-                if (elementRefs && el) {
-                  elementRefs.current.contentPlanner = el;
-                }
-              }}
-            >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      onClick={() => {
-                        if (window.innerWidth <= 768) {
-                          toggleSidebar()
-                        }
-                      }}
-                      href="/project/dashboard"
-                      className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
-                        !sidebar.open ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Calendar className="h-4 w-4" />
-                      {sidebar.open && <span className="ml-2">Content Planner</span>}
-                    </Link>
-                  </TooltipTrigger>
-                  {!sidebar.open && (
-                    <TooltipContent side="right">
-                      Content Planner
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </FirstViewTooltip>
+          <div
+            ref={(el) => {
+              if (elementRefs && el) {
+                elementRefs.current.contentPlanner = el;
+              }
+            }}
+          >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    onClick={() => {
+                      if (window.innerWidth <= 768) {
+                        toggleSidebar()
+                      }
+                    }}
+                    href="/project/dashboard"
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                      !sidebar.open ? 'justify-center' : ''
+                    }`}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    {sidebar.open && <span className="ml-2">Content Planner</span>}
+                  </Link>
+                </TooltipTrigger>
+                {!sidebar.open && (
+                  <TooltipContent side="right">
+                    Content Planner
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           {/* Analytics Link */}
           <div

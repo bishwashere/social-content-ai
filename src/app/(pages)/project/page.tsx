@@ -1,43 +1,26 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import {
-  useGetAllProjects,
-} from "@/backend-apis/projects/hooks";
 import { useSession } from "@/backend-apis/auth/hooks";
-import { Skeleton } from "@/components/ui/skeleton";
 import Loading from "@/components/common/loading";
-import HomepageProjectDropdown from "./_components/homepage-project-dropdown";
-import AdvanceCustomization from "./_components/advance-customization";
-import { CompactStatsCards } from "./_components/compact-stats-cards";
 import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
 import { OnboardingModal } from "./_components/onboarding-modal";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
+import { useGetAllProjects } from "@/backend-apis/projects/hooks";
+import { YourTodayPanel } from "./_components/your-today-panel";
+import { RecentActivityFeed } from "./_components/recent-activity-feed";
+import { GetStartedGuide } from "./_components/get-started-guide";
+import { PendingTasksPanel } from "./_components/pending-tasks-panel";
 
 export default function Home() {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [content, setContent] = useState<'normal' | 'advanced'>('normal');
   const { isLoading: sessionLoading, isError: sessionError } = useSession();
   const projects = useGetAllProjects();
   const { open: pricingModalOpen } = usePricingModal();
   const onboardingShownRef = useRef(false);
   const pricingModalWasOpenRef = useRef(false);
   const projectSelectionCallbackRef = useRef<((projectId: string) => void) | null>(null);
-
-  const handleSelectProject = (projectId: string) => {
-    router.push(`/project/${projectId}`);
-  };
 
   // Redirect if not authenticated (SessionProvider should handle this, but this is a safety check)
   useEffect(() => {
@@ -99,13 +82,10 @@ export default function Home() {
 
   const handleProjectCreated = (projectId: string) => {
     setOnboardingOpen(false);
-    // Reset the ref so modal can show again if user deletes all projects
     onboardingShownRef.current = false;
-    // Call the callback to select the project in the dropdown
     if (projectSelectionCallbackRef.current) {
       projectSelectionCallbackRef.current(projectId);
     }
-    // Navigate to the newly created project page
     setTimeout(() => {
       router.push(`/project/${projectId}`);
     }, 400);
@@ -128,139 +108,17 @@ export default function Home() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="text-center">
-        Welcome to NextPostAI!
-        <br />
-        Select a project from the left to get started, or click &apos;Add Project&apos; to
-        create a new one.
-      </div>
-
-      {/* Dashboard Top Section */}
-      <div className="w-full max-w-6xl mx-auto mb-6 flex justify-center">
-        <div className="w-full">
-          <CompactStatsCards />
+    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <GetStartedGuide />
+          <YourTodayPanel />
+          <PendingTasksPanel />
+        </div>
+        <div className="lg:col-span-1">
+          <RecentActivityFeed />
         </div>
       </div>
-
-      {/* Quick Video Maker Card */}
-      <div className="w-full max-w-4xl mx-auto">
-        <div 
-          onClick={() => router.push('/project/video-maker')}
-          className="group relative overflow-hidden rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 hover:shadow-xl transition-all duration-300 cursor-pointer"
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-purple-300/40 transition-colors" />
-          <div className="relative p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg group-hover:scale-110 transition-transform">
-                <svg 
-                  className="w-8 h-8 text-white" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" 
-                  />
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-                  />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-700 transition-colors">
-                  Quick Video Maker
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Create engaging videos in 3 simple steps - no project setup required!
-                </p>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all">
-              <span className="font-semibold text-sm">Try Now</span>
-              <svg 
-                className="w-4 h-4 group-hover:translate-x-1 transition-transform" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M9 5l7 7-7 7" 
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      {content === "normal" ?
-        <HomepageProjectDropdown onProjectSelectRef={projectSelectionCallbackRef} />
-        :
-        <AdvanceCustomization />
-      }
-
-      <div className="w-full mt-4 flex items-center justify-center">
-        {content === "normal" ?
-          <p className="text-xs font-medium">Need Advanced Customizations? <button className="text-blue-500" onClick={() => setContent("advanced")}>Click Here</button></p>
-          :
-          <p className="text-xs font-medium">Want Quick Generate? <button className="text-blue-500" onClick={() => setContent("normal")}>Click Here</button></p>
-        }
-      </div>
-
-
-      {/* Floating Button */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <Button
-          variant="default"
-          size="icon"
-          className="rounded-full w-16 h-16 shadow-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center"
-          onClick={() => setOpen(true)}
-        >
-          <Plus className="w-8 h-4" />
-        </Button>
-      </div>
-
-      {/* Modal for Project Selection */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogClose />
-          <DialogHeader>
-            <DialogTitle>Select a Project</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {projects.isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 rounded-lg" />
-              ))
-            ) : (projects?.data?.length || 0) > 0 ? (
-              projects?.data?.map((project, i) => (
-                <Button
-                  key={i}
-                  className="w-full rounded-lg"
-                  onClick={() => handleSelectProject(project.id)}
-                >
-                  {project.name}
-                </Button>
-              ))
-            ) : (
-              <p className="text-center text-gray-500">
-                No projects available.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <AddGuidedProjectModal />
       <OnboardingModal 
         open={onboardingOpen} 

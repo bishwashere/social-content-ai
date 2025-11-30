@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -18,17 +18,18 @@ import History from "./_components/history";
 import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";
 import ProjectPulseMetrics from "./_components/project-pulse-metrics";
-import ProjectAnalytics from "./_components/project-analytics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
 import AdvanceCustomization from "../_components/advance-customization";
 
-const TAB_VALUES = ["generate", "campaign", "history", "media", "scheduled", "analytics"] as const;
+const TAB_VALUES = ["generate", "campaign", "media", "scheduled"] as const;
+const STORAGE_KEY = "lastProjectTab";
 
 function ProjectPage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [contentMode, setContentMode] = useState<'normal' | 'advanced'>('normal');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const projects = useGetAllProjects();
   const project = useMemo(
@@ -36,17 +37,55 @@ function ProjectPage() {
     [projects?.data, id]
   );
 
+  // Handle "history" and "analytics" tab redirects (history is now part of generate tab, analytics removed)
+  useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    if (urlTab === "history" || urlTab === "analytics") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", "generate");
+      router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, router]);
+
+  // Restore last visited tab from localStorage if no tab in URL
+  useEffect(() => {
+    if (isInitialized) return;
+    
+    const urlTab = searchParams.get("tab");
+    if (!urlTab) {
+      const savedTab = localStorage.getItem(STORAGE_KEY);
+      // If saved tab is "history" or "analytics", redirect to "generate" (history is now part of generate tab, analytics removed)
+      if (savedTab === "history" || savedTab === "analytics") {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", "generate");
+        router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+      } else if (savedTab && TAB_VALUES.includes(savedTab as any)) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", savedTab);
+        router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+      }
+    }
+    setIsInitialized(true);
+  }, [searchParams, router, isInitialized]);
+
   const currentTab = useMemo(() => {
     const tab = searchParams.get("tab");
     if (TAB_VALUES.includes(tab as any)) return tab as typeof TAB_VALUES[number];
     return "generate";
   }, [searchParams]);
 
+  // Save tab to localStorage whenever it changes (including via URL)
+  useEffect(() => {
+    if (currentTab && TAB_VALUES.includes(currentTab as any)) {
+      localStorage.setItem(STORAGE_KEY, currentTab);
+    }
+  }, [currentTab]);
+
   const handleTabChange = (tab: typeof TAB_VALUES[number]) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.replace(`${window.location.pathname}?${params.toString()}`);
-    localStorage.setItem("projectTab", tab);
+    localStorage.setItem(STORAGE_KEY, tab);
   };
 
   const { data: projectPulse } = useGetProjectPulse(id as string);
@@ -85,17 +124,11 @@ function ProjectPage() {
           <TabsTrigger value="campaign" onClick={() => handleTabChange("campaign")}>
             Campaign Planner
           </TabsTrigger>
-          <TabsTrigger value="history" onClick={() => handleTabChange("history")}>
-            History
-          </TabsTrigger>
           <TabsTrigger value="media" onClick={() => handleTabChange("media")}>
             Media
           </TabsTrigger>
           <TabsTrigger value="scheduled" onClick={() => handleTabChange("scheduled")}>
             Scheduled Posts
-          </TabsTrigger>
-          <TabsTrigger value="analytics" onClick={() => handleTabChange("analytics")}>
-            Analytics
           </TabsTrigger>
         </TabsList>
 
@@ -112,21 +145,19 @@ function ProjectPage() {
               <p className="text-xs font-medium">Want Quick Generate? <button className="text-blue-500" onClick={() => setContentMode("normal")}>Click Here</button></p>
             )}
           </div>
+          <div className="w-full mt-6">
+            <h2 className="text-2xl font-bold mb-4">History:</h2>
+            <History project={project} />
+          </div>
         </TabsContent>
         <TabsContent value="campaign">
           <CampaignPlannerPage project={project} />
-        </TabsContent>
-        <TabsContent value="history">
-          <History project={project} />
         </TabsContent>
         <TabsContent value="media">
           <Media project={project} />
         </TabsContent>
         <TabsContent value="scheduled">
           <ScheduledPosts project={project} />
-        </TabsContent>
-        <TabsContent value="analytics">
-          <ProjectAnalytics projectId={project.id} />
         </TabsContent>
       </Tabs>
     </div>

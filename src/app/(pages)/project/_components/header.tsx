@@ -79,19 +79,27 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
             </Tooltip>
           </TooltipProvider>
           {!sidebar.open && (
-            <Image
-              src="/logo.png"
-              width="100"
-              height="100"
-              alt="NextPostAi"
-              className="size-6"
-            />
+            <button
+              onClick={() => router.push("/project")}
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <Image
+                src="/logo.png"
+                width="100"
+                height="100"
+                alt="NextPostAi"
+                className="size-6"
+              />
+            </button>
           )}
           <div className="flex items-center gap-1">
-            <span className="truncate">
+            <button
+              onClick={() => router.push("/project")}
+              className="truncate cursor-pointer hover:opacity-80 transition-opacity text-left"
+            >
               {projects?.data?.find((project) => project.id === id)?.name ||
                 "Dashboard"}
-            </span>
+            </button>
             {(() => {
               const project = projects?.data?.find(
                 (project) => project.id === id
