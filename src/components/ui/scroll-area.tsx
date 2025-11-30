@@ -13,14 +13,22 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative", className)}
+      className={cn("relative w-full", className)}
+      style={{ width: '100%', maxWidth: '100%' }}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="ring-ring/10 dark:ring-ring/20 dark:outline-ring/40 outline-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] focus-visible:ring-4 focus-visible:outline-1"
+        className="ring-ring/10 dark:ring-ring/20 dark:outline-ring/40 outline-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] focus-visible:ring-4 focus-visible:outline-1 [&>div]:!min-w-0 [&>div]:!max-w-full [&>div]:!w-full"
+        style={{ 
+          width: '100%', 
+          maxWidth: '100%',
+          display: 'block'
+        }}
       >
-        {children}
+        <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, display: 'block' }}>
+          {children}
+        </div>
       </ScrollAreaPrimitive.Viewport>
       <ScrollBar />
       <ScrollAreaPrimitive.Corner />

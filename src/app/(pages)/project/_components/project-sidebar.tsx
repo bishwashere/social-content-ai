@@ -93,8 +93,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       <SidebarHeader className="border-b p-4 flex justify-center">
         <Logo iconOnly={!sidebar.open} />
       </SidebarHeader>
-      <ScrollArea className="h-[calc(100vh-5rem)] overflow-y-auto">
-        <SidebarContent className="p-2 space-y-3 min-w-0 max-w-full overflow-hidden">
+      <ScrollArea className="h-[calc(100vh-5rem)] overflow-y-auto w-full" style={{ width: '100%', maxWidth: '100%' }}>
+        <SidebarContent className="p-2 space-y-3 min-w-0 w-full max-w-full overflow-x-hidden" style={{ width: '100%', maxWidth: '100%' }}>
           {/* Navigation Section */}
           {sidebar.open && (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1 min-w-0 max-w-full overflow-hidden">

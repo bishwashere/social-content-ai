@@ -152,3 +152,18 @@ body {
 .rbc-event, .rbc-day-slot .rbc-background-event {
   background: none!important;
 }
+
+/* Fix Radix UI ScrollArea viewport table display overflow */
+[data-radix-scroll-area-viewport] {
+  display: block !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
