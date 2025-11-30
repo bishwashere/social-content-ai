@@ -83,90 +83,51 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch templates - handle date conversion errors
-    let templates;
-    try {
-      templates = await prisma.template.findMany({
-        where,
-        orderBy: { id: "desc" },
-      });
-    } catch (dateError: any) {
-      // If error is due to date conversion, use raw query
-      if (dateError?.code === 'P2023' || dateError?.message?.includes('Failed to convert')) {
-        console.warn('[Templates API] Date conversion error, using raw query');
-        const rawTemplates = await prisma.$runCommandRaw({
-          find: "templates",
-          filter: where.category ? { category: where.category } : {},
-          sort: { _id: -1 },
-        }) as any;
-        
-        const rawData = rawTemplates.cursor?.firstBatch || [];
-        const now = new Date();
-        templates = rawData.map((t: any) => {
-          // Helper to safely convert date from MongoDB
-          const safeDate = (dateValue: any): Date => {
-            if (!dateValue) return now;
-            if (dateValue instanceof Date) {
-              return isNaN(dateValue.getTime()) ? now : dateValue;
-            }
-            if (typeof dateValue === 'string') {
-              const parsed = new Date(dateValue);
-              return isNaN(parsed.getTime()) ? now : parsed;
-            }
-            // Handle MongoDB date format { $date: "..." }
-            if (dateValue && typeof dateValue === 'object' && dateValue.$date) {
-              const parsed = new Date(dateValue.$date);
-              return isNaN(parsed.getTime()) ? now : parsed;
-            }
-            return now;
-          };
-
-          return {
-            id: t._id?.$oid || t._id?.toString() || t._id,
-            title: t.title,
-            description: t.description,
-            category: t.category,
-            content: t.content,
-            icon: t.icon || null,
-            source: t.source || null,
-            sourcePostId: t.sourcePostId || null,
-            createdAt: safeDate(t.createdAt),
-            updatedAt: safeDate(t.updatedAt),
-          };
-        });
-      } else {
-        throw dateError;
-      }
-    }
-
-    // Ensure all templates have valid dates and convert to ISO strings
-    const now = new Date();
-    templates = templates.map((template: any) => {
-      // Helper to safely convert to Date
-      const safeDate = (dateValue: any): Date => {
-        if (!dateValue) return now;
+    // Fetch templates - use raw query to preserve date format from DB
+    const rawTemplates = await prisma.$runCommandRaw({
+      find: "templates",
+      filter: where.category ? { category: where.category } : {},
+      sort: { _id: -1 },
+    }) as any;
+    
+    const rawData = rawTemplates.cursor?.firstBatch || [];
+    const templates = rawData.map((t: any) => {
+      // Helper to convert date from MongoDB format to ISO string
+      const convertDate = (dateValue: any): string | null => {
+        if (!dateValue) return null;
         if (dateValue instanceof Date) {
-          return isNaN(dateValue.getTime()) ? now : dateValue;
+          return dateValue.toISOString();
         }
         if (typeof dateValue === 'string') {
+          // If already a string, try to parse and return ISO
           const parsed = new Date(dateValue);
-          return isNaN(parsed.getTime()) ? now : parsed;
+          return isNaN(parsed.getTime()) ? null : parsed.toISOString();
         }
         // Handle MongoDB date format { $date: "..." }
         if (dateValue && typeof dateValue === 'object' && dateValue.$date) {
           const parsed = new Date(dateValue.$date);
-          return isNaN(parsed.getTime()) ? now : parsed;
+          return isNaN(parsed.getTime()) ? null : parsed.toISOString();
         }
-        return now;
+        // Handle MongoDB timestamp format
+        if (typeof dateValue === 'object' && dateValue.$timestamp) {
+          const timestamp = dateValue.$timestamp;
+          const parsed = new Date(timestamp * 1000);
+          return isNaN(parsed.getTime()) ? null : parsed.toISOString();
+        }
+        return null;
       };
 
-      const createdAt = safeDate(template.createdAt);
-      const updatedAt = safeDate(template.updatedAt);
-
       return {
-        ...template,
-        createdAt: createdAt.toISOString(),
-        updatedAt: updatedAt.toISOString(),
+        id: t._id?.$oid || t._id?.toString() || t._id,
+        title: t.title,
+        description: t.description,
+        category: t.category,
+        content: t.content,
+        icon: t.icon || null,
+        source: t.source || null,
+        sourcePostId: t.sourcePostId || null,
+        createdAt: convertDate(t.createdAt) || new Date().toISOString(),
+        updatedAt: convertDate(t.updatedAt) || new Date().toISOString(),
       };
     });
 

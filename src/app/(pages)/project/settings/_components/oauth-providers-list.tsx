@@ -183,7 +183,8 @@ export function OAuthProvidersList() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {platforms.map((platform) => (
+            {/* Show unconnected platforms first */}
+            {platforms.filter(p => !p.connected).map((platform) => (
               <Button
                 key={platform.key}
                 variant="outline"
@@ -196,10 +197,30 @@ export function OAuthProvidersList() {
                   alt={platform.name}
                   width={16}
                   height={16}
-                  className={platform.connected ? "opacity-40" : ""}
                 />
                 <span>
-                  {platform.connected ? "Reconnect" : "Connect"} {platform.name}
+                  Connect {platform.name}
+                </span>
+              </Button>
+            ))}
+            {/* Show connected platforms at the end */}
+            {platforms.filter(p => p.connected).map((platform) => (
+              <Button
+                key={platform.key}
+                variant="outline"
+                size="sm"
+                onClick={platform.handler}
+                className="gap-2"
+              >
+                <Image
+                  src={platform.icon}
+                  alt={platform.name}
+                  width={16}
+                  height={16}
+                  className="opacity-40"
+                />
+                <span>
+                  Reconnect {platform.name}
                 </span>
               </Button>
             ))}
