@@ -30,7 +30,7 @@ export function ProjectsTour({
     // Find the Projects section card
     setTimeout(() => {
       const projectsSection = document.querySelector('[data-projects-section-card]') as HTMLElement;
-      
+
       if (projectsSection) {
         // Ensure projects section is open
         const trigger = document.querySelector('[data-collapsible-trigger]');
@@ -63,7 +63,7 @@ export function ProjectsTour({
       // Add highlight effect
       setTimeout(() => {
         const rect = section.getBoundingClientRect();
-        
+
         // Create highlight box
         const highlightBox = document.createElement('div');
         highlightBox.id = 'projects-tour-highlight-box';
@@ -78,15 +78,15 @@ export function ProjectsTour({
         highlightBox.style.pointerEvents = 'none';
         highlightBox.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
         document.body.appendChild(highlightBox);
-        
+
         // Store rect for positioning
         setHighlightedRect(new DOMRect(rect.left - 8, rect.top - 8, rect.width + 16, rect.height + 16));
-        
+
         // Position dialog on the right side
         const dialogWidth = 320;
         const padding = 16;
         const viewportWidth = window.innerWidth;
-        
+
         let finalLeft = rect.right + 16;
         if (finalLeft + dialogWidth > viewportWidth - padding) {
           finalLeft = rect.left - dialogWidth - 16;
@@ -94,7 +94,7 @@ export function ProjectsTour({
             finalLeft = padding;
           }
         }
-        
+
         const top = Math.max(padding, rect.top);
         setPosition({ top, left: finalLeft });
       }, 300);
@@ -118,15 +118,35 @@ export function ProjectsTour({
   return (
     <>
       {/* Dark overlay */}
-      <div 
-        className="fixed inset-0 bg-black/30 z-40"
-        style={{ 
-          backdropFilter: 'none', 
-          filter: 'none',
-        }}
+      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+        <defs>
+          <mask id="folders-spotlight-mask">
+            <rect width="100%" height="100%" fill="white" />
+            {highlightedRect && (
+              <rect
+                x={highlightedRect.left}
+                y={highlightedRect.top}
+                width={highlightedRect.width}
+                height={highlightedRect.height}
+                rx="8"
+                ry="8"
+                fill="black"
+              />
+            )}
+          </mask>
+        </defs>
+        <rect
+          width="100%"
+          height="100%"
+          fill="rgba(0, 0, 0, 0.3)"
+          mask="url(#folders-spotlight-mask)"
+        />
+      </svg>
+      <div
+        className="fixed inset-0 z-40"
         onClick={handleFinish}
       />
-      
+
       {/* Dialog box */}
       <div
         ref={tooltipRef}
@@ -141,13 +161,13 @@ export function ProjectsTour({
       >
         <div className="bg-white rounded-lg border border-gray-200 shadow-lg p-4">
           {/* Arrow pointing to element */}
-          <div 
+          <div
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full w-0 h-0 border-t-8 border-b-8 border-r-8 border-transparent border-r-white"
             style={{
               left: '-8px',
             }}
           ></div>
-        
+
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-blue-100 shrink-0">
               <Folder className="h-6 w-6 text-blue-600" />
