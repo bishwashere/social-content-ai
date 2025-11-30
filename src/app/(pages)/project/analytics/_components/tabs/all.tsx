@@ -10,6 +10,17 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
   const [analytics, setAnalytics] = useState<ViewAnalyticsProps>({ totalComments: 0, totalFollowers: 0, totalImpressions: 0, totalLikes: 0, totalPosts: 0, chartData: [] });
 
   useEffect(() => {
+    console.log("[All Analytics] Effect triggered:", {
+      isLoading,
+      hasData: !!data,
+      dataType: data ? typeof data : 'none',
+      dataKeys: data ? Object.keys(data) : [],
+      dataLength: data?.data ? (Array.isArray(data.data) ? data.data.length : 'not array') : 'no data',
+      selectedProject,
+      timerange,
+      error: error?.message,
+    });
+
     // Check for errors first
     if (error) {
       console.error("[All Analytics] Error:", error);
@@ -23,6 +34,11 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
     }
 
     if (data?.data && Array.isArray(data.data) && timerange) {
+      console.log("[All Analytics] Processing data:", {
+        totalPosts: data.data.length,
+        samplePost: data.data[0],
+        timerange,
+      });
       try {
         const now = new Date();
         const cutoffDate = new Date(now);
@@ -37,6 +53,12 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
             return false;
           }
         });
+
+      console.log("[All Analytics] After filtering:", {
+        filteredCount: filteredData.length,
+        cutoffDate: cutoffDate.toISOString(),
+        now: now.toISOString(),
+      });
 
         setAnalytics({
           totalPosts: filteredData.length,
@@ -72,10 +94,19 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
         // Keep default analytics state on error
       }
     } else if (!selectedProject) {
+      console.log("[All Analytics] No project selected");
       // Reset to default if no project selected
       setAnalytics({ totalComments: 0, totalFollowers: 0, totalImpressions: 0, totalLikes: 0, totalPosts: 0, chartData: [] });
+    } else {
+      console.log("[All Analytics] No data or invalid data structure:", {
+        hasData: !!data,
+        hasDataData: !!data?.data,
+        isArray: Array.isArray(data?.data),
+        timerange,
+        selectedProject,
+      });
     }
-  }, [data, timerange, selectedProject]);
+  }, [data, timerange, selectedProject, error, isLoading]);
 
   if (isLoading) return <ViewAnalyticsSkeleton />
 
@@ -110,6 +141,36 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-blue-800 font-medium">Select a project</p>
           <p className="text-blue-600 text-sm mt-1">Please select a project from above to view analytics</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if data is empty (success but no posts)
+  if (data && 'success' in data && data.success === true && (!data.data || (Array.isArray(data.data) && data.data.length === 0))) {
+    return (
+      <div className='w-full p-4'>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800 font-medium">No posts found</p>
+          <p className="text-yellow-600 text-sm mt-1">
+            This project has linked social media accounts, but no posts have been published yet. 
+            Posts will appear here once you publish content through NextPostAI.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if analytics are all zeros (likely no data in time range)
+  if (analytics.totalPosts === 0 && data && 'success' in data && data.success === true && Array.isArray(data.data) && data.data.length > 0) {
+    return (
+      <div className='w-full p-4'>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 font-medium">No posts in selected time range</p>
+          <p className="text-blue-600 text-sm mt-1">
+            This project has {data.data.length} post(s), but none fall within the selected {timerange === 7 ? 'week' : timerange === 30 ? 'month' : timerange === 90 ? '3 months' : timerange === 365 ? 'year' : 'time range'}. 
+            Try selecting a longer time range.
+          </p>
         </div>
       </div>
     );
