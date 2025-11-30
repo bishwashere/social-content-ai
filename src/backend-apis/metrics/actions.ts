@@ -545,13 +545,171 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
       };
     }
 
-    const posts = linkedProviders.flatMap(provider => provider.pagePosts || []);
+    // Collect posts from database and fetch from APIs for providers with no posts
+    const allPosts: any[] = [];
     
-    console.log(`[getAllPlatformMetrics] Total posts found: ${posts.length}`);
+    for (const provider of linkedProviders) {
+      const existingPosts = provider.pagePosts || [];
+      
+      if (existingPosts.length > 0) {
+        // Use existing posts from database
+        allPosts.push(...existingPosts);
+        console.log(`[getAllPlatformMetrics] Using ${existingPosts.length} existing posts for ${provider.platform} (${provider.pageName})`);
+      } else {
+        // Fetch from API if no posts in database
+        console.log(`[getAllPlatformMetrics] No posts in DB for ${provider.platform} (${provider.pageName}), fetching from API...`);
+        
+        try {
+          let platformPosts: any[] = [];
+          
+          if (provider.platform === "facebook" && provider.pageId) {
+            console.log(`[getAllPlatformMetrics] Fetching Facebook posts for ${provider.pageName}`);
+            const fb = new Fb({
+              accessToken: provider.accessToken,
+              refreshToken: provider.refreshToken || "",
+            });
+            const metrics = await fb.getMyPostInsights(provider.pageId);
+            
+            const postsToSave = metrics.map((post) => ({
+              postId: post.id,
+              content: post.message || "No message",
+              date: new Date(post.date),
+              shares: post.shares || 0,
+              likes: post.reactions || 0,
+              comments: post.comments || 0,
+              impressions: post.impressions,
+              uniqueImpressions: post.uniqueImpressions,
+            }));
+            
+            // Save to database
+            const updated = await prisma.oauthProvider.update({
+              where: { id: provider.id },
+              data: {
+                pagePosts: {
+                  create: postsToSave,
+                },
+              },
+              include: {
+                pagePosts: true,
+              },
+            });
+            
+            platformPosts = updated.pagePosts;
+            console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} Facebook posts`);
+            
+          } else if (provider.platform === "linkedin" && provider.pageId && provider.expiresAt) {
+            console.log(`[getAllPlatformMetrics] Fetching LinkedIn posts for ${provider.pageName}`);
+            const l = new Linkedin({
+              accessToken: provider.accessToken,
+              expiresAt: provider.expiresAt,
+            });
+            const metrics = await l.getMyPostInsights(provider.pageId);
+            const followersCount = await l.getFollowersCount(provider.pageId);
+            
+            const updated = await prisma.oauthProvider.update({
+              where: { id: provider.id },
+              data: {
+                pageFollowers: followersCount,
+                pagePosts: {
+                  create: metrics.map((post) => ({
+                    postId: post.postId,
+                    content: post.content,
+                    likes: post.likes,
+                    comments: post.comments,
+                    shares: post.shares,
+                    impressions: post.impressions,
+                    uniqueImpressions: post.uniqueImpressions,
+                    date: post.date,
+                  })),
+                },
+              },
+              include: {
+                pagePosts: true,
+              },
+            });
+            
+            platformPosts = updated.pagePosts;
+            console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} LinkedIn posts`);
+            
+          } else if (provider.platform === "threads" && provider.pageId) {
+            console.log(`[getAllPlatformMetrics] Fetching Threads posts for ${provider.pageName}`);
+            const threads = new Threads({
+              accessToken: provider.accessToken,
+            });
+            const metrics = await threads.getMyPostInsights(provider.pageId);
+            
+            const updated = await prisma.oauthProvider.update({
+              where: { id: provider.id },
+              data: {
+                pagePosts: {
+                  create: metrics.map((post) => ({
+                    postId: post.postId,
+                    content: post.content,
+                    likes: post.likes,
+                    comments: post.comments,
+                    shares: post.shares || 0,
+                    impressions: post.impressions,
+                    uniqueImpressions: post.uniqueImpressions,
+                    date: post.date,
+                  })),
+                },
+              },
+              include: {
+                pagePosts: true,
+              },
+            });
+            
+            platformPosts = updated.pagePosts;
+            console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} Threads posts`);
+            
+          } else if (provider.platform === "tiktok" && provider.pageId) {
+            console.log(`[getAllPlatformMetrics] Fetching TikTok posts for ${provider.pageName}`);
+            const tiktok = new TikTok({
+              accessToken: provider.accessToken,
+            });
+            const metrics = await tiktok.getMyPostInsights(provider.pageId);
+            
+            const updated = await prisma.oauthProvider.update({
+              where: { id: provider.id },
+              data: {
+                pagePosts: {
+                  create: metrics.map((post) => ({
+                    postId: post.postId,
+                    content: post.content || "",
+                    likes: post.likes || 0,
+                    comments: post.comments || 0,
+                    shares: post.shares || 0,
+                    impressions: post.view_count,
+                    uniqueImpressions: post.view_count,
+                    date: post.create_time ? new Date(post.create_time * 1000) : new Date(),
+                  })),
+                },
+              },
+              include: {
+                pagePosts: true,
+              },
+            });
+            
+            platformPosts = updated.pagePosts;
+            console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} TikTok posts`);
+          }
+          
+          // Add fetched posts to the collection
+          if (platformPosts.length > 0) {
+            allPosts.push(...platformPosts);
+          }
+        } catch (error) {
+          console.error(`[getAllPlatformMetrics] Error fetching posts for ${provider.platform}:`, error);
+          // Continue with other platforms even if one fails
+        }
+      }
+    }
+    
+    console.log(`[getAllPlatformMetrics] Total posts after processing: ${allPosts.length}`);
 
     return {
       success: true,
-      data: posts,
+      data: allPosts,
     };
   } catch (error) {
     console.error("[getAllPlatformMetrics] Error fetching metrics:", error);
