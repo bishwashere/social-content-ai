@@ -80,17 +80,26 @@ export const TooltipManagerProvider = ({ children }: { children: React.ReactNode
     (tooltipKey: string, order: number, showFn: () => void, hideFn: () => void) => {
       setTooltips((prev) => {
         const updated = { ...prev, [tooltipKey]: { order, show: showFn, hide: hideFn } };
-        const sortedKeys = Object.entries(updated).sort(([, a], [, b]) => a.order - b.order);
-        if (!currentTooltip && sortedKeys.length > 0) {
-          const firstKey = sortedKeys[0][0];
-          updated[firstKey].show();
-          setCurrentTooltip(firstKey);
-        }
         return updated;
       });
     },
-    [currentTooltip]
+    []
   );
+
+  // Effect to show first tooltip when tooltips are registered
+  useEffect(() => {
+    if (!currentTooltip && Object.keys(tooltips).length > 0) {
+      const sortedKeys = Object.entries(tooltips)
+        .sort(([, a], [, b]) => a.order - b.order)
+        .map(([key]) => key);
+      
+      if (sortedKeys.length > 0) {
+        const firstKey = sortedKeys[0];
+        tooltips[firstKey]?.show();
+        setCurrentTooltip(firstKey);
+      }
+    }
+  }, [tooltips, currentTooltip]);
 
   const unregisterTooltip = useCallback((tooltipKey: string) => {
     setTooltips((prev) => {

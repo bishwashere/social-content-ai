@@ -77,18 +77,18 @@ export default function FirstViewTooltip({
     };
 
     return (
-        <div ref={containerRef}>
-            <Tooltip open={visible && currentTooltip === tooltipKey}>
-                <TooltipTrigger asChild>
+        <Tooltip open={visible && currentTooltip === tooltipKey}>
+            <TooltipTrigger asChild>
+                <div ref={containerRef}>
                     {children}
-                </TooltipTrigger>
-                <TooltipContent className="max-w-60 md:max-w-72 p-4 md:p-6 text-base" side="bottom" collisionPadding={10}>
-                    {content}
-                    <div className="text-right mt-2 md:mt-3">
-                        <Button size="sm" onClick={handleGotIt}>Got it</Button>
-                    </div>
-                </TooltipContent>
-            </Tooltip>
-        </div>
+                </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-60 md:max-w-72 p-4 md:p-6 text-base" side="bottom" collisionPadding={10}>
+                {content}
+                <div className="text-right mt-2 md:mt-3">
+                    <Button size="sm" onClick={handleGotIt}>Got it</Button>
+                </div>
+            </TooltipContent>
+        </Tooltip>
     );
 }

@@ -49,10 +49,22 @@ export async function autoLinkProviderToAllProjects(
     });
 
     // Auto-link to matching projects
+    // Note: projects are already filtered by userId, so they're all owned by the user
     for (const project of projects) {
       const normalizedProjectName = normalizeForComparison(project.name);
       
       if (normalizedPageName === normalizedProjectName) {
+        // Verify project ownership (same validation as manual linking)
+        const projectCheck = await prisma.projects.findUnique({
+          where: { id: project.id },
+          select: { userId: true },
+        });
+
+        if (!projectCheck || projectCheck.userId !== userId) {
+          console.log(`[autoLinkProviderToAllProjects] Skipping project ${project.id} - ownership mismatch`);
+          continue;
+        }
+
         // Check if mapping already exists
         const existingMapping = await prisma.projectToOAuthProvider.findFirst({
           where: {
@@ -62,12 +74,14 @@ export async function autoLinkProviderToAllProjects(
         });
 
         if (!existingMapping) {
+          // Create the same type of mapping as manual linking
           await prisma.projectToOAuthProvider.create({
             data: {
               projectId: project.id,
               oauthProviderId: provider.id,
             },
           });
+          console.log(`[autoLinkProviderToAllProjects] Auto-linked ${provider.pageName} to project ${project.name}`);
         }
       }
     }
@@ -110,7 +124,19 @@ export async function autoLinkAllProvidersToAllProjects(
     });
 
     // For each project, find matching providers and link them
+    // Note: projects are already filtered by userId, so they're all owned by the user
     for (const project of projects) {
+      // Verify project ownership (same validation as manual linking)
+      const projectCheck = await prisma.projects.findUnique({
+        where: { id: project.id },
+        select: { userId: true },
+      });
+
+      if (!projectCheck || projectCheck.userId !== userId) {
+        console.log(`[autoLinkAllProvidersToAllProjects] Skipping project ${project.id} - ownership mismatch`);
+        continue;
+      }
+
       const normalizedProjectName = normalizeForComparison(project.name);
 
       for (const provider of providers) {
@@ -125,13 +151,14 @@ export async function autoLinkAllProvidersToAllProjects(
         // Check if names match
         const normalizedPageName = normalizeForComparison(provider.pageName);
         if (normalizedPageName === normalizedProjectName) {
-          // Create the mapping
+          // Create the same type of mapping as manual linking
           await prisma.projectToOAuthProvider.create({
             data: {
               projectId: project.id,
               oauthProviderId: provider.id,
             },
           });
+          console.log(`[autoLinkAllProvidersToAllProjects] Auto-linked ${provider.pageName} to project ${project.name}`);
         }
       }
     }
