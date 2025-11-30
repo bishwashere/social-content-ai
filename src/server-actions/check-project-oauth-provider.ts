@@ -22,6 +22,13 @@ type CheckProjectOAuthProviderResult = {
 
 type CheckAllProjectOAuthProvidersResult = Record<OauthPlatform, CheckProjectOAuthProviderResult>;
 
+/**
+ * Normalize string for comparison: remove spaces, convert to lowercase
+ */
+function normalizeForComparison(str: string): string {
+  return str.replace(/\s+/g, "").toLowerCase();
+}
+
 export async function checkAllProjectOAuthProviders(
   projectId: string,
   userId: string,
@@ -31,7 +38,7 @@ export async function checkAllProjectOAuthProviders(
     // First, check if the user is the project owner
     const project = await prisma.projects.findUnique({
       where: { id: projectId },
-      select: { userId: true },
+      select: { userId: true, name: true },
     });
 
     if (!project) {
@@ -72,6 +79,9 @@ export async function checkAllProjectOAuthProviders(
       },
     });
 
+    // Normalize project name for comparison
+    const normalizedProjectName = normalizeForComparison(project.name);
+
     // Group providers by platform
     const result: CheckAllProjectOAuthProvidersResult = {} as CheckAllProjectOAuthProvidersResult;
 
@@ -82,10 +92,25 @@ export async function checkAllProjectOAuthProviders(
         provider => provider.projectToOAuthProviders.length > 0
       );
 
-      // Filter providers that are NOT mapped to THIS specific project
-      const filteredProviders = platformProviders.filter(
-        provider => provider.projectToOAuthProviders.length === 0
-      );
+      // Filter providers that:
+      // 1. Are NOT mapped to THIS specific project
+      // 2. Do NOT match the project name (to hide auto-link candidates)
+      const filteredProviders = platformProviders.filter(provider => {
+        // Exclude if already mapped
+        if (provider.projectToOAuthProviders.length > 0) {
+          return false;
+        }
+        
+        // Exclude if name matches project name (auto-link candidate)
+        if (provider.pageName) {
+          const normalizedPageName = normalizeForComparison(provider.pageName);
+          if (normalizedPageName === normalizedProjectName) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
 
 
       result[platform] = {
