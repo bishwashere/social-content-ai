@@ -98,7 +98,7 @@ export async function getProjectPulse(projectId: string) {
   // For engagement trend analysis, we need previous period (days 8-14 ago)
   const fourteenDaysAgo = startOfDay(subDays(todayStart, 14));
 
-  const [planners, scheduledPosts, oauthProvidersLast7Days, oauthProvidersPrevious7Days, oauthProvidersFullMonth, projectTracking] =
+  const [_planners, scheduledPosts, oauthProvidersLast7Days, oauthProvidersPrevious7Days, oauthProvidersFullMonth, projectTracking] =
     await Promise.all([
       prisma.campaignPlanner.findMany({
         where: { projectId },

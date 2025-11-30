@@ -65,7 +65,7 @@ export function YourTodayPanel() {
           <CardHeader>
             <CardTitle>All caught up! 🎉</CardTitle>
             <CardDescription>
-              You don't have any urgent tasks right now. Everything looks good!
+              You don&apos;t have any urgent tasks right now. Everything looks good!
             </CardDescription>
           </CardHeader>
         </Card>

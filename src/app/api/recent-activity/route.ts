@@ -198,6 +198,11 @@ export async function GET(request: NextRequest) {
         const projectsWithDraft = new Set<string>();
 
         for (const draft of drafts) {
+          // Skip if planner is null
+          if (!draft.planner) {
+            continue;
+          }
+          
           // Skip if we already have a draft notification for this project
           if (projectsWithDraft.has(draft.planner.projectId)) {
             continue;

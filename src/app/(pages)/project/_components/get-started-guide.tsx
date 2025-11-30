@@ -75,7 +75,7 @@ export function GetStartedGuide() {
 
   // Use API data or fallback to projects data
   const hasScheduledOrPublished = statusData?.hasScheduledOrPublished || false;
-  const hasPosts = statusData?.hasPosts || false;
+  const _hasPosts = statusData?.hasPosts || false;
 
   // Check if conditions are met to show the guide
   const shouldShow = useMemo(() => {

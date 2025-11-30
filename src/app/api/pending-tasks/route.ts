@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
             description?: string;
             campaignId?: string;
             campaignName?: string;
+            userRole?: string;
           }>;
         }> = {};
 
