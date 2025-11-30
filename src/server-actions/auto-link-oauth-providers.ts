@@ -174,6 +174,11 @@ export async function getPendingAutoLinkedProviders(
     for (const mapping of mappings) {
       const provider = mapping.oauthProvider;
       
+      // Skip if provider is null
+      if (!provider) {
+        continue;
+      }
+      
       // Only include providers that belong to the user
       if (provider.userId !== userId) {
         continue;
@@ -235,6 +240,10 @@ export async function approveAutoLinkedProvider(
 
     if (!mapping) {
       throw new Error("Mapping not found");
+    }
+
+    if (!mapping.oauthProvider || !mapping.project) {
+      throw new Error("Invalid mapping");
     }
 
     if (mapping.oauthProvider.userId !== userId || mapping.project.userId !== userId) {
@@ -305,6 +314,10 @@ export async function cancelAutoLinkedProvider(
 
     if (!mapping) {
       throw new Error("Mapping not found");
+    }
+
+    if (!mapping.oauthProvider || !mapping.project) {
+      throw new Error("Invalid mapping");
     }
 
     if (mapping.oauthProvider.userId !== userId || mapping.project.userId !== userId) {
