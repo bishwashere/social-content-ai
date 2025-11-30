@@ -563,39 +563,64 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
           let platformPosts: any[] = [];
           
           if (provider.platform === "facebook" && provider.pageId) {
-            console.log(`[getAllPlatformMetrics] Fetching Facebook posts for ${provider.pageName}`);
-            const fb = new Fb({
-              accessToken: provider.accessToken,
-              refreshToken: provider.refreshToken || "",
-            });
-            const metrics = await fb.getMyPostInsights(provider.pageId);
-            
-            const postsToSave = metrics.map((post) => ({
-              postId: post.id,
-              content: post.message || "No message",
-              date: new Date(post.date),
-              shares: post.shares || 0,
-              likes: post.reactions || 0,
-              comments: post.comments || 0,
-              impressions: post.impressions,
-              uniqueImpressions: post.uniqueImpressions,
-            }));
-            
-            // Save to database
-            const updated = await prisma.oauthProvider.update({
-              where: { id: provider.id },
-              data: {
-                pagePosts: {
-                  create: postsToSave,
+            console.log(`[getAllPlatformMetrics] Fetching Facebook posts for ${provider.pageName} (pageId: ${provider.pageId})`);
+            try {
+              if (!provider.accessToken) {
+                console.error(`[getAllPlatformMetrics] No access token for Facebook provider ${provider.id}`);
+                continue;
+              }
+              
+              const fb = new Fb({
+                accessToken: provider.accessToken,
+                refreshToken: provider.refreshToken || "",
+              });
+              
+              console.log(`[getAllPlatformMetrics] Calling Facebook API for pageId: ${provider.pageId}`);
+              const metrics = await fb.getMyPostInsights(provider.pageId);
+              
+              console.log(`[getAllPlatformMetrics] Facebook API returned ${metrics.length} posts`);
+              
+              if (metrics.length === 0) {
+                console.warn(`[getAllPlatformMetrics] No posts returned from Facebook API for ${provider.pageName}. This could mean:
+                  - No posts exist on this page
+                  - API permissions are insufficient
+                  - Access token is invalid/expired
+                  - Page ID is incorrect`);
+                continue;
+              }
+              
+              const postsToSave = metrics.map((post) => ({
+                postId: post.id,
+                content: post.message || "No message",
+                date: new Date(post.date),
+                shares: post.shares || 0,
+                likes: post.reactions || 0,
+                comments: post.comments || 0,
+                impressions: post.impressions,
+                uniqueImpressions: post.uniqueImpressions,
+              }));
+              
+              console.log(`[getAllPlatformMetrics] Saving ${postsToSave.length} Facebook posts to database`);
+              
+              // Save to database
+              const updated = await prisma.oauthProvider.update({
+                where: { id: provider.id },
+                data: {
+                  pagePosts: {
+                    create: postsToSave,
+                  },
                 },
-              },
-              include: {
-                pagePosts: true,
-              },
-            });
-            
-            platformPosts = updated.pagePosts;
-            console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} Facebook posts`);
+                include: {
+                  pagePosts: true,
+                },
+              });
+              
+              platformPosts = updated.pagePosts;
+              console.log(`[getAllPlatformMetrics] Successfully saved ${platformPosts.length} Facebook posts`);
+            } catch (fbError) {
+              console.error(`[getAllPlatformMetrics] Facebook API error:`, fbError);
+              throw fbError; // Re-throw to be caught by outer catch
+            }
             
           } else if (provider.platform === "linkedin" && provider.pageId && provider.expiresAt) {
             console.log(`[getAllPlatformMetrics] Fetching LinkedIn posts for ${provider.pageName}`);
@@ -636,22 +661,24 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
             const threads = new Threads({
               accessToken: provider.accessToken,
             });
-            const metrics = await threads.getMyPostInsights(provider.pageId);
+            const results = await threads.fetchUserPostsWithInsights(provider.pageId);
+            
+            const postsToSave = results.map((post: any) => ({
+              postId: post.postId,
+              content: post.content,
+              likes: post.insights.likesCount || 0,
+              comments: post.insights.repliesCount || 0,
+              shares: 0,
+              impressions: post.insights.viewsCount || 0,
+              uniqueImpressions: post.insights.viewsCount || 0,
+              date: new Date(post.date),
+            }));
             
             const updated = await prisma.oauthProvider.update({
               where: { id: provider.id },
               data: {
                 pagePosts: {
-                  create: metrics.map((post) => ({
-                    postId: post.postId,
-                    content: post.content,
-                    likes: post.likes,
-                    comments: post.comments,
-                    shares: post.shares || 0,
-                    impressions: post.impressions,
-                    uniqueImpressions: post.uniqueImpressions,
-                    date: post.date,
-                  })),
+                  create: postsToSave,
                 },
               },
               include: {
@@ -662,27 +689,36 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
             platformPosts = updated.pagePosts;
             console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} Threads posts`);
             
-          } else if (provider.platform === "tiktok" && provider.pageId) {
+          } else if (provider.platform === "tiktok" && provider.pageId && provider.refreshToken && provider.expiresAt) {
             console.log(`[getAllPlatformMetrics] Fetching TikTok posts for ${provider.pageName}`);
             const tiktok = new TikTok({
               accessToken: provider.accessToken,
+              refreshToken: provider.refreshToken,
+              expiresAt: provider.expiresAt,
             });
-            const metrics = await tiktok.getMyPostInsights(provider.pageId);
+            const videosList = await tiktok.getVideoList();
+            
+            if (!videosList?.videos || videosList.videos.length === 0) {
+              console.log(`[getAllPlatformMetrics] No TikTok videos returned for ${provider.pageName}`);
+              continue;
+            }
+            
+            const postsToSave = videosList.videos.map((video: any) => ({
+              postId: video.id,
+              content: video.title || video.video_description || "",
+              likes: video.like_count || 0,
+              comments: video.comment_count || 0,
+              shares: video.share_count || 0,
+              impressions: video.view_count || 0,
+              uniqueImpressions: video.view_count || 0,
+              date: video.create_time ? new Date(video.create_time * 1000) : new Date(),
+            }));
             
             const updated = await prisma.oauthProvider.update({
               where: { id: provider.id },
               data: {
                 pagePosts: {
-                  create: metrics.map((post) => ({
-                    postId: post.postId,
-                    content: post.content || "",
-                    likes: post.likes || 0,
-                    comments: post.comments || 0,
-                    shares: post.shares || 0,
-                    impressions: post.view_count,
-                    uniqueImpressions: post.view_count,
-                    date: post.create_time ? new Date(post.create_time * 1000) : new Date(),
-                  })),
+                  create: postsToSave,
                 },
               },
               include: {
@@ -699,7 +735,14 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
             allPosts.push(...platformPosts);
           }
         } catch (error) {
-          console.error(`[getAllPlatformMetrics] Error fetching posts for ${provider.platform}:`, error);
+          console.error(`[getAllPlatformMetrics] Error fetching posts for ${provider.platform} (${provider.pageName}):`, error);
+          console.error(`[getAllPlatformMetrics] Error details:`, {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            providerId: provider.id,
+            platform: provider.platform,
+            pageId: provider.pageId,
+          });
           // Continue with other platforms even if one fails
         }
       }
