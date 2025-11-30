@@ -551,9 +551,27 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
     for (const provider of linkedProviders) {
       const existingPosts = provider.pagePosts || [];
       
+      console.log(`[getAllPlatformMetrics] Processing ${provider.platform} (${provider.pageName}):`, {
+        hasPageId: !!provider.pageId,
+        hasAccessToken: !!provider.accessToken,
+        existingPostsCount: existingPosts.length,
+        samplePost: existingPosts[0] ? {
+          id: existingPosts[0].id,
+          postId: existingPosts[0].postId,
+          date: existingPosts[0].date,
+          dateType: typeof existingPosts[0].date,
+          hasDate: !!existingPosts[0].date,
+        } : null,
+      });
+      
       if (existingPosts.length > 0) {
         // Use existing posts from database
-        allPosts.push(...existingPosts);
+        // Ensure date is properly formatted
+        const formattedPosts = existingPosts.map(post => ({
+          ...post,
+          date: post.date instanceof Date ? post.date : new Date(post.date),
+        }));
+        allPosts.push(...formattedPosts);
         console.log(`[getAllPlatformMetrics] Using ${existingPosts.length} existing posts for ${provider.platform} (${provider.pageName})`);
       } else {
         // Fetch from API if no posts in database
@@ -576,11 +594,24 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
               });
               
               console.log(`[getAllPlatformMetrics] Calling Facebook API for pageId: ${provider.pageId}`);
-              const metrics = await fb.getMyPostInsights(provider.pageId);
               
-              console.log(`[getAllPlatformMetrics] Facebook API returned ${metrics.length} posts`);
+              let metrics;
+              try {
+                metrics = await fb.getMyPostInsights(provider.pageId);
+                console.log(`[getAllPlatformMetrics] Facebook API returned ${metrics.length} posts`);
+              } catch (apiError) {
+                console.error(`[getAllPlatformMetrics] Facebook API error for ${provider.pageName}:`, apiError);
+                console.error(`[getAllPlatformMetrics] Error details:`, {
+                  message: apiError instanceof Error ? apiError.message : String(apiError),
+                  pageId: provider.pageId,
+                  hasAccessToken: !!provider.accessToken,
+                  hasRefreshToken: !!provider.refreshToken,
+                });
+                // Continue with other providers even if this one fails
+                continue;
+              }
               
-              if (metrics.length === 0) {
+              if (!metrics || metrics.length === 0) {
                 console.warn(`[getAllPlatformMetrics] No posts returned from Facebook API for ${provider.pageName}. This could mean:
                   - No posts exist on this page
                   - API permissions are insufficient
@@ -615,8 +646,26 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
                 },
               });
               
-              platformPosts = updated.pagePosts;
+              // Format posts for return
+              platformPosts = updated.pagePosts.map((post) => ({
+                id: post.id,
+                postId: post.postId,
+                content: post.content,
+                date: post.date instanceof Date ? post.date : new Date(post.date),
+                shares: post.shares,
+                likes: post.likes,
+                comments: post.comments,
+                impressions: post.impressions,
+                uniqueImpressions: post.uniqueImpressions,
+              }));
               console.log(`[getAllPlatformMetrics] Successfully saved ${platformPosts.length} Facebook posts`);
+              if (platformPosts.length > 0) {
+                console.log(`[getAllPlatformMetrics] Sample saved post:`, {
+                  id: platformPosts[0].id,
+                  date: platformPosts[0].date,
+                  dateType: typeof platformPosts[0].date,
+                });
+              }
             } catch (fbError) {
               console.error(`[getAllPlatformMetrics] Facebook API error:`, fbError);
               throw fbError; // Re-throw to be caught by outer catch
@@ -653,7 +702,17 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
               },
             });
             
-            platformPosts = updated.pagePosts;
+            platformPosts = updated.pagePosts.map((post) => ({
+              id: post.id,
+              postId: post.postId,
+              content: post.content,
+              date: post.date instanceof Date ? post.date : new Date(post.date),
+              shares: post.shares,
+              likes: post.likes,
+              comments: post.comments,
+              impressions: post.impressions,
+              uniqueImpressions: post.uniqueImpressions,
+            }));
             console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} LinkedIn posts`);
             
           } else if (provider.platform === "threads" && provider.pageId) {
@@ -686,7 +745,17 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
               },
             });
             
-            platformPosts = updated.pagePosts;
+            platformPosts = updated.pagePosts.map((post) => ({
+              id: post.id,
+              postId: post.postId,
+              content: post.content,
+              date: post.date instanceof Date ? post.date : new Date(post.date),
+              shares: post.shares,
+              likes: post.likes,
+              comments: post.comments,
+              impressions: post.impressions,
+              uniqueImpressions: post.uniqueImpressions,
+            }));
             console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} Threads posts`);
             
           } else if (provider.platform === "tiktok" && provider.pageId && provider.refreshToken && provider.expiresAt) {
@@ -726,7 +795,17 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
               },
             });
             
-            platformPosts = updated.pagePosts;
+            platformPosts = updated.pagePosts.map((post) => ({
+              id: post.id,
+              postId: post.postId,
+              content: post.content,
+              date: post.date instanceof Date ? post.date : new Date(post.date),
+              shares: post.shares,
+              likes: post.likes,
+              comments: post.comments,
+              impressions: post.impressions,
+              uniqueImpressions: post.uniqueImpressions,
+            }));
             console.log(`[getAllPlatformMetrics] Fetched and saved ${platformPosts.length} TikTok posts`);
           }
           
@@ -749,10 +828,28 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
     }
     
     console.log(`[getAllPlatformMetrics] Total posts after processing: ${allPosts.length}`);
+    
+    if (allPosts.length > 0) {
+      console.log(`[getAllPlatformMetrics] Sample post structure:`, {
+        id: allPosts[0].id,
+        postId: allPosts[0].postId,
+        date: allPosts[0].date,
+        dateType: typeof allPosts[0].date,
+        dateIsDate: allPosts[0].date instanceof Date,
+        hasDate: !!allPosts[0].date,
+        keys: Object.keys(allPosts[0]),
+      });
+    }
+
+    // Convert Date objects to ISO strings for JSON serialization
+    const serializedPosts = allPosts.map(post => ({
+      ...post,
+      date: post.date instanceof Date ? post.date.toISOString() : (post.date || new Date().toISOString()),
+    }));
 
     return {
       success: true,
-      data: allPosts,
+      data: serializedPosts,
     };
   } catch (error) {
     console.error("[getAllPlatformMetrics] Error fetching metrics:", error);

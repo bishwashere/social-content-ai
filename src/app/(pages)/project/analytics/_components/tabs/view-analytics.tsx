@@ -44,6 +44,24 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
     return () => window.removeEventListener("resize", checkScreen);
   }, []);
 
+  // Calculate dynamic domain for impressions Y-axis
+  const getImpressionsDomain = (): [number, number] | [number, string] => {
+    if (chartData.length === 0) return [0, 10];
+    const maxImpressions = Math.max(...chartData.map(d => d.totalImpressions || 0));
+    // If all values are 0, set a minimum domain so the chart is visible
+    return maxImpressions === 0 ? [0, 10] : [0, "auto" as const];
+  };
+
+  // Calculate dynamic domain for likes/comments Y-axis
+  const getLikesCommentsDomain = (): [number, number] | [number, string] => {
+    if (chartData.length === 0) return [0, 10];
+    const maxLikes = Math.max(...chartData.map(d => d.totalLikes || 0));
+    const maxComments = Math.max(...chartData.map(d => d.totalComments || 0));
+    const maxValue = Math.max(maxLikes, maxComments);
+    // If all values are 0, set a minimum domain so the chart is visible
+    return maxValue === 0 ? [0, 10] : [0, "auto" as const];
+  };
+
   const CustomTooltip = ({ active, label, payload }: TooltipProps<number, string>) => {
     if (!active || !payload || payload.length === 0) return null;
 
@@ -148,7 +166,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
               <XAxis dataKey="label" padding={{ left: 0, right: 0 }} tick={{ fontSize: 13 }} />
               <YAxis
                 yAxisId="left"
-                domain={[0, 1]}
+                domain={getImpressionsDomain() as any}
                 label={
                   !isMobile ?
                     {
@@ -165,6 +183,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
               <YAxis
                 yAxisId="right"
                 orientation="right"
+                domain={getLikesCommentsDomain() as any}
                 label={
                   !isMobile ?
                     {

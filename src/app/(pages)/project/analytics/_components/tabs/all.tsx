@@ -19,6 +19,7 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
       selectedProject,
       timerange,
       error: error?.message,
+      fullData: data, // Log full response to see what we're getting
     });
 
     // Check for errors first
@@ -30,6 +31,15 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
     // Check if request was unsuccessful
     if (data && 'success' in data && data.success === false) {
       console.error("[All Analytics] API returned error:", data.message);
+      console.error("[All Analytics] Full error response:", data);
+      setAnalytics({
+        totalPosts: 0,
+        totalComments: 0,
+        totalLikes: 0,
+        totalFollowers: 0,
+        totalImpressions: 0,
+        chartData: [],
+      });
       return;
     }
 
@@ -38,7 +48,17 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
         totalPosts: data.data.length,
         samplePost: data.data[0],
         timerange,
+        fullResponse: data, // Log full API response
       });
+      
+      if (data.data.length === 0 && data.success === true) {
+        console.warn("[All Analytics] ⚠️ API returned success but empty array!");
+        console.warn("[All Analytics] This means:");
+        console.warn("  1. Either no OAuth providers are linked to this project");
+        console.warn("  2. Or providers are linked but have no posts in DB and API fetch failed");
+        console.warn("  3. Check server terminal for [getAllPlatformMetrics] logs to see details");
+        console.warn("[All Analytics] Full response:", JSON.stringify(data, null, 2));
+      }
       try {
         const now = new Date();
         const cutoffDate = new Date(now);
@@ -56,9 +76,31 @@ const All = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
 
       console.log("[All Analytics] After filtering:", {
         filteredCount: filteredData.length,
+        originalCount: data.data.length,
         cutoffDate: cutoffDate.toISOString(),
         now: now.toISOString(),
+        timerangeDays: timerange,
+        sampleFilteredPost: filteredData[0] ? {
+          id: filteredData[0].id,
+          date: filteredData[0].date,
+          dateType: typeof filteredData[0].date,
+        } : null,
+        sampleOriginalPost: data.data[0] ? {
+          id: data.data[0].id,
+          date: data.data[0].date,
+          dateType: typeof data.data[0].date,
+        } : null,
       });
+      
+      if (data.data.length > 0 && filteredData.length === 0) {
+        console.warn("[All Analytics] ⚠️ All posts were filtered out by date range!");
+        console.warn(`[All Analytics] Timerange: ${timerange} days (cutoff: ${cutoffDate.toISOString()})`);
+        if (data.data[0]) {
+          const firstPostDate = data.data[0].date instanceof Date ? data.data[0].date : new Date(data.data[0].date);
+          console.warn(`[All Analytics] First post date: ${firstPostDate.toISOString()}`);
+          console.warn(`[All Analytics] Is first post within range? ${firstPostDate >= cutoffDate}`);
+        }
+      }
 
         setAnalytics({
           totalPosts: filteredData.length,

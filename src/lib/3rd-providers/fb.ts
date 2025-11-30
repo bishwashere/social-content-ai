@@ -80,20 +80,14 @@ class Fb {
   }
 
   private _getMyPostInsightsApiUrl(pageId: string) {
-    // Extended fields to include metadata that can be fetched in the main posts query
+    // For v3.3+, many fields are deprecated when requesting posts
+    // Use minimal fields only - fetch everything else separately
     const fields = [
       "id",
       "message",
-      "shares",
       "created_time",
-      "type", // post type: photo, video, link, status
-      "permalink_url",
-      "full_picture",
-      "link",
-      "story",
-      "reactions.type(LIKE).summary(total_count).limit(0)",
-      "comments.summary(total_count).limit(0)",
-      "insights.metric(post_impressions,post_impressions_unique)",
+      // Removed: shares, reactions, comments, insights - all deprecated in v3.3+
+      // Will fetch all metrics separately for each post
     ].join(",");
     
     return (
@@ -109,7 +103,16 @@ class Fb {
     try {
       const url = this._getMyPostInsightsApiUrl(pageId);
 
-      if (!url) return [];
+      if (!url) {
+        console.error("[Fb.getMyPostInsights] Failed to generate API URL. Check access token and pageId:", {
+          pageId,
+          hasAccessToken: !!this._accessToken,
+          baseUrl: this._baseUrl,
+        });
+        return [];
+      }
+      
+      console.log("[Fb.getMyPostInsights] Fetching posts from:", url.substring(0, 100) + "...");
 
       let posts: {
         id: string;
@@ -148,43 +151,125 @@ class Fb {
       let nextUrl = url;
       // get all the posts
       while (true) {
-        const { data } = await axios.get(nextUrl);
-        if (data.data?.length === 0) {
-          break;
-        } else {
-          posts = [...posts, ...data.data];
+        try {
+          const { data } = await axios.get(nextUrl);
+          
+          if (data.error) {
+            console.error("[Fb.getMyPostInsights] Facebook API error:", data.error);
+            throw new Error(`Facebook API error: ${data.error.message || JSON.stringify(data.error)}`);
+          }
+          
+          if (data.data?.length === 0) {
+            console.log("[Fb.getMyPostInsights] No more posts in pagination");
+            break;
+          } else if (data.data) {
+            posts = [...posts, ...data.data];
+            console.log(`[Fb.getMyPostInsights] Fetched ${data.data.length} posts (total so far: ${posts.length})`);
+          } else {
+            console.warn("[Fb.getMyPostInsights] Unexpected API response structure:", data);
+            break;
+          }
+          
           const nextPaging = data.paging?.next;
           if (nextPaging) {
             nextUrl = nextPaging;
           } else {
             break;
           }
+        } catch (axiosError: any) {
+          console.error("[Fb.getMyPostInsights] Axios error:", {
+            message: axiosError.message,
+            status: axiosError.response?.status,
+            statusText: axiosError.response?.statusText,
+            data: axiosError.response?.data,
+            errorMessage: axiosError.response?.data?.error?.message,
+            errorType: axiosError.response?.data?.error?.type,
+            errorCode: axiosError.response?.data?.error?.code,
+            fullError: JSON.stringify(axiosError.response?.data, null, 2),
+          });
+          throw axiosError;
         }
       }
-      const normalizedData = posts.map((post) => ({
-        id: post.id,
-        message: post.message,
-        date: new Date(post.created_time),
-        shares: post.shares?.count || 0,
-        reactions: post.reactions?.summary?.total_count,
-        comments: post.comments?.summary?.total_count,
-        impressions: post.insights?.data?.find(
-          (item) => item.name === "post_impressions"
-        )?.values?.[0]?.value,
-        uniqueImpressions: post.insights?.data?.find(
-          (item) => item.name === "post_impressions_unique"
-        )?.values?.[0]?.value,
-        // Additional metadata for insights
-        postType: post.type,
-        permalinkUrl: post.permalink_url,
-        fullPictureUrl: post.full_picture,
-        linkUrl: post.link,
-        story: post.story,
-      }));
+      // Fetch reactions, comments, shares, and insights separately for each post (deprecated aggregated fields removed)
+      const normalizedData = await Promise.all(
+        posts.map(async (post) => {
+          let reactions = 0;
+          let comments = 0;
+          let shares = 0;
+          let impressions: number | undefined;
+          let uniqueImpressions: number | undefined;
+          
+          // Fetch reactions count separately
+          try {
+            const reactionsUrl = `${this._baseUrl}/${post.id}?fields=reactions.summary(total_count)&access_token=${this._accessToken}`;
+            const reactionsResponse = await axios.get(reactionsUrl);
+            reactions = reactionsResponse.data?.reactions?.summary?.total_count || 0;
+          } catch {
+            // Silently fail - not critical
+            console.warn(`[Fb.getMyPostInsights] Failed to fetch reactions for post ${post.id}`);
+          }
+          
+          // Fetch comments count separately
+          try {
+            const commentsUrl = `${this._baseUrl}/${post.id}?fields=comments.summary(total_count)&access_token=${this._accessToken}`;
+            const commentsResponse = await axios.get(commentsUrl);
+            comments = commentsResponse.data?.comments?.summary?.total_count || 0;
+          } catch {
+            // Silently fail - not critical
+            console.warn(`[Fb.getMyPostInsights] Failed to fetch comments for post ${post.id}`);
+          }
+          
+          // Fetch shares count separately
+          try {
+            const sharesUrl = `${this._baseUrl}/${post.id}?fields=shares&access_token=${this._accessToken}`;
+            const sharesResponse = await axios.get(sharesUrl);
+            shares = sharesResponse.data?.shares?.count || 0;
+          } catch {
+            // Silently fail - not critical
+            console.warn(`[Fb.getMyPostInsights] Failed to fetch shares for post ${post.id}`);
+          }
+          
+          // Fetch insights separately
+          try {
+            const insightsUrl = `${this._baseUrl}/${post.id}/insights?metric=post_impressions,post_impressions_unique&access_token=${this._accessToken}`;
+            const insightsResponse = await axios.get(insightsUrl);
+            const insightsData = insightsResponse.data?.data || [];
+            
+            impressions = insightsData.find(
+              (item: any) => item.name === "post_impressions"
+            )?.values?.[0]?.value;
+            uniqueImpressions = insightsData.find(
+              (item: any) => item.name === "post_impressions_unique"
+            )?.values?.[0]?.value;
+          } catch {
+            // Silently fail insights fetch - not critical for basic post data
+            console.warn(`[Fb.getMyPostInsights] Failed to fetch insights for post ${post.id}`);
+          }
+          
+          return {
+            id: post.id,
+            message: post.message,
+            date: new Date(post.created_time),
+            shares,
+            reactions,
+            comments,
+            impressions,
+            uniqueImpressions,
+            // Additional metadata (these should still work)
+            postType: post.type || undefined,
+            permalinkUrl: post.permalink_url || undefined,
+            fullPictureUrl: post.full_picture || undefined,
+            linkUrl: post.link || undefined,
+            story: post.story || undefined,
+          };
+        })
+      );
 
       return normalizedData;
-    } catch {
-      return [];
+    } catch (error) {
+      console.error("[Fb.getMyPostInsights] Error fetching posts:", error);
+      // Re-throw to let caller handle the error
+      throw error;
     }
   }
 
