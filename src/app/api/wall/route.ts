@@ -39,9 +39,15 @@ export const POST = applyMiddleware(
       });
     }
 
+    // Clean up content: remove ** (markdown bold markers)
+    const cleanedContent = typeof body.content === 'string' 
+      ? body.content.replace(/\*\*/g, '') 
+      : body.content;
+
     const post = await prisma.wall.create({
       data: {
         ...body,
+        content: cleanedContent,
         userId: user.id,
       },
     });
@@ -193,10 +199,15 @@ export const PUT = applyMiddleware(
       });
     }
 
+    // Clean up content: remove ** (markdown bold markers)
+    const cleanedContent = typeof content === 'string' 
+      ? content.replace(/\*\*/g, '') 
+      : content;
+
     // Create wall post
     const wallPost = await prisma.wall.create({
       data: {
-        content,
+        content: cleanedContent,
         projectId,
         userId: user.id,
         platform,

@@ -93,7 +93,45 @@ async function cleanContentAsterisks() {
     }
 
     console.log(`✅ Fixed ${fixedCampaignChats} campaign chats!`);
-    console.log(`\n🎉 Total: Cleaned ${fixedProjectChats + fixedCampaignChats} chats!`);
+
+    // Clean Wall contents
+    console.log("\n📝 Cleaning Wall contents...");
+    const walls = await prisma.$runCommandRaw({
+      find: "wall",
+      filter: {},
+    }) as any;
+
+    const wallsData = walls.cursor?.firstBatch || [];
+    console.log(`Found ${wallsData.length} wall posts`);
+
+    let fixedWalls = 0;
+    for (const wall of wallsData) {
+      const wallId = wall._id?.$oid || wall._id;
+      let needsUpdate = false;
+      let cleanedContent = wall.content;
+
+      if (typeof wall.content === 'string' && wall.content.includes('**')) {
+        cleanedContent = wall.content.replace(/\*\*/g, '');
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await prisma.$runCommandRaw({
+          update: "wall",
+          updates: [
+            {
+              q: { _id: wall._id },
+              u: { $set: { content: cleanedContent } },
+            },
+          ],
+        });
+        fixedWalls++;
+        console.log(`  - Cleaned wall post: ${wallId}`);
+      }
+    }
+
+    console.log(`✅ Fixed ${fixedWalls} wall posts!`);
+    console.log(`\n🎉 Total: Cleaned ${fixedProjectChats + fixedCampaignChats + fixedWalls} items!`);
   } catch (error) {
     console.error("❌ Error cleaning content asterisks:", error);
     throw error;
