@@ -39,6 +39,7 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
       impressions: 0,
       likes: 0,
       comments: 0,
+      posts: 0,
     }));
 
     if (isLoading || !data?.data || data.data.length === 0) {
@@ -49,20 +50,66 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
     const cutoffDate = new Date(now);
     cutoffDate.setDate(now.getDate() - timeRange);
 
-    const filteredData = data.data
-      .filter((item) => new Date(item.date) >= cutoffDate)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const filteredData = data.data.filter((item) => {
+      if (!item || !item.date) return false;
+      try {
+        const postDate = item.date instanceof Date ? item.date : new Date(item.date);
+        return !isNaN(postDate.getTime()) && postDate >= cutoffDate;
+      } catch {
+        return false;
+      }
+    });
 
-    // Map to simplified format
-    const simplifiedData = filteredData.map((d, index) => ({
-      index: index,
-      impressions: d.impressions || 0,
-      likes: d.likes || 0,
-      comments: d.comments || 0,
-    }));
+    // Group posts by day and aggregate metrics
+    const postsByDay = new Map<string, {
+      dayKey: string;
+      impressions: number;
+      likes: number;
+      comments: number;
+      posts: number;
+    }>();
 
-    // Limit to last 7 points for mini chart, or use default if empty
-    const result = simplifiedData.length > 0 ? simplifiedData.slice(-7) : defaultData;
+    filteredData.forEach((d) => {
+      try {
+        const date = d.date instanceof Date ? d.date : new Date(d.date);
+        if (isNaN(date.getTime())) return;
+        
+        const dayKey = date.toISOString().split('T')[0];
+
+        const existing = postsByDay.get(dayKey);
+        if (existing) {
+          existing.posts += 1;
+          existing.comments += (d.comments || 0);
+          existing.likes += (d.likes || 0);
+          existing.impressions += (d.impressions || 0);
+        } else {
+          postsByDay.set(dayKey, {
+            dayKey,
+            posts: 1,
+            comments: d.comments || 0,
+            likes: d.likes || 0,
+            impressions: d.impressions || 0,
+          });
+        }
+      } catch {
+        // Skip invalid dates
+      }
+    });
+
+    // Convert to array, sort by date, and limit to last 7 days
+    const sortedData = Array.from(postsByDay.values())
+      .sort((a, b) => a.dayKey.localeCompare(b.dayKey))
+      .slice(-7)
+      .map((d, index) => ({
+        index: index,
+        impressions: d.impressions,
+        likes: d.likes,
+        comments: d.comments,
+        posts: d.posts,
+      }));
+
+    // Use default if no data
+    const result = sortedData.length > 0 ? sortedData : defaultData;
     return result;
   }, [data, timeRange, isLoading]);
 
@@ -70,13 +117,15 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
   const maxImpressions = Math.max(...chartData.map(d => d.impressions), 1);
   const maxLikes = Math.max(...chartData.map(d => d.likes), 1);
   const maxComments = Math.max(...chartData.map(d => d.comments), 1);
-  const maxValue = Math.max(maxImpressions, maxLikes, maxComments, 1);
+  const maxPosts = Math.max(...chartData.map(d => d.posts), 1);
+  const maxValue = Math.max(maxImpressions, maxLikes, maxComments, maxPosts, 1);
 
   const normalizedData = chartData.map(d => ({
     index: d.index,
     impressions: d.impressions / maxValue,
     likes: d.likes / maxValue,
     comments: d.comments / maxValue,
+    posts: d.posts / maxValue,
   }));
 
   return (
@@ -90,7 +139,13 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
             dataKey="impressions"
             fill="#4285F4"
             radius={[1, 1, 0, 0]}
-            maxBarSize={4}
+            maxBarSize={3}
+          />
+          <Bar
+            dataKey="posts"
+            fill="#3B82F6"
+            radius={[1, 1, 0, 0]}
+            maxBarSize={3}
           />
           <Line
             type="monotone"

@@ -27,34 +27,60 @@ const Facebook = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
           }
         });
 
+        // Group posts by day and aggregate metrics
+        const postsByDay = new Map<string, {
+          dayKey: string;
+          label: string;
+          totalPosts: number;
+          totalComments: number;
+          totalLikes: number;
+          totalImpressions: number;
+        }>();
+
+        filteredData.forEach((d) => {
+          try {
+            const date = d.date instanceof Date ? d.date : new Date(d.date);
+            if (isNaN(date.getTime())) return;
+            
+            const dayKey = date.toISOString().split('T')[0];
+            const label = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: '2-digit',
+              year: 'numeric'
+            });
+
+            const existing = postsByDay.get(dayKey);
+            if (existing) {
+              existing.totalPosts += 1;
+              existing.totalComments += (d.comments || 0);
+              existing.totalLikes += (d.likes || 0);
+              existing.totalImpressions += (d.impressions || 0);
+            } else {
+              postsByDay.set(dayKey, {
+                dayKey,
+                label,
+                totalPosts: 1,
+                totalComments: d.comments || 0,
+                totalLikes: d.likes || 0,
+                totalImpressions: d.impressions || 0,
+              });
+            }
+          } catch {
+            // Skip invalid dates
+          }
+        });
+
+        const chartData = Array.from(postsByDay.values())
+          .sort((a, b) => a.dayKey.localeCompare(b.dayKey))
+          .map(({ dayKey, ...rest }) => rest);
+
         setAnalytics({
           totalPosts: filteredData.length,
           totalComments: filteredData.reduce((sum, d) => sum + (d.comments || 0), 0),
           totalLikes: filteredData.reduce((sum, d) => sum + (d.likes || 0), 0),
           totalFollowers: 0,
           totalImpressions: filteredData.reduce((sum, d) => sum + (d.impressions || 0), 0),
-          chartData: filteredData.map((d) => {
-            try {
-              const date = d.date instanceof Date ? d.date : new Date(d.date);
-              return {
-                label: !isNaN(date.getTime()) ? date.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: '2-digit',
-                  year: 'numeric'
-                }) : 'Invalid Date',
-                totalComments: d.comments || 0,
-                totalImpressions: d.impressions || 0,
-                totalLikes: d.likes || 0,
-              };
-            } catch {
-              return {
-                label: 'Invalid Date',
-                totalComments: d.comments || 0,
-                totalImpressions: d.impressions || 0,
-                totalLikes: d.likes || 0,
-              };
-            }
-          }),
+          chartData,
         });
       } catch (error) {
         console.error("Error processing Facebook analytics data:", error);

@@ -1,20 +1,15 @@
 # Unexpected Issues
 
-## TypeScript Errors
+## Resolved Issues
 
-1. `src/app/api/pending-tasks/route.ts:139:15` - `'userRole' does not exist in type`
+All previously listed issues have been resolved:
+- TypeScript errors fixed
+- React/JSX errors fixed
+- ESLint warnings addressed (remaining warnings are non-blocking)
 
-2. `src/app/api/recent-activity/route.ts:202` - `'draft.planner' is possibly 'null'`
+## Recent Fixes
 
-3. `src/lib/auth.ts:283:15` - `Cannot find name 'autoLinkProviderToAllProjects'` - Missing import statement
-
-## React/JSX Errors
-
-1. `src/app/(pages)/project/_components/your-today-panel.tsx:68:22` - `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`
-
-## ESLint Warnings
-
-1. `src/backend-apis/projects/actions.ts:101:10` - `'planners' is assigned a value but never used`
-
-2. `src/app/(pages)/project/_components/get-started-guide.tsx:78:9` - `'hasPosts' is assigned a value but never used`
+1. `src/lib/3rd-providers/fb.ts` - Fixed `'shares is not defined'` error by initializing and fetching shares separately
+2. `src/app/(pages)/project/analytics/_components/tabs/view-analytics.tsx` - Fixed chart not displaying posts by implementing dynamic Y-axis domain calculation
+3. Removed unused error variables in catch blocks to fix ESLint warnings
 

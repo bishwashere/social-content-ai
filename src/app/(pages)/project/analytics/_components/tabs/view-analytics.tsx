@@ -27,6 +27,7 @@ export type ViewAnalyticsProps = {
     totalImpressions: number;
     totalLikes: number;
     totalComments: number;
+    totalPosts: number;
   }[]
 }
 
@@ -52,12 +53,13 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
     return maxImpressions === 0 ? [0, 10] : [0, "auto" as const];
   };
 
-  // Calculate dynamic domain for likes/comments Y-axis
+  // Calculate dynamic domain for likes/comments/posts Y-axis
   const getLikesCommentsDomain = (): [number, number] | [number, string] => {
     if (chartData.length === 0) return [0, 10];
     const maxLikes = Math.max(...chartData.map(d => d.totalLikes || 0));
     const maxComments = Math.max(...chartData.map(d => d.totalComments || 0));
-    const maxValue = Math.max(maxLikes, maxComments);
+    const maxPosts = Math.max(...chartData.map(d => d.totalPosts || 0));
+    const maxValue = Math.max(maxLikes, maxComments, maxPosts);
     // If all values are 0, set a minimum domain so the chart is visible
     return maxValue === 0 ? [0, 10] : [0, "auto" as const];
   };
@@ -71,10 +73,19 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
       totalComments: "Comments",
       totalPosts: "Posts",
     };
+    
+    // Sort payload to show Posts first, then Impressions, then Likes, then Comments
+    const sortedPayload = [...payload].sort((a, b) => {
+      const order = ['totalPosts', 'totalImpressions', 'totalLikes', 'totalComments'];
+      const indexA = order.indexOf(a.dataKey as string);
+      const indexB = order.indexOf(b.dataKey as string);
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+    });
+
     return (
       <div className="bg-white p-3 border rounded shadow text-sm">
         <p className="font-bold mb-2">{label}</p>
-        {payload.map((entry, index) => (
+        {sortedPayload.map((entry, index) => (
           <div key={index} className="flex items-center justify-between gap-3 mb-1">
             <div className="flex items-center gap-2">
               <span
@@ -227,6 +238,15 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
                 dataKey="totalImpressions"
                 maxBarSize={isMobile ? 20 : 40}
                 fill="#4285F4"
+                radius={[4, 4, 0, 0]}
+              />
+
+              {/* Bar for Posts Count */}
+              <Bar
+                yAxisId="right"
+                dataKey="totalPosts"
+                maxBarSize={isMobile ? 20 : 40}
+                fill="#3B82F6"
                 radius={[4, 4, 0, 0]}
               />
 
