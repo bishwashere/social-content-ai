@@ -3,24 +3,30 @@ import tryCatchAsync from "@/lib/try-catch-async";
 import api from "../axios";
 import { ApiError } from "../types";
 
-export type ActionItem = {
-  type: "failed_post" | "campaign_content" | "schedule_post";
-  icon: string;
-  title: string;
-  projectId?: string;
-  projectName?: string;
+export type YourTodayProject = {
+  projectId: string;
+  projectName: string;
+  description?: string;
   campaignId?: string;
   campaignName?: string;
   day?: number;
-  action: string;
   userRole?: string; // "admin" | "editor" | "viewer"
+  needsAction?: boolean; // true if action button should be shown
+};
+
+export type YourTodayTask = {
+  type: "failed_post" | "campaigns" | "schedule_post";
+  icon: string;
+  title: string;
+  action: string;
+  projects: YourTodayProject[];
 };
 
 export const useGetYourToday = () => {
-  return useQuery<ActionItem[]>({
+  return useQuery<YourTodayTask[]>({
     queryKey: ["yourToday"],
     queryFn: async () => {
-      const [err, res] = await tryCatchAsync<ApiError, { data: ActionItem[] }>(async () => {
+      const [err, res] = await tryCatchAsync<ApiError, { data: YourTodayTask[] }>(async () => {
         const response = await api.get("/your-today");
         return response;
       });
@@ -28,7 +34,6 @@ export const useGetYourToday = () => {
         console.error("Error fetching your today:", err);
         throw new Error(err.response?.data?.message || "Failed to fetch your today items");
       }
-      // The API returns the array directly
       const result = res.data || [];
       console.log("Your Today API response:", result);
       return result;

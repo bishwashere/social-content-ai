@@ -62,158 +62,288 @@ export async function GET(request: NextRequest) {
           return NextResponse.json([]);
         }
 
-        // 1. Check for failed posts from yesterday
-        const failedPosts = await prisma.scheduledPost.findMany({
-        where: {
-          projectId: { in: projectIds },
-          status: "failed",
-          date: {
-            gte: yesterday,
-            lt: today
-          }
-        },
-        include: {
-          project: {
-            select: {
-              id: true,
-              name: true
+        // Get all data grouped by project
+        const [failedPosts, campaigns, todayScheduledPosts] = await Promise.all([
+          // 1. Failed posts from yesterday
+          prisma.scheduledPost.findMany({
+            where: {
+              projectId: { in: projectIds },
+              status: "failed",
+              date: {
+                gte: yesterday,
+                lt: today
+              }
+            },
+            include: {
+              project: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
             }
-          }
-        },
-          take: 1
+          }),
+          // 2. Campaigns with chats
+          prisma.campaignPlanner.findMany({
+            where: {
+              projectId: { in: projectIds },
+              startDate: { not: null }
+            },
+            include: {
+              chats: {
+                orderBy: {
+                  day: "asc"
+                }
+              },
+              project: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }),
+          // 3. Scheduled posts for today
+          prisma.scheduledPost.findMany({
+            where: {
+              projectId: { in: projectIds },
+              date: {
+                gte: today,
+                lt: tomorrow
+              },
+              status: "pending"
+            },
+            include: {
+              project: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          })
+        ]);
+
+        // Group data by project
+        const failedPostsByProject = new Map<string, typeof failedPosts>();
+        failedPosts.forEach(post => {
+          if (!post.projectId) return;
+          const existing = failedPostsByProject.get(post.projectId) || [];
+          existing.push(post);
+          failedPostsByProject.set(post.projectId, existing);
         });
 
-        // 2. Check for campaigns that need content
-        const campaigns = await prisma.campaignPlanner.findMany({
-        where: {
-          projectId: { in: projectIds },
-          startDate: { not: null }
-        },
-        include: {
-          chats: {
-            orderBy: {
-              day: "asc"
-            }
-          },
-          project: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-          }
+        const campaignsByProject = new Map<string, typeof campaigns>();
+        campaigns.forEach(campaign => {
+          if (!campaign.projectId) return;
+          const existing = campaignsByProject.get(campaign.projectId) || [];
+          existing.push(campaign);
+          campaignsByProject.set(campaign.projectId, existing);
         });
 
-        const campaignsNeedingContent = campaigns
-        .map(campaign => {
-          if (!campaign.startDate) return null;
-          const startDate = new Date(campaign.startDate);
-          const todayDate = new Date(today);
-          const daysSinceStart = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-          
-          // Find the next chat that needs content (for today or upcoming days within next 3 days)
-          const nextChat = campaign.chats.find(chat => {
-            const chatDay = chat.day;
-            const daysUntilChat = chatDay - daysSinceStart;
-            
-            // Check if chat is within the date range
-            if (daysUntilChat < 0 || daysUntilChat > 3) {
-              return false;
-            }
-            
-            // Chat needs content if:
-            // 1. Status is PENDING, OR
-            // 2. Status is GENERATED but contents is empty/missing
-            const contents = chat.contents as Record<string, any> | null | undefined;
-            const hasContent = contents && 
-                              typeof contents === 'object' && 
-                              Object.keys(contents).length > 0 &&
-                              Object.values(contents).some(val => val && typeof val === 'string' && val.trim().length > 0);
-            
-            const needsContent = chat.status === "PENDING" || !hasContent;
-            
-            return needsContent;
-          });
-
-          if (!nextChat) return null;
-
-          return {
-            campaignId: campaign.id,
-            campaignName: campaign.name || "Untitled Campaign",
-            projectId: campaign.projectId,
-            projectName: campaign.project?.name || "Unknown Project",
-            day: nextChat.day
-          };
-        })
-          .filter((item): item is NonNullable<typeof item> => item !== null)
-          .slice(0, 1);
-
-        // 3. Check scheduled posts for today
-        const todayScheduledPosts = await prisma.scheduledPost.findMany({
-        where: {
-          projectId: { in: projectIds },
-          date: {
-            gte: today,
-            lt: tomorrow
-          },
-          status: "pending"
-          },
-          select: {
-            id: true
-          }
+        const scheduledPostsByProject = new Map<string, typeof todayScheduledPosts>();
+        todayScheduledPosts.forEach(post => {
+          if (!post.projectId) return;
+          const existing = scheduledPostsByProject.get(post.projectId) || [];
+          existing.push(post);
+          scheduledPostsByProject.set(post.projectId, existing);
         });
 
-        const actionItems = [];
+        // Group tasks by type
+        const tasksByType: Record<string, {
+          type: string;
+          icon: string;
+          title: string;
+          action: string;
+          projects: Array<{
+            projectId: string;
+            projectName: string;
+            description?: string;
+            campaignId?: string;
+            campaignName?: string;
+            day?: number;
+            userRole?: string;
+            needsAction?: boolean;
+          }>;
+        }> = {};
 
-        // Add failed posts item
-        if (failedPosts.length > 0) {
-          const projectId = failedPosts[0].projectId;
+        // Check each project individually
+        for (const project of uniqueProjects) {
+          const projectId = project.id;
+          const projectName = project.name;
           const userRole = projectRoleMap.get(projectId) || "viewer";
-          actionItems.push({
-            type: "failed_post",
-            icon: "🔔",
-            title: `${failedPosts.length} post${failedPosts.length > 1 ? 's' : ''} failed yesterday — fix ${failedPosts.length > 1 ? 'them' : 'it'}`,
-            projectId: projectId,
-            projectName: failedPosts[0].project?.name,
-            userRole: userRole,
-            action: "view_failed_posts"
-          });
+
+          // 1. Check failed posts for this project
+          const projectFailedPosts = failedPostsByProject.get(projectId) || [];
+          if (projectFailedPosts.length > 0) {
+            if (!tasksByType["failed_post"]) {
+              tasksByType["failed_post"] = {
+                type: "failed_post",
+                icon: "🔔",
+                title: "Failed posts from yesterday",
+                action: "view_failed_posts",
+                projects: []
+              };
+            }
+            tasksByType["failed_post"].projects.push({
+              projectId: projectId,
+              projectName: projectName,
+              description: `${projectFailedPosts.length} post${projectFailedPosts.length > 1 ? 's' : ''} failed yesterday — fix ${projectFailedPosts.length > 1 ? 'them' : 'it'}`,
+              userRole: userRole,
+              needsAction: true
+            });
+          }
+
+          // 2. Check campaigns for this project - combine all campaign-related items
+          const projectCampaigns = campaignsByProject.get(projectId) || [];
+          let hasActiveCampaign = false;
+          const hasAnyCampaign = projectCampaigns.length > 0;
+          let campaignNeedingContent: {
+            campaignId: string;
+            campaignName: string;
+            day: number;
+          } | null = null;
+
+          if (hasAnyCampaign) {
+            // Check if any campaign needs content and also track campaigns with active chats
+            projectCampaigns.forEach(campaign => {
+              if (!campaign.startDate) return;
+              
+              const startDate = new Date(campaign.startDate);
+              startDate.setHours(0, 0, 0, 0);
+              const todayDate = new Date(today);
+              todayDate.setHours(0, 0, 0, 0);
+              
+              // Find chats that are within the next 3 days (today, tomorrow, day after tomorrow, day after that)
+              // chat.day is the day number in the campaign (1, 2, 3...)
+              // daysSinceStart is how many days have passed since the campaign started
+              // So daysUntilChat = chat.day - daysSinceStart - 1 (because day 1 is the start date)
+              const activeChats = campaign.chats.filter(chat => {
+                // Calculate the actual date for this chat: startDate + (chat.day - 1) days
+                const chatDate = new Date(startDate.getTime() + (chat.day - 1) * 86400000);
+                chatDate.setHours(0, 0, 0, 0);
+                
+                // Calculate days until this chat (can be negative if in the past)
+                const daysUntilChat = Math.floor((chatDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+                
+                // Check if chat is within the date range (0-3 days from today)
+                return daysUntilChat >= 0 && daysUntilChat <= 3;
+              });
+
+              // Track if this campaign has active chats
+              if (activeChats.length > 0) {
+                hasActiveCampaign = true;
+                
+                // Check if any active chat needs content
+                const chatNeedingContent = activeChats.find(chat => {
+                  // Chat needs content if:
+                  // 1. Status is PENDING, OR
+                  // 2. Status is GENERATED but contents is empty/missing
+                  const contents = chat.contents as Record<string, any> | null | undefined;
+                  const hasContent = contents && 
+                                    typeof contents === 'object' && 
+                                    Object.keys(contents).length > 0 &&
+                                    Object.values(contents).some(val => val && typeof val === 'string' && val.trim().length > 0);
+                  
+                  return chat.status === "PENDING" || !hasContent;
+                });
+
+                if (chatNeedingContent && !campaignNeedingContent) {
+                  campaignNeedingContent = {
+                    campaignId: campaign.id,
+                    campaignName: campaign.name || "Untitled Campaign",
+                    day: chatNeedingContent.day
+                  };
+                }
+              }
+            });
+          }
+
+          // Add to unified campaigns task type
+          if (!tasksByType["campaigns"]) {
+            tasksByType["campaigns"] = {
+              type: "campaigns",
+              icon: "📅",
+              title: "Campaigns",
+              action: "manage_campaigns",
+              projects: []
+            };
+          }
+
+          // Show all projects under campaigns section with their status
+          if (campaignNeedingContent) {
+            // Project has active campaign that needs content
+            const campaign: { campaignId: string; campaignName: string; day: number } = campaignNeedingContent;
+            tasksByType["campaigns"].projects.push({
+              projectId: projectId,
+              projectName: projectName,
+              description: `Campaign "${campaign.campaignName}" needs content for Day ${campaign.day} — generate now`,
+              campaignId: campaign.campaignId,
+              campaignName: campaign.campaignName,
+              day: campaign.day,
+              userRole: userRole,
+              needsAction: true
+            });
+          } else if (hasActiveCampaign) {
+            // Project has active campaigns but all are up to date
+            tasksByType["campaigns"].projects.push({
+              projectId: projectId,
+              projectName: projectName,
+              description: `Project "${projectName}" has active campaigns — all up to date`,
+              userRole: userRole,
+              needsAction: false
+            });
+          } else if (hasAnyCampaign) {
+            // Project has campaigns but none have active chats in the next 3 days
+            tasksByType["campaigns"].projects.push({
+              projectId: projectId,
+              projectName: projectName,
+              description: `Project "${projectName}" has campaigns — no active chats in the next 3 days`,
+              userRole: userRole,
+              needsAction: false
+            });
+          } else if (userRole === "admin") {
+            // Project has no campaigns at all (only show for admins)
+            tasksByType["campaigns"].projects.push({
+              projectId: projectId,
+              projectName: projectName,
+              description: `Project "${projectName}" has no campaigns — create one to start planning content`,
+              userRole: userRole,
+              needsAction: true
+            });
+          }
+
+          // 3. Check scheduled posts for today for this project
+          const projectScheduledPosts = scheduledPostsByProject.get(projectId) || [];
+          if (projectScheduledPosts.length === 0) {
+            // No scheduled posts - show action if user is admin
+            if (userRole === "admin") {
+              if (!tasksByType["schedule_post"]) {
+                tasksByType["schedule_post"] = {
+                  type: "schedule_post",
+                  icon: "🚀",
+                  title: "Schedule posts for today",
+                  action: "schedule_post",
+                  projects: []
+                };
+              }
+              tasksByType["schedule_post"].projects.push({
+                projectId: projectId,
+                projectName: projectName,
+                description: "You scheduled 0 posts for today — want to schedule one?",
+                userRole: userRole,
+                needsAction: true
+              });
+            }
+          }
         }
 
-        // Add campaign needing content item
-        if (campaignsNeedingContent.length > 0) {
-          const campaign = campaignsNeedingContent[0];
-          const userRole = projectRoleMap.get(campaign.projectId) || "viewer";
-          actionItems.push({
-            type: "campaign_content",
-            icon: "📝",
-            title: `You have a campaign that needs content for Day ${campaign.day} — generate now`,
-            projectId: campaign.projectId,
-            projectName: campaign.projectName,
-            campaignId: campaign.campaignId,
-            campaignName: campaign.campaignName,
-            day: campaign.day,
-            userRole: userRole,
-            action: "generate_campaign_content"
-          });
-        }
+        // Convert grouped tasks to array
+        const tasks = Object.values(tasksByType);
 
-        // Add scheduled posts for today
-        if (todayScheduledPosts.length === 0) {
-          // For schedule_post, check if user has admin role in any project
-          const hasAdminAccess = Array.from(projectRoleMap.values()).some(role => role === "admin");
-          actionItems.push({
-            type: "schedule_post",
-            icon: "🚀",
-            title: "You scheduled 0 posts for today — want to schedule one?",
-            userRole: hasAdminAccess ? "admin" : "viewer",
-            action: "schedule_post"
-          });
-        }
-
-        // Return max 3 items
-        console.log("✅ Your Today API - Returning", actionItems.length, "items");
-        return NextResponse.json(actionItems.slice(0, 3));
+        // Return all task types
+        console.log("✅ Your Today API - Returning", tasks.length, "task types");
+        return NextResponse.json(tasks);
       } catch (error) {
         console.error("❌ Your Today API - Error:", error);
         throw error; // Re-throw to be caught by catchApiAsyncError
