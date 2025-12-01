@@ -313,7 +313,73 @@ export async function GET(request: NextRequest) {
             });
           }
 
-          // 3. Check scheduled posts for today for this project
+          // 3. Check for campaigns ending soon (3 posts or less remaining)
+          const projectCampaignsForEnding = campaignsByProject.get(projectId) || [];
+          console.log(`📊 Checking ${projectCampaignsForEnding.length} campaigns for project "${projectName}" (${projectId})`);
+          projectCampaignsForEnding.forEach(campaign => {
+            if (!campaign.startDate) {
+              console.log(`⏭️ Skipping campaign "${campaign.name || "Untitled"}" - no startDate`);
+              return;
+            }
+            
+            const startDate = new Date(campaign.startDate);
+            startDate.setHours(0, 0, 0, 0);
+            const todayDate = new Date(today);
+            todayDate.setHours(0, 0, 0, 0);
+            
+            // Only check campaigns that have started (startDate is today or in the past)
+            if (startDate > todayDate) {
+              console.log(`⏭️ Skipping campaign "${campaign.name || "Untitled"}" - hasn't started yet (starts ${startDate.toISOString()})`);
+              return;
+            }
+            
+            // Count remaining posts (chats with dates today or in the future)
+            const totalChats = campaign.chats?.length || 0;
+            const remainingPosts = (campaign.chats || []).filter(chat => {
+              // Calculate the actual date for this chat: startDate + (chat.day - 1) days
+              const chatDate = new Date(startDate);
+              chatDate.setDate(chatDate.getDate() + (chat.day - 1));
+              chatDate.setHours(0, 0, 0, 0);
+              
+              // Count posts that are scheduled for today or future dates (>= today)
+              return chatDate >= todayDate;
+            }).length;
+            
+            console.log(`🔍 Campaign "${campaign.name || "Untitled"}" (${campaign.id}): ${remainingPosts} remaining posts out of ${totalChats} total`);
+            
+            // If 3 or less posts remaining, add to campaign_ending_soon
+            if (remainingPosts > 0 && remainingPosts <= 3) {
+              console.log(`⏰ Campaign ending soon detected: "${campaign.name || "Untitled Campaign"}" has ${remainingPosts} post(s) remaining`);
+              if (!tasksByType["campaign_ending_soon"]) {
+                tasksByType["campaign_ending_soon"] = {
+                  type: "campaign_ending_soon",
+                  icon: "⏰",
+                  title: "Campaigns ending soon",
+                  action: "manage_campaigns",
+                  projects: []
+                };
+              }
+              
+              // Check if this project is already in the list
+              const existingProject = tasksByType["campaign_ending_soon"].projects.find(
+                p => p.projectId === projectId && p.campaignId === campaign.id
+              );
+              
+              if (!existingProject) {
+                tasksByType["campaign_ending_soon"].projects.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  description: `Project "${projectName}": Campaign "${campaign.name || "Untitled Campaign"}" has only ${remainingPosts} post${remainingPosts > 1 ? 's' : ''} remaining`,
+                  campaignId: campaign.id,
+                  campaignName: campaign.name || "Untitled Campaign",
+                  userRole: userRole,
+                  needsAction: true
+                });
+              }
+            }
+          });
+
+          // 4. Check scheduled posts for today for this project
           const projectScheduledPosts = scheduledPostsByProject.get(projectId) || [];
           if (projectScheduledPosts.length === 0) {
             // No scheduled posts - show action if user is admin
@@ -340,6 +406,19 @@ export async function GET(request: NextRequest) {
 
         // Convert grouped tasks to array
         const tasks = Object.values(tasksByType);
+
+        // Sort tasks to prioritize campaign_ending_soon
+        tasks.sort((a, b) => {
+          if (a.type === "campaign_ending_soon" && b.type !== "campaign_ending_soon") return -1;
+          if (a.type !== "campaign_ending_soon" && b.type === "campaign_ending_soon") return 1;
+          return 0;
+        });
+
+        // Log campaign_ending_soon tasks if any
+        const endingSoonTask = tasks.find(t => t.type === "campaign_ending_soon");
+        if (endingSoonTask) {
+          console.log(`⏰ Found ${endingSoonTask.projects.length} campaign(s) ending soon`);
+        }
 
         // Return all task types
         console.log("✅ Your Today API - Returning", tasks.length, "task types");

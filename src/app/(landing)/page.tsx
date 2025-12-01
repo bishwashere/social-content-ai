@@ -64,7 +64,7 @@ export default function HomeV3() {
               "https://backend.leadconnectorhq.com",
               ".www.nextpostai.com"
             );
-          } catch (e) {}
+          } catch {}
         }}
       />
 

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, PencilLine, Play, RefreshCcw, Save, Settings, Trash, VideoIcon, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, Play, Settings, Trash, VideoIcon, X } from "lucide-react";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -45,9 +45,7 @@ import { CampaignVideoButton } from "./campaign-video-button";
 import { CampaignCheckButton } from "./campaign-check-button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import LoadingCard from "./campaign-loading-card";
 import { useQueryClient } from "@tanstack/react-query";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Projects } from "@prisma/client";
 import { SavePlatformCard } from "./save-platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
@@ -994,7 +992,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       return (
                                                         <Button variant="ghost" size="icon" asChild>
                                                           <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
-                                                            <img src={ICONS[platform]} alt={platform} className="w-4 h-4" />
+                                                            <Image src={ICONS[platform]} alt={platform} width={16} height={16} />
                                                           </Link>
                                                         </Button>
                                                       );

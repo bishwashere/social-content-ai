@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 

@@ -9,7 +9,7 @@ import {
     TooltipProps,
 } from "recharts";
 import { differenceInDays, format, subDays } from "date-fns";
-import { Activity, BarChart2, Clock, FileText, LucideProps, MousePointerClick, ThumbsUp, Users } from "lucide-react";
+import { Activity, BarChart2, FileText, LucideProps, MousePointerClick, ThumbsUp, Users } from "lucide-react";
 import { useGetAllDayProjectPulse } from "@/backend-apis/projects/hooks";
 
 type ProjectAnalyticsGraphProps = {
@@ -152,7 +152,7 @@ function ProjectAnalyticsGraph({ data }: { data: ProjectAnalyticsGraphProps }) {
 
 
 export default function ProjectAnalytics({ projectId }: { projectId: string }) {
-    const { data: projectPulse, isLoading, error } = useGetAllDayProjectPulse(projectId);
+    const { data: projectPulse, isLoading } = useGetAllDayProjectPulse(projectId);
     const [metrics, setMetrics] = useState<ProjectAnalyticsGraphProps[]>([]);
 
     useEffect(() => {

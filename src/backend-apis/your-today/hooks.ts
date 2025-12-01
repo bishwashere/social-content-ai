@@ -15,7 +15,7 @@ export type YourTodayProject = {
 };
 
 export type YourTodayTask = {
-  type: "failed_post" | "campaigns" | "schedule_post";
+  type: "failed_post" | "campaigns" | "schedule_post" | "campaign_ending_soon";
   icon: string;
   title: string;
   action: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type {
   OauthProvider,
   Projects as Project,
@@ -55,7 +56,7 @@ const getPlatformIcon = (platform: string) => {
     case "linkedin":
       return <Linkedin className="h-4 w-4" />;
     case "threads":
-      return <img src="/threads.svg" className="h-6 w-6" />;
+      return <Image src="/threads.svg" alt="Threads" width={24} height={24} />;
     default:
       return null;
   }
