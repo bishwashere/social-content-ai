@@ -60,9 +60,12 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
     // When on URL step (step 1), fetch description before moving to description step
     if (step === 1 && url) {
       try {
-        // Ensure URL has a protocol
+        // Ensure URL has a protocol - handle cases like "domain.com", "www.domain.com", etc.
         let urlToFetch = url.trim();
-        if (!urlToFetch.startsWith('http://') && !urlToFetch.startsWith('https://')) {
+        // Remove any trailing slashes
+        urlToFetch = urlToFetch.replace(/\/+$/, '');
+        // Add https:// if no protocol is present
+        if (!urlToFetch.match(/^https?:\/\//i)) {
           urlToFetch = `https://${urlToFetch}`;
         }
         
