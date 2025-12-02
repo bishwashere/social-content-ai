@@ -202,10 +202,11 @@ class Prompt {
     }
 
     if (
-      platform === AVAILABLE_PLATFORMS.LINKEDIN &&
+      (platform === AVAILABLE_PLATFORMS.LINKEDIN ||
+        platform === AVAILABLE_PLATFORMS.FACEBOOK) &&
       extraInformation?.template
     ) {
-      console.log("Adding template for linkedin");
+      console.log(`Adding template for ${platform}`);
       finalfinalPrompt += `[CRITICAL] You MUST follow this exact template format. The template is: ${extraInformation?.template}. Write the post content following the template structure exactly. Generate ONLY the post body text that matches the template format - do not provide multiple formats, options, or variations. If the template shows a carousel format, write only the carousel content. If it shows a regular post, write only the regular post. Choose ONE format from the template and write only that.`;
     }
 
