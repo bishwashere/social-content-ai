@@ -15,6 +15,7 @@ import { useCreateProject, useGetWebsiteDescription } from "@/backend-apis/proje
 import { useQueryClient } from "@tanstack/react-query";
 import { useLogout } from "@/backend-apis/auth/hooks";
 import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 type OnboardingModalProps = {
   open: boolean;
@@ -26,7 +27,6 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [textareaHeight, setTextareaHeight] = useState(96); // Default h-24 = 96px
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const createProject = useCreateProject();
   const desc = useGetWebsiteDescription();
@@ -53,20 +53,39 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
       // Set the height to match content (min 96px)
       const newHeight = Math.max(scrollHeight, 96);
       textareaRef.current.style.height = `${newHeight}px`;
-      setTextareaHeight(newHeight);
     }
   }, [description, step]);
 
   const handleNext = async () => {
     // When on URL step (step 1), fetch description before moving to description step
     if (step === 1 && url) {
-      const fetchedDescription = await desc.mutateAsync(url);
-      // Set description first, then move to next step
-      setDescription(fetchedDescription || "");
-      // Move to next step after a brief delay to ensure description is set
-      setTimeout(() => {
-        setStep((prev) => prev + 1);
-      }, 0);
+      try {
+        // Ensure URL has a protocol
+        let urlToFetch = url.trim();
+        if (!urlToFetch.startsWith('http://') && !urlToFetch.startsWith('https://')) {
+          urlToFetch = `https://${urlToFetch}`;
+        }
+        
+        const fetchedDescription = await desc.mutateAsync(urlToFetch);
+        // Set description first, then move to next step
+        if (fetchedDescription && fetchedDescription.trim()) {
+          setDescription(fetchedDescription);
+          toast.success("Description fetched from URL");
+        } else {
+          toast.warning("Could not fetch description from URL. Please enter it manually.");
+        }
+        // Move to next step after a brief delay to ensure description is set
+        setTimeout(() => {
+          setStep((prev) => prev + 1);
+        }, 0);
+      } catch (err) {
+        console.error("Error fetching description:", err);
+        toast.error("Failed to fetch description from URL. Please enter it manually.");
+        // Still move to next step so user can enter description manually
+        setTimeout(() => {
+          setStep((prev) => prev + 1);
+        }, 0);
+      }
     } else {
       setStep((prev) => prev + 1);
     }
@@ -113,7 +132,7 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
           onProjectCreated(newProject.id);
         }, 300);
       }
-    } catch (error) {
+    } catch {
       // Error is already handled by the mutation's onError
     }
   };
