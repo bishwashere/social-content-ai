@@ -150,7 +150,7 @@ class TikTok {
 
             const data: TikTokTokenRefreshResponse = res.data;
             this._expiresAt = Date.now() + data.expires_in * 1000;
-            await prisma.oauthProvider.update({
+            await prisma.oauthProvider.updateMany({
                 where: {
                     accessToken: this._accessToken
                 },
