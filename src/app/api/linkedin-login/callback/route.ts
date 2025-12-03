@@ -1,3 +1,4 @@
+
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,6 +8,7 @@ import { verifyJWT } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { OauthPlatform } from "@prisma/client";
 import { autoLinkProviderToAllProjects } from "@/server-actions/auto-link-oauth-providers";
+import { encryptTokenFields } from "@/backend-apis/encryption";
 
 
 export async function GET(req: NextRequest) {
@@ -37,8 +39,13 @@ export async function GET(req: NextRequest) {
 
     const expiresAt = new Date().getTime() + token.expires_in! * 1000
 
+    const encryptedTokens = encryptTokenFields({
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token
+    }, ["accessToken", "refreshToken"]);
+
     const l = new Linkedin({
-        accessToken: token.access_token!,
+        accessToken: encryptedTokens.accessToken,
         expiresAt: expiresAt
     });
 
@@ -77,8 +84,8 @@ export async function GET(req: NextRequest) {
         userId: googleUser.id,
         platform: "linkedin" as OauthPlatform,
         pageId: page.id,
-        accessToken: token.access_token as string,
-        refreshToken: token.refresh_token as string,
+        accessToken: encryptedTokens.accessToken,
+        refreshToken: encryptedTokens.refreshToken,
         expiresAt,
         pageName: page.name,
         pageProfilePhoto: page.logo,
