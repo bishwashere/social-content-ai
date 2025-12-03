@@ -20,36 +20,121 @@ import { startOfDay, subDays } from "date-fns";
 
 export async function getWebsiteDescription(url: string) {
   try {
-    const { data } = await axios.get(url);
+    console.log(`[getWebsiteDescription] Starting fetch for URL: ${url}`);
+    
+    const { data } = await axios.get(url, {
+      timeout: 10000, // 10 second timeout
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    console.log(`[getWebsiteDescription] Successfully fetched HTML, length: ${data.length} characters`);
+    
+    // Wait a bit for any initial JavaScript to potentially execute (though this won't help with SPAs)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log(`[getWebsiteDescription] Waited 2 seconds for potential JS execution`);
+    
     const $ = cheerio.load(data);
+    console.log(`[getWebsiteDescription] HTML parsed successfully`);
 
     // Try to get meta description first
-    // let description =
-    //   $('meta[name="description"]').attr("content") ||
-    //   $('meta[property="og:description"]').attr("content");
+    const metaDescription = $('meta[name="description"]').attr("content");
+    const ogDescription = $('meta[property="og:description"]').attr("content");
+    const twitterDescription = $('meta[property="twitter:description"]').attr("content");
+    const ogTitle = $('meta[property="og:title"]').attr("content");
+    
+    console.log(`[getWebsiteDescription] Meta tags found:`, {
+      metaDescription: metaDescription || "not found",
+      ogDescription: ogDescription || "not found",
+      twitterDescription: twitterDescription || "not found",
+      ogTitle: ogTitle || "not found"
+    });
+    
+    let description =
+      metaDescription ||
+      ogDescription ||
+      twitterDescription ||
+      ogTitle;
 
-    // console.log("description from meta tags:", description);
+    console.log(`[getWebsiteDescription] Selected meta description:`, description || "none");
 
-    // // If no description, get all body text
-    // if (!description) {
-    // Remove script, style, and other non-content elements before extracting
-    $("script, style, noscript, iframe, embed, object").remove();
-    let description = $("body").text();
-    // Optional: trim and collapse whitespace
-    description = description.replace(/\s+/g, " ").trim();
+    // If no meta description, try to get content from other sources
+    if (!description || description.trim().length < 20) {
+      console.log(`[getWebsiteDescription] Meta description insufficient, trying title tag...`);
+      
+      // Try title tag first
+      const title = $("title").text();
+      console.log(`[getWebsiteDescription] Title tag found:`, title || "not found");
+      
+      if (title && title.trim().length > 10) {
+        description = title;
+        console.log(`[getWebsiteDescription] Using title as description:`, description);
+      } else {
+        console.log(`[getWebsiteDescription] Title insufficient, trying body text and other sources...`);
+        
+        // Try to get h1, h2 tags first (often have key content even in SPAs)
+        const h1 = $("h1").first().text().trim();
+        const h2 = $("h2").first().text().trim();
+        console.log(`[getWebsiteDescription] Heading tags found:`, { h1: h1 || "not found", h2: h2 || "not found" });
+        
+        if (h1 && h1.length > 10) {
+          description = h1;
+          console.log(`[getWebsiteDescription] Using h1 as description:`, description);
+        } else if (h2 && h2.length > 10) {
+          description = h2;
+          console.log(`[getWebsiteDescription] Using h2 as description:`, description);
+        } else {
+          // Remove script, style, and other non-content elements before extracting
+          $("script, style, noscript, iframe, embed, object").remove();
+          let bodyText = $("body").text();
+          // Optional: trim and collapse whitespace
+          bodyText = bodyText.replace(/\s+/g, " ").trim();
 
-    // console.log("description from body text:", description);
-    // }
+          console.log(`[getWebsiteDescription] Body text extracted, length: ${bodyText.length} characters`);
+          console.log(`[getWebsiteDescription] Body text preview:`, bodyText.substring(0, 200) + (bodyText.length > 200 ? "..." : ""));
 
-    // summarize this description using gemini in 3 lines
+          // Use body text if it has any meaningful content (at least 20 chars)
+          if (bodyText && bodyText.length > 20) {
+            description = bodyText;
+            console.log(`[getWebsiteDescription] Using body text as description (${bodyText.length} chars)`);
+          } else {
+            console.log(`[getWebsiteDescription] Body text too short (${bodyText.length} chars), cannot use`);
+          }
+        }
+      }
+    }
 
-    const ai = new AI();
-    description = (await ai.summarize(description, 3)) || "";
+    // Only summarize if we have meaningful content
+    if (description && description.trim().length > 20) {
+      console.log(`[getWebsiteDescription] Content found (${description.length} chars), sending to AI for summarization...`);
+      console.log(`[getWebsiteDescription] Content preview:`, description.substring(0, 500));
+      
+      const ai = new AI();
+      const summarized = await ai.summarize(`Give a description about this product:\n\n${description}`, 3);
+      
+      if (summarized && summarized.trim().length > 0) {
+        description = summarized;
+        console.log(`[getWebsiteDescription] ✅ AI summarization successful:`, description);
+      } else {
+        console.log(`[getWebsiteDescription] ⚠️ AI summarization returned empty, using original description`);
+      }
+    } else {
+      // If no meaningful content found, return null so user can enter manually
+      console.log(`[getWebsiteDescription] ❌ No meaningful content found (description length: ${description?.length || 0})`);
+      console.log(`[getWebsiteDescription] Available content sources:`, {
+        hasMetaDescription: !!metaDescription,
+        hasOgDescription: !!ogDescription,
+        hasTwitterDescription: !!twitterDescription,
+        hasTitle: !!$("title").text(),
+        bodyTextLength: $("body").text().replace(/\s+/g, " ").trim().length
+      });
+      return null;
+    }
 
-    console.log("summarized description:", description);
-
+    console.log(`[getWebsiteDescription] Final description:`, description);
     return description;
-  } catch {
+  } catch (error) {
+    console.error(`[getWebsiteDescription] Error fetching description for ${url}:`, error);
     return null;
   }
 }
