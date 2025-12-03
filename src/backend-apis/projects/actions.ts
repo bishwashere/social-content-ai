@@ -24,29 +24,61 @@ export async function getWebsiteDescription(url: string) {
     const $ = cheerio.load(data);
 
     // Try to get meta description first
-    // let description =
-    //   $('meta[name="description"]').attr("content") ||
-    //   $('meta[property="og:description"]').attr("content");
+    let description =
+      $('meta[name="description"]').attr("content") ||
+      $('meta[property="og:description"]').attr("content") ||
+      $('meta[property="twitter:description"]').attr("content");
 
-    // console.log("description from meta tags:", description);
+    // If no meta description, extract meaningful content from body
+    if (!description || description.trim().length < 20) {
+      // Remove script, style, and other non-content elements
+      $("script, style, noscript, iframe, embed, object").remove();
+      
+      // Try to get content from main semantic elements first
+      const mainContent = 
+        $("main").text() ||
+        $("article").text() ||
+        $('[role="main"]').text() ||
+        $(".content, #content").text();
+      
+      if (mainContent && mainContent.trim().length > 50) {
+        description = mainContent;
+      } else {
+        // Fallback to body text but filter out common patterns
+        description = $("body").text();
+      }
+      
+      // Clean up the text
+      description = description
+        .replace(/\s+/g, " ")
+        .trim()
+        // Remove common JavaScript patterns
+        .replace(/window\.\w+\s*=/g, "")
+        .replace(/var\s+\w+\s*=/g, "")
+        .replace(/let\s+\w+\s*=/g, "")
+        .replace(/const\s+\w+\s*=/g, "")
+        .replace(/function\s*\([^)]*\)\s*\{[^}]*\}/g, "")
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .trim();
+      
+      // Limit length before sending to AI (to avoid token limits and noise)
+      if (description.length > 2000) {
+        description = description.substring(0, 2000) + "...";
+      }
+    }
 
-    // // If no description, get all body text
-    // if (!description) {
-    let description = $("body").text();
-    // Optional: trim and collapse whitespace
-    description = description.replace(/\s+/g, " ").trim();
-
-    // console.log("description from body text:", description);
-    // }
-
-    // summarize this description using gemini in 3 lines
-
-    const ai = new AI();
-    description = (await ai.summarize(description, 3)) || "";
+    // If we have a description, summarize it using AI
+    if (description && description.trim().length > 20) {
+      const ai = new AI();
+      const summarized = await ai.summarize(description, 3);
+      if (summarized && summarized.trim().length > 0) {
+        description = summarized;
+      }
+    }
 
     console.log("summarized description:", description);
 
-    return description;
+    return description || null;
   } catch {
     return null;
   }
