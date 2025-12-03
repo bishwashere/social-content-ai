@@ -5,14 +5,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Link as LinkIcon } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Link as LinkIcon, Lock, Shield } from "lucide-react"
 import { useSession } from "@/backend-apis/auth/hooks"
 import { useQuery } from "@tanstack/react-query"
 import { signIn } from "next-auth/react"
 import Image from "next/image"
 import { authenticateWithThreads } from "@/lib/auth/threads"
+import { useState } from "react"
 
 type ConnectedProvider = {
   platform: string
@@ -20,6 +23,7 @@ type ConnectedProvider = {
 
 export function ConnectAccountsButton() {
   const { data: session } = useSession()
+  const [isSecurityDialogOpen, setIsSecurityDialogOpen] = useState(false)
 
   const { data: accountsData, isLoading } = useQuery({
     queryKey: ["connected-accounts", session?.user?.id],
@@ -223,9 +227,50 @@ export function ConnectAccountsButton() {
                 <span>Connect Threads</span>
               </DropdownMenuItem>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setIsSecurityDialogOpen(true)} className="cursor-pointer">
+              <Lock className="mr-2 h-4 w-4" />
+              <span>Why it&apos;s safe</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       }
+
+      {/* Security Dialog */}
+      <Dialog open={isSecurityDialogOpen} onOpenChange={setIsSecurityDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-blue-100 rounded-full">
+                <Shield className="h-5 w-5 text-blue-600" />
+              </div>
+              Your Data is Secure
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              We take your privacy and security seriously.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                Your social media keys and credentials are stored using industry-standard hashing and encryption techniques. 
+                This means your sensitive information is protected in multiple layers, and no one can access it except you.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-gray-900">Security Features:</h4>
+              <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                <li>Credentials are hashed using secure algorithms</li>
+                <li>Multi-step encryption protects your data</li>
+                <li>Only you have access to your connected accounts</li>
+                <li>We never store your passwords and API keys in plain text</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

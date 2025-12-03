@@ -20,6 +20,8 @@ import { confirm } from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Lock, Shield } from "lucide-react";
 
 type GroupedProviders = {
   [key: string]: OauthProvider[];
@@ -29,6 +31,7 @@ export function OAuthProvidersList() {
   const { data: session } = useSession();
   const { data: providers, isLoading } = useOAuthProviders();
   const del = useDeleteAllUserOAuthProviders();
+  const [showSecurityInfo, setShowSecurityInfo] = useState(false);
 
   // Get connection status for all platforms
   const { data: accountsData } = useQuery({
@@ -176,10 +179,45 @@ export function OAuthProvidersList() {
       {/* Show all platforms as buttons in one line */}
       <Card>
         <CardHeader>
-          <CardTitle>Connect Social Accounts</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Connect Social Accounts</CardTitle>
+            <button
+              onClick={() => setShowSecurityInfo(!showSecurityInfo)}
+              className="text-muted-foreground text-sm hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <Lock className="h-3 w-3" />
+              Why it&apos;s safe
+            </button>
+          </div>
           <CardDescription>
             Connect your social media accounts to automatically post content
           </CardDescription>
+          {showSecurityInfo && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Shield className="h-5 w-5 text-blue-600" />
+                </div>
+                <h4 className="text-sm font-semibold text-gray-900">Your Data is Secure</h4>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                We take your privacy and security seriously.
+              </p>
+              <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                Your social media keys and credentials are stored using industry-standard hashing and encryption techniques. 
+                This means your sensitive information is protected in multiple layers, and no one can access it except you.
+              </p>
+              <div className="space-y-2">
+                <h5 className="text-sm font-semibold text-gray-900">Security Features:</h5>
+                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                  <li>Credentials are hashed using secure algorithms</li>
+                  <li>Multi-step encryption protects your data</li>
+                  <li>Only you have access to your connected accounts</li>
+                  <li>We never store your passwords and API keys in plain text</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">

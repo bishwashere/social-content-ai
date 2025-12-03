@@ -5,14 +5,17 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link2, FileText, Calendar, Target } from "lucide-react";
+import { Link2, FileText, Calendar, Target, Shield, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export function GetStartedGuide() {
   const { data: session } = useSession();
   const projects = useGetAllProjects();
   const router = useRouter();
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const [showSecurityInfo, setShowSecurityInfo] = useState(false);
+  const [showCreatePostInfo, setShowCreatePostInfo] = useState(false);
 
   // Check if user has connected social accounts
   const { data: accountsData, isLoading: accountsLoading } = useQuery({
@@ -95,26 +98,36 @@ export function GetStartedGuide() {
     return hasNoSocials || hasNoPosts || hasNoCampaigns;
   }, [projects.data, projects.isLoading, accountsData, accountsLoading, statusLoading, hasScheduledOrPublished, hasCampaigns]);
 
+  // Check if first 2 tasks are completed
+  const firstTwoTasksCompleted = useMemo(() => {
+    return accountsData?.hasProviders && hasScheduledOrPublished;
+  }, [accountsData?.hasProviders, hasScheduledOrPublished]);
+
   // Calculate visible steps and their numbers
   const visibleSteps = useMemo(() => {
     const steps = [];
     let stepNumber = 1;
     
+    // Always show first 2 tasks if pending
     if (!accountsData?.hasProviders) {
       steps.push({ type: 'connect', number: stepNumber++ });
     }
     if (!hasScheduledOrPublished) {
       steps.push({ type: 'create_post', number: stepNumber++ });
     }
-    if (!hasCampaigns) {
-      steps.push({ type: 'campaign', number: stepNumber++ });
-    }
-    if (!hasScheduledOrPublished) {
-      steps.push({ type: 'schedule', number: stepNumber++ });
+    
+    // Only show tasks 3 and 4 if first 2 tasks are completed
+    if (firstTwoTasksCompleted) {
+      if (!hasCampaigns) {
+        steps.push({ type: 'campaign', number: stepNumber++ });
+      }
+      if (!hasScheduledOrPublished) {
+        steps.push({ type: 'schedule', number: stepNumber++ });
+      }
     }
     
     return steps;
-  }, [accountsData?.hasProviders, hasScheduledOrPublished, hasCampaigns]);
+  }, [accountsData?.hasProviders, hasScheduledOrPublished, hasCampaigns, firstTwoTasksCompleted]);
 
   const handleConnectSocials = () => {
     // Navigate to settings page to connect social accounts
@@ -185,13 +198,70 @@ export function GetStartedGuide() {
                     <Link2 className="h-5 w-5" />
                     Connect Your Social Media Accounts
                   </h3>
-                  <p className="text-muted-foreground mb-3">
-                    Link your social media accounts to start publishing content across multiple platforms. 
-                    Connect Facebook, LinkedIn, X (Twitter), TikTok, Threads, or Reddit to get started.
-                  </p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <button
+                      onClick={() => {
+                        if (showMoreInfo) {
+                          setShowMoreInfo(false);
+                        } else {
+                          setShowMoreInfo(true);
+                          setShowSecurityInfo(false);
+                        }
+                      }}
+                      className="text-muted-foreground text-sm hover:underline cursor-pointer"
+                    >
+                      More info
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (showSecurityInfo) {
+                          setShowSecurityInfo(false);
+                        } else {
+                          setShowSecurityInfo(true);
+                          setShowMoreInfo(false);
+                        }
+                      }}
+                      className="text-muted-foreground text-sm hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <Lock className="h-3 w-3" />
+                      Why it&apos;s safe
+                    </button>
+                  </div>
+                  {showMoreInfo && (
+                    <p className="text-muted-foreground mb-3">
+                      Link your social media accounts to start publishing content across multiple platforms. 
+                      Connect Facebook, LinkedIn, X (Twitter), TikTok, Threads, or Reddit to get started.
+                    </p>
+                  )}
+                  {showSecurityInfo && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          <Shield className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <h4 className="text-sm font-semibold text-gray-900">Your Data is Secure</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        We take your privacy and security seriously.
+                      </p>
+                      <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                        Your social media keys and credentials are stored using industry-standard hashing and encryption techniques. 
+                        This means your sensitive information is protected in multiple layers, and no one can access it except you.
+                      </p>
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-semibold text-gray-900">Security Features:</h5>
+                        <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                          <li>Credentials are hashed using secure algorithms</li>
+                          <li>Multi-step encryption protects your data</li>
+                          <li>Only you have access to your connected accounts</li>
+                          <li>We never store your passwords and API keys in plain text</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-shrink-0">
-                  <Button onClick={handleConnectSocials} variant="outline" size="sm">
+                  <Button onClick={handleConnectSocials} variant="outline" size="sm" className="min-w-[140px]">
                     Connect Socials
                   </Button>
                 </div>
@@ -209,21 +279,29 @@ export function GetStartedGuide() {
                     <FileText className="h-5 w-5" />
                     Create Your First Post
                   </h3>
-                  <p className="text-muted-foreground mb-3">
-                    Use our AI-powered content generator to create engaging posts tailored to your brand. 
-                    Generate content for any platform with just a few clicks.
-                  </p>
+                  <button
+                    onClick={() => setShowCreatePostInfo(!showCreatePostInfo)}
+                    className="text-muted-foreground text-sm hover:underline cursor-pointer mb-3 block"
+                  >
+                    More info
+                  </button>
+                  {showCreatePostInfo && (
+                    <p className="text-muted-foreground mb-3">
+                      Use our AI-powered content generator to create engaging posts tailored to your brand. 
+                      Generate content for any platform with just a few clicks.
+                    </p>
+                  )}
                 </div>
                 <div className="flex-shrink-0">
-                  <Button onClick={handleCreatePost} variant="outline" size="sm">
+                  <Button onClick={handleCreatePost} variant="outline" size="sm" className="min-w-[140px]">
                     Create Post
                   </Button>
                 </div>
               </>
             )}
 
-            {/* Step 3: Plan Your Campaign */}
-            {!hasCampaigns && (
+            {/* Step 3: Plan Your Campaign - Only show if first 2 tasks are completed */}
+            {firstTwoTasksCompleted && !hasCampaigns && (
               <>
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
                   {visibleSteps.find(s => s.type === 'campaign')?.number || 3}
@@ -239,15 +317,15 @@ export function GetStartedGuide() {
                   </p>
                 </div>
                 <div className="flex-shrink-0">
-                  <Button onClick={handleCreateCampaign} variant="outline" size="sm">
+                  <Button onClick={handleCreateCampaign} variant="outline" size="sm" className="min-w-[140px]">
                     Plan Campaign
                   </Button>
                 </div>
               </>
             )}
 
-            {/* Step 4: Schedule & Publish */}
-            {!hasScheduledOrPublished && (
+            {/* Step 4: Schedule & Publish - Only show if first 2 tasks are completed */}
+            {firstTwoTasksCompleted && !hasScheduledOrPublished && (
               <>
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
                   {visibleSteps.find(s => s.type === 'schedule')?.number || 4}

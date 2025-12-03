@@ -17,6 +17,10 @@ All previously listed issues have been resolved:
 6. `src/app/(pages)/project/[id]/_components/project-analytics.tsx` - Removed unused `Clock` import and `error` variable
 7. `src/app/(pages)/project/[id]/_components/campaing-planner.tsx` - Removed unused imports: `PencilLine`, `RefreshCcw`, `Save`, `LoadingCard`, `Popover`, `PopoverContent`, `PopoverTrigger`. Replaced `<img>` with Next.js `<Image>` component
 8. `src/app/(pages)/project/[id]/_components/scheduled-posts.tsx` - Replaced `<img>` with Next.js `<Image>` component and added proper alt text
+9. Fixed React unescaped entities errors by escaping apostrophes in "Why it's safe" text across multiple components:
+   - `src/app/(pages)/project/_components/get-started-guide.tsx`
+   - `src/app/(pages)/project/settings/_components/oauth-providers-list.tsx`
+   - `src/components/common/connect-accounts-button.tsx`
 
 ## Build Status
 
