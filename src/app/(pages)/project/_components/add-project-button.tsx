@@ -48,8 +48,22 @@ export function AddProjectButton() {
 
   const handleNext = async () => {
     if (step === 1 && url) {
-      const description = await desc.mutateAsync(url)
-      setDescription(description || "")
+      try {
+        // Ensure URL has a protocol - handle cases like "domain.com", "www.domain.com", etc.
+        let urlToFetch = url.trim();
+        // Remove any trailing slashes
+        urlToFetch = urlToFetch.replace(/\/+$/, '');
+        // Add https:// if no protocol is present
+        if (!urlToFetch.match(/^https?:\/\//i)) {
+          urlToFetch = `https://${urlToFetch}`;
+        }
+        
+        const description = await desc.mutateAsync(urlToFetch);
+        setDescription(description || "");
+      } catch (err) {
+        console.error("Error fetching description:", err);
+        setDescription("");
+      }
     }
     setStep((prev) => prev + 1)
   };
