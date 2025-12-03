@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { get } from 'https';
 import { s3 } from "../s3";
+import { decryptToken } from "@/backend-apis/encryption";
 
 class Linkedin {
   private _accessToken: string;
@@ -10,7 +11,7 @@ class Linkedin {
   private _clientSecret = process.env.AUTH_LINKEDIN_SECRET;
 
   constructor(args: { accessToken: string; expiresAt: number }) {
-    this._accessToken = args.accessToken;
+    this._accessToken = decryptToken(args.accessToken);
     this._expiresAt = args.expiresAt;
 
     this._client = axios.create({

@@ -160,7 +160,7 @@ model OauthProvider {
   id               String        @id @default(auto()) @map("_id") @db.ObjectId
   userId           String        @db.ObjectId
   platform         OauthPlatform
-  accessToken      String        @unique
+  accessToken      String
   refreshToken     String?
   expiresAt        Int?
   pageId           String?
