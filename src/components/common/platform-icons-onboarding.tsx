@@ -35,7 +35,7 @@ const ICON_INFO = {
   },
 };
 
-const ICON_ORDER = ["edit", "copy", "postToWall", "autoPost"];
+const ICON_ORDER = ["postToWall", "autoPost"];
 
 export function PlatformIconsOnboarding({
   isOpen,
@@ -230,21 +230,78 @@ export function PlatformIconsOnboarding({
   };
 
   const handleFinish = async () => {
-    // Mark as seen
+    // Clean up highlights immediately
+    ICON_ORDER.forEach((key) => {
+      const element = iconRefs[key];
+      if (element) {
+        let targetElement = element;
+        const button = element.querySelector('button');
+        if (button) {
+          targetElement = button;
+        }
+        if (targetElement) {
+          targetElement.classList.remove("ring-4", "ring-blue-500", "ring-offset-2", "z-[60]", "relative", "rounded", "backdrop-blur-0");
+          targetElement.style.backgroundColor = '';
+          targetElement.style.background = '';
+          targetElement.style.filter = '';
+          if (targetElement.style.padding === '8px') {
+            targetElement.style.padding = '';
+          }
+          if (targetElement.parentElement) {
+            targetElement.parentElement.style.filter = '';
+          }
+        }
+      }
+    });
+    
+    // Reset step and close immediately (don't wait for async)
+    setCurrentStep(0);
+    onClose();
+    
+    // Mark as seen in background (don't block the close)
     if (session?.user?.id) {
-      await updateTooltip.mutateAsync({
+      updateTooltip.mutateAsync({
         userId: session.user.id,
         updateData: { platformIconsOnboarding: true },
+      }).catch((error) => {
+        console.error('Failed to update tooltip:', error);
       });
     }
-    onClose();
   };
+
+  // Early return if not open - ensures complete cleanup
+  if (!isOpen) {
+    // Clean up any remaining highlights when closed
+    ICON_ORDER.forEach((key) => {
+      const element = iconRefs[key];
+      if (element) {
+        let targetElement = element;
+        const button = element.querySelector('button');
+        if (button) {
+          targetElement = button;
+        }
+        if (targetElement) {
+          targetElement.classList.remove("ring-4", "ring-blue-500", "ring-offset-2", "z-[60]", "relative", "rounded", "backdrop-blur-0");
+          targetElement.style.backgroundColor = '';
+          targetElement.style.background = '';
+          targetElement.style.filter = '';
+          if (targetElement.style.padding === '8px') {
+            targetElement.style.padding = '';
+          }
+          if (targetElement.parentElement) {
+            targetElement.parentElement.style.filter = '';
+          }
+        }
+      }
+    });
+    return null;
+  }
 
   const currentIconKey = ICON_ORDER[currentStep];
   const iconInfo = ICON_INFO[currentIconKey as keyof typeof ICON_INFO];
   const IconComponent = iconInfo?.icon;
 
-  if (!isOpen || !iconInfo || !IconComponent) return null;
+  if (!iconInfo || !IconComponent) return null;
 
   const arrowOffset = '50%'; // Center the arrow
 

@@ -18,12 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useLogout, useSession } from "@/backend-apis/auth/hooks";
 import GoogleLoginButton from "@/components/common/auth/google-login-button";
@@ -56,28 +50,19 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
       <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
         <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100 transition-colors"
-                  onClick={() => sidebar.toggleSidebar()}
-                >
-                  {sidebar.open ? (
-                    <PanelLeftClose className="h-4 w-4" />
-                  ) : (
-                    <PanelLeftOpen className="h-4 w-4" />
-                  )}
-                  <span className="sr-only">Toggle Sidebar</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {sidebar.open ? "Collapse Sidebar" : "Expand Sidebar"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-gray-100 transition-colors"
+            onClick={() => sidebar.toggleSidebar()}
+          >
+            {sidebar.open ? (
+              <PanelLeftClose className="h-4 w-4" />
+            ) : (
+              <PanelLeftOpen className="h-4 w-4" />
+            )}
+            <span className="sr-only">Toggle Sidebar</span>
+          </Button>
           {!sidebar.open && (
             <button
               onClick={() => router.push("/project")}

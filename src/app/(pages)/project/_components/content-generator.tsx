@@ -19,7 +19,7 @@ import AutoPost from "@/components/common/auto-post";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/backend-apis/auth/hooks";
-import { useGetFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
+import { useGetFirstViewTooltip, useUpdateFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
 import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 import { PlatformIconsOnboarding } from "@/components/common/platform-icons-onboarding";
 
@@ -33,6 +33,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
   const { data: session } = useSession();
   const projects = useGetAllProjects();
   const tooltipData = useGetFirstViewTooltip(session?.user?.id || "");
+  const updateTooltip = useUpdateFirstViewTooltip();
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(true);
@@ -49,6 +50,21 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
       setShowOnboarding(true);
     }, 100);
   };
+
+  // Mark quickGenerate as seen when content is first generated
+  useEffect(() => {
+    if (
+      generateProjectContent.data &&
+      session?.user?.id &&
+      tooltipData.data &&
+      !tooltipData.data.quickGenerate
+    ) {
+      updateTooltip.mutate({
+        userId: session.user.id,
+        updateData: { quickGenerate: true },
+      });
+    }
+  }, [generateProjectContent.data, session?.user?.id, tooltipData.data, updateTooltip]);
 
   // Check if should show onboarding
   useEffect(() => {
@@ -131,12 +147,21 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
         )}
       </Button>
       {generateProjectContent.data && (
-        <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
-          <ScrollArea className="">
-            {Object.entries(generateProjectContent.data.contents || {}).slice(0, 4).map(
-              ([platform, text], index) => {
-                const isFirstPlatform = index === 0;
-                return (
+        <>
+          {/* First-time user message */}
+          {tooltipData.data && !tooltipData.data.quickGenerate && projects.data && projects.data.length === 1 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mt-4">
+              <p className="text-sm text-orange-900 leading-relaxed">
+                The content that you generate gets better over time. Use campaign planner to explore more.
+              </p>
+            </div>
+          )}
+          <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
+            <ScrollArea className="">
+              {Object.entries(generateProjectContent.data.contents || {}).slice(0, 4).map(
+                ([platform, text], index) => {
+                  const isFirstPlatform = index === 0;
+                  return (
                 <Card 
                   key={platform} 
                   className="rounded-lg border mb-5"
@@ -312,6 +337,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
             )}
           </ScrollArea>
         </div>
+        </>
       )}
 
       {/* Platform Icons Onboarding */}
