@@ -4,6 +4,16 @@ import matter from "gray-matter";
 
 const ideasDirectory = join(process.cwd(), "content/ideas");
 
+// Convert title to URL-friendly slug
+function titleToSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "") // Remove special characters
+    .replace(/[\s_-]+/g, "-") // Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
+
 export interface IdeaPost {
   slug: string;
   title: string;
@@ -17,9 +27,24 @@ export interface IdeaPost {
 export async function getAllIdeaSlugs(): Promise<string[]> {
   try {
     const fileNames = readdirSync(ideasDirectory);
-    return fileNames
-      .filter((name) => name.endsWith(".mdx"))
-      .map((name) => name.replace(/\.mdx$/, ""));
+    const mdxFiles = fileNames.filter((name) => name.endsWith(".mdx"));
+    
+    const slugs = await Promise.all(
+      mdxFiles.map(async (fileName) => {
+        try {
+          const fullPath = join(ideasDirectory, fileName);
+          const fileContents = readFileSync(fullPath, "utf8");
+          const { data } = matter(fileContents);
+          const title = data.title || "Untitled";
+          return titleToSlug(title);
+        } catch {
+          // Fallback to filename if reading fails
+          return fileName.replace(/\.mdx$/, "");
+        }
+      })
+    );
+    
+    return slugs;
   } catch {
     return [];
   }
@@ -27,19 +52,57 @@ export async function getAllIdeaSlugs(): Promise<string[]> {
 
 export async function getIdeaBySlug(slug: string): Promise<IdeaPost | null> {
   try {
-    const fullPath = join(ideasDirectory, `${slug}.mdx`);
-    const fileContents = readFileSync(fullPath, "utf8");
-    const { data, content } = matter(fileContents);
-
-    return {
-      slug: data.slug || slug,
-      title: data.title || "Untitled",
-      summary: data.summary || "",
-      publishedAt: data.publishedAt || data.date || "",
-      tags: data.tags || [],
-      thumbnail: data.thumbnail || null,
-      content, // Return raw content for MDXRemote to process
-    };
+    // First, try to find by filename (for backward compatibility)
+    try {
+      const fullPath = join(ideasDirectory, `${slug}.mdx`);
+      const fileContents = readFileSync(fullPath, "utf8");
+      const { data, content } = matter(fileContents);
+      const titleSlug = titleToSlug(data.title || "Untitled");
+      
+      // If the slug matches the title-based slug, return it
+      if (titleSlug === slug) {
+        return {
+          slug: titleSlug,
+          title: data.title || "Untitled",
+          summary: data.summary || "",
+          publishedAt: data.publishedAt || data.date || "",
+          tags: data.tags || [],
+          thumbnail: data.thumbnail || null,
+          content,
+        };
+      }
+    } catch {
+      // Continue to search by title
+    }
+    
+    // Search all files to find one with matching title-based slug
+    const fileNames = readdirSync(ideasDirectory);
+    const mdxFiles = fileNames.filter((name) => name.endsWith(".mdx"));
+    
+    for (const fileName of mdxFiles) {
+      try {
+        const fullPath = join(ideasDirectory, fileName);
+        const fileContents = readFileSync(fullPath, "utf8");
+        const { data, content } = matter(fileContents);
+        const titleSlug = titleToSlug(data.title || "Untitled");
+        
+        if (titleSlug === slug) {
+          return {
+            slug: titleSlug,
+            title: data.title || "Untitled",
+            summary: data.summary || "",
+            publishedAt: data.publishedAt || data.date || "",
+            tags: data.tags || [],
+            thumbnail: data.thumbnail || null,
+            content,
+          };
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    return null;
   } catch {
     return null;
   }
@@ -59,8 +122,9 @@ export async function getAllIdeas(): Promise<IdeaPost[]> {
           const fileContents = readFileSync(fullPath, "utf8");
           const { data, content } = matter(fileContents);
 
+          const titleSlug = titleToSlug(data.title || "Untitled");
           return {
-            slug: data.slug || slug,
+            slug: titleSlug,
             title: data.title || "Untitled",
             summary: data.summary || "",
             publishedAt: data.publishedAt || data.date || "",

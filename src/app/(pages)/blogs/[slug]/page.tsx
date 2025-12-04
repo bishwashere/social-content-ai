@@ -43,7 +43,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
           </Button>
 
           {/* Article Header */}
-          <header className="mb-8">
+          <header className="mb-8 dark:bg-muted/50 dark:rounded-lg dark:p-6">
             {/* Meta Information */}
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <Badge variant="secondary" className="flex items-center gap-1">
@@ -92,7 +92,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
 
           {/* Article Content */}
           <div
-            className="prose prose-gray dark:prose-invert max-w-none 
+            className="prose prose-gray dark:prose-invert max-w-none dark:bg-muted/50 dark:rounded-lg dark:p-6
                        prose-headings:scroll-m-20 prose-headings:tracking-tight 
                        prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-6 prose-h1:mt-8
                        prose-h2:text-3xl prose-h2:font-semibold prose-h2:mb-4 prose-h2:mt-8 prose-h2:border-b prose-h2:pb-2

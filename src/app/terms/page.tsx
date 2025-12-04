@@ -15,7 +15,7 @@ export default function TermsPage() {
               className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
             >
               <Image
-                src="/logo.png"
+                src="/logo-transparent.png"
                 width="100"
                 height="100"
                 alt="NextPostAI"

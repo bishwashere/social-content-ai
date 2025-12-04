@@ -69,7 +69,7 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
               <Image
-                src="/logo.png"
+                src="/logo-transparent.png"
                 width="100"
                 height="100"
                 alt="NextPostAi"

@@ -1,5 +1,4 @@
 import Link from "next/link"
-import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +7,7 @@ import { getIdeaBySlug, getAllIdeaSlugs, getAllIdeas } from "@/lib/blogs"
 import { ArrowLeft, Calendar, Clock, Share2, ArrowRight } from "lucide-react"
 import { MDXRemote } from "next-mdx-remote/rsc"
 import { IdeaCard } from "@/components/idea-card"
+import { IdeaHeader } from "../_components/idea-header"
 
 interface IdeaPageProps {
   params: {
@@ -44,34 +44,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header similar to /ideas */}
-      <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
-        <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-            >
-              <Image
-                src="/logo.png"
-                width="100"
-                height="100"
-                alt="NextPostAI"
-                className="size-6"
-              />
-              <span className="font-semibold text-lg">NextPostAI</span>
-            </Link>
-            <span className="text-muted-foreground mx-2">/</span>
-            <Link
-              href="/ideas"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Ideas
-            </Link>
-            <span className="text-muted-foreground mx-2">/</span>
-            <span className="text-muted-foreground truncate max-w-xs">{idea.title}</span>
-          </div>
-        </div>
-      </div>
+      <IdeaHeader slug={idea.slug} title={idea.title} />
 
       <div className="container mx-auto px-4 py-8">
         <article className="max-w-4xl mx-auto">
@@ -84,7 +57,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
           </Button>
 
           {/* Article Header */}
-          <header className="mb-8">
+          <header className="mb-8 dark:bg-muted/50 dark:rounded-lg dark:p-6">
             {/* Meta Information */}
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <Badge variant="secondary" className="flex items-center gap-1">
@@ -128,7 +101,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
           </header>
 
           {/* Article Content */}
-          <div className="prose prose-gray dark:prose-invert max-w-none 
+          <div className="prose prose-gray dark:prose-invert max-w-none dark:bg-muted/50 dark:rounded-lg dark:p-6
                        prose-headings:scroll-m-20 prose-headings:tracking-tight 
                        prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-6 prose-h1:mt-8
                        prose-h2:text-3xl prose-h2:font-semibold prose-h2:mb-4 prose-h2:mt-8 prose-h2:border-b prose-h2:pb-2
