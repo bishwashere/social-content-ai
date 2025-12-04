@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { s3 } from "../s3";
 import { detectMediaTypeFromUrl } from "../detect-media-type";
+import { decryptToken } from "@/backend-apis/encryption";
 
 type AnalyticsData = {
   likesCount: number;
@@ -13,7 +14,7 @@ class Threads {
   private _client: AxiosInstance;
 
   constructor(args: { accessToken: string }) {
-    this._accessToken = args.accessToken;
+    this._accessToken = decryptToken(args.accessToken);
     this._client = axios.create({
       baseURL: "https://graph.threads.net/v1.0",
     });

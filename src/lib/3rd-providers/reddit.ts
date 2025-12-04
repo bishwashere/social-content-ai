@@ -1,3 +1,4 @@
+import { decryptToken, encryptToken } from "@/backend-apis/encryption";
 import axios, { AxiosInstance } from "axios";
 
 export interface Subreddit {
@@ -43,8 +44,8 @@ class Reddit {
     refreshToken: string;
     expiresAt: number;
   }) {
-    this._accessToken = args.accessToken;
-    this._refreshToken = args.refreshToken;
+    this._accessToken = decryptToken(args.accessToken);
+    this._refreshToken = decryptToken(args.refreshToken);
     this._expiresAt = args.expiresAt;
 
     this._client = axios.create({
@@ -106,7 +107,7 @@ class Reddit {
         })),
         newToken: this._isAccessTokenRefreshed
           ? {
-              accessToken: this._accessToken,
+              accessToken: encryptToken(this._accessToken),
               expiresAt: this._expiresAt,
             }
           : null,
@@ -172,7 +173,7 @@ class Reddit {
       data: res.data.json,
       newToken: this._isAccessTokenRefreshed
         ? {
-            accessToken: this._accessToken,
+            accessToken: encryptToken(this._accessToken),
             expiresAt: this._expiresAt,
           }
         : null,

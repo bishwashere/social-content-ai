@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { detectMediaTypeFromUrl } from "../detect-media-type";
 import { s3 } from "../s3";
+import { decryptToken, encryptToken } from "@/backend-apis/encryption";
 
 type ConstructorProps = {
   accessToken: string;
@@ -25,8 +26,8 @@ class Fb {
   constructor(oauth: ConstructorProps) {
     this._appId = process.env.AUTH_FACEBOOK_ID as string;
     this._appSecret = process.env.AUTH_FACEBOOK_SECRET as string;
-    this._accessToken = oauth.accessToken;
-    this._refreshToken = oauth.refreshToken;
+    this._accessToken = decryptToken(oauth.accessToken);
+    this._refreshToken = oauth.refreshToken ? decryptToken(oauth.refreshToken) : oauth.refreshToken;
     this._baseUrl = "https://graph.facebook.com/v23.0";
 
     this._client = axios.create({
