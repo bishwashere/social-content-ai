@@ -23,7 +23,7 @@ const Linkedin = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
         const cutoffDate = new Date(now);
         cutoffDate.setDate(now.getDate() - timerange);
 
-        const filteredData = linkedin.data.filter((item) => {
+        const filteredData = linkedin.data.filter((item: any) => {
           if (!item || !item.date) return false;
           try {
             const postDate = item.date instanceof Date ? item.date : new Date(item.date);
@@ -43,7 +43,7 @@ const Linkedin = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
           totalImpressions: number;
         }>();
 
-        filteredData.forEach((d) => {
+        filteredData.forEach((d: any) => {
           try {
             const date = d.date instanceof Date ? d.date : new Date(d.date);
             if (isNaN(date.getTime())) return;
@@ -82,10 +82,10 @@ const Linkedin = ({ timerange, selectedProject }: AnalyticsPlatformsProps) => {
 
         setAnalytics({
           totalPosts: filteredData.length,
-          totalComments: filteredData.reduce((sum, d) => sum + (d.comments || 0), 0),
-          totalLikes: filteredData.reduce((sum, d) => sum + (d.likes || 0), 0),
+          totalComments: filteredData.reduce((sum: number, d: any) => sum + (d.comments || 0), 0),
+          totalLikes: filteredData.reduce((sum: number, d: any) => sum + (d.likes || 0), 0),
           totalFollowers: linkedin.followersCount || 0,
-          totalImpressions: filteredData.reduce((sum, d) => sum + (d.impressions || 0), 0),
+          totalImpressions: filteredData.reduce((sum: number, d: any) => sum + (d.impressions || 0), 0),
           chartData,
         });
       } catch (error) {

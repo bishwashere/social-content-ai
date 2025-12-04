@@ -83,7 +83,7 @@ export default function EditIdeaPage() {
   }, [router]);
 
   // Fetch idea
-  const { data: idea, isLoading } = useQuery<Idea>({
+  const { data: idea, isLoading, error } = useQuery<Idea>({
     queryKey: ["idea", id],
     queryFn: async () => {
       const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
@@ -92,11 +92,18 @@ export default function EditIdeaPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!response.ok) throw new Error("Failed to fetch idea");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Failed to fetch idea" }));
+        throw new Error(errorData.message || "Failed to fetch idea");
+      }
       const result = await response.json();
+      if (!result.data) {
+        throw new Error("Idea not found");
+      }
       return result.data;
     },
     enabled: !!id && isAuthenticated,
+    retry: 1,
   });
 
   // Populate form when idea loads
@@ -176,12 +183,19 @@ export default function EditIdeaPage() {
     return null; // Will redirect to login
   }
 
-  if (!idea) {
+  if (!idea && !isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Idea not found</p>
+            <p className="text-center text-muted-foreground">
+              {error instanceof Error ? error.message : "Idea not found"}
+            </p>
+            <div className="mt-4 text-center">
+              <Button variant="outline" onClick={() => router.push("/ideas/admin")}>
+                Back to Ideas
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -50,7 +50,7 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
     const cutoffDate = new Date(now);
     cutoffDate.setDate(now.getDate() - timeRange);
 
-    const filteredData = data.data.filter((item) => {
+    const filteredData = data.data.filter((item: any) => {
       if (!item || !item.date) return false;
       try {
         const postDate = item.date instanceof Date ? item.date : new Date(item.date);
@@ -69,7 +69,7 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
       posts: number;
     }>();
 
-    filteredData.forEach((d) => {
+    filteredData.forEach((d: any) => {
       try {
         const date = d.date instanceof Date ? d.date : new Date(d.date);
         if (isNaN(date.getTime())) return;

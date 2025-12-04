@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Eye, EyeOff, Loader2, LogOut } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Loader2, LogOut, X, Save, Send, ExternalLink, Maximize2 } from "lucide-react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
@@ -23,6 +24,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { CategoryTrending } from "./_components/category-trending";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Idea {
   id: string;
@@ -46,6 +63,16 @@ export default function AdminIdeasPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [newIdeaSheetOpen, setNewIdeaSheetOpen] = useState(false);
+  
+  // New idea form state
+  const [newIdeaTitle, setNewIdeaTitle] = useState("");
+  const [newIdeaSummary, setNewIdeaSummary] = useState("");
+  const [newIdeaContent, setNewIdeaContent] = useState("");
+  const [newIdeaTags, setNewIdeaTags] = useState<string[]>([]);
+  const [newIdeaTagInput, setNewIdeaTagInput] = useState("");
+  const [newIdeaThumbnail, setNewIdeaThumbnail] = useState("");
+  const [newIdeaStatus, setNewIdeaStatus] = useState<"draft" | "published">("draft");
 
   // Check admin authentication and clear non-admin sessions
   useEffect(() => {
@@ -162,6 +189,66 @@ export default function AdminIdeasPage() {
     },
   });
 
+  // Create idea mutation
+  const createIdeaMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const response = await fetch("/api/ideas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create idea");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-ideas"] });
+      // Reset form
+      setNewIdeaTitle("");
+      setNewIdeaSummary("");
+      setNewIdeaContent("");
+      setNewIdeaTags([]);
+      setNewIdeaTagInput("");
+      setNewIdeaThumbnail("");
+      setNewIdeaStatus("draft");
+      setNewIdeaSheetOpen(false);
+      toast.success("Idea created successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create idea");
+    },
+  });
+
+  const handleAddTag = () => {
+    if (newIdeaTagInput.trim() && !newIdeaTags.includes(newIdeaTagInput.trim())) {
+      setNewIdeaTags([...newIdeaTags, newIdeaTagInput.trim()]);
+      setNewIdeaTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setNewIdeaTags(newIdeaTags.filter((t) => t !== tag));
+  };
+
+  const handleCreateIdea = (e: React.FormEvent) => {
+    e.preventDefault();
+    createIdeaMutation.mutate({
+      title: newIdeaTitle,
+      summary: newIdeaSummary,
+      content: newIdeaContent,
+      tags: newIdeaTags,
+      thumbnail: newIdeaThumbnail || null,
+      status: newIdeaStatus,
+      publishedAt: newIdeaStatus === "published" ? new Date().toISOString() : null,
+    });
+  };
+
   const handleDelete = (idea: Idea) => {
     setIdeaToDelete(idea);
     setDeleteDialogOpen(true);
@@ -241,20 +328,66 @@ export default function AdminIdeasPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-        <div>
+    <div>
+      {/* Header */}
+      <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
+        <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+            >
+              <NextImage
+                src="/logo-transparent.png"
+                width="100"
+                height="100"
+                alt="NextPostAI"
+                className="size-6"
+              />
+              <span className="font-semibold text-lg">NextPostAI</span>
+            </Link>
+            <span className="text-muted-foreground mx-2">/</span>
+            <Link
+              href="/ideas"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Ideas
+            </Link>
+            <span className="text-muted-foreground mx-2">/</span>
+            <span className="text-muted-foreground">Admin</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
           <h1 className="text-3xl font-bold">Manage Ideas</h1>
           <p className="text-muted-foreground mt-2">
             Create, edit, and manage your ideas articles
           </p>
         </div>
+
+        {/* Category Trending Section */}
+        <div className="mb-8">
+          <CategoryTrending 
+            onStartIdea={(data) => {
+              setNewIdeaTitle(data.title);
+              setNewIdeaContent(data.content);
+              setNewIdeaTags(data.tags);
+              setNewIdeaSheetOpen(true);
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-2xl font-bold">Your Ideas</h2>
+        </div>
         <div className="flex items-center gap-2">
-          <Button asChild>
-            <Link href="/ideas/admin/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Idea
-            </Link>
+          <Button onClick={() => setNewIdeaSheetOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Idea
           </Button>
           <Button
             variant="outline"
@@ -355,11 +488,9 @@ export default function AdminIdeasPage() {
           <CardContent className="pt-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">No ideas yet</p>
-              <Button asChild>
-                <Link href="/ideas/admin/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Idea
-                </Link>
+              <Button onClick={() => setNewIdeaSheetOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Idea
               </Button>
             </div>
           </CardContent>
@@ -386,6 +517,178 @@ export default function AdminIdeasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* New Idea Sheet */}
+      <Sheet open={newIdeaSheetOpen} onOpenChange={setNewIdeaSheetOpen}>
+        <SheetContent 
+          side="bottom" 
+          className="h-[50vh] max-h-[50vh] overflow-y-auto rounded-tl-2xl rounded-tr-2xl mx-4 mb-4 px-6"
+          showOverlay={false}
+        >
+          <SheetHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <SheetTitle>Create New Idea</SheetTitle>
+                <SheetDescription>
+                  Write and publish your idea article
+                </SheetDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Store form data in localStorage to pass to new tab
+                  const formData = {
+                    title: newIdeaTitle,
+                    summary: newIdeaSummary,
+                    content: newIdeaContent,
+                    tags: newIdeaTags,
+                    thumbnail: newIdeaThumbnail,
+                    status: newIdeaStatus,
+                  };
+                  localStorage.setItem("newIdeaFormData", JSON.stringify(formData));
+                  window.open("/ideas/admin/new", "_blank");
+                }}
+                className="gap-2"
+              >
+                <Maximize2 className="h-4 w-4" />
+                Open in New Tab
+              </Button>
+            </div>
+          </SheetHeader>
+          
+          <form onSubmit={handleCreateIdea} className="mt-6 space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="new-title">Title *</Label>
+                <Input
+                  id="new-title"
+                  value={newIdeaTitle}
+                  onChange={(e) => setNewIdeaTitle(e.target.value)}
+                  required
+                  placeholder="Enter article title"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new-summary">Summary</Label>
+                <Textarea
+                  id="new-summary"
+                  value={newIdeaSummary}
+                  onChange={(e) => setNewIdeaSummary(e.target.value)}
+                  placeholder="Brief summary of the article"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new-thumbnail">Thumbnail URL</Label>
+                <Input
+                  id="new-thumbnail"
+                  value={newIdeaThumbnail}
+                  onChange={(e) => setNewIdeaThumbnail(e.target.value)}
+                  placeholder="/image.png"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new-status">Status</Label>
+                <Select value={newIdeaStatus} onValueChange={(v: "draft" | "published") => setNewIdeaStatus(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="new-content">MDX Content *</Label>
+                <Textarea
+                  id="new-content"
+                  value={newIdeaContent}
+                  onChange={(e) => setNewIdeaContent(e.target.value)}
+                  required
+                  placeholder="Write your article content in MDX format..."
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new-tags">Tags</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    id="new-tags"
+                    value={newIdeaTagInput}
+                    onChange={(e) => setNewIdeaTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    placeholder="Add a tag"
+                  />
+                  <Button type="button" onClick={handleAddTag} variant="outline">
+                    Add
+                  </Button>
+                </div>
+                {newIdeaTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newIdeaTags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setNewIdeaSheetOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createIdeaMutation.isPending}
+              >
+                {createIdeaMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : newIdeaStatus === "published" ? (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Publish
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Draft
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
+      </div>
     </div>
   );
 }

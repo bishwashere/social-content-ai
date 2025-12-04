@@ -30,6 +30,26 @@ export default function NewIdeaPage() {
   const [thumbnail, setThumbnail] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
 
+  // Load form data from localStorage if available (from sheet)
+  useEffect(() => {
+    const savedFormData = localStorage.getItem("newIdeaFormData");
+    if (savedFormData) {
+      try {
+        const formData = JSON.parse(savedFormData);
+        if (formData.title) setTitle(formData.title);
+        if (formData.summary) setSummary(formData.summary);
+        if (formData.content) setContent(formData.content);
+        if (formData.tags && Array.isArray(formData.tags)) setTags(formData.tags);
+        if (formData.thumbnail) setThumbnail(formData.thumbnail);
+        if (formData.status) setStatus(formData.status);
+        // Clear the stored data after loading
+        localStorage.removeItem("newIdeaFormData");
+      } catch (error) {
+        console.error("Error loading form data:", error);
+      }
+    }
+  }, []);
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 

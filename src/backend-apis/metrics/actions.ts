@@ -50,6 +50,89 @@ export const fetchRedditPostsData = async (
   return results;
 };
 
+export type RedditPost = {
+  id: string;
+  title: string;
+  selftext: string;
+  author: string;
+  score: number;
+  num_comments: number;
+  created_utc: number;
+  permalink: string;
+  url: string;
+  subreddit: string;
+};
+
+export const fetchRedditPosts = async (
+  keywords: string[],
+  maxPosts: number = 10
+): Promise<RedditPost[]> => {
+  try {
+    if (!process.env.OLIVEDRIFT_BASE_URL || !process.env.OLIVEDRIFT_API_KEY) {
+      throw new Error("Olivedrift API configuration is missing");
+    }
+
+    // Use popular subreddits for better results
+    const popularSubreddits = [
+      "technology",
+      "programming",
+      "startups",
+      "investing",
+      "cryptocurrency",
+      "stocks",
+      "artificial",
+      "MachineLearning",
+      "webdev",
+      "entrepreneur",
+      "business",
+      "finance",
+    ];
+
+    const response = await axios.post(
+      `${process.env.OLIVEDRIFT_BASE_URL}/api/getRedditPosts`,
+      {
+        keywords,
+        maxPosts,
+        subreddits: popularSubreddits, // Required field - use popular subreddits
+        timeFilter: "week", // Get recent posts
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OLIVEDRIFT_API_KEY}`,
+        },
+      }
+    );
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to fetch Reddit posts");
+    }
+
+    // Transform olivedrift response to our format
+    const posts: RedditPost[] = (response.data.posts || []).map((post: any) => ({
+      id: post.id || post.name || "",
+      title: post.title || "",
+      selftext: post.selftext || "",
+      author: post.author || "",
+      score: post.score || 0,
+      num_comments: post.num_comments || 0,
+      created_utc: post.created_utc || Date.now() / 1000,
+      permalink: post.permalink || "",
+      url: post.url || `https://reddit.com${post.permalink}`,
+      subreddit: post.subreddit || "",
+    }));
+
+    return posts;
+  } catch (error) {
+    console.error("Error fetching Reddit posts:", error);
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch Reddit posts"
+      );
+    }
+    throw error;
+  }
+};
+
 export const fetchHackerNewsPosts = async (
   keywords: string[],
   maxPosts: number = 10

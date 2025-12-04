@@ -12,8 +12,13 @@ import { prisma } from "@/lib/prisma";
  * Get a single idea by ID or slug
  */
 export const GET = applyMiddleware(
+  validateIdeasAdminAuth({ errorIfNotAuthenticated: false }),
   catchApiAsyncError(async (req: NextRequest, { params }) => {
     const { id } = params as { id: string };
+
+    // Check if ideas admin is authenticated
+    // @ts-expect-error: parsed is not defined in Request type
+    const isIdeasAdmin = !!req.parsed?.ideasAdmin;
 
     // Try to find by ID first, then by slug
     const idea = await prisma.idea.findFirst({
@@ -42,20 +47,8 @@ export const GET = applyMiddleware(
       });
     }
 
-    // Check if ideas admin is authenticated (for draft access)
-    let isIdeasAdmin = false;
-    try {
-      const adminAuthResult = await validateIdeasAdminAuth({ errorIfNotAuthenticated: false })(req);
-      // @ts-expect-error: parsed is not defined in Request type
-      if (adminAuthResult && adminAuthResult !== CALL_NEXT_FUNCTION && req.parsed?.ideasAdmin) {
-        isIdeasAdmin = true;
-      }
-    } catch (error) {
-      // Not admin
-      console.error("Admin auth check error:", error);
-    }
-
     // Only show published ideas to public, or all to admin
+    // For admin pages, always allow access to drafts
     if (idea.status === "draft" && !isIdeasAdmin) {
       return sendNextResponse({
         status: 404,

@@ -30,7 +30,7 @@ export default async function IdeasPage() {
             <div className="max-w-md mx-auto">
               <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No posts yet</h3>
-              <p className="text-muted-foreground mb-6">Add some MDX files to content/ideas/ to get started!</p>
+              <p className="text-muted-foreground mb-6">No published ideas yet. Create your first idea from the admin panel!</p>
               <Button asChild>
                 <Link href="/">Go Home</Link>
               </Button>

@@ -51,7 +51,7 @@ export const GET = applyMiddleware(
         },
       },
       orderBy: {
-        publishedAt: "desc",
+        updatedAt: "desc", // Show latest articles (published or draft) on top
       },
     });
 
