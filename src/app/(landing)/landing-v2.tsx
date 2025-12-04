@@ -178,6 +178,9 @@ export default function LandingPage() {
             <a href="#generator" className="hover:text-slate-600">
               Viral Posts
             </a>
+            <a href="/ideas" className="hover:text-slate-600">
+              Ideas
+            </a>
             <a href="#faq" className="hover:text-slate-600">
               FAQ
             </a>
@@ -648,6 +651,9 @@ export default function LandingPage() {
             <Rocket className="w-4 h-4" /> NextPostAI
           </div>
           <div className="flex items-center gap-4">
+            <a href="/ideas" className="hover:text-slate-800">
+              Ideas
+            </a>
             <a href="#" className="hover:text-slate-800">
               Privacy
             </a>

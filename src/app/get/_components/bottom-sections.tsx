@@ -233,6 +233,9 @@ const BottomSections = () => {
 
         <div className="flex flex-col md:flex-row justify-between text-xs text-gray-400 gap-4">
           <div className="flex gap-6">
+            <a href="/ideas" className="hover:underline">
+              Ideas
+            </a>
             <a href="#" className="hover:underline">
               Privacy Policy
             </a>

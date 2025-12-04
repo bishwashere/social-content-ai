@@ -7,7 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();
 
   // Add/replace with your real routes
-  const staticPaths = ["", "/blogs"].map(
+  const staticPaths = ["", "/ideas"].map(
     (p) => ({
       url: `${siteUrl}${p}`,
       lastModified: now,

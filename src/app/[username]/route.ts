@@ -21,6 +21,7 @@ export async function GET(
     "api",
     "project",
     "blogs",
+    "ideas",
     "referral",
     "privacy",
     "get",

@@ -1,6 +1,6 @@
 import '../home.css'
 
-import { RecentBlogs } from "@/components/recent-blogs";
+import { RecentIdeas } from "@/components/recent-ideas";
 import { BottomSections } from "./_components/bottom-sections";
 import { TopSection } from './_components/top-section';
 
@@ -10,7 +10,7 @@ export default function HomeV3() {
     <>
       <div className='homepage'>
         <TopSection />
-        <RecentBlogs />
+        <RecentIdeas />
         <BottomSections />
       </div>
     </>
