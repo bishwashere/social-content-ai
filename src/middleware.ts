@@ -18,6 +18,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/ideas") ||
     pathname.startsWith("/referral") ||
     pathname.startsWith("/privacy") ||
+    pathname.startsWith("/terms") ||
     pathname.startsWith("/get") ||
     pathname.startsWith("/try") ||
     pathname.startsWith("/error") ||
