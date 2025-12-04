@@ -122,7 +122,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             "id" | "createdAt" | "updatedAt" | "pageFollowers"
           >[] = [];
 
-          let encryptedTokens = { accessToken: '', refreshToken:''};
+          const encryptedTokens = { accessToken: '', refreshToken:''};
           if(account.access_token) {
             encryptedTokens.accessToken = encryptToken(account.access_token);
           }
