@@ -14,6 +14,7 @@ const isPublic = (path: string) => {
     path.startsWith("/ideas") ||
     path.startsWith("/get") ||
     path.startsWith("/privacy") ||
+    path.startsWith("/terms") ||
     path.startsWith("/referral")
   );
 };
@@ -51,13 +52,13 @@ const SessionProvider = ({ children }: Props) => {
 
   if (isLoading) {
     // Allow public access to landing page, ideas, and referral pages
-    if (path === "/" || path.startsWith("/ideas") || path.startsWith("/get") || path.startsWith("/referral")) return children;
+    if (path === "/" || path.startsWith("/ideas") || path.startsWith("/get") || path.startsWith("/privacy") || path.startsWith("/terms") || path.startsWith("/referral")) return children;
     return <Loading className="h-screen" />;
   }
 
   if (isError) {
     // Allow public access to landing page, ideas, and referral pages
-    if (path === "/" || path.startsWith("/ideas") || path.startsWith("/get") || path.startsWith("/referral")) return children;
+    if (path === "/" || path.startsWith("/ideas") || path.startsWith("/get") || path.startsWith("/privacy") || path.startsWith("/terms") || path.startsWith("/referral")) return children;
     // Show loading while redirecting to prevent render errors
     return <Loading className="h-screen" />;
   }
