@@ -560,10 +560,10 @@ export default function HomeV3() {
               <a href="/ideas" className="hover:underline">
                 Ideas
               </a>
-              <a href="#" className="hover:underline">
+              <a href="/privacy" className="hover:underline">
                 Privacy Policy
               </a>
-              <a href="#" className="hover:underline">
+              <a href="/terms" className="hover:underline">
                 Terms & Conditions
               </a>
             </div>

@@ -32,7 +32,7 @@ export function MinimalBlogCard({ blog }: MinimalBlogCardProps) {
           <div className="flex items-center gap-3 mb-3">
             <Badge variant="secondary" className="flex items-center gap-1 text-xs">
               <Calendar className="w-3 h-3" />
-              {new Date(blog.date).toLocaleDateString("en-US", {
+              {new Date((blog as any).publishedAt || (blog as any).date || new Date()).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
               })}

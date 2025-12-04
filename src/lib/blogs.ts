@@ -94,7 +94,9 @@ export async function getRecentIdeas(count = 3): Promise<IdeaPost[]> {
 }
 
 // Legacy aliases for backward compatibility during migration
-export type BlogPost = IdeaPost;
+export interface BlogPost extends IdeaPost {
+  date?: string; // Legacy field for backward compatibility
+}
 export const getAllBlogSlugs = getAllIdeaSlugs;
 export const getBlogBySlug = getIdeaBySlug;
 export const getAllBlogs = getAllIdeas;

@@ -1,119 +1,124 @@
-"use server";
+import Link from "next/link"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
 
-import React from "react";
-
-const PrivacyPolicyPage = () => {
+export default function PrivacyPage() {
   return (
-    <div className="bg-gray-50 text-gray-900 min-h-screen antialiased">
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-4xl px-6 py-10 space-y-10">
-        <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-
-        {/* Sections */}
-        <Section title="About">
-          <p>
-            This privacy policy applies to the <strong>NextPostAI</strong> app (hereby referred to as
-            “Application”) for mobile devices that was created by <strong>UncleSamstech LLC</strong> (hereby
-            referred to as “Service Provider”) as a <strong>Free</strong> service. This service is intended for use
-            “AS IS”.
-          </p>
-        </Section>
-
-        <Section title="Information Collection and Use">
-          <p>The Application collects information when you download and use it. This information may include:</p>
-          <ul className="list-disc pl-6 mt-2 space-y-1">
-            <li>Your device’s Internet Protocol address (IP address)</li>
-            <li>The pages of the Application you visit, time and date of visit, time spent on pages</li>
-            <li>The time spent on the Application</li>
-            <li>The operating system you use on your device</li>
-          </ul>
-          <p className="mt-2">
-            The Application does not gather precise location info. Information may be used to contact you for
-            updates, notices, or promotions.
-          </p>
-        </Section>
-
-        <Section title="Third Party Access">
-          <p>
-            Only aggregated, anonymized data is transmitted to external services to help improve the Application. The
-            Service Provider may disclose information as required by law, to protect rights or safety, or to trusted
-            service providers who agreed to this privacy policy.
-          </p>
-        </Section>
-
-        <Section title="Opt-Out Rights">
-          <p>
-            You can stop all data collection by uninstalling the Application using standard uninstall methods provided
-            by your device or marketplace.
-          </p>
-        </Section>
-
-        <Section title="Data Retention Policy">
-          <p>
-            User data is retained while you use the Application and for a reasonable time thereafter. To delete your
-            data, contact <a href="mailto:support@unclesamstech.com" className="text-indigo-600 hover:underline">support@unclesamstech.com</a>.
-          </p>
-        </Section>
-
-        <Section title="Children">
-          <p>
-            The Service Provider does not knowingly collect data from children under 13. Parents should monitor their
-            children and instruct them not to submit personal info. Users must be at least 16 to consent.
-          </p>
-        </Section>
-
-        <Section title="Security">
-          <p>
-            The Service Provider maintains physical, electronic, and procedural safeguards to protect your information.
-          </p>
-        </Section>
-
-        <Section title="Changes">
-          <p>
-            This Privacy Policy may be updated occasionally. Continued use of the Application constitutes acceptance
-            of changes.
-          </p>
-        </Section>
-
-        <Section title="Your Consent">
-          <p>
-            By using the Application, you consent to the processing of your information as described in this Privacy
-            Policy.
-          </p>
-        </Section>
-
-        <Section title="Contact Us">
-          <p>
-            Questions about privacy? Contact us at{" "}
-            <a href="mailto:support@unclesamstech.com" className="text-indigo-600 hover:underline">
-              support@unclesamstech.com
-            </a>.
-          </p>
-        </Section>
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-10 border-t bg-white">
-        <div className="mx-auto max-w-3xl px-6 py-8 text-sm text-gray-600">
-          <p>© {new Date().getFullYear()} NextPostAI. All rights reserved.</p>
-          <p className="mt-1">Provided by UncleSamstech LLC.</p>
+    <div className="min-h-screen bg-background">
+      {/* Header similar to /ideas */}
+      <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
+        <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+            >
+              <Image
+                src="/logo.png"
+                width="100"
+                height="100"
+                alt="NextPostAI"
+                className="size-6"
+              />
+              <span className="font-semibold text-lg">NextPostAI</span>
+            </Link>
+            <span className="text-muted-foreground mx-2">/</span>
+            <span className="text-muted-foreground">Privacy Policy</span>
+          </div>
         </div>
-      </footer>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <article className="max-w-4xl mx-auto">
+          {/* Navigation */}
+          <Button asChild variant="ghost" className="mb-8 -ml-4">
+            <Link href="/">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Link>
+          </Button>
+
+          {/* Title */}
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-8">Privacy Policy</h1>
+          <p className="text-muted-foreground mb-12">Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+
+          {/* Content */}
+          <div className="prose prose-gray dark:prose-invert max-w-none space-y-8">
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">1. Information We Collect</h2>
+              <p className="text-muted-foreground">
+                We collect information when you use NextPostAI, including your IP address, device information, usage data, and account information. We do not collect precise location data.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">2. How We Use Information</h2>
+              <p className="text-muted-foreground">
+                We use collected information to provide, maintain, and improve our services, send updates and notifications, and ensure security.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">3. Data Sharing</h2>
+              <p className="text-muted-foreground">
+                We share aggregated, anonymized data with service providers to improve the application. We may disclose information as required by law or to protect rights and safety.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">4. Data Security</h2>
+              <p className="text-muted-foreground">
+                We implement physical, electronic, and procedural safeguards to protect your information. However, no method of transmission over the internet is 100% secure.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">5. Your Rights</h2>
+              <p className="text-muted-foreground mb-2">You can:</p>
+              <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
+                <li>Access and update your account information</li>
+                <li>Request deletion of your data</li>
+                <li>Opt-out of data collection by uninstalling the application</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">6. Children&apos;s Privacy</h2>
+              <p className="text-muted-foreground">
+                We do not knowingly collect data from children under 13. Users must be at least 16 to consent to data processing.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">7. Data Retention</h2>
+              <p className="text-muted-foreground">
+                We retain your data while you use the service and for a reasonable time thereafter. To delete your data, contact us at{" "}
+                <a href="mailto:support@unclesamstech.com" className="text-primary hover:underline">
+                  support@unclesamstech.com
+                </a>
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">8. Changes to Privacy Policy</h2>
+              <p className="text-muted-foreground">
+                We may update this Privacy Policy from time to time. Continued use of the service after changes constitutes acceptance of the updated policy.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">9. Contact Us</h2>
+              <p className="text-muted-foreground">
+                Questions about privacy? Contact us at{" "}
+                <a href="mailto:support@unclesamstech.com" className="text-primary hover:underline">
+                  support@unclesamstech.com
+                </a>
+              </p>
+            </section>
+          </div>
+        </article>
+      </div>
     </div>
-  );
-};
-
-type SectionProps = {
-  title: string;
-  children: React.ReactNode;
-};
-
-const Section: React.FC<SectionProps> = ({ title, children }) => (
-  <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-    <h2 className="text-xl font-semibold">{title}</h2>
-    <div className="mt-3 space-y-2">{children}</div>
-  </section>
-);
-
-export default PrivacyPolicyPage;
+  )
+}

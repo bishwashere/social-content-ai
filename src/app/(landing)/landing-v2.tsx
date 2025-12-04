@@ -654,10 +654,10 @@ export default function LandingPage() {
             <a href="/ideas" className="hover:text-slate-800">
               Ideas
             </a>
-            <a href="#" className="hover:text-slate-800">
+            <a href="/privacy" className="hover:text-slate-800">
               Privacy
             </a>
-            <a href="#" className="hover:text-slate-800">
+            <a href="/terms" className="hover:text-slate-800">
               Terms
             </a>
             <a

@@ -33,7 +33,7 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
         <div className="flex items-center gap-4 mb-3">
           <Badge variant="secondary" className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            {new Date(blog.date).toLocaleDateString("en-US", {
+            {new Date((blog as any).publishedAt || (blog as any).date).toLocaleDateString("en-US", {
               year: "numeric",
               month: "short",
               day: "numeric",

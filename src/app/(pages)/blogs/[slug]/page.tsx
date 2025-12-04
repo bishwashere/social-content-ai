@@ -48,7 +48,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                {new Date(blog.date).toLocaleDateString("en-US", {
+                {new Date((blog as any).publishedAt || (blog as any).date).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -115,7 +115,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-muted-foreground">
                 Published on{" "}
-                {new Date(blog.date).toLocaleDateString("en-US", {
+                {new Date((blog as any).publishedAt || (blog as any).date).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
