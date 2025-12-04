@@ -15,6 +15,7 @@ import { Fb } from "./3rd-providers/fb";
 import { Twitter } from "./3rd-providers/twitter";
 import { authenticateWithThreads } from "./auth/threads";
 import { autoLinkProviderToAllProjects } from "@/server-actions/auto-link-oauth-providers";
+import { encryptToken } from "@/backend-apis/encryption";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -121,12 +122,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             "id" | "createdAt" | "updatedAt" | "pageFollowers"
           >[] = [];
 
+          let encryptedTokens = { accessToken: '', refreshToken:''};
+          if(account.access_token) {
+            encryptedTokens.accessToken = encryptToken(account.access_token);
+          }
+          if(account.refresh_token) {
+            encryptedTokens.refreshToken = encryptToken(account.refresh_token);
+          }
+
           // handle the auth provider
           switch (platform) {
             case "reddit":
               const r = new Reddit({
-                accessToken: account.access_token!,
-                refreshToken: account.refresh_token!,
+                accessToken: encryptedTokens.accessToken,
+                refreshToken: encryptedTokens.refreshToken,
                 expiresAt: account.expires_at!,
               });
               const { data } = await r.getModeratedSubreddits();
@@ -144,8 +153,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     userId: googleUser.id,
                     platform: "reddit",
                     pageId: subreddit.display_name || "",
-                    accessToken: account.access_token || "",
-                    refreshToken: account.refresh_token || "",
+                    accessToken: encryptedTokens.accessToken || "",
+                    refreshToken: encryptedTokens.refreshToken || "",
                     expiresAt: account.expires_at || 0,
                     pageName: subreddit.title || "",
                     pageProfilePhoto: subreddit.icon_img || "",
@@ -157,8 +166,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             case "facebook":
               const f = new Fb({
-                accessToken: account.access_token!,
-                refreshToken: account.refresh_token!,
+                accessToken: encryptedTokens.accessToken,
+                refreshToken: encryptedTokens.refreshToken,
               });
 
               const longLivedTokens = await f.exchangeForLongLivedToken();
@@ -179,7 +188,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   userId: googleUser.id,
                   platform: "facebook",
                   pageId: fbPage.id,
-                  accessToken: fbPage.accessToken,
+                  accessToken: encryptToken(fbPage.accessToken),
                   refreshToken: "",
                   expiresAt: null,
                   pageName: fbPage.name,
@@ -192,8 +201,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             case "twitter":
               const t = new Twitter({
-                accessToken: account.access_token!,
-                refreshToken: account.refresh_token!,
+                accessToken: encryptedTokens.accessToken,
+                refreshToken: encryptedTokens.refreshToken,
                 expiresAt: account.expires_at!,
               });
 
@@ -224,8 +233,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 userId: googleUser.id,
                 platform: "tiktok",
                 pageId: String(account.open_id) || "",
-                accessToken: account.access_token,
-                refreshToken: account.refresh_token!,
+                accessToken: encryptedTokens.accessToken,
+                refreshToken: encryptedTokens.refreshToken,
                 expiresAt: Number(account.expires_at)*1000!,
                 pageName: user.name || "",
                 pageProfilePhoto: user.image || "",

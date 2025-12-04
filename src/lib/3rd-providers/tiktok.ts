@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import fs from "fs";
 import { prisma } from "../prisma";
+import { decryptToken, encryptToken } from "@/backend-apis/encryption";
 
 /**
  * Response from TikTok token refresh
@@ -100,6 +101,7 @@ type UserStatistics = {
 
 class TikTok {
     private _accessToken: string;
+    private _encryptedAccessToken: string;
     private _client: AxiosInstance;
     private _expiresAt: number;
     private _refreshToken: string;
@@ -111,8 +113,9 @@ class TikTok {
         refreshToken: string;
         expiresAt: number;
     }) {
-        this._accessToken = args.accessToken;
-        this._refreshToken = args.refreshToken;
+        this._accessToken = decryptToken(args.accessToken);
+        this._refreshToken = decryptToken(args.refreshToken);
+        this._encryptedAccessToken = args.accessToken;
         this._expiresAt = args.expiresAt;
 
         this._client = axios.create({
@@ -152,11 +155,11 @@ class TikTok {
             this._expiresAt = Date.now() + data.expires_in * 1000;
             await prisma.oauthProvider.updateMany({
                 where: {
-                    accessToken: this._accessToken
+                    accessToken: this._encryptedAccessToken
                 },
                 data: {
-                    accessToken: data.access_token,
-                    refreshToken: data.refresh_token
+                    accessToken: encryptToken(data.access_token),
+                    refreshToken: encryptToken(data.refresh_token)
                 }
             })
             this._accessToken = data.access_token;

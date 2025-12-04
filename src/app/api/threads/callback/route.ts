@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { autoLinkProviderToAllProjects } from "@/server-actions/auto-link-oauth-providers";
+import { encryptToken } from "@/backend-apis/encryption";
 
 interface ThreadsTokenResponse {
   access_token: string;
@@ -120,11 +121,11 @@ export async function GET(request: NextRequest) {
     console.log("\n" + "=".repeat(60));
     console.log("🎉 THREADS OAUTH SUCCESS!");
     console.log("=".repeat(60));
-    console.log("✅ Access Token:", tokenData.access_token);
+    // console.log("✅ Access Token:", tokenData.access_token);
     console.log("📅 Token Type:", tokenData.token_type || "Bearer");
     console.log("⏰ Expires In:", tokenData.expires_in || "N/A", "seconds");
     console.log("👤 User ID:", tokenData.user_id || "N/A");
-    console.log("🔑 Full Token Data:", JSON.stringify(tokenData, null, 2));
+    // console.log("🔑 Full Token Data:", JSON.stringify(tokenData, null, 2));
     console.log("=".repeat(60) + "\n");
 
     // Get user info
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
           id: existingProvider.id,
         },
         data: {
-          accessToken: tokenData.access_token,
+          accessToken: encryptToken(tokenData.access_token),
           pageId: userData.id,
           pageName: userData.name,
           pageProfilePhoto: userData.threads_profile_picture_url,
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
         data: {
           userId: googleUser.id,
           platform: "threads",
-          accessToken: tokenData.access_token,
+          accessToken: encryptToken(tokenData.access_token),
           expiresAt: tokenData.expires_in
             ? new Date(
                 Date.now() + (tokenData.expires_in || 3600) * 1000

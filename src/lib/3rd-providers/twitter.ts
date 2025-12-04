@@ -1,3 +1,4 @@
+import { decryptToken, encryptToken } from "@/backend-apis/encryption";
 import axios, { AxiosInstance } from "axios";
 
 /**
@@ -32,8 +33,8 @@ class Twitter {
     refreshToken: string;
     expiresAt: number;
   }) {
-    this._accessToken = args.accessToken;
-    this._refreshToken = args.refreshToken;
+    this._accessToken = decryptToken(args.accessToken);
+    this._refreshToken = decryptToken(args.refreshToken);
     this._expiresAt = args.expiresAt;
 
     this._client = axios.create({
@@ -91,9 +92,9 @@ class Twitter {
       });
       return {
         cred: {
-          accessToken: this._accessToken,
+          accessToken: encryptToken(this._accessToken),
           expiresAt: this._expiresAt,
-          refreshToken: this._refreshToken,
+          refreshToken: encryptToken(this._refreshToken),
         },
         data: res.data as TwitterUser,
       };
