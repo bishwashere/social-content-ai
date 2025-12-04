@@ -22,6 +22,17 @@ All previously listed issues have been resolved:
    - `src/app/(pages)/project/settings/_components/oauth-providers-list.tsx`
    - `src/components/common/connect-accounts-button.tsx`
 
+## Recent Fixes (Ideas Admin Feature)
+
+10. `src/app/(pages)/ideas/admin/page.tsx` - Fixed empty catch block by adding error parameter and console.error logging
+11. `src/app/(pages)/ideas/admin/new/page.tsx` - Fixed empty catch block by adding error parameter and console.error logging
+12. `src/app/(pages)/ideas/admin/[id]/edit/page.tsx` - Fixed empty catch block by adding error parameter and console.error logging
+13. `src/app/(pages)/ideas/admin/page.tsx` - Fixed React unescaped entities by escaping quotes in delete dialog message using `&quot;`
+14. `src/app/(pages)/ideas/admin/page.tsx` - Removed unused `useRouter` import
+15. `src/app/(pages)/ideas/admin/new/page.tsx` - Removed unused `data` parameter in mutation callback
+16. `src/app/api/ideas/[id]/route.ts` - Fixed TypeScript type errors with Next.js 14 route params by using `params as { id: string }` instead of `{ params: { id: string } }`
+17. `src/app/api/ideas/route.ts` - Fixed TypeScript middleware return type by checking `req.parsed` directly instead of middleware result
+
 ## Build Status
 
 ✅ Build compiles successfully with no errors

@@ -1,14 +1,18 @@
 import { prisma } from "../src/lib/prisma";
 
-const EMAIL = "bishwas.work@gmail.com";
+const EMAILS = [
+  "bishwas.work@gmail.com",
+  "unclesamstechllc@gmail.com",
+  "bishwasmishra007@gmail.com",
+];
 
-async function deleteUserAndAllData() {
+async function deleteUserAndAllData(email: string) {
   try {
-    console.log(`\n🔍 Looking for user with email: ${EMAIL}\n`);
+    console.log(`\n🔍 Looking for user with email: ${email}\n`);
 
     // Find the user
     const user = await prisma.user.findUnique({
-      where: { email: EMAIL },
+      where: { email },
       include: {
         projects: true,
         oauthProviders: true,
@@ -16,7 +20,7 @@ async function deleteUserAndAllData() {
     });
 
     if (!user) {
-      console.log(`❌ User with email ${EMAIL} not found.`);
+      console.log(`❌ User with email ${email} not found.`);
       return;
     }
 
@@ -155,7 +159,22 @@ async function deleteUserAndAllData() {
     console.log(`   Deleted ${projectIds.length} project(s)`);
     console.log(`   Deleted ${oauthProviderIds.length} OAuth provider(s)\n`);
   } catch (error) {
-    console.error("\n❌ Error deleting user:", error);
+    console.error(`\n❌ Error deleting user ${email}:`, error);
+    throw error;
+  }
+}
+
+async function deleteAllUsers() {
+  try {
+    console.log(`\n🗑️  Starting deletion process for ${EMAILS.length} user(s)...\n`);
+    
+    for (const email of EMAILS) {
+      await deleteUserAndAllData(email);
+    }
+
+    console.log(`\n✅ Successfully processed all ${EMAILS.length} user(s)!\n`);
+  } catch (error) {
+    console.error("\n❌ Error in deletion process:", error);
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -163,7 +182,7 @@ async function deleteUserAndAllData() {
 }
 
 // Run the script
-deleteUserAndAllData()
+deleteAllUsers()
   .then(() => {
     console.log("Script completed successfully.");
     process.exit(0);

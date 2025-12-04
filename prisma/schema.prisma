@@ -30,6 +30,7 @@ model User {
   uploadedVideos    UploadedVideo[]
   projectFolders    ProjectFolder[]
   referralSignup    ReferralSignup?
+  ideas              Idea[]
 
   @@map("users")
 }
@@ -474,4 +475,28 @@ model Template {
   updatedAt   DateTime?        @updatedAt
 
   @@map("templates")
+}
+
+enum IdeaStatus {
+  draft
+  published
+}
+
+model Idea {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  slug        String     @unique
+  title       String
+  summary     String
+  content     String     // Raw MDX/Markdown content
+  tags        String[]   @default([])
+  thumbnail   String?
+  status      IdeaStatus @default(draft)
+  publishedAt DateTime?
+  authorId    String     @db.ObjectId
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  author User? @relation(fields: [authorId], references: [id])
+
+  @@map("ideas")
 }

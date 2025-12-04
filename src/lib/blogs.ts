@@ -1,8 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import matter from "gray-matter";
-
-const ideasDirectory = join(process.cwd(), "content/ideas");
+import { prisma } from "@/lib/prisma";
 
 // Convert title to URL-friendly slug
 function titleToSlug(title: string): string {
@@ -26,25 +22,16 @@ export interface IdeaPost {
 
 export async function getAllIdeaSlugs(): Promise<string[]> {
   try {
-    const fileNames = readdirSync(ideasDirectory);
-    const mdxFiles = fileNames.filter((name) => name.endsWith(".mdx"));
+    const ideas = await prisma.idea.findMany({
+      where: {
+        status: "published",
+      },
+      select: {
+        slug: true,
+      },
+    });
     
-    const slugs = await Promise.all(
-      mdxFiles.map(async (fileName) => {
-        try {
-          const fullPath = join(ideasDirectory, fileName);
-          const fileContents = readFileSync(fullPath, "utf8");
-          const { data } = matter(fileContents);
-          const title = data.title || "Untitled";
-          return titleToSlug(title);
-        } catch {
-          // Fallback to filename if reading fails
-          return fileName.replace(/\.mdx$/, "");
-        }
-      })
-    );
-    
-    return slugs;
+    return ideas.map((idea) => idea.slug);
   } catch {
     return [];
   }
@@ -52,57 +39,26 @@ export async function getAllIdeaSlugs(): Promise<string[]> {
 
 export async function getIdeaBySlug(slug: string): Promise<IdeaPost | null> {
   try {
-    // First, try to find by filename (for backward compatibility)
-    try {
-      const fullPath = join(ideasDirectory, `${slug}.mdx`);
-      const fileContents = readFileSync(fullPath, "utf8");
-      const { data, content } = matter(fileContents);
-      const titleSlug = titleToSlug(data.title || "Untitled");
-      
-      // If the slug matches the title-based slug, return it
-      if (titleSlug === slug) {
-        return {
-          slug: titleSlug,
-          title: data.title || "Untitled",
-          summary: data.summary || "",
-          publishedAt: data.publishedAt || data.date || "",
-          tags: data.tags || [],
-          thumbnail: data.thumbnail || null,
-          content,
-        };
-      }
-    } catch {
-      // Continue to search by title
+    const idea = await prisma.idea.findFirst({
+      where: {
+        slug,
+        status: "published",
+      },
+    });
+
+    if (!idea) {
+      return null;
     }
-    
-    // Search all files to find one with matching title-based slug
-    const fileNames = readdirSync(ideasDirectory);
-    const mdxFiles = fileNames.filter((name) => name.endsWith(".mdx"));
-    
-    for (const fileName of mdxFiles) {
-      try {
-        const fullPath = join(ideasDirectory, fileName);
-        const fileContents = readFileSync(fullPath, "utf8");
-        const { data, content } = matter(fileContents);
-        const titleSlug = titleToSlug(data.title || "Untitled");
-        
-        if (titleSlug === slug) {
-          return {
-            slug: titleSlug,
-            title: data.title || "Untitled",
-            summary: data.summary || "",
-            publishedAt: data.publishedAt || data.date || "",
-            tags: data.tags || [],
-            thumbnail: data.thumbnail || null,
-            content,
-          };
-        }
-      } catch {
-        continue;
-      }
-    }
-    
-    return null;
+
+    return {
+      slug: idea.slug,
+      title: idea.title,
+      summary: idea.summary,
+      publishedAt: idea.publishedAt?.toISOString() || new Date().toISOString(),
+      tags: idea.tags,
+      thumbnail: idea.thumbnail || undefined,
+      content: idea.content, // Raw MDX/Markdown content
+    };
   } catch {
     return null;
   }
@@ -110,43 +66,24 @@ export async function getIdeaBySlug(slug: string): Promise<IdeaPost | null> {
 
 export async function getAllIdeas(): Promise<IdeaPost[]> {
   try {
-    const fileNames = readdirSync(ideasDirectory);
-    const slugs = fileNames
-      .filter((name) => name.endsWith(".mdx"))
-      .map((name) => name.replace(/\.mdx$/, ""));
+    const ideas = await prisma.idea.findMany({
+      where: {
+        status: "published",
+      },
+      orderBy: {
+        publishedAt: "desc",
+      },
+    });
 
-    const ideas = await Promise.all(
-      slugs.map(async (slug) => {
-        try {
-          const fullPath = join(ideasDirectory, `${slug}.mdx`);
-          const fileContents = readFileSync(fullPath, "utf8");
-          const { data, content } = matter(fileContents);
-
-          const titleSlug = titleToSlug(data.title || "Untitled");
-          return {
-            slug: titleSlug,
-            title: data.title || "Untitled",
-            summary: data.summary || "",
-            publishedAt: data.publishedAt || data.date || "",
-            tags: data.tags || [],
-            thumbnail: data.thumbnail || null,
-            content, // Return raw content for MDXRemote to process
-          };
-        } catch (error) {
-          console.error(`Error processing idea file ${slug}:`, error);
-          return null;
-        }
-      })
-    );
-
-    const sortedIdeas = ideas
-      .filter((idea): idea is NonNullable<typeof idea> => idea !== null)
-      .sort(
-        (a, b) =>
-          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
-
-    return sortedIdeas;
+    return ideas.map((idea) => ({
+      slug: idea.slug,
+      title: idea.title,
+      summary: idea.summary,
+      publishedAt: idea.publishedAt?.toISOString() || new Date().toISOString(),
+      tags: idea.tags,
+      thumbnail: idea.thumbnail || undefined,
+      content: idea.content, // Raw MDX/Markdown content
+    }));
   } catch {
     return [];
   }

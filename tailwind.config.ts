@@ -79,10 +79,16 @@ const config: Config = {
             height: "0",
           },
         },
+        wave: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "25%": { transform: "rotate(-20deg)" },
+          "75%": { transform: "rotate(20deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "wave-once": "wave 0.6s ease-in-out 2",
       },
       screens: {
         xs: "480px",

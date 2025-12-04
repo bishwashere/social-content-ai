@@ -18,7 +18,9 @@
     "clean:content-asterisks": "npx tsx scripts/clean-content-asterisks.ts",
     "delete:user": "npx tsx scripts/delete-user.ts",
     "migrate:platform-icons": "npx tsx scripts/add-platform-icons-onboarding-field.ts",
-    "migrate:onboarding-settings": "npx tsx scripts/add-onboarding-settings-fields.ts"
+    "migrate:onboarding-settings": "npx tsx scripts/add-onboarding-settings-fields.ts",
+    "migrate:ideas": "npx tsx scripts/migrate-ideas-to-db.ts",
+    "generate:ideas-admin": "npx tsx scripts/generate-ideas-admin-credentials.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

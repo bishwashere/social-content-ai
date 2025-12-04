@@ -1,7 +1,7 @@
 "use server";
 
 import { Fb } from "@/lib/3rd-providers/fb";
-import { extractPostId, RedditPostData } from "./hooks";
+import { extractPostId, RedditPostData, HackerNewsPost } from "./hooks";
 import { prisma } from "@/lib/prisma";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import axios from "axios";
@@ -48,6 +48,56 @@ export const fetchRedditPostsData = async (
   }
 
   return results;
+};
+
+export const fetchHackerNewsPosts = async (
+  keywords: string[],
+  maxPosts: number = 10
+): Promise<HackerNewsPost[]> => {
+  try {
+    if (!process.env.OLIVEDRIFT_BASE_URL || !process.env.OLIVEDRIFT_API_KEY) {
+      throw new Error("Olivedrift API configuration is missing");
+    }
+
+    const response = await axios.post(
+      `${process.env.OLIVEDRIFT_BASE_URL}/api/getHackerNewsPosts`,
+      {
+        keywords,
+        maxPosts,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OLIVEDRIFT_API_KEY}`,
+        },
+      }
+    );
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to fetch HackerNews posts");
+    }
+
+    // Transform olivedrift response to our format
+    const posts: HackerNewsPost[] = (response.data.posts || []).map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      text: post.selftext || "",
+      author: post.author,
+      score: post.score,
+      num_comments: post.num_comments,
+      created_utc: post.created_utc,
+      permalink: post.permalink,
+    }));
+
+    return posts;
+  } catch (error) {
+    console.error("Error fetching HackerNews posts:", error);
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch HackerNews posts"
+      );
+    }
+    throw error;
+  }
 };
 
 export const getFacebookMetrics = async (userId: string, projectId: string | null) => {

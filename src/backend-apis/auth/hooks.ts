@@ -42,13 +42,14 @@ export const useEmailLogin = () => {
 /**
  * Hook to get the current session
  **/
-export const useSession = () => {
+export const useSession = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryFn: () => {
       return authService.getSession();
     },
     queryKey: ["session"],
     retry: 0,
+    enabled: options?.enabled !== false, // Default to true if not specified
   });
 };
 

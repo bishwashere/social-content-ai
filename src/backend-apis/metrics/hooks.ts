@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchRedditPostsData,
+  fetchHackerNewsPosts,
   getAllPlatformMetrics,
   getFacebookMetrics,
   getLinkedinMetrics,
@@ -16,6 +17,17 @@ export type RedditPostData = {
   date: string;
 };
 
+export type HackerNewsPost = {
+  id: string;
+  title: string;
+  text: string;
+  author: string;
+  score: number;
+  num_comments: number;
+  created_utc: number;
+  permalink: string;
+};
+
 export const extractPostId = (url: string): string | null => {
   const match = url.match(/\/comments\/([a-z0-9]+)/i);
   return match ? match[1] : null;
@@ -26,6 +38,17 @@ export const useRedditPostsData = (urls: string[]) => {
     queryKey: ["reddit-posts", urls],
     queryFn: () => fetchRedditPostsData(urls),
     enabled: urls?.length > 0,
+  });
+};
+
+export const useHackerNewsPosts = (
+  keywords: string[],
+  maxPosts: number = 10
+) => {
+  return useQuery({
+    queryKey: ["hackernews-posts", keywords, maxPosts],
+    queryFn: () => fetchHackerNewsPosts(keywords, maxPosts),
+    enabled: keywords?.length > 0,
   });
 };
 

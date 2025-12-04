@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link2, FileText, Calendar, Target, Shield, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 export function GetStartedGuide() {
   const { data: session } = useSession();
@@ -16,6 +16,9 @@ export function GetStartedGuide() {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [showSecurityInfo, setShowSecurityInfo] = useState(false);
   const [showCreatePostInfo, setShowCreatePostInfo] = useState(false);
+  const [hasWaved, setHasWaved] = useState(false);
+  const [waveKey, setWaveKey] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Check if user has connected social accounts
   const { data: accountsData, isLoading: accountsLoading } = useQuery({
@@ -150,6 +153,17 @@ export function GetStartedGuide() {
     }
   };
 
+  // Trigger waving animation once when card is fully loaded, then wait 0.5s
+  useEffect(() => {
+    if (!shouldShow || hasWaved || !cardRef.current) return;
+
+    // Wait for the card to be fully rendered, then add 0.5s delay
+    const timer = setTimeout(() => {
+      setHasWaved(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [shouldShow, hasWaved]);
 
   if (!shouldShow) {
     return null;
@@ -157,31 +171,46 @@ export function GetStartedGuide() {
 
   // Get user's first name or email domain
   const getUserGreeting = () => {
-    if (!session?.user) return "Hello 👋";
+    if (!session?.user) return { text: "Hello", emoji: "👋" };
     
     const name = session.user.name;
     if (name) {
       // Extract first name (split by space and take first part)
       const firstName = name.split(' ')[0];
-      return `Hello ${firstName} 👋`;
+      return { text: `Hello ${firstName}`, emoji: "👋" };
     }
     
     // If no name, use email domain (part before @)
     const email = session.user.email;
     if (email) {
       const emailDomain = email.split('@')[0];
-      return `Hello ${emailDomain} 👋`;
+      return { text: `Hello ${emailDomain}`, emoji: "👋" };
     }
     
-    return "Hello 👋";
+    return { text: "Hello", emoji: "👋" };
+  };
+
+  const greeting = getUserGreeting();
+
+  const handleWaveClick = () => {
+    setWaveKey(prev => prev + 1);
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mb-6">
+    <div className="w-full max-w-4xl mx-auto mb-6" ref={cardRef}>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
-            <div>{getUserGreeting()}</div>
+            <div>
+              {greeting.text}{" "}
+              <span 
+                key={waveKey}
+                onClick={handleWaveClick}
+                className={(hasWaved || waveKey > 0) ? "inline-block animate-wave-once origin-[70%_70%] cursor-pointer" : "inline-block cursor-pointer"}
+              >
+                {greeting.emoji}
+              </span>
+            </div>
             <div className="text-lg font-normal mt-1">Get started here...</div>
           </CardTitle>
         </CardHeader>

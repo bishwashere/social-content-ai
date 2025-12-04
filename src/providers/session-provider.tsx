@@ -11,12 +11,16 @@ type Props = {
 const isPublic = (path: string) => {
   return (
     path === "/" ||
-    path.startsWith("/ideas") ||
+    (path.startsWith("/ideas") && !path.startsWith("/ideas/admin")) ||
     path.startsWith("/get") ||
     path.startsWith("/privacy") ||
     path.startsWith("/terms") ||
     path.startsWith("/referral")
   );
+};
+
+const isAdminRoute = (path: string) => {
+  return path.startsWith("/ideas/admin");
 };
 
 /**
@@ -25,10 +29,15 @@ const isPublic = (path: string) => {
  *  If the user is not authenticated, it redirects to the home page.
  */
 const SessionProvider = ({ children }: Props) => {
-  const { isLoading, isError } = useSession();
   const path = usePathname();
   const router = useRouter();
   const hasRedirected = useRef(false);
+  
+  // Skip session check for admin routes - they have their own auth
+  const shouldCheckSession = !isAdminRoute(path);
+  const { isLoading, isError } = useSession({
+    enabled: shouldCheckSession,
+  });
 
   useEffect(() => {
     if (isLoading) {
@@ -42,6 +51,12 @@ const SessionProvider = ({ children }: Props) => {
       return;
     }
 
+    // Let admin routes handle their own authentication
+    if (isAdminRoute(path)) {
+      hasRedirected.current = false;
+      return;
+    }
+
     if (isError && !hasRedirected.current) {
       hasRedirected.current = true;
       router.replace("/"); // ✅ Redirect to the home page (replace to avoid adding to history)
@@ -50,15 +65,18 @@ const SessionProvider = ({ children }: Props) => {
 
   if (isPublic(path)) return children;
 
+  // Let admin routes render so they can handle their own auth
+  if (isAdminRoute(path)) return children;
+
   if (isLoading) {
-    // Allow public access to landing page, ideas, and referral pages
-    if (path === "/" || path.startsWith("/ideas") || path.startsWith("/get") || path.startsWith("/privacy") || path.startsWith("/terms") || path.startsWith("/referral")) return children;
+    // Allow public access to landing page, ideas (except admin), and referral pages
+    if (path === "/" || (path.startsWith("/ideas") && !path.startsWith("/ideas/admin")) || path.startsWith("/get") || path.startsWith("/privacy") || path.startsWith("/terms") || path.startsWith("/referral")) return children;
     return <Loading className="h-screen" />;
   }
 
   if (isError) {
-    // Allow public access to landing page, ideas, and referral pages
-    if (path === "/" || path.startsWith("/ideas") || path.startsWith("/get") || path.startsWith("/privacy") || path.startsWith("/terms") || path.startsWith("/referral")) return children;
+    // Allow public access to landing page, ideas (except admin), and referral pages
+    if (path === "/" || (path.startsWith("/ideas") && !path.startsWith("/ideas/admin")) || path.startsWith("/get") || path.startsWith("/privacy") || path.startsWith("/terms") || path.startsWith("/referral")) return children;
     // Show loading while redirecting to prevent render errors
     return <Loading className="h-screen" />;
   }
