@@ -9,7 +9,7 @@ interface IdeaHeaderProps {
   title: string
 }
 
-export function IdeaHeader({ slug, title }: IdeaHeaderProps) {
+export function IdeaHeader({ slug: _slug, title }: IdeaHeaderProps) {
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
       <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
