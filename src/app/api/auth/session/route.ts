@@ -87,7 +87,7 @@ export const GET = applyMiddleware(
                 inactiveProjectsDetails,
               },
               {
-                subject: `Inactive Project Alert`,
+                subject: `Your Projects Are Ready to Shape`,
                 to: [user.email],
               }
             )

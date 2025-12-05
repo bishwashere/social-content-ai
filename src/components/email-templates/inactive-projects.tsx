@@ -16,24 +16,17 @@ export default function InactivityEmail({ name, inactiveProjectsDetails, dashboa
       <Body style={{ backgroundColor: "#f3f4f6", color: "#000", fontFamily: "Arial, sans-serif", padding: "20px" }}>
         <Container style={{ padding: "24px", backgroundColor: "#ffffff", borderRadius: "8px", textAlign: "center" }}>
           <Text style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "12px" }}>
-            Hello {name}, you have inactive projects!
+            Nice to see you, {name}!
           </Text>
-          <Text style={{ fontSize: "16px", color: "#4b5563", marginBottom: "12px" }}>
-            We noticed that you haven&apos;t tracked these projects on our platform:
+          <Text style={{ fontSize: "16px", color: "#4b5563", marginBottom: "20px", lineHeight: "1.5" }}>
+            Your projects are lined up and quietly progressing, choose one to shape next.
           </Text>
 
           {inactiveProjectsDetails.map((project, index) => (
             <Container key={index} style={{ marginBottom: "16px", padding: "10px", backgroundColor: "#f9fafb", borderRadius: "6px" }}>
               <Text style={{ fontSize: "18px", fontWeight: "bold" }}>{project.name}</Text>
-              <Text style={{ fontSize: "14px", color: "#6b7280" }}>
-                Inactive on: <strong>{project.inactivePlatforms.join(", ")}</strong>
-              </Text>
             </Container>
           ))}
-
-          <Text style={{ fontSize: "14px", lineHeight: "1.5", marginBottom: "20px" }}>
-            Keep your projects up to date to make the most out of our platform!
-          </Text>
 
           <Button
             href={dashboardUrl}
@@ -48,7 +41,7 @@ export default function InactivityEmail({ name, inactiveProjectsDetails, dashboa
               fontSize: "16px",
             }}
           >
-            Track Your Projects
+            Choose a Project to Shape
           </Button>
 
           <Text style={{ fontSize: "12px", color: "#6b7280", marginTop: "20px" }}>
