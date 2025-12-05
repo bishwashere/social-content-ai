@@ -12,7 +12,8 @@ export const startCampaignPlanner = async (
   campaignName: string,
   plan: CampaignPlanner,
   userId: string,
-  platforms: string[]
+  platforms: string[],
+  blogNewsMetadata?: { topics: string[]; angle: string; webhook: string; targetAudience?: string; productRelated?: boolean }
 ) => {
   const chatData: {
     title: string;
@@ -82,6 +83,27 @@ export const startCampaignPlanner = async (
       },
     });
 
+    // Update Blog News metadata if provided
+    if (plan.goal === "Blog News" && blogNewsMetadata && updated.chats.length > 0) {
+      const firstChat = updated.chats[0];
+      const existingContents = (firstChat.contents as Record<string, any>) || {};
+      await prisma.campaignChat.update({
+        where: { id: firstChat.id },
+        data: {
+          contents: {
+            ...existingContents,
+            _blogNewsMetadata: {
+              topics: blogNewsMetadata.topics,
+              angle: blogNewsMetadata.angle,
+              webhook: blogNewsMetadata.webhook,
+              targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
+              productRelated: blogNewsMetadata.productRelated ?? true,
+            },
+          },
+        },
+      });
+    }
+
     return {
       success: true,
       data: updated,
@@ -103,6 +125,25 @@ export const startCampaignPlanner = async (
       chats: true,
     },
   });
+
+  // Store Blog News metadata in the first chat's contents if it's a Blog News campaign
+  if (plan.goal === "Blog News" && blogNewsMetadata && created.chats.length > 0) {
+    const firstChat = created.chats[0];
+    await prisma.campaignChat.update({
+      where: { id: firstChat.id },
+      data: {
+        contents: {
+          _blogNewsMetadata: {
+            topics: blogNewsMetadata.topics,
+            angle: blogNewsMetadata.angle,
+            webhook: blogNewsMetadata.webhook,
+            targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
+            productRelated: blogNewsMetadata.productRelated ?? true,
+          },
+        },
+      },
+    });
+  }
 
   return {
     success: true,

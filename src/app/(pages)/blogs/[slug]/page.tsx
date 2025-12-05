@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { getBlogBySlug, getAllBlogSlugs } from "@/lib/blogs"
 import { ArrowLeft, Calendar, Clock, Share2 } from "lucide-react"
+import { BlogResendWebhookButton } from "@/components/blog-resend-webhook-button"
 
 interface BlogPageProps {
   params: {
@@ -108,6 +109,13 @@ export default async function BlogPage({ params }: BlogPageProps) {
                        prose-td:border prose-td:px-4 prose-td:py-2
                        prose-img:rounded-lg prose-img:shadow-md"
             dangerouslySetInnerHTML={{ __html: blog.content }}
+          />
+
+          {/* Resend Webhook Button */}
+          <BlogResendWebhookButton
+            blogTitle={blog.title}
+            blogContent={blog.content}
+            blogTags={blog.tags}
           />
 
           {/* Article Footer */}

@@ -9,7 +9,52 @@ export type BlogNewsMetadata = {
   topics: string[];
   angle: string;
   webhook: string;
+  targetAudience?: string;
+  productRelated?: boolean;
 };
+
+/**
+ * Get Blog News metadata from campaign
+ * Retrieves metadata stored in the first chat's contents
+ */
+export async function getBlogNewsMetadataFromCampaign(
+  campaignId: string
+): Promise<BlogNewsMetadata | null> {
+  try {
+    const campaign = await prisma.campaignPlanner.findFirst({
+      where: { id: campaignId },
+      include: {
+        chats: {
+          orderBy: { day: "asc" },
+          take: 1,
+        },
+      },
+    });
+
+    if (!campaign || campaign.chats.length === 0) {
+      return null;
+    }
+
+    const firstChat = campaign.chats[0];
+    const contents = firstChat.contents as Record<string, any>;
+    const metadata = contents?._blogNewsMetadata;
+
+    if (!metadata) {
+      return null;
+    }
+
+    return {
+      topics: metadata.topics || [],
+      angle: metadata.angle || "",
+      webhook: metadata.webhook || "",
+      targetAudience: metadata.targetAudience || campaign.targetAudience,
+      productRelated: metadata.productRelated ?? true,
+    };
+  } catch (error) {
+    console.error("Error getting Blog News metadata from campaign:", error);
+    return null;
+  }
+}
 
 /**
  * Store Blog News metadata for a campaign
@@ -65,8 +110,8 @@ type GeneratedBlog = {
     title: string;
     content: string;
     source: "reddit" | "hackernews";
-    url?: string;
-    articleId?: string;
+    url: string;
+    articleId: string;
   };
   webhookSent?: boolean; // Track webhook status
 };
@@ -134,141 +179,63 @@ async function getUsedArticleIds(campaignId: string): Promise<Set<string>> {
 }
 
 /**
- * Check if an article is already used in the campaign
- */
-function isArticleUsed(
-  article: { id?: string | number; url?: string; source: "reddit" | "hackernews" },
-  usedIds: Set<string>
-): boolean {
-  // Check by URL (most reliable - primary check)
-  if (article.url && usedIds.has(article.url)) {
-    return true;
-  }
-  
-  // Check by article ID with source prefix
-  if (article.id) {
-    const articleId = String(article.id);
-    const source = article.source || "unknown";
-    
-    // Check with source prefix (e.g., "reddit:abc123" or "hackernews:12345")
-    if (usedIds.has(`${source}:${articleId}`)) {
-      return true;
-    }
-    
-    // Also check without prefix (fallback)
-    if (usedIds.has(articleId)) {
-      return true;
-    }
-  }
-  
-  // Additional check: Extract ID from URL if available
-  if (article.url) {
-    if (article.source === "reddit") {
-      const redditMatch = article.url.match(/\/r\/\w+\/comments\/(\w+)/);
-      if (redditMatch) {
-        const extractedId = redditMatch[1];
-        if (usedIds.has(`reddit:${extractedId}`) || usedIds.has(extractedId)) {
-          return true;
-        }
-      }
-    } else if (article.source === "hackernews") {
-      const hnMatch = article.url.match(/item\?id=(\d+)/);
-      if (hnMatch) {
-        const extractedId = hnMatch[1];
-        if (usedIds.has(`hackernews:${extractedId}`) || usedIds.has(extractedId)) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  return false;
-}
-
-/**
- * Fetch one article from Olive Drift API for the given topics, avoiding duplicates
+ * Fetch article from Olive Drift API for given topics
  */
 async function fetchArticleForTopics(
   topics: string[],
   campaignId: string
-): Promise<{
-  title: string;
-  content: string;
-  source: "reddit" | "hackernews";
-  url?: string;
-  articleId?: string;
-} | null> {
+): Promise<{ title: string; content: string; source: "reddit" | "hackernews"; url: string; articleId: string } | null> {
   try {
-    // Get used article IDs for this campaign
     const usedIds = await getUsedArticleIds(campaignId);
     
-    // Fetch more articles to have options if first one is duplicate
-    const maxPosts = 10; // Fetch up to 10 to find an unused one
-    
     // Try Reddit first
-    const redditPosts = await fetchRedditPosts(topics, maxPosts);
-    for (const post of redditPosts) {
-      const article = {
-        id: post.id,
-        url: post.url,
-        source: "reddit" as const,
-      };
+    for (const topic of topics) {
+      const redditPosts = await fetchRedditPosts([topic], 10);
       
-      if (!isArticleUsed(article, usedIds)) {
-        return {
-          title: post.title,
-          content: post.selftext || post.title,
-          source: "reddit" as const,
-          url: post.url,
-          articleId: post.id,
-        };
+      for (const post of redditPosts) {
+        const postUrl = post.url || post.permalink || "";
+        const postId = post.id || "";
+        
+        // Check if this article was already used
+        if (postUrl && !usedIds.has(postUrl)) {
+          // Also check by articleId
+          if (postId && !usedIds.has(`reddit:${postId}`)) {
+            return {
+              title: post.title || "Untitled",
+              content: post.selftext || post.title || "",
+              source: "reddit",
+              url: postUrl.startsWith("http") ? postUrl : `https://reddit.com${postUrl}`,
+              articleId: postId,
+            };
+          }
+        }
       }
     }
-
-    // Fallback to HackerNews
-    const hackerNewsPosts = await fetchHackerNewsPosts(topics, maxPosts);
-    for (const post of hackerNewsPosts) {
-      const articleId = String(post.id);
-      const article = {
-        id: articleId,
-        url: `https://news.ycombinator.com/item?id=${post.id}`,
-        source: "hackernews" as const,
-      };
+    
+    // Try HackerNews if Reddit didn't yield results
+    for (const topic of topics) {
+      const hnPosts = await fetchHackerNewsPosts([topic], 10);
       
-      if (!isArticleUsed(article, usedIds)) {
-        return {
-          title: post.title,
-          content: post.text || post.title,
-          source: "hackernews" as const,
-          url: `https://news.ycombinator.com/item?id=${post.id}`,
-          articleId: articleId,
-        };
+      for (const post of hnPosts) {
+        const postUrl = post.permalink || `https://news.ycombinator.com/item?id=${post.id}`;
+        const postId = post.id?.toString() || "";
+        
+        // Check if this article was already used
+        if (postUrl && !usedIds.has(postUrl)) {
+          // Also check by articleId
+          if (postId && !usedIds.has(`hackernews:${postId}`)) {
+            return {
+              title: post.title || "Untitled",
+              content: post.text || post.title || "",
+              source: "hackernews",
+              url: postUrl,
+              articleId: postId,
+            };
+          }
+        }
       }
     }
-
-    // All articles are duplicates - return null or the first one with a warning
-    console.warn(`All fetched articles for campaign ${campaignId} are duplicates. Returning first available.`);
-    if (redditPosts.length > 0) {
-      const post = redditPosts[0];
-      return {
-        title: post.title,
-        content: post.selftext || post.title,
-        source: "reddit" as const,
-        url: post.url,
-        articleId: post.id,
-      };
-    }
-    if (hackerNewsPosts.length > 0) {
-      const post = hackerNewsPosts[0];
-      return {
-        title: post.title,
-        content: post.text || post.title,
-        source: "hackernews" as const,
-        url: `https://news.ycombinator.com/item?id=${post.id}`,
-        articleId: String(post.id),
-      };
-    }
-
+    
     return null;
   } catch (error) {
     console.error("Error fetching article for topics:", error);
@@ -276,144 +243,80 @@ async function fetchArticleForTopics(
   }
 }
 
-/**
- * Generate blog from article with angle
- */
 async function generateBlogFromArticle(
   articleTitle: string,
   articleContent: string,
   angle: string
 ): Promise<GeneratedBlog | null> {
-  // Get API keys (support multiple keys for rate limit handling)
-  const apiKeys = [
-    process.env.GEMINI_API_KEY || "",
-    process.env.GEMINI_API_KEY_1 || "",
-    process.env.GEMINI_API_KEY_2 || "",
-  ].filter(key => key !== "");
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-  if (apiKeys.length === 0) {
-    throw new Error("Gemini API key is not configured");
-  }
+    const prompt = `You are an expert content writer. Write a comprehensive blog post based on the following article.
 
-  const maxRetries = 3;
-  let currentApiKeyIndex = 0;
-  let attempt = 0;
+Article Title: ${articleTitle}
 
-  while (currentApiKeyIndex < apiKeys.length && attempt < maxRetries) {
-    try {
-      const apiKey = apiKeys[currentApiKeyIndex];
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: "models/gemini-2.0-flash-001",
-      });
-
-      const prompt = `You are a content creator assistant. Based on the following post content, generate a blog article with a specific angle.
-
-Post Title: ${articleTitle || "Untitled"}
-
-Post Content:
-
+Article Content:
 ${articleContent}
 
-Angle/Perspective: ${angle}
-
-Please generate:
-
-1. A compelling article title (max 80 characters) that incorporates the ${angle} perspective
-
-2. A structured MDX article (at least 300 words) that:
-   - Expands on the post content
-   - Applies the ${angle} perspective/angle throughout
-   - Adds insights and maintains thematic relevance
-   - Do not include frontmatter (---)
-
-3. 3-5 relevant tags (comma-separated, short words or phrases)
-
-Output strictly in raw JSON only (no markdown, no backticks, no explanation):
-
-{
-  "title": "Article Title Here",
-  "content": "MDX formatted article with proper headings, paragraphs, and lists. Escape all quotes so JSON remains valid.",
-  "tags": ["tag1", "tag2", "tag3"]
-}
+Writing Angle: ${angle}
 
 Requirements:
+1. Create an engaging blog title (max 80 characters)
+2. Write a comprehensive blog post (800-1200 words) with proper structure:
+   - Introduction that hooks the reader
+   - Main body with clear sections and subheadings
+   - Conclusion that ties everything together
+3. Use the writing angle provided to shape the narrative
+4. Write in MDX format (Markdown Extended) with proper headings, paragraphs, and lists
+5. Make it informative, well-researched, and engaging
+6. Include 3-5 relevant tags as a JSON array
 
-- Keep the article engaging, coherent, and value-adding.
-- Maintain alignment with the original post's theme.
-- Apply the ${angle} angle consistently throughout the article.
-- Avoid stray backticks or unescaped characters that break JSON.`;
+Return the response in the following JSON format:
+{
+  "title": "Blog Title Here",
+  "content": "# Blog Title\\n\\nFull blog content in MDX format...",
+  "tags": ["tag1", "tag2", "tag3"]
+}`;
 
-      // Make a single API call
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text().trim();
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
 
-      // Try to extract JSON from the response
-      let parsedResponse;
-      try {
-        // Remove markdown code blocks if present
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedResponse = JSON.parse(jsonMatch[0]);
-        } else {
-          parsedResponse = JSON.parse(responseText);
-        }
-      } catch (parseError) {
-        // If JSON parsing fails, create a fallback response
-        console.error("Failed to parse AI response as JSON:", parseError);
-        parsedResponse = {
-          title: articleTitle || "New Article Idea",
-          content: `# ${articleTitle || "New Article Idea"}\n\n${articleContent}\n\n## Key Takeaways\n\nThis post discusses important insights from a ${angle} perspective.`,
-          tags: ["technology", "insights"],
-        };
-      }
-
-      // Validate and clean the response
-      const title = parsedResponse.title || articleTitle || "New Article Idea";
-      const content = parsedResponse.content || `# ${title}\n\n${articleContent}`;
-      const tags = Array.isArray(parsedResponse.tags)
-        ? parsedResponse.tags.slice(0, 5)
-        : parsedResponse.tags
-        ? parsedResponse.tags.split(",").map((t: string) => t.trim()).slice(0, 5)
-        : [];
-
+    // Try to extract JSON from the response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const blogData = JSON.parse(jsonMatch[0]);
       return {
-        title,
-        content,
-        tags,
+        title: blogData.title || articleTitle,
+        content: blogData.content || text,
+        tags: blogData.tags || [],
       };
-    } catch (error: unknown) {
-      // Handle rate limit errors (429) and service unavailable (503)
-      const isErrorWithStatus = (err: unknown): err is { status: number } => {
-        return typeof err === "object" && err !== null && "status" in err;
-      };
-
-      if (isErrorWithStatus(error) && (error.status === 429 || error.status === 503)) {
-        console.warn(
-          `Rate limit or service unavailable (${error.status}) with API key index ${currentApiKeyIndex}. Trying next key...`
-        );
-        currentApiKeyIndex++;
-        attempt++;
-        
-        // Add a small delay before retrying with next key
-        if (currentApiKeyIndex < apiKeys.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-          continue; // Try with next API key
-        } else {
-          console.error("All API keys exhausted or rate limited.");
-          throw new Error(`API rate limit exceeded. Please try again later.`);
-        }
-      } else {
-        // For other errors, log and throw
-        console.error("Error generating blog from article:", error);
-        throw error;
-      }
     }
-  }
 
-  // If we get here, all retries failed
-  console.error("Failed to generate blog after all retries");
-  return null;
+    // Fallback: if JSON parsing fails, try to extract title and content
+    const titleMatch = text.match(/"title":\s*"([^"]+)"/);
+    const contentMatch = text.match(/"content":\s*"([^"]+)"/);
+    const tagsMatch = text.match(/"tags":\s*\[([^\]]+)\]/);
+
+    if (titleMatch && contentMatch) {
+      return {
+        title: titleMatch[1],
+        content: contentMatch[1].replace(/\\n/g, "\n"),
+        tags: tagsMatch ? tagsMatch[1].split(",").map((t: string) => t.trim().replace(/"/g, "")) : [],
+      };
+    }
+
+    // Last resort: use the full text as content
+    return {
+      title: articleTitle,
+      content: text,
+      tags: [],
+    };
+  } catch (error) {
+    console.error("Error generating blog from article:", error);
+    return null;
+  }
 }
 
 /**
@@ -512,7 +415,7 @@ export async function generateBlogNewsContent({
       console.warn(`Failed to send blog to webhook for day ${day}, but blog was saved`);
     }
 
-    // Store blog in contents as JSON (including article ID for duplicate detection and webhook status)
+    // Store blog in contents as JSON (including article ID for duplicate detection, webhook status, and webhook URL)
     const blogContent = {
       blog: {
         title: blog.title,
@@ -524,6 +427,7 @@ export async function generateBlogNewsContent({
         },
         generatedAt: new Date().toISOString(),
         webhookSent: webhookSent, // Store webhook status
+        webhookUrl: webhook, // Store webhook URL so it's always available from campaign data
       },
     };
 
@@ -553,4 +457,3 @@ export async function generateBlogNewsContent({
     };
   }
 }
-

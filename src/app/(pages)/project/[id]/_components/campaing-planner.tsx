@@ -145,24 +145,32 @@ export default function CampaignPlannerPage({ project }: Props) {
     projectId: projectId as string
   });
 
-  // Load metadata from localStorage on mount and when campaigns load (temporary solution)
+  // Load metadata from database when campaigns load
   useEffect(() => {
-    const stored = localStorage.getItem("blogNewsMetadata");
-    if (stored) {
-      try {
-        setBlogNewsMetadata(JSON.parse(stored));
-      } catch (e) {
-        console.error("Error loading blog news metadata:", e);
+    if (campaignPlannerData.data?.chatsGroupedByCampaign) {
+      const metadata: Record<string, { topics: string[]; angle: string; webhook: string }> = {};
+      
+      for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
+        if (campaign.goal === "Blog News" && campaign.chats.length > 0) {
+          const firstChat = campaign.chats[0];
+          const contents = firstChat.contents as Record<string, any>;
+          const storedMetadata = contents?._blogNewsMetadata;
+          
+          if (storedMetadata) {
+            metadata[campaign.id] = {
+              topics: storedMetadata.topics || [],
+              angle: storedMetadata.angle || "",
+              webhook: storedMetadata.webhook || "",
+            };
+          }
+        }
+      }
+      
+      if (Object.keys(metadata).length > 0) {
+        setBlogNewsMetadata(metadata);
       }
     }
-  }, []);
-  
-  // Save metadata to localStorage when it changes
-  useEffect(() => {
-    if (Object.keys(blogNewsMetadata).length > 0) {
-      localStorage.setItem("blogNewsMetadata", JSON.stringify(blogNewsMetadata));
-    }
-  }, [blogNewsMetadata]);
+  }, [campaignPlannerData.data]);
 
   const onGenerate = async () => {
     if (!name) {
@@ -244,6 +252,8 @@ export default function CampaignPlannerPage({ project }: Props) {
             topics,
             angle: selectedAngle,
             webhook,
+            targetAudience: intensityPlan.targetAudience || "Moderate",
+            productRelated,
           }
         } : {})
       });
@@ -1240,16 +1250,27 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       )}
                                                     </div>
                                                     {(() => {
-                                                      const metadata = blogNewsMetadata[campaign.id];
-                                                      if (!metadata || !metadata.webhook) return null;
+                                                      // Get webhook URL from blog data (stored when blog was generated)
+                                                      // Fallback to metadata if not in blog
+                                                      let webhookUrl = blog.webhookUrl;
                                                       
+                                                      if (!webhookUrl) {
+                                                        const metadata = blogNewsMetadata[campaign.id];
+                                                        webhookUrl = metadata?.webhook;
+                                                      }
+                                                      
+                                                      // Always show the button if there's a blog
                                                       return (
                                                         <Button
                                                           variant="outline"
                                                           size="sm"
                                                           onClick={() => {
+                                                            if (!webhookUrl) {
+                                                              toast.error("Webhook URL not found. Please configure the webhook in campaign settings.");
+                                                              return;
+                                                            }
                                                             retryWebhook.mutate({
-                                                              webhook: metadata.webhook,
+                                                              webhook: webhookUrl,
                                                               blog: {
                                                                 title: blog.title,
                                                                 content: blog.content,
@@ -1261,10 +1282,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                             });
                                                           }}
                                                           loading={retryWebhook.isPending}
-                                                          disabled={retryWebhook.isPending}
+                                                          disabled={retryWebhook.isPending || !webhookUrl}
+                                                          title={!webhookUrl ? "Webhook URL not configured" : undefined}
                                                         >
                                                           <RefreshCw className="h-4 w-4 mr-2" />
-                                                          Retry Webhook
+                                                          Resend Webhook
                                                         </Button>
                                                       );
                                                     })()}

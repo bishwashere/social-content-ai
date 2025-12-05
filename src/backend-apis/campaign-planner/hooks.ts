@@ -25,12 +25,14 @@ export const useCampaignPlanner = () => {
       campaignName,
       plan,
       platforms,
+      blogNewsMetadata,
     }: {
       id?: string;
       projectId: string;
       campaignName: string;
       plan: CampaignPlanner;
       platforms?: string[];
+      blogNewsMetadata?: { topics: string[]; angle: string; webhook: string; targetAudience?: string; productRelated?: boolean };
     }) =>
       startCampaignPlanner(
         id,
@@ -38,7 +40,8 @@ export const useCampaignPlanner = () => {
         campaignName,
         plan,
         session?.user.id as string,
-        platforms || []
+        platforms || [],
+        blogNewsMetadata
       ),
     onSuccess: (data) => {
       if (data.success) {
