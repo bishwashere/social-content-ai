@@ -25,13 +25,13 @@ export default function InstagramPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Instagram Business accounts are connected through Facebook's Graph API, as Instagram requires a linked Facebook Page.
+                Instagram Business accounts are connected through Facebook&apos;s Graph API, as Instagram requires a linked Facebook Page.
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Requires Facebook Page connection first</li>
                 <li>Uses Facebook access tokens with Instagram permissions</li>
                 <li>Instagram Business account must be linked to the Facebook Page</li>
-                <li>Token refresh follows Facebook's token lifecycle</li>
+                <li>Token refresh follows Facebook&apos;s token lifecycle</li>
               </ul>
             </CardContent>
           </Card>
@@ -56,9 +56,9 @@ export default function InstagramPage() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
-                <li>Inherits Facebook's encryption and security measures</li>
+                <li>Inherits Facebook&apos;s encryption and security measures</li>
                 <li>Instagram-specific permissions are scoped to posting only</li>
-                <li>No access to user's personal Instagram account data</li>
+                <li>No access to user&apos;s personal Instagram account data</li>
               </ul>
             </CardContent>
           </Card>

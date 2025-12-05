@@ -98,7 +98,7 @@ export default function WebhooksPage() {
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Webhook status is displayed in the blog view</li>
-                <li>"Retry Webhook" button available for failed webhooks</li>
+                <li>&quot;Retry Webhook&quot; button available for failed webhooks</li>
                 <li>Retry updates the webhook status automatically</li>
               </ul>
             </CardContent>

@@ -25,13 +25,13 @@ export default function ThreadsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Threads accounts are connected through Instagram's API, as Threads requires an Instagram account.
+                Threads accounts are connected through Instagram&apos;s API, as Threads requires an Instagram account.
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Requires Instagram Business account connection</li>
                 <li>Uses Instagram access tokens with Threads permissions</li>
                 <li>Threads account must be linked to Instagram</li>
-                <li>Token refresh follows Instagram's token lifecycle</li>
+                <li>Token refresh follows Instagram&apos;s token lifecycle</li>
               </ul>
             </CardContent>
           </Card>
@@ -56,9 +56,9 @@ export default function ThreadsPage() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
-                <li>Inherits Instagram's encryption and security measures</li>
+                <li>Inherits Instagram&apos;s encryption and security measures</li>
                 <li>Threads-specific permissions scoped to posting</li>
-                <li>No access to user's personal Threads data beyond posting</li>
+                <li>No access to user&apos;s personal Threads data beyond posting</li>
               </ul>
             </CardContent>
           </Card>

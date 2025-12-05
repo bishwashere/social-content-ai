@@ -28,7 +28,7 @@ export default function FacebookPage() {
                 Facebook uses OAuth 2.0 with long-lived access tokens. We request permissions for page management and posting capabilities.
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
-                <li>Initial authorization redirects to Facebook's OAuth consent screen</li>
+                <li>Initial authorization redirects to Facebook&apos;s OAuth consent screen</li>
                 <li>Short-lived access token is exchanged for a long-lived token (60 days)</li>
                 <li>Long-lived tokens can be refreshed indefinitely using the refresh token</li>
                 <li>Page-specific tokens are stored separately for each connected page</li>

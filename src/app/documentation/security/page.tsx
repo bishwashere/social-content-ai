@@ -106,7 +106,7 @@ export default function SecurityPage() {
                 <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                   <li>Users can disconnect platforms at any time</li>
                   <li>All tokens are deleted when a platform connection is removed</li>
-                  <li>No personal data is stored beyond what's necessary for API functionality</li>
+                  <li>No personal data is stored beyond what&apos;s necessary for API functionality</li>
                   <li>Regular security audits and updates</li>
                 </ul>
               </div>

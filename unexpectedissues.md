@@ -33,6 +33,18 @@ All previously listed issues have been resolved:
 16. `src/app/api/ideas/[id]/route.ts` - Fixed TypeScript type errors with Next.js 14 route params by using `params as { id: string }` instead of `{ params: { id: string } }`
 17. `src/app/api/ideas/route.ts` - Fixed TypeScript middleware return type by checking `req.parsed` directly instead of middleware result
 
+## Recent Fixes (Documentation Build Errors)
+
+18. Fixed React unescaped entities errors in documentation pages by escaping apostrophes and quotes:
+   - `src/app/documentation/page.tsx` - Escaped apostrophe in "NextPost AI's"
+   - `src/app/documentation/features/webhooks/page.tsx` - Escaped quotes in "Retry Webhook"
+   - `src/app/documentation/platforms/facebook/page.tsx` - Escaped apostrophe in "Facebook's"
+   - `src/app/documentation/platforms/instagram/page.tsx` - Escaped apostrophes in "Facebook's", "user's"
+   - `src/app/documentation/platforms/threads/page.tsx` - Escaped apostrophes in "Instagram's", "user's"
+   - `src/app/documentation/platforms/tiktok/page.tsx` - Escaped apostrophe in "user's"
+   - `src/app/documentation/security/page.tsx` - Escaped apostrophe in "what's"
+19. `src/app/ideas/receive/route.ts` - Fixed TypeScript type assertion errors by changing `as "published"` to `as const` for better type safety
+
 ## Build Status
 
 ✅ Build compiles successfully with no errors

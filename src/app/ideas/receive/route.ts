@@ -70,7 +70,7 @@ export const POST = applyMiddleware(
             content,
             tags: tags || [],
             summary: summary || "Blog post from NextPost AI",
-            status: "published" as "published",
+            status: "published" as const,
             publishedAt: timestamp ? new Date(timestamp) : new Date(),
           },
           include: {
@@ -120,7 +120,7 @@ export const POST = applyMiddleware(
           content,
           tags: tags || [],
           thumbnail: null, // No thumbnail from webhook
-          status: "published" as "published",
+          status: "published" as const,
           publishedAt: timestamp ? new Date(timestamp) : new Date(),
           authorId: firstUser.id,
         },

@@ -59,7 +59,7 @@ export default function TikTokPage() {
                 <li>All tokens encrypted using AES-256-CBC</li>
                 <li>Automatic token refresh mechanism</li>
                 <li>Scoped permissions for video upload and posting</li>
-                <li>No access to user's personal TikTok data</li>
+                <li>No access to user&apos;s personal TikTok data</li>
               </ul>
             </CardContent>
           </Card>

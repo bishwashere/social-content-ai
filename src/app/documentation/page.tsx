@@ -10,7 +10,7 @@ export default function DocumentationPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Documentation</h1>
         <p className="text-muted-foreground text-lg">
-          Complete guide to NextPost AI's features, security, and platform integrations
+          Complete guide to NextPost AI&apos;s features, security, and platform integrations
         </p>
       </div>
 
