@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/try") ||
     pathname.startsWith("/error") ||
     pathname.startsWith("/checkout") ||
+    pathname.startsWith("/documentation") ||
     pathname === "/" ||
     pathname.length === 0
   ) {
