@@ -151,7 +151,7 @@ export function ConnectAccountsButton() {
               className="gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
             >
               <LinkIcon className="h-4 w-4" />
-              Connect Socials
+              <p className="hidden sm:block">Connect Socials</p>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
