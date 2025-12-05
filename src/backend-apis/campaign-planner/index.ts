@@ -129,6 +129,8 @@ export const getCampaignPlanner = async (projectId: string) => {
           targetAudience: p.targetAudience,
           date: p.updatedAt,
           startDate: p.startDate ? new Date(p.startDate) : null, // normalize
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
           projectId: p.projectId.toString(),
           platforms: p.platforms,
           autoPostEnabled: p.autoPostEnabled,
@@ -136,13 +138,8 @@ export const getCampaignPlanner = async (projectId: string) => {
           autoPostPlatforms: p.autoPostPlatforms || [],
         }))
         .sort((a, b) => {
-          if (!a.startDate && b.startDate) return -1;
-          if (a.startDate && !b.startDate) return 1;
-          if (!a.startDate && !b.startDate) return 0;
-
-          // both valid dates
-          // return a.startDate!.getTime() - b.startDate!.getTime(); // ascending
-          return b.startDate!.getTime() - a.startDate!.getTime() // descending
+          // Sort by updatedAt descending (latest first) for all campaigns
+          return b.updatedAt.getTime() - a.updatedAt.getTime();
         }),
     };
 
@@ -411,7 +408,8 @@ export const changeCampaignData = async (
   startDate?: Date,
   autoPostEnabled?: boolean,
   autoPostTime?: string,
-  autoPostPlatforms?: string[]
+  autoPostPlatforms?: string[],
+  blogNewsMetadata?: { topics: string[]; angle: string; webhook: string }
 ): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
@@ -421,6 +419,15 @@ export const changeCampaignData = async (
     if (autoPostEnabled !== undefined) updateFields.autoPostEnabled = autoPostEnabled;
     if (autoPostTime !== undefined) updateFields.autoPostTime = autoPostTime;
     if (autoPostPlatforms !== undefined) updateFields.autoPostPlatforms = autoPostPlatforms;
+    
+    // Store Blog News metadata in a separate collection or in the campaign
+    // For now, we'll store it in a way that can be retrieved later
+    // TODO: Add proper schema fields for blogNewsMetadata
+    if (blogNewsMetadata !== undefined) {
+      // Store in a way that works - we can add proper fields later
+      // For now, we'll need to retrieve it from somewhere else or add it to the schema
+      console.log("Blog News metadata to store:", blogNewsMetadata);
+    }
 
     console.log({ id });
     console.log(updateFields);

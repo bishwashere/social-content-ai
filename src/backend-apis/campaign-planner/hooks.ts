@@ -12,6 +12,7 @@ import {
   toggleMarkAsComplete,
   toggleTickMark,
 } from ".";
+import { generateBlogNewsContent, sendBlogToWebhook } from "./blog-news";
 import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
@@ -198,6 +199,110 @@ export const useScheduleCampaignTasks = () => {
     },
     onError: () => {
       toast.error("Failed to schedule campaign tasks");
+    },
+  });
+};
+
+export const useGenerateBlogNewsContent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      campaignId,
+      day,
+      topics,
+      angle,
+      webhook,
+    }: {
+      campaignId: string;
+      day: number;
+      topics: string[];
+      angle: string;
+      webhook: string;
+    }) => generateBlogNewsContent({ campaignId, day, topics, angle, webhook }),
+
+    onSuccess: (result, variables) => {
+      if (result.success) {
+        toast.success(result.message);
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner"],
+        });
+      } else {
+        toast.error(result.message || "Failed to generate blog content");
+      }
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to generate blog content");
+    },
+  });
+};
+
+export const useRetryWebhook = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      webhook,
+      blog,
+      day,
+      campaignId,
+    }: {
+      webhook: string;
+      blog: {
+        title: string;
+        content: string;
+        tags: string[];
+        sourceArticle?: any;
+      };
+      day: number;
+      campaignId: string;
+    }) => {
+      const success = await sendBlogToWebhook(webhook, blog, day);
+      
+      // Update the blog content with new webhook status
+      if (success) {
+        const { prisma } = await import("@/lib/prisma");
+        const chat = await prisma.campaignChat.findFirst({
+          where: {
+            plannerId: campaignId,
+            day: day,
+          },
+        });
+
+        if (chat) {
+          const contents = chat.contents as Record<string, any>;
+          const updatedContents = {
+            ...contents,
+            blog: {
+              ...contents.blog,
+              webhookSent: true,
+            },
+          };
+
+          await prisma.campaignChat.update({
+            where: { id: chat.id },
+            data: {
+              contents: updatedContents,
+            },
+          });
+        }
+      }
+      
+      return success;
+    },
+
+    onSuccess: (success) => {
+      if (success) {
+        toast.success("Blog sent to webhook successfully");
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner"],
+        });
+      } else {
+        toast.error("Failed to send blog to webhook");
+      }
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to send blog to webhook");
     },
   });
 };

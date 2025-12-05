@@ -6,16 +6,19 @@ import {
   useDeleteCampaign,
   useEditChatContent,
   useGenerateCampaignChat,
+  useGenerateBlogNewsContent,
   useGetCampaignPlanner,
+  useRetryWebhook,
   useScheduleCampaignPosts,
   useScheduleCampaignTasks,
   useToggleTickMark
 } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, Play, Settings, Trash, VideoIcon, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, Play, RefreshCw, Settings, Trash, VideoIcon, X } from "lucide-react";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -32,7 +35,6 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PostToWall from "@/components/common/post-to-wall";
 import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
@@ -134,10 +136,33 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [showOldCampaigns, setShowOldCampaigns] = useState(false);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
   const scheduleCampaignTasks = useScheduleCampaignTasks();
+  const generateBlogNews = useGenerateBlogNewsContent();
+  const retryWebhook = useRetryWebhook();
+  // Store Blog News metadata for each campaign (temporary until we add schema fields)
+  const [blogNewsMetadata, setBlogNewsMetadata] = useState<Record<string, { topics: string[]; angle: string; webhook: string }>>({});
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
   });
+
+  // Load metadata from localStorage on mount and when campaigns load (temporary solution)
+  useEffect(() => {
+    const stored = localStorage.getItem("blogNewsMetadata");
+    if (stored) {
+      try {
+        setBlogNewsMetadata(JSON.parse(stored));
+      } catch (e) {
+        console.error("Error loading blog news metadata:", e);
+      }
+    }
+  }, []);
+  
+  // Save metadata to localStorage when it changes
+  useEffect(() => {
+    if (Object.keys(blogNewsMetadata).length > 0) {
+      localStorage.setItem("blogNewsMetadata", JSON.stringify(blogNewsMetadata));
+    }
+  }, [blogNewsMetadata]);
 
   const onGenerate = async () => {
     if (!name) {
@@ -212,8 +237,28 @@ export default function CampaignPlannerPage({ project }: Props) {
         projectId: projectId as string,
         campaignName: name,
         plan,
-        platforms: platformsToUse
+        platforms: platformsToUse,
+        // Pass Blog News metadata if it's a Blog News campaign
+        ...(selectedGoal === "blog-news" ? {
+          blogNewsMetadata: {
+            topics,
+            angle: selectedAngle,
+            webhook,
+          }
+        } : {})
       });
+
+      // Store Blog News metadata in state (temporary until we add schema fields)
+      if (selectedGoal === "blog-news" && d?.id) {
+        setBlogNewsMetadata({
+          ...blogNewsMetadata,
+          [d.id]: {
+            topics,
+            angle: selectedAngle,
+            webhook,
+          }
+        });
+      }
 
       // Only generate content for non-Blog News campaigns
       if (selectedGoal !== "blog-news" && d?.chats && d?.chats[0]) {
@@ -1081,40 +1126,153 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             </div>
                                           </DialogTrigger>
                                         </div>
-                                        {/* Hide generate button for Blog News campaigns */}
-                                        {campaign.goal !== "Blog News" && (
-                                          <div className="flex justify-end">
-                                            {
-                                              timeline.status === "PENDING" ?
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                  className="border-dashed border-primary"
-                                                  onClick={async () => {
-                                                    const yes = await confirm({
-                                                      title: `Generating content for this day will use ${campaign.platforms.length} coins.`,
-                                                      description: ''
-                                                    });
-                                                    if (!yes) return;
-                                                    generateChat(projectId as string, campaign.id, timeline.day, timeline.title);
-                                                  }}
-                                                  loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
-                                                  disabled={generate.isPending}
-                                                >
-                                                  <Play />
-                                                </Button>
-                                                :
-                                                <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
-                                            }
-                                          </div>
-                                        )}
+                                        <div className="flex justify-end">
+                                          {campaign.goal === "Blog News" ? (
+                                            // Blog News play button
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="border-dashed border-primary"
+                                              onClick={async () => {
+                                                const metadata = blogNewsMetadata[campaign.id];
+                                                if (!metadata) {
+                                                  toast.error("Blog News metadata not found. Please recreate the campaign.");
+                                                  return;
+                                                }
+                                                
+                                                const yes = await confirm({
+                                                  title: `Generate blog for Day ${timeline.day}?`,
+                                                  description: `This will fetch an article and generate a blog with the selected angle.`
+                                                });
+                                                if (!yes) return;
+                                                
+                                                generateBlogNews.mutate({
+                                                  campaignId: campaign.id,
+                                                  day: timeline.day,
+                                                  topics: metadata.topics,
+                                                  angle: metadata.angle,
+                                                  webhook: metadata.webhook,
+                                                });
+                                              }}
+                                              loading={Boolean(generateBlogNews.isPending && generateBlogNews.variables?.day === timeline.day)}
+                                              disabled={generateBlogNews.isPending}
+                                            >
+                                              <Play />
+                                            </Button>
+                                          ) : (
+                                            // Regular campaign buttons
+                                            <>
+                                              {
+                                                timeline.status === "PENDING" ?
+                                                  <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-dashed border-primary"
+                                                    onClick={async () => {
+                                                      const yes = await confirm({
+                                                        title: `Generating content for this day will use ${campaign.platforms.length} coins.`,
+                                                        description: ''
+                                                      });
+                                                      if (!yes) return;
+                                                      generateChat(projectId as string, campaign.id, timeline.day, timeline.title);
+                                                    }}
+                                                    loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
+                                                    disabled={generate.isPending}
+                                                  >
+                                                    <Play />
+                                                  </Button>
+                                                  :
+                                                  <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                                              }
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
                                       <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px] p-5 sm:p-8 scrollbar-none">
-                                        {/* Empty dialog for Blog News campaigns */}
+                                        {/* Blog display for Blog News campaigns */}
                                         {campaign.goal === "Blog News" ? (
-                                          <div className="col-span-2 flex items-center justify-center py-12">
-                                            <p className="text-muted-foreground">Content will be added here</p>
-                                          </div>
+                                          (() => {
+                                            const contents = timeline.contents as Record<string, any>;
+                                            const blog = contents?.blog;
+                                            
+                                            if (!blog) {
+                                              return (
+                                                <div className="col-span-2 flex items-center justify-center py-12">
+                                                  <p className="text-muted-foreground">No blog generated yet. Click the play button to generate.</p>
+                                                </div>
+                                              );
+                                            }
+                                            
+                                            return (
+                                              <div className="col-span-2 space-y-4">
+                                                <Card className="rounded-lg border">
+                                                  <CardHeader>
+                                                    <CardTitle>{blog.title || "Untitled Blog"}</CardTitle>
+                                                    {blog.tags && blog.tags.length > 0 && (
+                                                      <div className="flex flex-wrap gap-2 mt-2">
+                                                        {blog.tags.map((tag: string, index: number) => (
+                                                          <Badge key={index} variant="secondary">{tag}</Badge>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                    {blog.sourceArticle && (
+                                                      <p className="text-sm text-muted-foreground mt-2">
+                                                        Source: {blog.sourceArticle.source === "reddit" ? "Reddit" : "HackerNews"}
+                                                        {blog.sourceArticle.url && (
+                                                          <a href={blog.sourceArticle.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-primary hover:underline">
+                                                            View original
+                                                          </a>
+                                                        )}
+                                                      </p>
+                                                    )}
+                                                  </CardHeader>
+                                                  <CardContent>
+                                                    <div className="prose prose-sm max-w-none">
+                                                      <Markdown>{blog.content || ""}</Markdown>
+                                                    </div>
+                                                  </CardContent>
+                                                  <CardFooter className="flex justify-between items-center pt-4 border-t">
+                                                    <div className="text-sm text-muted-foreground">
+                                                      {blog.webhookSent !== undefined && (
+                                                        <span className={blog.webhookSent ? "text-green-600" : "text-red-600"}>
+                                                          {blog.webhookSent ? "✓ Webhook sent" : "✗ Webhook failed"}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    {(() => {
+                                                      const metadata = blogNewsMetadata[campaign.id];
+                                                      if (!metadata || !metadata.webhook) return null;
+                                                      
+                                                      return (
+                                                        <Button
+                                                          variant="outline"
+                                                          size="sm"
+                                                          onClick={() => {
+                                                            retryWebhook.mutate({
+                                                              webhook: metadata.webhook,
+                                                              blog: {
+                                                                title: blog.title,
+                                                                content: blog.content,
+                                                                tags: blog.tags,
+                                                                sourceArticle: blog.sourceArticle,
+                                                              },
+                                                              day: timeline.day,
+                                                              campaignId: campaign.id,
+                                                            });
+                                                          }}
+                                                          loading={retryWebhook.isPending}
+                                                          disabled={retryWebhook.isPending}
+                                                        >
+                                                          <RefreshCw className="h-4 w-4 mr-2" />
+                                                          Retry Webhook
+                                                        </Button>
+                                                      );
+                                                    })()}
+                                                  </CardFooter>
+                                                </Card>
+                                              </div>
+                                            );
+                                          })()
                                         ) : (
                                           <>
                                             {/* TikTok Video Link Card */}

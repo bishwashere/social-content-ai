@@ -118,11 +118,11 @@ function ProjectPage() {
       {projectPulse && <ProjectPulseMetrics projectPulse={projectPulse} />}
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
-          <TabsTrigger value="generate" onClick={() => handleTabChange("generate")}>
-            Quick Generate
-          </TabsTrigger>
           <TabsTrigger value="campaign" onClick={() => handleTabChange("campaign")}>
             Campaign Planner
+          </TabsTrigger>
+          <TabsTrigger value="generate" onClick={() => handleTabChange("generate")}>
+            Quick Generate
           </TabsTrigger>
           <TabsTrigger value="media" onClick={() => handleTabChange("media")}>
             Media
@@ -132,6 +132,9 @@ function ProjectPage() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="campaign">
+          <CampaignPlannerPage project={project} />
+        </TabsContent>
         <TabsContent value="generate">
           {contentMode === "normal" ? (
             <QuickGenerate project={project} />
@@ -149,9 +152,6 @@ function ProjectPage() {
             <h2 className="text-2xl font-bold mb-4">History:</h2>
             <History project={project} />
           </div>
-        </TabsContent>
-        <TabsContent value="campaign">
-          <CampaignPlannerPage project={project} />
         </TabsContent>
         <TabsContent value="media">
           <Media project={project} />
