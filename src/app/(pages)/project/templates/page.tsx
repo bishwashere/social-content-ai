@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TemplateDetailDialog } from "@/components/template-detail-dialog";
 import { Template } from "@/backend-apis/templates/index";
+import { Badge } from "@/components/ui/badge";
 
 // Helper function to format category name (e.g., "CASE_STUDY" -> "Case Study")
 const formatCategoryName = (category: string): string => {
@@ -155,7 +156,7 @@ export default function TemplatesPage() {
               // Get first 5 lines of content for preview
               const contentLines = template.content?.split('\n').slice(0, 5) || [];
               const previewContent = contentLines.join('\n');
-              
+
               return (
                 <Card
                   key={template.id}
@@ -170,6 +171,7 @@ export default function TemplatesPage() {
                         <Icon className="h-5 w-5 text-gray-500" />
                       )}
                       <CardTitle className="text-lg">{template.title}</CardTitle>
+                      {template.impressions && template.impressions > 0 && <Badge variant="default">{template.impressions}</Badge>}
                     </div>
                     <CardDescription className="line-clamp-2 mb-3">
                       {template.description}

@@ -10,6 +10,7 @@ export interface Template {
   content: string;
   category: TemplateCategory;
   icon?: string;
+  impressions: number | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

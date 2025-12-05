@@ -29,7 +29,7 @@ export default function RootLayout({
         <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body className={`${inter.className} ${roboto.className}`}>
-        <ThemeProvider defaultTheme="system" storageKey="nextpostai-theme">
+        <ThemeProvider defaultTheme="dark" storageKey="nextpostai-theme">
           <NextAuthProvider>
             <RootProvider>
               {children}
