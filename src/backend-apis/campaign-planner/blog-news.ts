@@ -250,7 +250,7 @@ async function generateBlogFromArticle(
 ): Promise<GeneratedBlog | null> {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash-001" });
 
     const prompt = `You are an expert content writer. Write a comprehensive blog post based on the following article.
 
@@ -272,46 +272,67 @@ Requirements:
 5. Make it informative, well-researched, and engaging
 6. Include 3-5 relevant tags as a JSON array
 
-Return the response in the following JSON format:
+Output strictly in raw JSON only (no markdown, no backticks, no explanation):
+
 {
   "title": "Blog Title Here",
-  "content": "# Blog Title\\n\\nFull blog content in MDX format...",
+  "content": "MDX formatted article with proper headings, paragraphs, and lists. Escape all quotes so JSON remains valid.",
   "tags": ["tag1", "tag2", "tag3"]
-}`;
+}
+
+Important: Escape all quotes in the content field so the JSON remains valid. Avoid stray backticks or unescaped characters that break JSON.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
+    const responseText = response.text().trim();
 
     // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const blogData = JSON.parse(jsonMatch[0]);
-      return {
-        title: blogData.title || articleTitle,
-        content: blogData.content || text,
-        tags: blogData.tags || [],
-      };
+    let parsedResponse;
+    try {
+      // Remove markdown code blocks if present
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } else {
+        parsedResponse = JSON.parse(responseText);
+      }
+    } catch (parseError) {
+      // If JSON parsing fails, try regex extraction
+      console.warn("Failed to parse AI response as JSON, trying regex extraction:", parseError);
+      
+      const titleMatch = responseText.match(/"title":\s*"([^"]+)"/);
+      const contentMatch = responseText.match(/"content":\s*"([^"]+)"/);
+      const tagsMatch = responseText.match(/"tags":\s*\[([^\]]+)\]/);
+
+      if (titleMatch && contentMatch) {
+        parsedResponse = {
+          title: titleMatch[1],
+          content: contentMatch[1].replace(/\\n/g, "\n"),
+          tags: tagsMatch ? tagsMatch[1].split(",").map((t: string) => t.trim().replace(/"/g, "")) : [],
+        };
+      } else {
+        // Last resort: create fallback response
+        parsedResponse = {
+          title: articleTitle,
+          content: `# ${articleTitle}\n\n${articleContent}\n\n## Analysis\n\nThis article discusses important insights that can be expanded into a comprehensive blog post.`,
+          tags: ["technology", "insights"],
+        };
+      }
     }
 
-    // Fallback: if JSON parsing fails, try to extract title and content
-    const titleMatch = text.match(/"title":\s*"([^"]+)"/);
-    const contentMatch = text.match(/"content":\s*"([^"]+)"/);
-    const tagsMatch = text.match(/"tags":\s*\[([^\]]+)\]/);
+    // Validate and clean the response
+    const title = parsedResponse.title || articleTitle;
+    const content = parsedResponse.content || `# ${title}\n\n${articleContent}`;
+    const tags = Array.isArray(parsedResponse.tags)
+      ? parsedResponse.tags.slice(0, 5)
+      : parsedResponse.tags
+      ? parsedResponse.tags.split(",").map((t: string) => t.trim()).slice(0, 5)
+      : [];
 
-    if (titleMatch && contentMatch) {
-      return {
-        title: titleMatch[1],
-        content: contentMatch[1].replace(/\\n/g, "\n"),
-        tags: tagsMatch ? tagsMatch[1].split(",").map((t: string) => t.trim().replace(/"/g, "")) : [],
-      };
-    }
-
-    // Last resort: use the full text as content
     return {
-      title: articleTitle,
-      content: text,
-      tags: [],
+      title,
+      content,
+      tags,
     };
   } catch (error) {
     console.error("Error generating blog from article:", error);
@@ -328,7 +349,14 @@ export async function sendBlogToWebhook(
   day: number
 ): Promise<boolean> {
   try {
-    const response = await axios.post(webhook, {
+    // Normalize webhook URL - add https:// if protocol is missing
+    let webhookUrl = webhook.trim();
+    if (!webhookUrl.startsWith("http://") && !webhookUrl.startsWith("https://")) {
+      webhookUrl = `https://${webhookUrl}`;
+    }
+
+    console.log(`[Webhook] Sending blog to webhook: ${webhookUrl}`);
+    const response = await axios.post(webhookUrl, {
       day,
       blog: {
         title: blog.title,
@@ -341,10 +369,96 @@ export async function sendBlogToWebhook(
       timeout: 10000, // 10 second timeout
     });
 
-    return response.status >= 200 && response.status < 300;
+    const success = response.status >= 200 && response.status < 300;
+    console.log(`[Webhook] ${success ? 'Successfully' : 'Failed to'} send blog to webhook. Status: ${response.status}`);
+    return success;
   } catch (error) {
-    console.error("Error sending blog to webhook:", error);
+    console.error("[Webhook] Error sending blog to webhook:", error);
+    if (error instanceof Error) {
+      console.error("[Webhook] Error details:", error.message);
+    }
     return false;
+  }
+}
+
+/**
+ * Retry sending blog to webhook and update database status
+ * This is a server action that can be called from client components
+ */
+export async function retrySendBlogToWebhook({
+  webhook,
+  blog,
+  day,
+  campaignId,
+}: {
+  webhook: string;
+  blog: {
+    title: string;
+    content: string;
+    tags: string[];
+    sourceArticle?: any;
+  };
+  day: number;
+  campaignId: string;
+}): Promise<{ success: boolean; message: string }> {
+  try {
+    console.log(`[Webhook Retry] Starting retry for campaign ${campaignId}, day ${day}`);
+    
+    // Send to webhook
+    const webhookSent = await sendBlogToWebhook(
+      webhook,
+      {
+        title: blog.title,
+        content: blog.content,
+        tags: blog.tags,
+        sourceArticle: blog.sourceArticle,
+      },
+      day
+    );
+
+    // Always update the blog content with webhook status (success or failure)
+    const chat = await prisma.campaignChat.findFirst({
+      where: {
+        plannerId: campaignId,
+        day: day,
+      },
+    });
+
+    if (chat) {
+      const contents = chat.contents as Record<string, any>;
+      const updatedContents = {
+        ...contents,
+        blog: {
+          ...contents.blog,
+          webhookSent: webhookSent, // Update status (true or false)
+          webhookUrl: webhook, // Ensure webhook URL is stored
+          lastWebhookAttempt: new Date().toISOString(), // Track last attempt time
+        },
+      };
+
+      await prisma.campaignChat.update({
+        where: { id: chat.id },
+        data: {
+          contents: updatedContents,
+        },
+      });
+      console.log(`[Webhook Retry] Updated database: webhookSent=${webhookSent} for campaign ${campaignId}, day ${day}`);
+    } else {
+      console.warn(`[Webhook Retry] Chat not found for campaign ${campaignId}, day ${day}`);
+    }
+
+    return {
+      success: webhookSent,
+      message: webhookSent
+        ? "Blog sent to webhook successfully"
+        : "Failed to send blog to webhook",
+    };
+  } catch (error) {
+    console.error("[Webhook Retry] Error:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to retry webhook",
+    };
   }
 }
 

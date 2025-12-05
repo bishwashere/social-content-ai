@@ -12,7 +12,7 @@ import {
   toggleMarkAsComplete,
   toggleTickMark,
 } from ".";
-import { generateBlogNewsContent, sendBlogToWebhook } from "./blog-news";
+import { generateBlogNewsContent, retrySendBlogToWebhook } from "./blog-news";
 import { toast } from "sonner";
 import { useSession } from "../auth/hooks";
 
@@ -260,48 +260,24 @@ export const useRetryWebhook = () => {
       day: number;
       campaignId: string;
     }) => {
-      const success = await sendBlogToWebhook(webhook, blog, day);
-      
-      // Update the blog content with new webhook status
-      if (success) {
-        const { prisma } = await import("@/lib/prisma");
-        const chat = await prisma.campaignChat.findFirst({
-          where: {
-            plannerId: campaignId,
-            day: day,
-          },
-        });
-
-        if (chat) {
-          const contents = chat.contents as Record<string, any>;
-          const updatedContents = {
-            ...contents,
-            blog: {
-              ...contents.blog,
-              webhookSent: true,
-            },
-          };
-
-          await prisma.campaignChat.update({
-            where: { id: chat.id },
-            data: {
-              contents: updatedContents,
-            },
-          });
-        }
-      }
-      
-      return success;
+      // Call server action that handles both webhook sending and database update
+      const result = await retrySendBlogToWebhook({
+        webhook,
+        blog,
+        day,
+        campaignId,
+      });
+      return result;
     },
 
-    onSuccess: (success) => {
-      if (success) {
-        toast.success("Blog sent to webhook successfully");
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(result.message);
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner"],
         });
       } else {
-        toast.error("Failed to send blog to webhook");
+        toast.error(result.message);
       }
     },
     onError: (error) => {
