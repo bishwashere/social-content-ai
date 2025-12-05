@@ -8,6 +8,7 @@ import {
   useGenerateCampaignChat,
   useGetCampaignPlanner,
   useScheduleCampaignPosts,
+  useScheduleCampaignTasks,
   useToggleTickMark
 } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ import { SavePlatformCard } from "./save-platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { Switch } from "@/components/ui/switch";
 import { TimePickerDialog } from "@/components/common/time-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 export const PLATFORMS = [
   { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" /> },
@@ -76,6 +79,24 @@ const getPrompt = (str: string) => `
 Description: ${str}
 `;
 
+const BLOG_NEWS_ANGLES = [
+  "Industry Shift",
+  "Hidden Insight",
+  "Practical Breakdown",
+  "Trend Watch",
+  "Strategic Angle",
+  "Contrarian View",
+  "Opportunity Lens",
+  "Risk Angle",
+  "User-Impact Angle",
+  "Simplified Explanation",
+  "Founder's Perspective",
+  "Market Ripple Effect",
+  "Tech Impact Angle",
+  "Narrative Reset",
+  "Practical Playbook"
+];
+
 type Props = {
   project: Projects;
 };
@@ -92,6 +113,10 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(Object.keys(ICONS));
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [productRelated, setProductRelated] = useState(true);
+  const [topics, setTopics] = useState<string[]>([]);
+  const [topicInput, setTopicInput] = useState<string>("");
+  const [selectedAngle, setSelectedAngle] = useState<string>("");
+  const [webhook, setWebhook] = useState<string>("");
   const [isCalenderOpen, setIsCalenderOpen] = useState<string[]>([]);   // array of ids
   const updateCampaignData = useChangeCampaignData();
   const deleteCampaignFromDb = useDeleteCampaign();
@@ -108,6 +133,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
   const [showOldCampaigns, setShowOldCampaigns] = useState(false);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
+  const scheduleCampaignTasks = useScheduleCampaignTasks();
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -122,6 +148,23 @@ export default function CampaignPlannerPage({ project }: Props) {
       toast.error("Please select a goal!");
       return;
     }
+
+    // Validate Blog News specific fields
+    if (selectedGoal === "blog-news") {
+      if (topics.length === 0) {
+        toast.error("Please add at least one topic!");
+        return;
+      }
+      if (!selectedAngle) {
+        toast.error("Please select an angle!");
+        return;
+      }
+      if (!webhook.trim()) {
+        toast.error("Please enter a webhook URL!");
+        return;
+      }
+    }
+
     const selectedCampaignPlanner = campaignPlanner.find(goal => goal.id === selectedGoal);
     if (!selectedCampaignPlanner) {
       toast.error("Failed to find plan");
@@ -133,23 +176,26 @@ export default function CampaignPlannerPage({ project }: Props) {
       return;
     }
 
-    // Calculate initial coins needed (only for 1 day of initial data)
-    // Coins needed = number of selected platforms (1 coin per platform for 1 day)
-    const initialCoins = selectedPlatforms.length;
-    const userCoins = session?.user?.remainingChatGenerations || 0;
+    // For Blog News, we don't need coins since we're not generating content
+    if (selectedGoal !== "blog-news") {
+      // Calculate initial coins needed (only for 1 day of initial data)
+      // Coins needed = number of selected platforms (1 coin per platform for 1 day)
+      const initialCoins = selectedPlatforms.length;
+      const userCoins = session?.user?.remainingChatGenerations || 0;
 
-    // Check if user has enough coins for initial generation
-    if (userCoins < initialCoins) {
-      toast.error(`You need ${initialCoins} coins to generate the initial campaign data.`);
-      handleCoinsFinished();
-      return;
+      // Check if user has enough coins for initial generation
+      if (userCoins < initialCoins) {
+        toast.error(`You need ${initialCoins} coins to generate the initial campaign data.`);
+        handleCoinsFinished();
+        return;
+      }
+
+      const yes = await confirm({
+        title: 'Do you want to generate campaign?',
+        description: `Generating Campaign will use ${initialCoins} coins initially for the first day of content.`
+      })
+      if (!yes) return;
     }
-
-    const yes = await confirm({
-      title: 'Do you want to generate campaign?',
-      description: `Generating Campaign will use ${initialCoins} coins initially for the first day of content.`
-    })
-    if (!yes) return;
 
     const plan = {
       ...intensityPlan,
@@ -159,33 +205,20 @@ export default function CampaignPlannerPage({ project }: Props) {
     setShowCampaignForm(false);
 
     try {
+      // For Blog News, pass empty platforms array
+      const platformsToUse = selectedGoal === "blog-news" ? [] : selectedPlatforms;
 
       const { data: d } = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
         plan,
-        platforms: selectedPlatforms
+        platforms: platformsToUse
       });
 
-      //fetch only first day data by default
-      if (d?.chats && d?.chats[0])
+      // Only generate content for non-Blog News campaigns
+      if (selectedGoal !== "blog-news" && d?.chats && d?.chats[0]) {
         await generateChat(projectId as string, d.id, d.chats[0].day, d.chats[0].title);
-
-      // for (const chat of (d?.chats || [])) {
-      //   if (chat.status === "PENDING") {
-      //     try {
-      //       await generate.mutateAsync({
-      //         projectId: projectId as string,
-      //         id: d?.id || '',
-      //         prompt: getPrompt(`Day: ${chat.day} Title: ${chat.title}`),
-      //         userId: session?.user?.id as string,
-      //         day: chat.day
-      //       });
-      //       await sleep(2000);
-      //       campaignPlannerData.refetch();
-      //     } catch { }
-      //   }
-      // }
+      }
     } catch { }
   };
 
@@ -341,7 +374,15 @@ export default function CampaignPlannerPage({ project }: Props) {
             <RadioGroup
               className="flex flex-row gap-4 flex-wrap"
               value={selectedGoal || ""}
-              onValueChange={(value) => setSelectedGoal(value)}
+              onValueChange={(value) => {
+                setSelectedGoal(value);
+                // Reset topics, angle, and webhook when goal changes
+                if (value !== "blog-news") {
+                  setTopics([]);
+                  setSelectedAngle("");
+                  setWebhook("");
+                }
+              }}
             >
               {campaignPlanner.map(goal => (
                 <div className="flex items-center space-x-2" key={goal.id}>
@@ -351,34 +392,116 @@ export default function CampaignPlannerPage({ project }: Props) {
               ))}
             </RadioGroup>
 
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold mb-2">Select Platforms:</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {PLATFORMS.map((p) => (
-                  <label
-                    key={p.key}
-                    htmlFor={`select-${p.key}`}
-                    className={cn(
-                      "flex items-center gap-2 rounded-xl border p-3 cursor-pointer",
-                      selectedPlatforms.includes(p.key) ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"
-                    )}
-                    onClick={() => {
-                      if (selectedPlatforms.includes(p.key)) {
-                        setSelectedPlatforms(selectedPlatforms.filter(platform => platform !== p.key));
-                      } else {
-                        setSelectedPlatforms([...selectedPlatforms, p.key]);
-                      }
-                    }}
-                  >
+            {selectedGoal !== "blog-news" && (
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold mb-2">Select Platforms:</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {PLATFORMS.map((p) => (
+                    <label
+                      key={p.key}
+                      htmlFor={`select-${p.key}`}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl border p-3 cursor-pointer",
+                        selectedPlatforms.includes(p.key) ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"
+                      )}
+                      onClick={() => {
+                        if (selectedPlatforms.includes(p.key)) {
+                          setSelectedPlatforms(selectedPlatforms.filter(platform => platform !== p.key));
+                        } else {
+                          setSelectedPlatforms([...selectedPlatforms, p.key]);
+                        }
+                      }}
+                    >
 
-                    <Switch
-                      //@ts-expect-error: htmlFor is not a prop of Checkbox but it works
-                      htmlFor={`select-${p.key}`} checked={selectedPlatforms.includes(p.key)} />
-                    <span className="flex items-center gap-2 text-sm">{p.icon}{p.label}</span>
-                  </label>
-                ))}
+                      <Switch
+                        //@ts-expect-error: htmlFor is not a prop of Checkbox but it works
+                        htmlFor={`select-${p.key}`} checked={selectedPlatforms.includes(p.key)} />
+                      <span className="flex items-center gap-2 text-sm">{p.icon}{p.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {selectedGoal === "blog-news" && (
+              <>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold mb-2">Topic:</h2>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        value={topicInput}
+                        onChange={(e) => setTopicInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (topicInput.trim() && !topics.includes(topicInput.trim())) {
+                              setTopics([...topics, topicInput.trim()]);
+                              setTopicInput("");
+                            }
+                          }
+                        }}
+                        placeholder="Type a topic and press Enter"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (topicInput.trim() && !topics.includes(topicInput.trim())) {
+                            setTopics([...topics, topicInput.trim()]);
+                            setTopicInput("");
+                          }
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {topics.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {topics.map((topic, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            {topic}
+                            <button
+                              type="button"
+                              onClick={() => setTopics(topics.filter((_, i) => i !== index))}
+                              className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold mb-2">Angle:</h2>
+                  <Select value={selectedAngle} onValueChange={setSelectedAngle}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an angle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BLOG_NEWS_ANGLES.map((angle) => (
+                        <SelectItem key={angle} value={angle}>
+                          {angle}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold mb-2">Webhook:</h2>
+                  <Input
+                    type="url"
+                    value={webhook}
+                    onChange={(e) => setWebhook(e.target.value)}
+                    placeholder="Enter webhook URL"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <h2 className="text-xl font-semibold">Target Audience:</h2>
@@ -624,7 +747,12 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       return;
                                     }
                                     if (checked) {
-                                      // Initialize selected platforms if not set
+                                      // For Blog News, skip platform selection and go directly to time picker
+                                      if (campaign.goal === "Blog News") {
+                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
+                                        return;
+                                      }
+                                      // For regular campaigns, initialize selected platforms if not set
                                       if (!selectedPlatformsForAutoPost[campaign.id]) {
                                         setSelectedPlatformsForAutoPost({
                                           ...selectedPlatformsForAutoPost,
@@ -652,6 +780,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     size="sm"
                                     className="h-auto p-1 text-xs"
                                     onClick={() => {
+                                      // For Blog News, go directly to time picker
+                                      if (campaign.goal === "Blog News") {
+                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
+                                        return;
+                                      }
                                       // When editing, open platform selector first
                                       setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
                                     }}
@@ -661,22 +794,23 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   </Button>
                                 )}
                               </div>
-                              {/* Platform Selection Dialog */}
-                              <Dialog
-                                open={isPlatformSelectorOpen[campaign.id] || false}
-                                onOpenChange={(open) => {
-                                  setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: open });
-                                }}
-                              >
-                                <DialogContent className="sm:max-w-[425px]">
-                                  <DialogHeader>
-                                    <DialogTitle>Select Platforms for Auto-Post</DialogTitle>
-                                    <DialogDescription>
-                                      Choose which platforms you want to auto-post for this campaign
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="py-4 space-y-3">
-                                    {campaign.platforms.map((platform) => {
+                              {/* Platform Selection Dialog - Only show for non-Blog News campaigns */}
+                              {campaign.goal !== "Blog News" && (
+                                <Dialog
+                                  open={isPlatformSelectorOpen[campaign.id] || false}
+                                  onOpenChange={(open) => {
+                                    setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: open });
+                                  }}
+                                >
+                                  <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                      <DialogTitle>Select Platforms for Auto-Post</DialogTitle>
+                                      <DialogDescription>
+                                        Choose which platforms you want to auto-post for this campaign
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4 space-y-3">
+                                      {campaign.platforms.map((platform) => {
                                       const platformKey = platform as keyof typeof ICONS;
                                       const isSelected = (selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms).includes(platform);
                                       return (
@@ -739,6 +873,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   </DialogFooter>
                                 </DialogContent>
                               </Dialog>
+                              )}
                               <TimePickerDialog
                                 value={campaign.autoPostTime || undefined}
                                 open={isTimePickerOpen[campaign.id] || false}
@@ -751,29 +886,47 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     toast.error("Please set a start date first");
                                     return;
                                   }
-                                  // Get selected platforms from state or use saved ones
-                                  const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
                                   
-                                  if (platformsToUse.length === 0) {
-                                    toast.error("Please select at least one platform");
-                                    setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
-                                    return;
-                                  }
+                                  // Handle Blog News campaigns differently
+                                  if (campaign.goal === "Blog News") {
+                                    // Save the time and enable auto-post (no platforms needed)
+                                    await updateCampaignData.mutateAsync({
+                                      id: campaign.id,
+                                      autoPostEnabled: true,
+                                      autoPostTime: time,
+                                      autoPostPlatforms: [], // Empty for Blog News
+                                    });
+                                    // Schedule tasks instead of posts
+                                    scheduleCampaignTasks.mutate({
+                                      campaignId: campaign.id,
+                                      projectId: campaign.projectId,
+                                      autoPostTime: time,
+                                    });
+                                  } else {
+                                    // Get selected platforms from state or use saved ones
+                                    const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
+                                    
+                                    if (platformsToUse.length === 0) {
+                                      toast.error("Please select at least one platform");
+                                      setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                      return;
+                                    }
 
-                                  // Save the time and enable auto-post
-                                  await updateCampaignData.mutateAsync({
-                                    id: campaign.id,
-                                    autoPostEnabled: true,
-                                    autoPostTime: time,
-                                    autoPostPlatforms: platformsToUse,
-                                  });
-                                  // Schedule posts
-                                  scheduleCampaignPosts.mutate({
-                                    campaignId: campaign.id,
-                                    projectId: campaign.projectId,
-                                    autoPostTime: time,
-                                    platforms: platformsToUse,
-                                  });
+                                    // Save the time and enable auto-post
+                                    await updateCampaignData.mutateAsync({
+                                      id: campaign.id,
+                                      autoPostEnabled: true,
+                                      autoPostTime: time,
+                                      autoPostPlatforms: platformsToUse,
+                                    });
+                                    // Schedule posts
+                                    scheduleCampaignPosts.mutate({
+                                      campaignId: campaign.id,
+                                      projectId: campaign.projectId,
+                                      autoPostTime: time,
+                                      platforms: platformsToUse,
+                                    });
+                                  }
                                 }}
                               />
                               <Button
@@ -869,14 +1022,22 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 <div className="flex items-center flex-grow px-4 py-2 gap-4" key={id}>
                                   <div className={`absolute hidden md:block left-3.5 h-4 w-4 rounded-full ${isToday ? "bg-primary" : "bg-gray-400"}`} />
                                   <div className="hidden md:flex items-center justify-end gap-4 min-w-28">
-                                    <div className="flex flex-col items-center justify-end">
-                                      <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
-                                        {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                      </span>
-                                    </div>
+                                    {campaign.goal === "Blog News" ? (
+                                      <div className="flex flex-col items-center justify-end">
+                                        <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
+                                          Day {timeline.day}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-end">
+                                        <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
+                                          {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Content Cards Right Column */}
@@ -886,77 +1047,94 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         className={`border p-4 rounded-lg cursor-pointer gap-2 flex-row flex justify-between relative`}
                                       >
                                         {/* Background bar based on completion ratio */}
-                                        <div
-                                          className="absolute left-0 top-0 h-full bg-green-200 z-0 transition-all duration-300 rounded-s-lg"
-                                          style={{ width: timeline.completed ? '100%' : `${(Object.values(timeline.tickMark || {}).filter(Boolean).length / Object.keys(timeline.contents || {}).length) * 100}%` }}
-                                        />
+                                        {campaign.goal !== "Blog News" && (
+                                          <div
+                                            className="absolute left-0 top-0 h-full bg-green-200 z-0 transition-all duration-300 rounded-s-lg"
+                                            style={{ width: timeline.completed ? '100%' : `${(Object.values(timeline.tickMark || {}).filter(Boolean).length / Math.max(Object.keys(timeline.contents || {}).length, 1)) * 100}%` }}
+                                          />
+                                        )}
 
                                         {/* Main content stays above the background */}
                                         <div className="relative z-10 flex gap-2 items-center w-full">
-                                          <div className="flex justify-end items-center gap-2">
-                                            <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
-                                          </div>
+                                          {campaign.goal !== "Blog News" && (
+                                            <div className="flex justify-end items-center gap-2">
+                                              <CampaignCheckButton campaign={campaign!} timeline={timeline!} />
+                                            </div>
+                                          )}
                                           <DialogTrigger asChild>
                                             <div className="flex flex-row gap-1 flex-grow text-sm sm:text-base">
-                                              {/* <p className="font-medium">Day {timeline.day}:</p> */}
-                                              <p className={`block md:hidden font-medium ${isHighlighted ? 'text-primary' : 'text-gray-600'}`}>
-                                                {futureDate.toLocaleDateString("en-US", {
-                                                  year: "numeric",
-                                                  month: "long",
-                                                  day: "numeric",
-                                                })}:
-                                              </p>
-                                              <p>{timeline.title}</p>
-                                              {/* {chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day && (
-                                                <Loader2 className="animate-spin h-4 w-4 ml-auto" />
-                                              )} */}
+                                              {/* For Blog News, show "Day 1", "Day 2", etc. */}
+                                              {campaign.goal === "Blog News" ? (
+                                                <p className="font-medium">Day {timeline.day}</p>
+                                              ) : (
+                                                <>
+                                                  <p className={`block md:hidden font-medium ${isHighlighted ? 'text-primary' : 'text-gray-600'}`}>
+                                                    {futureDate.toLocaleDateString("en-US", {
+                                                      year: "numeric",
+                                                      month: "long",
+                                                      day: "numeric",
+                                                    })}:
+                                                  </p>
+                                                  <p>{timeline.title}</p>
+                                                </>
+                                              )}
                                             </div>
                                           </DialogTrigger>
                                         </div>
-                                        <div className="flex justify-end">
-                                          {
-                                            timeline.status === "PENDING" ?
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border-dashed border-primary"
-                                                onClick={async () => {
-                                                  const yes = await confirm({
-                                                    title: `Generating content for this day will use ${campaign.platforms.length} coins.`,
-                                                    description: ''
-                                                  });
-                                                  if (!yes) return;
-                                                  generateChat(projectId as string, campaign.id, timeline.day, timeline.title);
-                                                }}
-                                                loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
-                                                disabled={generate.isPending}
-                                              >
-                                                <Play />
-                                              </Button>
-                                              :
-                                              <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
-                                          }
-                                        </div>
+                                        {/* Hide generate button for Blog News campaigns */}
+                                        {campaign.goal !== "Blog News" && (
+                                          <div className="flex justify-end">
+                                            {
+                                              timeline.status === "PENDING" ?
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="border-dashed border-primary"
+                                                  onClick={async () => {
+                                                    const yes = await confirm({
+                                                      title: `Generating content for this day will use ${campaign.platforms.length} coins.`,
+                                                      description: ''
+                                                    });
+                                                    if (!yes) return;
+                                                    generateChat(projectId as string, campaign.id, timeline.day, timeline.title);
+                                                  }}
+                                                  loading={Boolean(chatLoading && chatLoading.campaignId === campaign.id && timeline.day === chatLoading.day)}
+                                                  disabled={generate.isPending}
+                                                >
+                                                  <Play />
+                                                </Button>
+                                                :
+                                                <CampaignVideoButton projectId={projectId as string} campaign={campaign!} timeline={timeline!} />
+                                            }
+                                          </div>
+                                        )}
                                       </div>
                                       <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px] p-5 sm:p-8 scrollbar-none">
-                                        {/* TikTok Video Link Card */}
-                                        {campaign.platforms.includes('tiktok') && (
-                                          <Card className="rounded-lg border mb-5">
-                                            <CardHeader className="flex justify-between items-center flex-row">
-                                              <CardTitle>TikTok</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="text-sm text-muted-foreground flex flex-col items-center justify-center py-8">
-                                              <VideoIcon className="w-12 h-12 mb-4 text-muted-foreground/50" />
-                                              <p className="mb-4 text-center">Create a video for TikTok</p>
-                                              <Button asChild variant="outline">
-                                                <Link href={`/project/${projectId}/video?campaignId=${campaign.id}&day=${timeline.day}`}>
-                                                  Generate Video →
-                                                </Link>
-                                              </Button>
-                                            </CardContent>
-                                          </Card>
-                                        )}
-                                        {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
+                                        {/* Empty dialog for Blog News campaigns */}
+                                        {campaign.goal === "Blog News" ? (
+                                          <div className="col-span-2 flex items-center justify-center py-12">
+                                            <p className="text-muted-foreground">Content will be added here</p>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {/* TikTok Video Link Card */}
+                                            {campaign.platforms.includes('tiktok') && (
+                                              <Card className="rounded-lg border mb-5">
+                                                <CardHeader className="flex justify-between items-center flex-row">
+                                                  <CardTitle>TikTok</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="text-sm text-muted-foreground flex flex-col items-center justify-center py-8">
+                                                  <VideoIcon className="w-12 h-12 mb-4 text-muted-foreground/50" />
+                                                  <p className="mb-4 text-center">Create a video for TikTok</p>
+                                                  <Button asChild variant="outline">
+                                                    <Link href={`/project/${projectId}/video?campaignId=${campaign.id}&day=${timeline.day}`}>
+                                                      Generate Video →
+                                                    </Link>
+                                                  </Button>
+                                                </CardContent>
+                                              </Card>
+                                            )}
+                                            {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
                                           <Card key={platform} className="rounded-lg border mb-5">
                                             <div className="flex flex-col gap-0">
                                               <CardHeader className="flex justify-between items-center flex-row">
@@ -1062,6 +1240,8 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                                           </Card>
                                         ))}
+                                          </>
+                                        )}
                                       </DialogContent>
                                     </Dialog>
                                   </div>

@@ -672,3 +672,106 @@ export const scheduleCampaignPosts = async ({
     };
   }
 };
+
+export const scheduleCampaignTasks = async ({
+  campaignId,
+  projectId,
+  autoPostTime,
+}: {
+  campaignId: string;
+  projectId: string;
+  autoPostTime: string; // Format: "HH:mm"
+}): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
+  try {
+    // Get campaign with chats
+    const campaign = await prisma.campaignPlanner.findFirst({
+      where: {
+        id: campaignId,
+        projectId: projectId,
+      },
+      include: {
+        chats: true,
+      },
+    });
+
+    if (!campaign) {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["Campaign not found"],
+      };
+    }
+
+    if (!campaign.startDate) {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["Campaign must have a start date"],
+      };
+    }
+
+    if (campaign.goal !== "Blog News") {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["This function is only for Blog News campaigns"],
+      };
+    }
+
+    const errors: string[] = [];
+    let scheduledCount = 0;
+
+    // Parse time
+    const [hours, minutes] = autoPostTime.split(":").map(Number);
+
+    // For each chat in the campaign
+    for (const chat of campaign.chats) {
+      // Calculate the date for this chat: startDate + (day - 1) days
+      const chatDate = new Date(campaign.startDate);
+      chatDate.setDate(chatDate.getDate() + (chat.day - 1));
+      chatDate.setHours(hours, minutes, 0, 0);
+
+      // Skip if date is in the past
+      if (chatDate < new Date()) {
+        continue;
+      }
+
+      // TODO: Schedule task execution here
+      // For now, we'll create a placeholder structure
+      // The actual task execution logic will be implemented later
+      // This could involve:
+      // 1. Creating a scheduled task record in the database
+      // 2. Setting up a cron job or queue system
+      // 3. Calling webhook endpoints
+      // 4. Executing specific actions based on campaign configuration
+
+      // Placeholder: Log the scheduled task
+      console.log(`Scheduled task for Blog News campaign:`, {
+        campaignId,
+        day: chat.day,
+        scheduledTime: chatDate.toISOString(),
+        // Additional metadata can be stored here
+        topics: [], // Will be populated from campaign metadata
+        angle: "", // Will be populated from campaign metadata
+        webhook: "", // Will be populated from campaign metadata
+      });
+
+      scheduledCount++;
+    }
+
+    return {
+      success: errors.length === 0,
+      scheduledCount,
+      errors,
+    };
+  } catch (error) {
+    console.error("Error scheduling campaign tasks:", error);
+    return {
+      success: false,
+      scheduledCount: 0,
+      errors: [
+        error instanceof Error ? error.message : "Unknown error occurred",
+      ],
+    };
+  }
+};

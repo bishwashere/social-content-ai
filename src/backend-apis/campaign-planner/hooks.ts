@@ -7,6 +7,7 @@ import {
   generateCampaignChat,
   getCampaignPlanner,
   scheduleCampaignPosts,
+  scheduleCampaignTasks,
   startCampaignPlanner,
   toggleMarkAsComplete,
   toggleTickMark,
@@ -163,6 +164,40 @@ export const useScheduleCampaignPosts = () => {
     },
     onError: () => {
       toast.error("Failed to schedule campaign posts");
+    },
+  });
+};
+
+export const useScheduleCampaignTasks = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      campaignId,
+      projectId,
+      autoPostTime,
+    }: {
+      campaignId: string;
+      projectId: string;
+      autoPostTime: string;
+    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime }),
+
+    onSuccess: (result, variables) => {
+      if (result.success) {
+        toast.success(`Successfully scheduled ${result.scheduledCount} tasks`);
+        queryClient.invalidateQueries({
+          queryKey: ["campaignPlanner", variables.projectId],
+        });
+      } else {
+        if (result.errors.length > 0) {
+          toast.error(result.errors[0]);
+        } else {
+          toast.error("Failed to schedule some tasks");
+        }
+      }
+    },
+    onError: () => {
+      toast.error("Failed to schedule campaign tasks");
     },
   });
 };

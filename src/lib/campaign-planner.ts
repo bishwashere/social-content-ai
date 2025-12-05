@@ -289,6 +289,100 @@ export const campaignPlanner = [
         }))
       }
     ]
+  },
+  {
+    id: "blog-news",
+    goal: "Blog News",
+    intensityPlans: [
+      {
+        targetAudience: "Light",
+        data: [
+          { day: 1, task: "Blog news post" },
+          { day: 5, task: "Blog news post" },
+          { day: 10, task: "Blog news post" },
+          { day: 15, task: "Blog news post" },
+          { day: 20, task: "Blog news post" },
+          { day: 25, task: "Blog news post" },
+          { day: 30, task: "Blog news post" }
+        ]
+      },
+      {
+        targetAudience: "Light-Moderate",
+        data: [
+          { day: 1, task: "Blog news post" },
+          { day: 3, task: "Blog news post" },
+          { day: 5, task: "Blog news post" },
+          { day: 8, task: "Blog news post" },
+          { day: 10, task: "Blog news post" },
+          { day: 13, task: "Blog news post" },
+          { day: 15, task: "Blog news post" },
+          { day: 18, task: "Blog news post" },
+          { day: 20, task: "Blog news post" },
+          { day: 23, task: "Blog news post" },
+          { day: 25, task: "Blog news post" },
+          { day: 30, task: "Blog news post" }
+        ]
+      },
+      {
+        targetAudience: "Moderate",
+        data: [
+          { day: 1, task: "Blog news post" },
+          { day: 2, task: "Blog news post" },
+          { day: 4, task: "Blog news post" },
+          { day: 6, task: "Blog news post" },
+          { day: 8, task: "Blog news post" },
+          { day: 10, task: "Blog news post" },
+          { day: 12, task: "Blog news post" },
+          { day: 15, task: "Blog news post" },
+          { day: 18, task: "Blog news post" },
+          { day: 20, task: "Blog news post" },
+          { day: 25, task: "Blog news post" },
+          { day: 30, task: "Blog news post" }
+        ]
+      },
+      {
+        targetAudience: "Moderate-Aggressive",
+        data: [
+          { day: 1, task: "Blog news post" },
+          { day: 2, task: "Blog news post" },
+          { day: 3, task: "Blog news post" },
+          { day: 4, task: "Blog news post" },
+          { day: 5, task: "Blog news post" },
+          { day: 6, task: "Blog news post" },
+          { day: 7, task: "Blog news post" },
+          { day: 8, task: "Blog news post" },
+          { day: 9, task: "Blog news post" },
+          { day: 10, task: "Blog news post" },
+          { day: 11, task: "Blog news post" },
+          { day: 12, task: "Blog news post" },
+          { day: 13, task: "Blog news post" },
+          { day: 14, task: "Blog news post" },
+          { day: 15, task: "Blog news post" },
+          { day: 16, task: "Blog news post" },
+          { day: 17, task: "Blog news post" },
+          { day: 18, task: "Blog news post" },
+          { day: 19, task: "Blog news post" },
+          { day: 20, task: "Blog news post" },
+          { day: 21, task: "Blog news post" },
+          { day: 22, task: "Blog news post" },
+          { day: 23, task: "Blog news post" },
+          { day: 24, task: "Blog news post" },
+          { day: 25, task: "Blog news post" },
+          { day: 26, task: "Blog news post" },
+          { day: 27, task: "Blog news post" },
+          { day: 28, task: "Blog news post" },
+          { day: 29, task: "Blog news post" },
+          { day: 30, task: "Blog news post" }
+        ]
+      },
+      {
+        targetAudience: "Aggressive",
+        data: Array.from({ length: 60 }).map((_, i) => ({
+          day: Math.floor(i / 2) + 1,
+          task: "Blog news post"
+        }))
+      }
+    ]
   }
 ];
 
