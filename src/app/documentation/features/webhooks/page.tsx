@@ -83,7 +83,7 @@ export default function WebhooksPage() {
                 <li>Webhook URLs should use HTTPS for secure transmission</li>
                 <li>Consider implementing authentication (API keys, tokens) in your webhook endpoint</li>
                 <li>Validate incoming payload structure before processing</li>
-                <li>Webhook failures don't prevent blog generation - blogs are saved regardless</li>
+                <li>Webhook failures don&apos;t prevent blog generation - blogs are saved regardless</li>
               </ul>
             </CardContent>
           </Card>

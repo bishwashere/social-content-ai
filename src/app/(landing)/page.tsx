@@ -80,7 +80,7 @@ export default function HomeV3() {
               </p>
             </div>
             <p className="text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]">
-              Your AI-Powered Marketing Assistant for Apps & Products
+              Marketing Assistant for Apps & Products
             </p>
             {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
             <hr className="my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]" />
