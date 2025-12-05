@@ -5,6 +5,10 @@ import { BookOpen } from "lucide-react"
 import { IdeaCard } from "@/components/idea-card"
 import { IdeasHeader } from "./_components/ideas-header"
 
+// Force dynamic rendering to always fetch fresh data from database
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function IdeasPage() {
   const ideas = await getAllIdeas()
 

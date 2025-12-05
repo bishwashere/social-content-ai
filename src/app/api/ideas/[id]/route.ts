@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { validateIdeasAdminAuth } from "@/middlewares/validate-ideas-admin-auth";
@@ -152,6 +153,34 @@ export const PUT = applyMiddleware(
       },
     });
 
+    // Determine if we need to revalidate (published status changed, slug changed, or published article updated)
+    const wasPublished = existingIdea.status === "published";
+    const isNowPublished = updatedIdea.status === "published";
+    const slugChanged = slug !== existingIdea.slug;
+    // Revalidate if: newly published, or any published article is being updated (status change, slug change, or content update)
+    const shouldRevalidate = isNowPublished || wasPublished;
+
+    if (shouldRevalidate) {
+      // Revalidate ideas list page
+      revalidatePath("/ideas");
+      
+      // Revalidate current slug page
+      revalidatePath(`/ideas/${updatedIdea.slug}`);
+      
+      // Revalidate old slug page if slug changed
+      if (slugChanged && existingIdea.slug) {
+        revalidatePath(`/ideas/${existingIdea.slug}`);
+      }
+      
+      // Revalidate sitemaps
+      revalidatePath("/ideas-sitemap.xml");
+      revalidatePath("/sitemap.xml");
+      
+      // Revalidate homepage (shows recent ideas)
+      revalidatePath("/get");
+      revalidatePath("/");
+    }
+
     return sendNextResponse({
       status: 200,
       data: updatedIdea,
@@ -186,9 +215,22 @@ export const DELETE = applyMiddleware(
       });
     }
 
+    const wasPublished = existingIdea.status === "published";
+    const deletedSlug = existingIdea.slug;
+
     await prisma.idea.delete({
       where: { id: existingIdea.id },
     });
+
+    // Revalidate if the deleted idea was published
+    if (wasPublished) {
+      revalidatePath("/ideas");
+      revalidatePath(`/ideas/${deletedSlug}`);
+      revalidatePath("/ideas-sitemap.xml");
+      revalidatePath("/sitemap.xml");
+      revalidatePath("/get");
+      revalidatePath("/");
+    }
 
     return sendNextResponse({
       status: 200,

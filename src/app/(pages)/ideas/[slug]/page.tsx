@@ -15,6 +15,10 @@ interface IdeaPageProps {
   }
 }
 
+// Force dynamic rendering to always fetch fresh data from database
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function generateStaticParams() {
   const slugs = await getAllIdeaSlugs()
   return slugs.map((slug) => ({

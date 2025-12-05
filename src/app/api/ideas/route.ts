@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { validateIdeasAdminAuth } from "@/middlewares/validate-ideas-admin-auth";
@@ -138,6 +139,16 @@ export const POST = applyMiddleware(
         },
       },
     });
+
+    // Revalidate paths when idea is published
+    if (status === "published") {
+      revalidatePath("/ideas");
+      revalidatePath(`/ideas/${slug}`);
+      revalidatePath("/ideas-sitemap.xml");
+      revalidatePath("/sitemap.xml");
+      revalidatePath("/get"); // Homepage with recent ideas
+      revalidatePath("/"); // Root homepage if it shows ideas
+    }
 
     return sendNextResponse({
       status: 201,
