@@ -88,15 +88,15 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
   const { toggleSidebar } = sidebar;
 
   return (
-    <Sidebar className="border-r" collapsible="icon">
-      <SidebarHeader className="border-b p-4 flex justify-center">
+    <Sidebar className="border-r dark:border-gray-700" collapsible="icon">
+      <SidebarHeader className="border-b dark:border-gray-700 p-4 flex justify-center">
         <Logo iconOnly={!sidebar.open} />
       </SidebarHeader>
       <ScrollArea className="h-[calc(100vh-5rem)] overflow-y-auto w-full" style={{ width: '100%', maxWidth: '100%' }}>
         <SidebarContent className="p-2 space-y-3 min-w-0 w-full max-w-full overflow-x-hidden" style={{ width: '100%', maxWidth: '100%' }}>
           {/* Navigation Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 space-y-1 min-w-0 max-w-full overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 space-y-1 min-w-0 max-w-full overflow-hidden">
             <div
               ref={(el) => {
                 if (elementRefs && el) {
@@ -125,7 +125,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       }
                     }}
                     href="/project/wall"
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
                     }`}
                   >
@@ -160,7 +160,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       }
                     }}
                     href="/project/dashboard"
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
                     }`}
                   >
@@ -195,7 +195,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       }
                     }}
                     href="/project/analytics"
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
                     }`}
                   >
@@ -230,15 +230,15 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       }
                     }}
                     href="/project/templates"
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
-                    } ${pathname === '/project/templates' || pathname?.startsWith('/project/templates/') ? 'bg-gray-200' : ''}`}
+                    } ${pathname === '/project/templates' || pathname?.startsWith('/project/templates/') ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
                   >
                     <Layers className="h-4 w-4" />
                     {sidebar.open && (
                       <span className="ml-2 flex flex-col">
                         <span>Templates</span>
-                        <span className="text-xs text-gray-500">(under development)</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">(under development)</span>
                       </span>
                     )}
                   </Link>
@@ -270,12 +270,12 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       }
                     }}
                     href="/project/video-maker"
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 transition-colors ${
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-800 dark:hover:to-pink-800 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
-                    } ${pathname === '/project/video-maker' ? 'ring-2 ring-purple-400' : ''}`}
+                    } ${pathname === '/project/video-maker' ? 'ring-2 ring-purple-400 dark:ring-purple-500' : ''}`}
                   >
-                    <Video className="h-4 w-4 text-purple-600" />
-                    {sidebar.open && <span className="ml-2 text-purple-900 font-semibold">Video Maker</span>}
+                    <Video className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+                    {sidebar.open && <span className="ml-2 text-purple-900 dark:text-purple-100 font-semibold">Video Maker</span>}
                   </Link>
                 </TooltipTrigger>
                 {!sidebar.open && (
@@ -305,9 +305,9 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       }
                     }}
                     href="/project/my-videos"
-                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors ${
+                    className={`flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
                       !sidebar.open ? 'justify-center' : ''
-                    } ${pathname === '/project/my-videos' ? 'bg-gray-200' : ''}`}
+                    } ${pathname === '/project/my-videos' ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
                   >
                     <PlaySquare className="h-4 w-4" />
                     {sidebar.open && <span className="ml-2">My Videos</span>}
@@ -327,7 +327,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             <div className="flex justify-end mt-2 w-full">
               <button
                 onClick={onNavigationTourStart}
-                className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
+                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
               >
                 What&apos;s this?
               </button>
@@ -338,10 +338,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Folders Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-folders-section>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-folders-section>
             {sidebar.open && (
               <div className="flex items-center justify-between px-2 mb-2">
-                <p className="text-sm font-semibold">Folders</p>
+                <p className="text-sm font-semibold dark:text-gray-100">Folders</p>
               </div>
             )}
             <AddFolderButton />
@@ -361,7 +361,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                   </div>
                 ))
               : (
-                <div className="text-xs text-gray-500 px-3 py-2 text-center">
+                <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2 text-center">
                   No project folders yet
                 </div>
               )}
@@ -371,7 +371,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
               <div className="flex justify-end mt-2 w-full">
                 <button
                   onClick={onFoldersTourStart}
-                  className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                 >
                   What&apos;s this?
                 </button>
@@ -382,7 +382,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Projects Section */}
           {sidebar.open && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-projects-section-card>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-projects-section-card>
           <Collapsible open={openSections.includes("projects")} onOpenChange={() => handleSectionToggle("projects")}>
             <CollapsibleTrigger asChild>
               <div 
@@ -396,7 +396,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
               >
                 {sidebar.open ? (
                   <div className="flex items-center justify-between px-2 mb-2">
-                    <p className="text-sm font-semibold">Projects</p>
+                    <p className="text-sm font-semibold dark:text-gray-100">Projects</p>
                     {openSections.includes("projects") ? (
                       <ChevronDown className="h-4 w-4 opacity-50" />
                     ) : (
@@ -434,7 +434,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             <div className="flex justify-end mt-2 w-full">
               <button
                 onClick={onProjectsTourStart}
-                className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
+                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
               >
                 What&apos;s this?
               </button>
@@ -517,11 +517,11 @@ function ProjectItem({
   // Function to determine progress bar color
   const getProgressBarColor = (project: ProjectWithChats) => {
     if (isProjectActive(project)) {
-      return "bg-green-500"; // Green for active projects
+      return "bg-green-500 dark:bg-green-600"; // Green for active projects
     } else if (project.campaignPlanners && project.campaignPlanners.length > 0) {
-      return "bg-gray-400"; // Grey for inactive projects with campaigns
+      return "bg-gray-400 dark:bg-gray-500"; // Grey for inactive projects with campaigns
     } else {
-      return "bg-blue-500"; // Default blue for projects without campaigns
+      return "bg-blue-500 dark:bg-blue-600"; // Default blue for projects without campaigns
     }
   };
 
@@ -530,9 +530,9 @@ function ProjectItem({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 cursor-pointer min-w-0",
+        "flex flex-col gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer min-w-0",
         activeProjectId(currentPath) === project.id &&
-        "bg-gray-200",
+        "bg-gray-200 dark:bg-gray-700",
       )}
       onClick={() => {
         if (window.innerWidth <= 768) {
@@ -558,7 +558,7 @@ function ProjectItem({
 
       {/* Progress Bar with Dynamic Fill Color */}
       <div className="px-1">
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
           <div 
             className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(project)}`}
             style={{ width: `${calculateProjectProgress(project)}%` }}

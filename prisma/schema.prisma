@@ -470,6 +470,7 @@ model Template {
   icon        String? // Icon name or identifier
   source      String?
   sourcePostId  String?
+  impressions   Int?
 
   createdAt   DateTime?        @default(now())
   updatedAt   DateTime?        @updatedAt

@@ -126,6 +126,7 @@ export async function GET(request: NextRequest) {
         icon: t.icon || null,
         source: t.source || null,
         sourcePostId: t.sourcePostId || null,
+        impressions: t.impressions ?? null,
         createdAt: convertDate(t.createdAt) || new Date().toISOString(),
         updatedAt: convertDate(t.updatedAt) || new Date().toISOString(),
       };
