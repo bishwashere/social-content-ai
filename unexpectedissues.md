@@ -16,12 +16,14 @@ Fixed by escaping apostrophes and quotes in JSX content:
 - `src/components/common/connect-accounts-button.tsx`
 - `src/app/(pages)/ideas/admin/page.tsx` - Escaped quotes in delete dialog
 - `src/app/documentation/page.tsx` - Escaped apostrophe in "NextPost AI's"
-- `src/app/documentation/features/webhooks/page.tsx` - Escaped quotes and apostrophes
+- `src/app/documentation/features/webhooks/page.tsx` - Escaped quotes and apostrophes (including "don't")
 - `src/app/documentation/platforms/facebook/page.tsx` - Escaped apostrophe in "Facebook's"
 - `src/app/documentation/platforms/instagram/page.tsx` - Escaped apostrophes
 - `src/app/documentation/platforms/threads/page.tsx` - Escaped apostrophes
 - `src/app/documentation/platforms/tiktok/page.tsx` - Escaped apostrophe
 - `src/app/documentation/security/page.tsx` - Escaped apostrophe
+- `src/app/(pages)/project/video-maker/_components/quick-video-maker.tsx` - Escaped apostrophe in placeholder "viewers'"
+- `src/app/(pages)/project/[id]/video/_components/index.tsx` - Escaped apostrophe in placeholder "viewers'"
 
 ### 2. TypeScript Type Errors
 - `src/lib/3rd-providers/fb.ts` - Fixed `'shares is not defined'` error

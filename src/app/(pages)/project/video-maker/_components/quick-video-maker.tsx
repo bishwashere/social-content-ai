@@ -137,7 +137,7 @@ export default function QuickVideoMaker() {
                 <Label htmlFor="hook-text">Enter a compelling hook for your video</Label>
                 <Textarea
                   id="hook-text"
-                  placeholder="Write something that will grab your viewers' attention..."
+                  placeholder="Write something that will grab your viewers&apos; attention..."
                   value={hookText}
                   onChange={(e) => setHookText(e.target.value)}
                   className="h-24"
