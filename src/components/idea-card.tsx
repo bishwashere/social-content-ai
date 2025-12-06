@@ -117,7 +117,7 @@ export function IdeaCard({ idea, featured = false }: IdeaCardProps) {
         <Link href={`/ideas/${idea.slug}`} className="block h-full">
           <Card className={`${cardClass} w-full h-full cursor-pointer overflow-hidden`}>
             {idea.thumbnail && (
-              <div className={`relative overflow-hidden ${featured ? "h-64" : "h-48"}`}>
+              <div className={`relative overflow-hidden ${featured ? "h-48 md:h-64" : "h-40 md:h-48"}`}>
                 <Image
                   src={idea.thumbnail || "/placeholder.svg"}
                   alt={idea.title}
@@ -127,8 +127,8 @@ export function IdeaCard({ idea, featured = false }: IdeaCardProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
             )}
-            <CardHeader className={featured ? "p-6" : "p-4"}>
-              <div className="flex items-center gap-4 mb-3 flex-wrap">
+            <CardHeader className={featured ? "p-3 md:p-6" : "p-3 md:p-4"}>
+              <div className="flex items-center gap-4 mb-2 md:mb-3 flex-wrap">
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   {new Date(idea.publishedAt).toLocaleDateString("en-US", {
@@ -137,7 +137,7 @@ export function IdeaCard({ idea, featured = false }: IdeaCardProps) {
                     day: "numeric",
                   })}
                 </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
+                <Badge variant="outline" className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
                   <Clock className="w-3 h-3" />
                   {readingTime} min read
                 </Badge>
@@ -149,18 +149,18 @@ export function IdeaCard({ idea, featured = false }: IdeaCardProps) {
               </div>
 
               <CardTitle
-                className={`line-clamp-2 group-hover:text-primary transition-colors ${featured ? "text-2xl" : "text-xl"}`}
+                className={`line-clamp-2 group-hover:text-primary transition-colors ${featured ? "text-lg md:text-2xl" : "text-lg md:text-xl"}`}
               >
                 {idea.title}
               </CardTitle>
 
-              <CardDescription className={`${featured ? "line-clamp-4 text-base" : "line-clamp-3 text-sm"}`}>
+              <CardDescription className={`${featured ? "line-clamp-4 text-sm md:text-base" : "line-clamp-3 text-xs md:text-sm"} mt-1 md:mt-2`}>
                 {idea.summary}
               </CardDescription>
             </CardHeader>
 
-            <CardContent className={featured ? "px-6 pb-6" : "px-4 pb-4"}>
-              <div className="inline-flex items-center text-primary hover:text-primary/80 font-medium transition-colors group">
+            <CardContent className={featured ? "px-3 pb-3 md:px-6 md:pb-6" : "px-3 pb-3 md:px-4 md:pb-4"}>
+              <div className="inline-flex items-center text-primary hover:text-primary/80 font-medium transition-colors group text-sm md:text-base">
                 Read more
                 <span className="ml-1 transition-transform group-hover:translate-x-1">→</span>
               </div>

@@ -17,12 +17,12 @@ export default async function IdeasPage() {
       {/* Header similar to /project */}
       <IdeasHeader />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
         {/* Page Title */}
-        <header className="mb-12">
+        <header className="mb-6 md:mb-12">
           <div className="max-w-3xl">
-            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-4">Ideas to Help You Grow</h1>
-            <p className="text-xl text-muted-foreground leading-relaxed">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 md:mb-4">Ideas to Help You Grow</h1>
+            <p className="text-base md:text-xl text-muted-foreground leading-relaxed">
               Practical articles, guides, and ideas to help you market your product with confidence.
             </p>
           </div>
@@ -42,7 +42,7 @@ export default async function IdeasPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
               {ideas.map((idea, index) => (
                 <div
                   key={idea.slug}
@@ -53,7 +53,7 @@ export default async function IdeasPage() {
               ))}
             </div>
 
-            <div className="text-center mt-16">
+            <div className="text-center mt-8 md:mt-16">
               <p className="text-muted-foreground">
                 Showing {ideas.length} {ideas.length === 1 ? "post" : "posts"}
               </p>

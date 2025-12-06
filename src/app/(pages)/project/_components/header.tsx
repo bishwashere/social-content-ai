@@ -30,6 +30,7 @@ import { ConnectAccountsButton } from "@/components/common/connect-accounts-butt
 import { useUserSettings, useUpdateUserSettings } from "@/backend-apis/user-settings/hooks";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useTheme } from "@/providers/theme-provider";
 
 interface HeaderProps {
   onTourStart?: () => void;
@@ -158,6 +159,7 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <OnboardingToggles />
+                <DarkModeToggle />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => logout.mutate()}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -189,6 +191,43 @@ function OnboardingToggles() {
             updateSettings.mutate({ guidedTourEnabled: checked });
           }}
           disabled={updateSettings.isPending}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DarkModeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getCurrentTheme = () => {
+    if (!mounted) return false;
+    if (theme === "system") {
+      return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return theme === "dark";
+  };
+
+  const isDark = getCurrentTheme();
+
+  return (
+    <div className="px-2 py-1.5">
+      <div className="flex items-center justify-between gap-4">
+        <Label htmlFor="dropdown-dark-mode" className="text-sm font-normal cursor-pointer flex-1">
+          Dark Mode
+        </Label>
+        <Switch
+          id="dropdown-dark-mode"
+          checked={isDark}
+          onCheckedChange={(checked) => {
+            setTheme(checked ? "dark" : "light");
+          }}
           onClick={(e) => e.stopPropagation()}
         />
       </div>

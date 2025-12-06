@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 export function IdeasHeader() {
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
-      <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
+      <div className="flex flex-col md:flex-row md:h-16 items-start md:items-center justify-between bg-background w-full md:px-8 py-3 md:py-0 gap-3 md:gap-0">
         <div className="flex items-center gap-2">
           <Link
             href="/"
@@ -26,7 +26,7 @@ export function IdeasHeader() {
           <span className="text-muted-foreground mx-2">/</span>
           <span className="text-muted-foreground">Ideas</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 self-end md:self-auto">
           <Button asChild variant="outline" size="sm">
             <Link href="/project">Go to Dashboard</Link>
           </Button>

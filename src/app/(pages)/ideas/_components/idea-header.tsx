@@ -28,15 +28,15 @@ export function IdeaHeader({ slug: _slug, title }: IdeaHeaderProps) {
             />
             <span className="font-semibold text-lg">NextPostAI</span>
           </Link>
-          <span className="text-muted-foreground mx-2">/</span>
+          <span className="text-muted-foreground mx-2 hidden md:inline">/</span>
           <Link
             href="/ideas"
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors hidden md:inline"
           >
             Ideas
           </Link>
-          <span className="text-muted-foreground mx-2">/</span>
-          <span className="text-muted-foreground truncate max-w-xs">{title}</span>
+          <span className="text-muted-foreground mx-2 hidden md:inline">/</span>
+          <span className="text-muted-foreground truncate max-w-xs hidden md:inline">{title}</span>
         </div>
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="sm">
