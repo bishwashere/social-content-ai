@@ -398,8 +398,28 @@ async function generateBlogFromArticle(
   angles: string[]
 ): Promise<GeneratedBlog | null> {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash-001" });
+    // Try all API keys in order, falling back if rate limited
+    const apiKeys = [
+      process.env.GEMINI_API_KEY || "",
+      process.env.GEMINI_API_KEY_1 || "",
+      process.env.GEMINI_API_KEY_2 || "",
+    ].filter(key => key.trim() !== "");
+
+    if (apiKeys.length === 0) {
+      logger.error("No GEMINI_API_KEY configured");
+      throw new Error("GEMINI_API_KEY is not configured. Please check environment variables.");
+    }
+
+    let lastError: any = null;
+    
+    for (let keyIndex = 0; keyIndex < apiKeys.length; keyIndex++) {
+    const apiKey = apiKeys[keyIndex];
+    const keyName = keyIndex === 0 ? "GEMINI_API_KEY" : `GEMINI_API_KEY_${keyIndex}`;
+    
+    try {
+      logger.log(`🔑 Using ${keyName} (key ${keyIndex + 1}/${apiKeys.length})`);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash-001" });
 
     // Format angles for the prompt
     const anglesFormatted = angles.map(angle => `- ${angle}`).join('\n');
@@ -498,9 +518,67 @@ ADDITIONAL RULES:
 
 - No smart quotes; use standard ASCII quotes only.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const responseText = response.text().trim();
+      // Log prompt length for debugging
+      const promptLength = prompt.length;
+      logger.log(`📝 Generating blog - Prompt length: ${promptLength} chars, Article title: ${articleTitle.substring(0, 50)}...`);
+
+      let result;
+      let response;
+      let responseText;
+      
+      try {
+        result = await model.generateContent(prompt);
+        response = await result.response;
+        responseText = response.text().trim();
+        
+        logger.log(`✅ API response received - Response length: ${responseText.length} chars`);
+      } catch (apiError: any) {
+        const apiErrorDetails = {
+          message: apiError?.message || "Unknown API error",
+          status: apiError?.status || apiError?.response?.status || "N/A",
+          statusText: apiError?.statusText || apiError?.response?.statusText || "N/A",
+          code: apiError?.code || "N/A",
+          cause: apiError?.cause || "N/A",
+          promptLength,
+          articleTitle: articleTitle.substring(0, 100),
+          keyName,
+          keyIndex: keyIndex + 1,
+        };
+        
+        logger.warn(`⚠️  ${keyName} failed:`, apiErrorDetails);
+        
+        // If rate limited (429) or service unavailable (503), try next key
+        if (apiError?.status === 429 || apiError?.response?.status === 429) {
+          logger.log(`⏭️  Rate limit on ${keyName}, trying next key...`);
+          lastError = apiError;
+          continue; // Try next key
+        } else if (apiError?.status === 503 || apiError?.response?.status === 503) {
+          logger.log(`⏭️  Service unavailable on ${keyName}, trying next key...`);
+          lastError = apiError;
+          continue; // Try next key
+        } else {
+          // For other errors (400, 401, etc.), throw immediately
+          logger.error(`❌ ${keyName} failed with non-retryable error:`, apiErrorDetails);
+          if (apiError?.status === 400 || apiError?.response?.status === 400) {
+            throw new Error(`Bad request. Check prompt length (${promptLength} chars) or content. Status: 400`);
+          } else if (apiError?.status === 401 || apiError?.response?.status === 401) {
+            throw new Error(`Unauthorized. Check API key configuration. Status: 401`);
+          } else {
+            throw new Error(`API error: ${apiErrorDetails.message}. Status: ${apiErrorDetails.status}`);
+          }
+        }
+      }
+      
+      // Check if response is empty
+      if (!responseText || responseText.trim().length === 0) {
+        logger.error("❌ API returned empty response", {
+          responseLength: responseText?.length || 0,
+          promptLength,
+          articleTitle: articleTitle.substring(0, 100),
+          keyName,
+        });
+        throw new Error("API returned empty response. This may indicate a content filtering issue or API error.");
+      }
 
     // Try to extract JSON from the response
     let parsedResponse;
@@ -514,25 +592,36 @@ ADDITIONAL RULES:
       }
     } catch (parseError) {
       // If JSON parsing fails, try regex extraction
-      logger.warn("Failed to parse AI response as JSON, trying regex extraction:", parseError);
+      const parseErrorDetails = {
+        message: parseError instanceof Error ? parseError.message : "Unknown parse error",
+        responseTextLength: responseText.length,
+        responseTextPreview: responseText.substring(0, 500),
+        promptLength,
+        articleTitle: articleTitle.substring(0, 100),
+      };
+      
+      logger.warn("⚠️ Failed to parse AI response as JSON, trying regex extraction:", parseErrorDetails);
       
       const titleMatch = responseText.match(/"title":\s*"([^"]+)"/);
       const contentMatch = responseText.match(/"content":\s*"([^"]+)"/);
       const tagsMatch = responseText.match(/"tags":\s*\[([^\]]+)\]/);
 
       if (titleMatch && contentMatch) {
+        logger.log("✅ Successfully extracted content using regex fallback");
         parsedResponse = {
           title: titleMatch[1],
           content: contentMatch[1].replace(/\\n/g, "\n"),
           tags: tagsMatch ? tagsMatch[1].split(",").map((t: string) => t.trim().replace(/"/g, "")) : [],
         };
       } else {
-        // Last resort: create fallback response
-        parsedResponse = {
-          title: articleTitle,
-          content: `# ${articleTitle}\n\n${articleContent}\n\n## Analysis\n\nThis article discusses important insights that can be expanded into a comprehensive blog post.`,
-          tags: ["technology", "insights"],
-        };
+        logger.error("❌ Failed to extract content even with regex fallback", {
+          hasTitleMatch: !!titleMatch,
+          hasContentMatch: !!contentMatch,
+          hasTagsMatch: !!tagsMatch,
+          responseTextPreview: responseText.substring(0, 1000),
+        });
+        // Don't create fallback - throw error instead so we know something is wrong
+        throw new Error(`Failed to parse AI response. JSON parsing failed: ${parseErrorDetails.message}. Response preview: ${responseText.substring(0, 200)}...`);
       }
     }
 
@@ -545,21 +634,46 @@ ADDITIONAL RULES:
       ? parsedResponse.tags.split(",").map((t: string) => t.trim()).slice(0, 5)
       : [];
 
-    return {
-      title,
-      content,
-      tags,
-    };
-  } catch (error) {
+      return {
+        title,
+        content,
+        tags,
+      };
+    } catch (parseError) {
+      // JSON parsing errors - don't retry with different key, this is a response format issue
+      logger.error(`❌ JSON parsing failed on ${keyName}:`, parseError);
+      throw parseError;
+    }
+  }
+  
+  // If we get here, all keys failed with rate limits
+  if (lastError) {
+    const errorMessage = lastError?.status === 429 
+      ? `All API keys rate limited. Please try again later. Last error: Rate limit exceeded (429)`
+      : `All API keys failed. Last error: ${lastError?.message || "Unknown error"}`;
+    logger.error("❌ All API keys exhausted:", {
+      keysTried: apiKeys.length,
+      lastError: lastError?.message,
+      lastStatus: lastError?.status,
+    });
+    throw new Error(errorMessage);
+  }
+  
+  throw new Error("No API keys available");
+} catch (error) {
     const errorDetails = {
       message: error instanceof Error ? error.message : "Unknown error",
       type: error instanceof Error ? error.constructor.name : "Unknown",
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : undefined, // Limit stack trace
       articleTitle: articleTitle.substring(0, 100), // Truncate for logging
+      articleContentLength: articleContent.length,
       anglesCount: angles.length,
+      angles: angles,
     };
-    logger.error("Error generating blog from article:", errorDetails);
-    return null;
+    logger.error("❌ Error generating blog from article:", errorDetails);
+    
+    // Re-throw the error so it can be caught and logged with more context upstream
+    throw new Error(`Blog generation failed: ${errorDetails.message}. Article: "${articleTitle.substring(0, 50)}...", Content length: ${articleContent.length} chars, Angles: ${angles.length}`);
   }
 }
 
@@ -798,21 +912,40 @@ export async function generateBlogNewsContent({
 
     // 2. Generate blog from article with angles
     logger.log(`✍️ Generating blog from article with ${angles.length} angles`);
-    const blog = await generateBlogFromArticle(
-      article.title,
-      article.content,
-      angles
-    );
+    let blog;
+    try {
+      blog = await generateBlogFromArticle(
+        article.title,
+        article.content,
+        angles
+      );
+      if (blog) {
+        logger.log(`✅ Blog generated: ${blog.title.substring(0, 50)}...`);
+      }
+    } catch (blogError) {
+      const errorMessage = blogError instanceof Error 
+        ? blogError.message 
+        : `Failed to generate blog from article "${article.title.substring(0, 50)}...". Unknown error occurred.`;
+      logger.error(`❌ Blog generation error:`, {
+        error: errorMessage,
+        articleTitle: article.title.substring(0, 100),
+        articleContentLength: article.content.length,
+        anglesCount: angles.length,
+      });
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
 
     if (!blog) {
-      const errorMessage = `Failed to generate blog from article "${article.title.substring(0, 50)}...". AI generation returned null. Check API key, rate limits, or content length.`;
+      const errorMessage = `Failed to generate blog from article "${article.title.substring(0, 50)}...". AI generation returned null. This should not happen - the function should throw an error instead of returning null.`;
       logger.error(errorMessage);
       return {
         success: false,
         message: errorMessage,
       };
     }
-    logger.log(`✅ Blog generated: ${blog.title.substring(0, 50)}...`);
 
     // Add source article info (including articleId for duplicate detection)
     blog.sourceArticle = {
