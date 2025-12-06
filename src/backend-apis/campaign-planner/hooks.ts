@@ -32,7 +32,7 @@ export const useCampaignPlanner = () => {
       campaignName: string;
       plan: CampaignPlanner;
       platforms?: string[];
-      blogNewsMetadata?: { topics: string[]; angle: string; webhook: string; targetAudience?: string; productRelated?: boolean };
+      blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; targetAudience?: string; productRelated?: boolean };
     }) =>
       startCampaignPlanner(
         id,
@@ -214,15 +214,15 @@ export const useGenerateBlogNewsContent = () => {
       campaignId,
       day,
       topics,
-      angle,
+      angles,
       webhook,
     }: {
       campaignId: string;
       day: number;
       topics: string[];
-      angle: string;
+      angles: string[];
       webhook: string;
-    }) => generateBlogNewsContent({ campaignId, day, topics, angle, webhook }),
+    }) => generateBlogNewsContent({ campaignId, day, topics, angles, webhook }),
 
     onSuccess: (result, variables) => {
       if (result.success) {
@@ -230,8 +230,13 @@ export const useGenerateBlogNewsContent = () => {
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner"],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["session"],
+        });
       } else {
         toast.error(result.message || "Failed to generate blog content");
+        // Note: insufficientCoins handling should be done in the component
+        // by checking result.insufficientCoins and showing pricing modal
       }
     },
     onError: (error) => {

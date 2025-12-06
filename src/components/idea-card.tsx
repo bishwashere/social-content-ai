@@ -12,7 +12,7 @@ interface IdeaCardProps {
 
 export function IdeaCard({ idea, featured = false }: IdeaCardProps) {
   const cardClass = featured
-    ? "group hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-background to-muted/20"
+    ? "group hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 shadow-md"
     : "group hover:shadow-lg transition-all duration-300"
 
   // Calculate reading time (approximate)

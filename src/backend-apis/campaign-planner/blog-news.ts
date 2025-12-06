@@ -7,7 +7,7 @@ import axios from "axios";
 
 export type BlogNewsMetadata = {
   topics: string[];
-  angle: string;
+  angles: string[];
   webhook: string;
   targetAudience?: string;
   productRelated?: boolean;
@@ -43,9 +43,11 @@ export async function getBlogNewsMetadataFromCampaign(
       return null;
     }
 
+    // Handle backward compatibility: if angle exists, convert to angles array
+    const angles = metadata.angles || (metadata.angle ? [metadata.angle] : []);
     return {
       topics: metadata.topics || [],
-      angle: metadata.angle || "",
+      angles: angles,
       webhook: metadata.webhook || "",
       targetAudience: metadata.targetAudience || campaign.targetAudience,
       productRelated: metadata.productRelated ?? true,
@@ -246,41 +248,108 @@ async function fetchArticleForTopics(
 async function generateBlogFromArticle(
   articleTitle: string,
   articleContent: string,
-  angle: string
+  angles: string[]
 ): Promise<GeneratedBlog | null> {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash-001" });
 
-    const prompt = `You are an expert content writer. Write a comprehensive blog post based on the following article.
+    // Format angles for the prompt
+    const anglesFormatted = angles.map(angle => `- ${angle}`).join('\n');
+
+    const prompt = `You are an expert content writer. Write a comprehensive MDX-formatted blog post using multiple perspectives based on the article below. You MUST follow all formatting rules because the output will be parsed programmatically.
+
+
 
 Article Title: ${articleTitle}
 
+
+
 Article Content:
+
+
+
 ${articleContent}
 
-Writing Angle: ${angle}
 
-Requirements:
-1. Create an engaging blog title (max 80 characters)
-2. Write a comprehensive blog post (800-1200 words) with proper structure:
-   - Introduction that hooks the reader
-   - Main body with clear sections and subheadings
-   - Conclusion that ties everything together
-3. Use the writing angle provided to shape the narrative
-4. Write in MDX format (Markdown Extended) with proper headings, paragraphs, and lists
-5. Make it informative, well-researched, and engaging
-6. Include 3-5 relevant tags as a JSON array
 
-Output strictly in raw JSON only (no markdown, no backticks, no explanation):
+Primary Topic Angles To Cover (write full sections for each):
+
+
+
+${anglesFormatted}
+
+
+
+REQUIREMENTS:
+
+
+
+1. Create an engaging blog title (max 80 characters).
+
+
+
+2. Write a detailed blog post (900-1300 words) with:
+
+   - A compelling introduction that hooks the reader
+
+   - Multiple clearly separated angle sections using MDX headings (##, ###)
+
+   - For EACH angle above, create its OWN section. Use the angle text as the section heading or clearly include it in the first heading line.
+
+   - Provide analysis, reasoning, and examples in each angle section
+
+   - Use lists or bullet points when useful
+
+   - A concluding section that unifies all perspectives into a clear takeaway
+
+
+
+3. Write in valid MDX only (no code blocks, no backticks).
+
+
+
+4. Escape ALL double quotes in the "content" value.
+
+
+
+5. Include 3-5 relevant tags in the "tags" array.
+
+
+
+6. Output MUST be strictly raw JSON ONLY, following this structure exactly:
+
+
 
 {
+
   "title": "Blog Title Here",
-  "content": "MDX formatted article with proper headings, paragraphs, and lists. Escape all quotes so JSON remains valid.",
-  "tags": ["tag1", "tag2", "tag3"]
+
+  "content": "MDX formatted article with escaped quotes. Use \\n for line breaks.",
+
+  "tags": ["tag1","tag2","tag3"]
+
 }
 
-Important: Escape all quotes in the content field so the JSON remains valid. Avoid stray backticks or unescaped characters that break JSON.`;
+
+
+ADDITIONAL RULES:
+
+
+
+- Output exactly ONE JSON object.
+
+- No explanations.
+
+- No text outside the JSON.
+
+- No additional fields or keys beyond title, content, and tags.
+
+- No trailing commas.
+
+- No unescaped line breaks; use \\n inside JSON string values.
+
+- No smart quotes; use standard ASCII quotes only.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -469,16 +538,64 @@ export async function generateBlogNewsContent({
   campaignId,
   day,
   topics,
-  angle,
+  angles,
   webhook,
 }: {
   campaignId: string;
   day: number;
   topics: string[];
-  angle: string;
+  angles: string[];
   webhook: string;
-}): Promise<{ success: boolean; message: string; blog?: GeneratedBlog }> {
+}): Promise<{ success: boolean; message: string; blog?: GeneratedBlog; insufficientCoins?: boolean }> {
   try {
+    // Get campaign to access project and userId
+    const campaign = await prisma.campaignPlanner.findFirst({
+      where: { id: campaignId },
+      include: {
+        project: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!campaign) {
+      return {
+        success: false,
+        message: "Campaign not found",
+      };
+    }
+
+    if (!campaign.project) {
+      return {
+        success: false,
+        message: "Project not found for this campaign",
+      };
+    }
+
+    // Get user to check coins
+    const user = await prisma.user.findUnique({
+      where: { id: campaign.project.userId },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+      };
+    }
+
+    // Check if user has enough coins (3 coins per blog generation)
+    const requiredCoins = 3;
+    if (user.remainingChatGenerations < requiredCoins) {
+      return {
+        success: false,
+        message: `You need ${requiredCoins} coins to generate a blog post.`,
+        insufficientCoins: true,
+      };
+    }
+
     // 1. Fetch article from Olive Drift API (with duplicate detection)
     const article = await fetchArticleForTopics(topics, campaignId);
     if (!article) {
@@ -488,11 +605,11 @@ export async function generateBlogNewsContent({
       };
     }
 
-    // 2. Generate blog from article with angle
+    // 2. Generate blog from article with angles
     const blog = await generateBlogFromArticle(
       article.title,
       article.content,
-      angle
+      angles
     );
 
     if (!blog) {
@@ -550,6 +667,16 @@ export async function generateBlogNewsContent({
       data: {
         contents: blogContent,
         status: "GENERATED",
+      },
+    });
+
+    // Deduct coins after successful blog generation and saving (3 coins per blog)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        remainingChatGenerations: {
+          decrement: requiredCoins,
+        },
       },
     });
 

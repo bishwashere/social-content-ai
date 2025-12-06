@@ -13,7 +13,7 @@ export const startCampaignPlanner = async (
   plan: CampaignPlanner,
   userId: string,
   platforms: string[],
-  blogNewsMetadata?: { topics: string[]; angle: string; webhook: string; targetAudience?: string; productRelated?: boolean }
+  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; targetAudience?: string; productRelated?: boolean }
 ) => {
   const chatData: {
     title: string;
@@ -94,7 +94,7 @@ export const startCampaignPlanner = async (
             ...existingContents,
             _blogNewsMetadata: {
               topics: blogNewsMetadata.topics,
-              angle: blogNewsMetadata.angle,
+              angles: blogNewsMetadata.angles,
               webhook: blogNewsMetadata.webhook,
               targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
               productRelated: blogNewsMetadata.productRelated ?? true,
@@ -135,7 +135,7 @@ export const startCampaignPlanner = async (
         contents: {
           _blogNewsMetadata: {
             topics: blogNewsMetadata.topics,
-            angle: blogNewsMetadata.angle,
+            angles: blogNewsMetadata.angles,
             webhook: blogNewsMetadata.webhook,
             targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
             productRelated: blogNewsMetadata.productRelated ?? true,
@@ -450,7 +450,7 @@ export const changeCampaignData = async (
   autoPostEnabled?: boolean,
   autoPostTime?: string,
   autoPostPlatforms?: string[],
-  blogNewsMetadata?: { topics: string[]; angle: string; webhook: string }
+  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string }
 ): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
@@ -800,7 +800,7 @@ export const scheduleCampaignTasks = async ({
         scheduledTime: chatDate.toISOString(),
         // Additional metadata can be stored here
         topics: [], // Will be populated from campaign metadata
-        angle: "", // Will be populated from campaign metadata
+        angles: [], // Will be populated from campaign metadata
         webhook: "", // Will be populated from campaign metadata
       });
 

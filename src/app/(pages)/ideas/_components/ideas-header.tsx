@@ -3,6 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Button } from "@/components/ui/button"
 
 export function IdeasHeader() {
   return (
@@ -25,7 +26,12 @@ export function IdeasHeader() {
           <span className="text-muted-foreground mx-2">/</span>
           <span className="text-muted-foreground">Ideas</span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/project">Go to Dashboard</Link>
+          </Button>
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   )

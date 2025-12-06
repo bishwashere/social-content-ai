@@ -54,7 +54,6 @@ import { SavePlatformCard } from "./save-platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { Switch } from "@/components/ui/switch";
 import { TimePickerDialog } from "@/components/common/time-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
 export const PLATFORMS = [
@@ -82,21 +81,26 @@ Description: ${str}
 `;
 
 const BLOG_NEWS_ANGLES = [
-  "Industry Shift",
-  "Hidden Insight",
-  "Practical Breakdown",
-  "Trend Watch",
-  "Strategic Angle",
-  "Contrarian View",
-  "Opportunity Lens",
-  "Risk Angle",
-  "User-Impact Angle",
-  "Simplified Explanation",
-  "Founder's Perspective",
-  "Market Ripple Effect",
-  "Tech Impact Angle",
-  "Narrative Reset",
-  "Practical Playbook"
+  "Economic Reality Angle",
+  "Market Dynamics Angle",
+  "Innovation Constraint Angle",
+  "Risk & Bubble Angle",
+  "Enterprise Productivity Angle",
+  "Builder/Creator Angle",
+  "Startup Opportunity Angle",
+  "Sustainability Angle",
+  "Regulatory Angle",
+  "Human Impact Angle",
+  "Future Forecast Angle",
+  "Tech Infrastructure Angle",
+  "Adoption Reality Angle",
+  "Strategic Pivot Angle",
+  "Operational Efficiency Angle",
+  "Narrative Shift Angle",
+  "Contrarian Angle",
+  "Psychology of Hype Angle",
+  "System-Level Angle",
+  "User-Centric Angle"
 ];
 
 type Props = {
@@ -117,7 +121,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [productRelated, setProductRelated] = useState(true);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState<string>("");
-  const [selectedAngle, setSelectedAngle] = useState<string>("");
+  const [selectedAngles, setSelectedAngles] = useState<string[]>([]);
   const [webhook, setWebhook] = useState<string>("");
   const [isCalenderOpen, setIsCalenderOpen] = useState<string[]>([]);   // array of ids
   const updateCampaignData = useChangeCampaignData();
@@ -139,7 +143,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const generateBlogNews = useGenerateBlogNewsContent();
   const retryWebhook = useRetryWebhook();
   // Store Blog News metadata for each campaign (temporary until we add schema fields)
-  const [blogNewsMetadata, setBlogNewsMetadata] = useState<Record<string, { topics: string[]; angle: string; webhook: string }>>({});
+  const [blogNewsMetadata, setBlogNewsMetadata] = useState<Record<string, { topics: string[]; angles: string[]; webhook: string }>>({});
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
@@ -148,7 +152,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   // Load metadata from database when campaigns load
   useEffect(() => {
     if (campaignPlannerData.data?.chatsGroupedByCampaign) {
-      const metadata: Record<string, { topics: string[]; angle: string; webhook: string }> = {};
+      const metadata: Record<string, { topics: string[]; angles: string[]; webhook: string }> = {};
       
       for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
         if (campaign.goal === "Blog News" && campaign.chats.length > 0) {
@@ -157,9 +161,11 @@ export default function CampaignPlannerPage({ project }: Props) {
           const storedMetadata = contents?._blogNewsMetadata;
           
           if (storedMetadata) {
+            // Handle backward compatibility: if angle exists, convert to angles array
+            const angles = storedMetadata.angles || (storedMetadata.angle ? [storedMetadata.angle] : []);
             metadata[campaign.id] = {
               topics: storedMetadata.topics || [],
-              angle: storedMetadata.angle || "",
+              angles: angles,
               webhook: storedMetadata.webhook || "",
             };
           }
@@ -188,8 +194,8 @@ export default function CampaignPlannerPage({ project }: Props) {
         toast.error("Please add at least one topic!");
         return;
       }
-      if (!selectedAngle) {
-        toast.error("Please select an angle!");
+      if (selectedAngles.length === 0) {
+        toast.error("Please select at least one angle!");
         return;
       }
       if (!webhook.trim()) {
@@ -250,7 +256,7 @@ export default function CampaignPlannerPage({ project }: Props) {
         ...(selectedGoal === "blog-news" ? {
           blogNewsMetadata: {
             topics,
-            angle: selectedAngle,
+            angles: selectedAngles,
             webhook,
             targetAudience: intensityPlan.targetAudience || "Moderate",
             productRelated,
@@ -264,7 +270,7 @@ export default function CampaignPlannerPage({ project }: Props) {
           ...blogNewsMetadata,
           [d.id]: {
             topics,
-            angle: selectedAngle,
+            angles: selectedAngles,
             webhook,
           }
         });
@@ -431,10 +437,10 @@ export default function CampaignPlannerPage({ project }: Props) {
               value={selectedGoal || ""}
               onValueChange={(value) => {
                 setSelectedGoal(value);
-                // Reset topics, angle, and webhook when goal changes
+                // Reset topics, angles, and webhook when goal changes
                 if (value !== "blog-news") {
                   setTopics([]);
-                  setSelectedAngle("");
+                  setSelectedAngles([]);
                   setWebhook("");
                 }
               }}
@@ -531,19 +537,46 @@ export default function CampaignPlannerPage({ project }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold mb-2">Angle:</h2>
-                  <Select value={selectedAngle} onValueChange={setSelectedAngle}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select an angle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BLOG_NEWS_ANGLES.map((angle) => (
-                        <SelectItem key={angle} value={angle}>
+                  <h2 className="text-xl font-semibold mb-2">Angles:</h2>
+                  <div className="border rounded-lg p-4 flex flex-wrap gap-3">
+                    {BLOG_NEWS_ANGLES.map((angle) => (
+                      <div key={angle} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`angle-${angle}`}
+                          checked={selectedAngles.includes(angle)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAngles([...selectedAngles, angle]);
+                            } else {
+                              setSelectedAngles(selectedAngles.filter(a => a !== angle));
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`angle-${angle}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer whitespace-nowrap"
+                        >
                           {angle}
-                        </SelectItem>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedAngles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedAngles.map((angle) => (
+                        <Badge key={angle} variant="secondary" className="flex items-center gap-1">
+                          {angle}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAngles(selectedAngles.filter(a => a !== angle))}
+                            className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1152,17 +1185,26 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 
                                                 const yes = await confirm({
                                                   title: `Generate blog for Day ${timeline.day}?`,
-                                                  description: `This will fetch an article and generate a blog with the selected angle.`
+                                                  description: `This will fetch an article and generate a blog with the selected angles. This will use 3 coins.`
                                                 });
                                                 if (!yes) return;
                                                 
-                                                generateBlogNews.mutate({
-                                                  campaignId: campaign.id,
-                                                  day: timeline.day,
-                                                  topics: metadata.topics,
-                                                  angle: metadata.angle,
-                                                  webhook: metadata.webhook,
-                                                });
+                                                generateBlogNews.mutate(
+                                                  {
+                                                    campaignId: campaign.id,
+                                                    day: timeline.day,
+                                                    topics: metadata.topics,
+                                                    angles: metadata.angles,
+                                                    webhook: metadata.webhook,
+                                                  },
+                                                  {
+                                                    onSuccess: (result) => {
+                                                      if (!result.success && result.insufficientCoins) {
+                                                        handleCoinsFinished();
+                                                      }
+                                                    },
+                                                  }
+                                                );
                                               }}
                                               loading={Boolean(generateBlogNews.isPending && generateBlogNews.variables?.day === timeline.day)}
                                               disabled={generateBlogNews.isPending}

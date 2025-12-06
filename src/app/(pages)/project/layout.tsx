@@ -10,6 +10,7 @@ import { DashboardTour } from "@/components/common/dashboard-tour";
 import { NavigationTour } from "@/components/common/navigation-tour";
 import { FoldersTour } from "@/components/common/folders-tour";
 import { ProjectsTour } from "@/components/common/projects-tour";
+import { Footer } from "./_components/footer";
 
 export default function ProjectLayout({
   children,
@@ -115,6 +116,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
         <main className="">
           {children}
         </main>
+        <Footer />
       </div>
       <DashboardTour
         isOpen={showTour}
