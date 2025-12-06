@@ -17,12 +17,49 @@ export const dynamic = "force-dynamic";
  */
 export const GET = applyMiddleware(
   catchApiAsyncError(async () => {
+    const now = new Date();
     console.log("🔍 Finding pending scheduled posts");
+    console.log(`⏰ Current time (UTC): ${now.toISOString()}`);
+    console.log(`⏰ Current time (local): ${now.toLocaleString()}`);
+    console.log(`⏰ Current time (EST): ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}`);
+    
+    // Query for pending posts
+    // Use a slightly more lenient date range to account for potential timezone issues
+    // Check for posts scheduled up to 1 hour in the future (to catch edge cases)
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    console.log(`⏰ Query range: up to ${oneHourFromNow.toISOString()}`);
+    
     const pending = await prisma.scheduledPost.findMany({
       where: {
         status: "pending",
         date: {
-          lte: new Date(),
+          lte: oneHourFromNow, // Slightly more lenient to catch timezone edge cases
+        },
+      },
+      include: {
+        project: {
+          include: {
+            projectToOAuthProviders: {
+              include: {
+                oauthProvider: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    
+    // Filter in JavaScript to ensure we only process truly past-due posts
+    const pendingPastDue = pending.filter(p => new Date(p.date) <= now);
+
+    // Also query for "processing" webhook/blog-news posts that are past due
+    // (in case they got stuck from a previous cron run)
+    const processingWebhook = await prisma.scheduledPost.findMany({
+      where: {
+        status: "processing",
+        platform: "webhook",
+        date: {
+          lte: oneHourFromNow, // Use same lenient range
         },
       },
       include: {
@@ -38,15 +75,27 @@ export const GET = applyMiddleware(
       },
     });
 
-    console.log(`📊 Found ${pending.length} pending posts`);
+    // Filter processing posts to only include blog-news type and truly past-due
+    const processingBlogNews = processingWebhook.filter((p) => {
+      const meta = p.meta as any;
+      const isBlogNews = meta?.type === "blog-news";
+      const isPastDue = new Date(p.date) <= now;
+      return isBlogNews && isPastDue;
+    });
+
+    console.log(`📊 Found ${pending.length} pending posts (query), ${pendingPastDue.length} are past due`);
+    console.log(`📊 Found ${processingBlogNews.length} processing blog-news posts (stuck)`);
+    
+    // Combine pending and stuck processing posts
+    const allPostsToProcess = [...pendingPastDue, ...processingBlogNews];
     
     // Separate Blog News posts from regular posts
-    const blogNewsPosts = pending.filter((p) => {
+    const blogNewsPosts = allPostsToProcess.filter((p) => {
       const meta = p.meta as any;
       return p.platform === "webhook" || meta?.type === "blog-news";
     });
     
-    const regularPosts = pending.filter((p) => {
+    const regularPosts = allPostsToProcess.filter((p) => {
       const meta = p.meta as any;
       return p.platform !== "webhook" && meta?.type !== "blog-news";
     });
@@ -63,6 +112,53 @@ export const GET = applyMiddleware(
     console.log(`📘 Found ${linkedinPosts.length} Linkedin posts to process`);
     console.log(`🧵 Found ${threadsPosts.length} Threads posts to process`);
     console.log(`📘 Found ${redditPosts.length} Reddit posts to process`);
+    
+    // Debug: Log sample of posts that should be processed
+    if (allPostsToProcess.length > 0) {
+      console.log(`\n🔍 Sample of posts to process (first 3):`);
+      allPostsToProcess.slice(0, 3).forEach((post, idx) => {
+        const meta = post.meta as any;
+        const postDate = new Date(post.date);
+        const timeDiff = Math.round((now.getTime() - postDate.getTime()) / 1000 / 60);
+        console.log(`   ${idx + 1}. ID: ${post.id.substring(0, 12)}..., Platform: ${post.platform}, Status: ${post.status}`);
+        console.log(`      Date (ISO): ${post.date.toISOString()}, Date (Local): ${postDate.toLocaleString()}`);
+        console.log(`      Time diff: ${timeDiff} minutes ${timeDiff >= 0 ? 'ago' : 'in future'}`);
+        console.log(`      Campaign: ${meta?.campaignId || 'N/A'}, Day: ${meta?.day || 'N/A'}`);
+      });
+    } else {
+      console.log(`\n⚠️  No posts found to process.`);
+      // Lightweight check - only count, don't fetch
+      const anyPending = await prisma.scheduledPost.count({
+        where: { status: "pending" },
+      });
+      console.log(`   Total pending posts (any date): ${anyPending}`);
+      
+      if (anyPending > 0) {
+        // Try a more lenient query - check posts from the last 24 hours
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const recentPending = await prisma.scheduledPost.findMany({
+          where: {
+            status: "pending",
+            date: {
+              gte: yesterday,
+              lte: now,
+            },
+          },
+          select: { id: true, date: true, platform: true, meta: true },
+          take: 5,
+        });
+        
+        if (recentPending.length > 0) {
+          console.log(`   ⚠️  Found ${recentPending.length} pending posts in last 24h that should be processed`);
+          recentPending.forEach((post, idx) => {
+            const meta = post.meta as any;
+            const postDate = new Date(post.date);
+            const timeDiff = Math.round((now.getTime() - postDate.getTime()) / 1000 / 60);
+            console.log(`      ${idx + 1}. Date: ${postDate.toISOString()} (${timeDiff} min ago), Platform: ${post.platform}, Campaign: ${meta?.campaignId || 'N/A'}`);
+          });
+        }
+      }
+    }
 
     // Process Blog News posts first
     const blogNewsResults = await Promise.all(
