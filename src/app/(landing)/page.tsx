@@ -137,7 +137,7 @@ export default function HomeV3() {
                   "Go beyond posts — map out your entire promotional journey with timelines and goals tailored to your product.",
               },
               {
-                title: "Smart Content Planner",
+                title: "Smart Calendar",
                 content:
                   "Schedule content and get timely reminders to stay visible and consistent across platforms.",
               },

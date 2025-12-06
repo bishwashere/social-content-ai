@@ -25,12 +25,12 @@ const NAVIGATION_STEPS = {
     icon: PlusCircle,
   },
   forYou: {
-    name: "For You",
+    name: "Spotlight",
     description: "Discover curated content and trending posts tailored to your interests. Get personalized recommendations for your content strategy.",
     icon: Newspaper,
   },
   contentPlanner: {
-    name: "Content Planner",
+    name: "Calendar",
     description: "Plan and schedule your content. Track what you've posted along with dates to help you plan future posts with the calendar view.",
     icon: Calendar,
   },
@@ -41,7 +41,7 @@ const NAVIGATION_STEPS = {
   },
   template: {
     name: "Templates",
-    description: "Browse and use pre-made templates to quickly create content. Templates help you maintain consistency across your posts. (under development)",
+    description: "Browse and use pre-made templates to quickly create content. Templates help you maintain consistency across your posts.",
     icon: Layers,
   },
   videoMaker: {

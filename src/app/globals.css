@@ -167,3 +167,8 @@ body {
   max-width: 100% !important;
   width: 100% !important;
 }
+
+/* Focus view: Show only 3 weeks (current week, 1 before, 1 after) */
+.focus-view-3weeks .rbc-month-view .rbc-month-row:nth-child(n+4) {
+  display: none !important;
+}

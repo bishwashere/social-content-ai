@@ -107,7 +107,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
               <AddProjectButton />
             </div>
             
-            {/* For You Link */}
+            {/* Spotlight Link */}
           <div
             ref={(el) => {
               if (elementRefs && el) {
@@ -130,12 +130,12 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                     }`}
                   >
                     <Newspaper className="h-4 w-4" />
-                    {sidebar.open && <span className="ml-2">For You</span>}
+                    {sidebar.open && <span className="ml-2">Spotlight</span>}
                   </Link>
                 </TooltipTrigger>
                 {!sidebar.open && (
                   <TooltipContent side="right">
-                    For You
+                    Spotlight
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -165,12 +165,12 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                     }`}
                   >
                     <Calendar className="h-4 w-4" />
-                    {sidebar.open && <span className="ml-2">Content Planner</span>}
+                    {sidebar.open && <span className="ml-2">Calendar</span>}
                   </Link>
                 </TooltipTrigger>
                 {!sidebar.open && (
                   <TooltipContent side="right">
-                    Content Planner
+                    Calendar
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -236,16 +236,13 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                   >
                     <Layers className="h-4 w-4" />
                     {sidebar.open && (
-                      <span className="ml-2 flex flex-col">
-                        <span>Templates</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">(under development)</span>
-                      </span>
+                      <span className="ml-2">Templates</span>
                     )}
                   </Link>
                 </TooltipTrigger>
                 {!sidebar.open && (
                   <TooltipContent side="right">
-                    Templates (under development)
+                    Templates
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -324,7 +321,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           
           {/* What's this? button */}
           {onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end mt-2 w-full">
+            <div className="flex justify-end mt-2 w-full hidden md:flex">
               <button
                 onClick={onNavigationTourStart}
                 className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"

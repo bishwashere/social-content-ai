@@ -94,7 +94,7 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
             {onTourStart && data?.user && (settings?.guidedTourEnabled ?? true) && (
               <button
                 onClick={onTourStart}
-                className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+                className="ml-2 text-xs text-gray-500 hover:text-gray-700 hidden md:inline"
               >
                 Gimme a quick tour
               </button>

@@ -6,7 +6,7 @@ import {
   dateFnsLocalizer,
   ToolbarProps,
 } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, addDays } from "date-fns";
+import { format, parse, startOfWeek, getDay, addDays, subWeeks, endOfWeek } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,6 +26,9 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales,
 });
+
+// Custom 3-week "Focus" view - create a proper view object
+// We'll create this inside the component to access localizer
 
 type MyEvent = {
   title: string;
@@ -233,8 +236,33 @@ function CustomToolbar({ label, onNavigate, date }: ToolbarProps<MyEvent>) {
 
 export default function CalendarView() {
   const [date, setDate] = useState(new Date());
-  const [view, setView] = useState("month");
+  const [view, setView] = useState("focus");
   const [calendarHeight, setCalendarHeight] = useState(1050);
+
+  // Create custom 3-week "Focus" view
+  // Calculate the date range for 3 weeks: 1 week before, current week, 1 week after
+  const focusViewRange = useMemo(() => {
+    if (view !== "focus") return null;
+    
+    // Get the start of the current week (Sunday) based on the current date
+    const currentWeekStart = startOfWeek(date, { weekStartsOn: 0 });
+    // Go back one week for the start
+    const start = subWeeks(currentWeekStart, 1);
+    // Go forward 2 weeks from start (total 3 weeks: previous, current, next)
+    const end = endOfWeek(addDays(start, 20), { weekStartsOn: 0 });
+    
+    return { start, end };
+  }, [date, view]);
+
+  // Calculate the date to pass to calendar for focus view
+  // Use the current date (middle of the 3-week range) so it shows the correct month
+  const focusDate = useMemo(() => {
+    if (view === "focus") {
+      // Return the current date (which is in the middle week) so the month view shows the correct month
+      return date;
+    }
+    return date;
+  }, [date, view]);
 
   // Initialize filter states from localStorage or defaults
   const [showScheduled, setShowScheduled] = useState(true); // Default to true
@@ -545,16 +573,22 @@ export default function CalendarView() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setView("month")}
-            className={`px-3 py-1 text-sm rounded transition ${view === "month" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+            onClick={() => setView("focus")}
+            className={`px-3 py-1 text-sm rounded transition ${view === "focus" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
           >
-            Month
+            Focus
           </button>
           <button
             onClick={() => setView("week")}
             className={`px-3 py-1 text-sm rounded transition ${view === "week" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
           >
             Week
+          </button>
+          <button
+            onClick={() => setView("month")}
+            className={`px-3 py-1 text-sm rounded transition ${view === "month" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+          >
+            Month
           </button>
         </div>
       </div>
@@ -568,21 +602,26 @@ export default function CalendarView() {
         Showing {events.length} events
       </div>
       {
-        //@ts-expect-error:........
         <BigCalendar<MyEvent>
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
-          date={date}
-          onNavigate={(newDate) => setDate(newDate)}
-          view={view}
-          onView={setView}
+          date={view === "focus" ? focusDate : date}
+          onNavigate={(newDate) => {
+            setDate(newDate);
+          }}
+          view={(view === "focus" ? "month" : view) as "month" | "week"}
+          onView={(newView) => {
+            // Only allow switching to week or month from the calendar itself
+            if (newView === "week" || newView === "month") {
+              setView(newView);
+            }
+          }}
           components={{
             toolbar: CustomToolbar,
             event: EventInfo,
             timeGutterHeader: () => null,
-            timeGutterCell: () => null
           }}
           views={["month", "week"]}
           formats={{
@@ -591,7 +630,9 @@ export default function CalendarView() {
               `${format(start, "MMM d")} - ${format(end, "MMM d")}`
           }}
           showAllEvents
-          className="hide-time-gutter"
+          className={`hide-time-gutter ${view === "focus" ? "focus-view-3weeks" : ""}`}
+          min={view === "focus" && focusViewRange ? focusViewRange.start : undefined}
+          max={view === "focus" && focusViewRange ? focusViewRange.end : undefined}
         />
       }
     </div>

@@ -366,7 +366,7 @@ export function GetStartedGuide() {
                   </h3>
                   <p className="text-muted-foreground mb-3">
                     Schedule your posts in advance and publish them automatically to your connected social media accounts. 
-                    Plan your content calendar and maintain a consistent posting schedule.
+                    Plan your calendar and maintain a consistent posting schedule.
                   </p>
                 </div>
                 <div className="flex-shrink-0">
