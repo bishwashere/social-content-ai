@@ -18,7 +18,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Loader2, Pencil, Play, RefreshCw, Settings, Trash, VideoIcon, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, HelpCircle, Loader2, Pencil, Play, RefreshCw, Settings, Trash, VideoIcon, X } from "lucide-react";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -55,6 +55,7 @@ import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { Switch } from "@/components/ui/switch";
 import { TimePickerDialog } from "@/components/common/time-picker";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const PLATFORMS = [
   { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" /> },
@@ -103,6 +104,29 @@ const BLOG_NEWS_ANGLES = [
   "User-Centric Angle"
 ];
 
+const ANGLE_DESCRIPTIONS: Record<string, string> = {
+  "Economic Reality Angle": "Explore whether the financial assumptions behind this trend actually hold up.",
+  "Market Dynamics Angle": "Examine how this news shifts competitive power across the industry.",
+  "Innovation Constraint Angle": "Analyze whether costs, regulations, or resources slow down progress.",
+  "Risk & Bubble Angle": "Look at the possibility of market overinvestment or corrections.",
+  "Enterprise Productivity Angle": "Focus on how businesses can use this technology for real ROI.",
+  "Builder/Creator Angle": "Interpret what this means for small teams and indie product builders.",
+  "Startup Opportunity Angle": "Identify gaps, openings, or underserved problems this news exposes.",
+  "Sustainability Angle": "Discuss long-term feasibility in terms of cost, energy, and maintenance.",
+  "Regulatory Angle": "Look at how governments, laws, or policy shifts may affect outcomes.",
+  "Human Impact Angle": "Explore how this trend affects workers, consumers, and everyday people.",
+  "Future Forecast Angle": "Project how this situation may evolve over the next 3–5 years.",
+  "Tech Infrastructure Angle": "Break down the hardware, scale, and infrastructure implications.",
+  "Adoption Reality Angle": "Evaluate what adoption looks like outside of hype cycles.",
+  "Strategic Pivot Angle": "Explain how companies should rethink their long-term strategy.",
+  "Operational Efficiency Angle": "Show how systems, pipelines, or workflows may improve.",
+  "Narrative Shift Angle": "Reframe the story around a deeper message or misunderstood truth.",
+  "Contrarian Angle": "Explore the viewpoint that challenges the mainstream interpretation.",
+  "Psychology of Hype Angle": "Analyze how hype cycles distort decisions and expectations.",
+  "System-Level Angle": "Connect this news to broader forces like geopolitics or global markets.",
+  "User-Centric Angle": "Reinterpret the news through the lens of the end user or customer."
+};
+
 type Props = {
   project: Projects;
 };
@@ -142,41 +166,10 @@ export default function CampaignPlannerPage({ project }: Props) {
   const scheduleCampaignTasks = useScheduleCampaignTasks();
   const generateBlogNews = useGenerateBlogNewsContent();
   const retryWebhook = useRetryWebhook();
-  // Store Blog News metadata for each campaign (temporary until we add schema fields)
-  const [blogNewsMetadata, setBlogNewsMetadata] = useState<Record<string, { topics: string[]; angles: string[]; webhook: string }>>({});
 
   const campaignPlannerData = useGetCampaignPlanner({
     projectId: projectId as string
   });
-
-  // Load metadata from database when campaigns load
-  useEffect(() => {
-    if (campaignPlannerData.data?.chatsGroupedByCampaign) {
-      const metadata: Record<string, { topics: string[]; angles: string[]; webhook: string }> = {};
-      
-      for (const campaign of campaignPlannerData.data.chatsGroupedByCampaign) {
-        if (campaign.goal === "Blog News" && campaign.chats.length > 0) {
-          const firstChat = campaign.chats[0];
-          const contents = firstChat.contents as Record<string, any>;
-          const storedMetadata = contents?._blogNewsMetadata;
-          
-          if (storedMetadata) {
-            // Handle backward compatibility: if angle exists, convert to angles array
-            const angles = storedMetadata.angles || (storedMetadata.angle ? [storedMetadata.angle] : []);
-            metadata[campaign.id] = {
-              topics: storedMetadata.topics || [],
-              angles: angles,
-              webhook: storedMetadata.webhook || "",
-            };
-          }
-        }
-      }
-      
-      if (Object.keys(metadata).length > 0) {
-        setBlogNewsMetadata(metadata);
-      }
-    }
-  }, [campaignPlannerData.data]);
 
   const onGenerate = async () => {
     if (!name) {
@@ -264,17 +257,10 @@ export default function CampaignPlannerPage({ project }: Props) {
         } : {})
       });
 
-      // Store Blog News metadata in state (temporary until we add schema fields)
-      if (selectedGoal === "blog-news" && d?.id) {
-        setBlogNewsMetadata({
-          ...blogNewsMetadata,
-          [d.id]: {
-            topics,
-            angles: selectedAngles,
-            webhook,
-          }
-        });
-      }
+      // Metadata is stored in database, no need to store in local state
+
+      // Refetch campaign data to show the new campaign
+      await campaignPlannerData.refetch();
 
       // Only generate content for non-Blog News campaigns
       if (selectedGoal !== "blog-news" && d?.chats && d?.chats[0]) {
@@ -418,7 +404,20 @@ export default function CampaignPlannerPage({ project }: Props) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
       {!showCampaignForm && (
-        <Button size={"xl"} className={cn(!campaignPlannerData.data?.chatsGroupedByCampaign?.length ? "static w-full mt-5" : "fixed bottom-8 right-8 !md:bg-primary/40 hover:bg-primary z-50 shadow-lg")} onClick={() => setShowCampaignForm(true)}>
+        <Button 
+          size={"xl"} 
+          className={cn(
+            "z-50 shadow-lg",
+            // Mobile/extra small: fixed position, small button in right corner
+            "fixed bottom-4 right-4 w-auto min-w-[100px]",
+            // Medium and larger screens: full width in body
+            "md:static md:w-full md:mt-5 md:right-auto md:bottom-auto",
+            !campaignPlannerData.data?.chatsGroupedByCampaign?.length 
+              ? "" 
+              : "md:bg-primary/40 hover:bg-primary"
+          )} 
+          onClick={() => setShowCampaignForm(true)}
+        >
           Plan Campaign
         </Button>
       )}
@@ -540,25 +539,32 @@ export default function CampaignPlannerPage({ project }: Props) {
                   <h2 className="text-xl font-semibold mb-2">Angles:</h2>
                   <div className="border rounded-lg p-4 flex flex-wrap gap-3">
                     {BLOG_NEWS_ANGLES.map((angle) => (
-                      <div key={angle} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`angle-${angle}`}
-                          checked={selectedAngles.includes(angle)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedAngles([...selectedAngles, angle]);
-                            } else {
-                              setSelectedAngles(selectedAngles.filter(a => a !== angle));
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={`angle-${angle}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer whitespace-nowrap"
-                        >
-                          {angle}
-                        </label>
-                      </div>
+                      <Tooltip key={angle}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`angle-${angle}`}
+                              checked={selectedAngles.includes(angle)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedAngles([...selectedAngles, angle]);
+                                } else {
+                                  setSelectedAngles(selectedAngles.filter(a => a !== angle));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`angle-${angle}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer whitespace-nowrap"
+                            >
+                              {angle}
+                            </label>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">{ANGLE_DESCRIPTIONS[angle]}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                   {selectedAngles.length > 0 && (
@@ -580,7 +586,46 @@ export default function CampaignPlannerPage({ project }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold mb-2">Webhook:</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold mb-2">Webhook:</h2>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <div className="space-y-2">
+                          <p className="font-semibold">Webhook Integration</p>
+                          <p className="text-xs">When a blog is generated, it will be sent to your webhook URL via POST request.</p>
+                          <div className="text-xs space-y-1 mt-2">
+                            <p className="font-semibold">Request Format:</p>
+                            <pre className="bg-background/50 p-2 rounded text-[10px] overflow-x-auto">
+{`{
+  "day": 1,
+  "blog": {
+    "title": "Blog Title",
+    "content": "MDX content...",
+    "tags": ["tag1", "tag2"],
+    "sourceArticle": {...}
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}`}
+                            </pre>
+                            <p className="font-semibold mt-2">Response Format (Expected):</p>
+                            <pre className="bg-background/50 p-2 rounded text-[10px] overflow-x-auto">
+{`{
+  "status": 201,
+  "data": {
+    "articleUrl": "https://yoursite.com/ideas/article-slug"
+  },
+  "message": "Idea created successfully"
+}`}
+                            </pre>
+                            <p className="text-xs mt-2">The articleUrl from your response will be saved and displayed in the campaign.</p>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Input
                     type="url"
                     value={webhook}
@@ -657,6 +702,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                 >
                   {showOldCampaigns ? "Hide old" : "Show old"}
                 </Button>
+              </div>
+            )}
+            {/* Show loading below Active Campaigns when generating campaign */}
+            {campaignPlannerMutation.isPending && (
+              <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Creating campaign...</span>
               </div>
             )}
             {(() => {
@@ -1177,15 +1229,32 @@ export default function CampaignPlannerPage({ project }: Props) {
                                               size="sm"
                                               className="border-dashed border-primary"
                                               onClick={async () => {
-                                                const metadata = blogNewsMetadata[campaign.id];
+                                                // Always fetch metadata from database
+                                                const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
+                                                const metadata = await getBlogNewsMetadataFromCampaign(campaign.id);
+                                                
                                                 if (!metadata) {
-                                                  toast.error("Blog News metadata not found. Please recreate the campaign.");
+                                                  toast.error("Blog News metadata not found. This campaign may have been created before metadata storage was implemented. Please recreate the campaign with topics, angles, and webhook URL.");
+                                                  return;
+                                                }
+                                                
+                                                // Validate metadata has required fields
+                                                if (!metadata.topics || metadata.topics.length === 0) {
+                                                  toast.error("Topics are missing from campaign metadata. Please recreate the campaign.");
+                                                  return;
+                                                }
+                                                if (!metadata.angles || metadata.angles.length === 0) {
+                                                  toast.error("Angles are missing from campaign metadata. Please recreate the campaign.");
+                                                  return;
+                                                }
+                                                if (!metadata.webhook || !metadata.webhook.trim()) {
+                                                  toast.error("Webhook URL is missing from campaign metadata. Please recreate the campaign with a webhook URL.");
                                                   return;
                                                 }
                                                 
                                                 const yes = await confirm({
                                                   title: `Generate blog for Day ${timeline.day}?`,
-                                                  description: `This will fetch an article and generate a blog with the selected angles. This will use 3 coins.`
+                                                  description: `This will fetch an article and generate a blog with the selected angles.\nThis will use 3 coins.`
                                                 });
                                                 if (!yes) return;
                                                 
@@ -1277,6 +1346,14 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                         )}
                                                       </p>
                                                     )}
+                                                    {blog.articleUrl && (
+                                                      <p className="text-sm text-muted-foreground mt-2">
+                                                        Published Article:{" "}
+                                                        <a href={blog.articleUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                          {blog.articleUrl}
+                                                        </a>
+                                                      </p>
+                                                    )}
                                                   </CardHeader>
                                                   <CardContent>
                                                     <div className="prose prose-sm max-w-none">
@@ -1284,35 +1361,48 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     </div>
                                                   </CardContent>
                                                   <CardFooter className="flex justify-between items-center pt-4 border-t">
-                                                    <div className="text-sm text-muted-foreground">
+                                                    <div className="text-sm text-muted-foreground flex flex-col gap-1">
                                                       {blog.webhookSent !== undefined && (
                                                         <span className={blog.webhookSent ? "text-green-600" : "text-red-600"}>
                                                           {blog.webhookSent ? "✓ Webhook sent" : "✗ Webhook failed"}
                                                         </span>
                                                       )}
+                                                      {blog.webhookSent && blog.articleUrl && (
+                                                        <a 
+                                                          href={blog.articleUrl} 
+                                                          target="_blank" 
+                                                          rel="noopener noreferrer" 
+                                                          className="text-primary hover:underline text-xs break-all"
+                                                        >
+                                                          {blog.articleUrl}
+                                                        </a>
+                                                      )}
                                                     </div>
                                                     {(() => {
                                                       // Get webhook URL from blog data (stored when blog was generated)
                                                       // Fallback to metadata if not in blog
-                                                      let webhookUrl = blog.webhookUrl;
-                                                      
-                                                      if (!webhookUrl) {
-                                                        const metadata = blogNewsMetadata[campaign.id];
-                                                        webhookUrl = metadata?.webhook;
-                                                      }
+                                                      const webhookUrl = blog.webhookUrl;
                                                       
                                                       // Always show the button if there's a blog
                                                       return (
                                                         <Button
                                                           variant="outline"
                                                           size="sm"
-                                                          onClick={() => {
-                                                            if (!webhookUrl) {
+                                                          onClick={async () => {
+                                                            // If webhook URL not in blog, fetch from database
+                                                            let finalWebhookUrl = webhookUrl;
+                                                            if (!finalWebhookUrl) {
+                                                              const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
+                                                              const metadata = await getBlogNewsMetadataFromCampaign(campaign.id);
+                                                              finalWebhookUrl = metadata?.webhook || "";
+                                                            }
+                                                            
+                                                            if (!finalWebhookUrl) {
                                                               toast.error("Webhook URL not found. Please configure the webhook in campaign settings.");
                                                               return;
                                                             }
                                                             retryWebhook.mutate({
-                                                              webhook: webhookUrl,
+                                                              webhook: finalWebhookUrl,
                                                               blog: {
                                                                 title: blog.title,
                                                                 content: blog.content,

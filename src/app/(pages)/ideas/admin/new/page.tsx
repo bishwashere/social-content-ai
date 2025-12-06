@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import Cookies from "js-cookie";
-import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
+import { IDEAS_ADMIN_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,10 +55,8 @@ export default function NewIdeaPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       if (!token) {
-        Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-        localStorage.removeItem("nextpostai_token");
         router.push("/ideas/admin/login");
         return;
       }
@@ -71,14 +69,12 @@ export default function NewIdeaPage() {
         if (response.ok && result.data?.authenticated) {
           setIsAuthenticated(true);
         } else {
-          Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-          localStorage.removeItem("nextpostai_token");
+          // Not authenticated as admin, just redirect (don't clear tokens)
           router.push("/ideas/admin/login");
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-        localStorage.removeItem("nextpostai_token");
+        // Error checking, just redirect (don't clear tokens)
         router.push("/ideas/admin/login");
       }
       setIsCheckingAuth(false);
@@ -89,7 +85,7 @@ export default function NewIdeaPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       const response = await fetch("/api/ideas", {
         method: "POST",
         headers: {

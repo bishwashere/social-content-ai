@@ -10,7 +10,7 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
-import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
+import { IDEAS_ADMIN_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { toast } from "sonner";
 import api from "@/backend-apis/axios";
 import {
@@ -74,14 +74,11 @@ export default function AdminIdeasPage() {
   const [newIdeaThumbnail, setNewIdeaThumbnail] = useState("");
   const [newIdeaStatus, setNewIdeaStatus] = useState<"draft" | "published">("draft");
 
-  // Check admin authentication and clear non-admin sessions
+  // Check admin authentication (only check ideas admin token, don't touch main dashboard session)
   useEffect(() => {
     const checkAuth = async () => {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       if (!token) {
-        // Clear any stale tokens
-        Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-        localStorage.removeItem("nextpostai_token");
         setIsAuthenticated(false);
         setIsCheckingAuth(false);
         return;
@@ -99,16 +96,12 @@ export default function AdminIdeasPage() {
         if (response.ok && result.data?.authenticated) {
           setIsAuthenticated(true);
         } else {
-          // Not admin - clear tokens and redirect
-          Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-          localStorage.removeItem("nextpostai_token");
+          // Not admin - just set as not authenticated, don't clear tokens
           setIsAuthenticated(false);
         }
       } catch (error) {
-        // Error - clear tokens
+        // Error - just set as not authenticated
         console.error("Auth verification error:", error);
-        Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-        localStorage.removeItem("nextpostai_token");
         setIsAuthenticated(false);
       }
       setIsCheckingAuth(false);
@@ -129,13 +122,13 @@ export default function AdminIdeasPage() {
 
       if (response.data.status === 200) {
         const token = response.data.data.bearerToken;
-        Cookies.set(AUTH_TOKEN_COOKIE_NAME, token, {
+        Cookies.set(IDEAS_ADMIN_TOKEN_COOKIE_NAME, token, {
           expires: 30,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
         });
 
-        localStorage.setItem("nextpostai_token", token);
+        localStorage.setItem("nextpostai_ideas_admin_token", token);
 
         toast.success("Login successful!");
         // Set authenticated state directly
@@ -156,7 +149,7 @@ export default function AdminIdeasPage() {
   const { data: ideas, isLoading } = useQuery<Idea[]>({
     queryKey: ["admin-ideas"],
     queryFn: async () => {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       const response = await fetch("/api/ideas?includeDrafts=true", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -172,7 +165,7 @@ export default function AdminIdeasPage() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       const response = await fetch(`/api/ideas/${id}`, {
         method: "DELETE",
         headers: {
@@ -192,7 +185,7 @@ export default function AdminIdeasPage() {
   // Create idea mutation
   const createIdeaMutation = useMutation({
     mutationFn: async (data: any) => {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       const response = await fetch("/api/ideas", {
         method: "POST",
         headers: {
@@ -261,8 +254,8 @@ export default function AdminIdeasPage() {
   };
 
   const handleLogout = () => {
-    Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-    localStorage.removeItem("nextpostai_token");
+    Cookies.remove(IDEAS_ADMIN_TOKEN_COOKIE_NAME);
+    localStorage.removeItem("nextpostai_ideas_admin_token");
     setIsAuthenticated(false);
     setUsername("");
     setPassword("");

@@ -9,6 +9,14 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { prisma } from "@/lib/prisma";
 
 /**
+ * Helper function to check if a string is a valid MongoDB ObjectID
+ * MongoDB ObjectIDs are 24-character hexadecimal strings
+ */
+function isValidObjectId(id: string): boolean {
+  return /^[0-9a-fA-F]{24}$/.test(id);
+}
+
+/**
  * GET /api/ideas/[id]
  * Get a single idea by ID or slug
  */
@@ -21,14 +29,18 @@ export const GET = applyMiddleware(
     // @ts-expect-error: parsed is not defined in Request type
     const isIdeasAdmin = !!req.parsed?.ideasAdmin;
 
-    // Try to find by ID first, then by slug
+    // Try to find by ID first (if valid ObjectID), then by slug
     const idea = await prisma.idea.findFirst({
-      where: {
-        OR: [
-          { id },
-          { slug: id },
-        ],
-      },
+      where: isValidObjectId(id)
+        ? {
+            OR: [
+              { id },
+              { slug: id },
+            ],
+          }
+        : {
+            slug: id,
+          },
       include: {
         author: {
           select: {
@@ -76,14 +88,18 @@ export const PUT = applyMiddleware(
     const body = await req.json();
     const { title, summary, content, tags, thumbnail, status, publishedAt, authorId } = body;
 
-    // Find the idea
+    // Find the idea - only check by id if it's a valid ObjectID, otherwise check by slug
     const existingIdea = await prisma.idea.findFirst({
-      where: {
-        OR: [
-          { id },
-          { slug: id },
-        ],
-      },
+      where: isValidObjectId(id)
+        ? {
+            OR: [
+              { id },
+              { slug: id },
+            ],
+          }
+        : {
+            slug: id,
+          },
     });
 
     if (!existingIdea) {
@@ -198,14 +214,18 @@ export const DELETE = applyMiddleware(
   catchApiAsyncError(async (req: NextRequest, { params }) => {
     const { id } = params as { id: string };
 
-    // Find the idea
+    // Find the idea - only check by id if it's a valid ObjectID, otherwise check by slug
     const existingIdea = await prisma.idea.findFirst({
-      where: {
-        OR: [
-          { id },
-          { slug: id },
-        ],
-      },
+      where: isValidObjectId(id)
+        ? {
+            OR: [
+              { id },
+              { slug: id },
+            ],
+          }
+        : {
+            slug: id,
+          },
     });
 
     if (!existingIdea) {

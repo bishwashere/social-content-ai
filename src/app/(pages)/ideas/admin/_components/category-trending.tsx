@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import Cookies from "js-cookie";
-import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
+import { IDEAS_ADMIN_TOKEN_COOKIE_NAME } from "@/constants/common";
 import type { RedditPost } from "@/backend-apis/metrics/actions";
 import type { HackerNewsPost } from "@/backend-apis/metrics/hooks";
 
@@ -137,7 +137,7 @@ export function CategoryTrending({ onStartIdea }: CategoryTrendingProps = {}) {
       }
 
       // Cache miss or expired, fetch from API
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       const keywords = category.keywords.join(",");
       
       const response = await fetch(`/api/ideas/admin/trending?keywords=${encodeURIComponent(keywords)}&maxPosts=2`, {
@@ -183,7 +183,7 @@ export function CategoryTrending({ onStartIdea }: CategoryTrendingProps = {}) {
     setGeneratingIdea(postId);
 
     try {
-      const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
       const postTitle = post.title;
       const postBody = type === "reddit" 
         ? (post as RedditPost).selftext || postTitle

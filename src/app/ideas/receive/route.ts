@@ -93,9 +93,36 @@ export const POST = applyMiddleware(
         revalidatePath("/get");
         revalidatePath("/");
 
+        // Get base URL for article URL
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
+        const articleUrl = `${baseUrl}/ideas/${slug}`;
+
+        // Explicitly construct response data to ensure articleUrl is included
+        const responseData = {
+          id: updatedIdea.id,
+          slug: updatedIdea.slug,
+          title: updatedIdea.title,
+          summary: updatedIdea.summary,
+          content: updatedIdea.content,
+          tags: updatedIdea.tags,
+          thumbnail: updatedIdea.thumbnail,
+          status: updatedIdea.status,
+          publishedAt: updatedIdea.publishedAt,
+          authorId: updatedIdea.authorId,
+          createdAt: updatedIdea.createdAt,
+          updatedAt: updatedIdea.updatedAt,
+          author: updatedIdea.author,
+          articleUrl, // Explicitly add articleUrl
+        };
+
+        console.log(`[Webhook Receive] Updated - Generated articleUrl: ${articleUrl}`);
+        console.log(`[Webhook Receive] Updated - Response data keys:`, Object.keys(responseData));
+        console.log(`[Webhook Receive] Updated - Response data.articleUrl:`, responseData.articleUrl);
+        console.log(`[Webhook Receive] Updated - Full responseData:`, JSON.stringify(responseData, null, 2));
+
         return sendNextResponse({
           status: 200,
-          data: updatedIdea,
+          data: responseData,
           message: "Idea updated successfully",
         });
       }
@@ -144,9 +171,36 @@ export const POST = applyMiddleware(
       revalidatePath("/get"); // Homepage with recent ideas
       revalidatePath("/"); // Root homepage if it shows ideas
 
+      // Get base URL for article URL
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
+      const articleUrl = `${baseUrl}/ideas/${slug}`;
+
+      // Explicitly construct response data to ensure articleUrl is included
+      const responseData = {
+        id: idea.id,
+        slug: idea.slug,
+        title: idea.title,
+        summary: idea.summary,
+        content: idea.content,
+        tags: idea.tags,
+        thumbnail: idea.thumbnail,
+        status: idea.status,
+        publishedAt: idea.publishedAt,
+        authorId: idea.authorId,
+        createdAt: idea.createdAt,
+        updatedAt: idea.updatedAt,
+        author: idea.author,
+        articleUrl, // Explicitly add articleUrl
+      };
+
+      console.log(`[Webhook Receive] Generated articleUrl: ${articleUrl}`);
+      console.log(`[Webhook Receive] Response data keys:`, Object.keys(responseData));
+      console.log(`[Webhook Receive] Response data.articleUrl:`, responseData.articleUrl);
+      console.log(`[Webhook Receive] Full responseData:`, JSON.stringify(responseData, null, 2));
+
       return sendNextResponse({
         status: 201,
-        data: idea,
+        data: responseData,
         message: "Idea created and published successfully",
       });
     } catch (error) {

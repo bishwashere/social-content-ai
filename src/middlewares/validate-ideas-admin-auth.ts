@@ -1,15 +1,15 @@
 import { NextRequest } from "next/server";
 import { verifyJWT } from "@/lib/jwt";
 import { sendNextResponse } from "@/lib/send-next-response";
-import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
+import { IDEAS_ADMIN_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { CALL_NEXT_FUNCTION } from "./apply-middleware";
 
 export function validateIdeasAdminAuth(options?: {
   errorIfNotAuthenticated?: boolean;
 }) {
   return async (req: NextRequest) => {
-    // Get token from request cookies or Authorization header
-    let token = req.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
+    // Get token from request cookies or Authorization header (only check ideas admin token)
+    let token = req.cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME)?.value;
     
     if (!token) {
       const authHeader = req.headers.get("Authorization");

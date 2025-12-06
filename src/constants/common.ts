@@ -1,4 +1,5 @@
 export const AUTH_TOKEN_COOKIE_NAME = "social-ai-token";
+export const IDEAS_ADMIN_TOKEN_COOKIE_NAME = "ideas-admin-token";
 
 export const INVITED_USER_ROLES = {
   VIEWER: "viewer",

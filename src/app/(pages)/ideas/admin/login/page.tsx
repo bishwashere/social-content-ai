@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Cookies from "js-cookie";
-import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
+import { IDEAS_ADMIN_TOKEN_COOKIE_NAME } from "@/constants/common";
 import { toast } from "sonner";
 import api from "@/backend-apis/axios";
 
@@ -17,9 +17,9 @@ export default function IdeasAdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Clear any existing non-admin tokens on mount
+  // Check if already logged in as ideas admin (don't touch main dashboard session)
   useEffect(() => {
-    const token = Cookies.get(AUTH_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_token") || "";
+    const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
     if (token) {
       // Check if it's an admin token
       fetch("/api/ideas/admin/verify", {
@@ -30,16 +30,10 @@ export default function IdeasAdminLoginPage() {
           if (result.data?.authenticated) {
             // Already logged in as admin, redirect
             router.push("/ideas/admin");
-          } else {
-            // Not admin token, clear it
-            Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-            localStorage.removeItem("nextpostai_token");
           }
         })
         .catch(() => {
-          // Error checking, clear tokens
-          Cookies.remove(AUTH_TOKEN_COOKIE_NAME);
-          localStorage.removeItem("nextpostai_token");
+          // Error checking, just ignore - don't clear anything
         });
     }
   }, [router]);
@@ -55,13 +49,13 @@ export default function IdeasAdminLoginPage() {
       });
 
       if (response.data.status === 200) {
-        Cookies.set(AUTH_TOKEN_COOKIE_NAME, response.data.data.bearerToken, {
+        Cookies.set(IDEAS_ADMIN_TOKEN_COOKIE_NAME, response.data.data.bearerToken, {
           expires: 30,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
         });
 
-        localStorage.setItem("nextpostai_token", response.data.data.bearerToken);
+        localStorage.setItem("nextpostai_ideas_admin_token", response.data.data.bearerToken);
 
         toast.success("Login successful!");
         router.push("/ideas/admin");

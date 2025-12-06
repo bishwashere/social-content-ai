@@ -83,22 +83,17 @@ export const startCampaignPlanner = async (
       },
     });
 
-    // Update Blog News metadata if provided
-    if (plan.goal === "Blog News" && blogNewsMetadata && updated.chats.length > 0) {
-      const firstChat = updated.chats[0];
-      const existingContents = (firstChat.contents as Record<string, any>) || {};
-      await prisma.campaignChat.update({
-        where: { id: firstChat.id },
+    // Update Blog News metadata if provided - store at campaign level
+    if (plan.goal === "Blog News" && blogNewsMetadata) {
+      await prisma.campaignPlanner.update({
+        where: { id },
         data: {
-          contents: {
-            ...existingContents,
-            _blogNewsMetadata: {
-              topics: blogNewsMetadata.topics,
-              angles: blogNewsMetadata.angles,
-              webhook: blogNewsMetadata.webhook,
-              targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
-              productRelated: blogNewsMetadata.productRelated ?? true,
-            },
+          blogNewsMetadata: {
+            topics: blogNewsMetadata.topics,
+            angles: blogNewsMetadata.angles,
+            webhook: blogNewsMetadata.webhook,
+            targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
+            productRelated: blogNewsMetadata.productRelated ?? true,
           },
         },
       });
@@ -117,6 +112,16 @@ export const startCampaignPlanner = async (
       targetAudience: plan.targetAudience,
       name: campaignName,
       platforms: platforms,
+      // Store Blog News metadata at campaign level
+      ...(plan.goal === "Blog News" && blogNewsMetadata ? {
+        blogNewsMetadata: {
+          topics: blogNewsMetadata.topics,
+          angles: blogNewsMetadata.angles,
+          webhook: blogNewsMetadata.webhook,
+          targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
+          productRelated: blogNewsMetadata.productRelated ?? true,
+        },
+      } : {}),
       chats: {
         create: chatData,
       },
@@ -125,25 +130,6 @@ export const startCampaignPlanner = async (
       chats: true,
     },
   });
-
-  // Store Blog News metadata in the first chat's contents if it's a Blog News campaign
-  if (plan.goal === "Blog News" && blogNewsMetadata && created.chats.length > 0) {
-    const firstChat = created.chats[0];
-    await prisma.campaignChat.update({
-      where: { id: firstChat.id },
-      data: {
-        contents: {
-          _blogNewsMetadata: {
-            topics: blogNewsMetadata.topics,
-            angles: blogNewsMetadata.angles,
-            webhook: blogNewsMetadata.webhook,
-            targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
-            productRelated: blogNewsMetadata.productRelated ?? true,
-          },
-        },
-      },
-    });
-  }
 
   return {
     success: true,
@@ -177,6 +163,7 @@ export const getCampaignPlanner = async (projectId: string) => {
           autoPostEnabled: p.autoPostEnabled,
           autoPostTime: p.autoPostTime,
           autoPostPlatforms: p.autoPostPlatforms || [],
+          blogNewsMetadata: (p as any).blogNewsMetadata || null, // Blog News metadata at campaign level
         }))
         .sort((a, b) => {
           // Sort by updatedAt descending (latest first) for all campaigns
@@ -461,13 +448,13 @@ export const changeCampaignData = async (
     if (autoPostTime !== undefined) updateFields.autoPostTime = autoPostTime;
     if (autoPostPlatforms !== undefined) updateFields.autoPostPlatforms = autoPostPlatforms;
     
-    // Store Blog News metadata in a separate collection or in the campaign
-    // For now, we'll store it in a way that can be retrieved later
-    // TODO: Add proper schema fields for blogNewsMetadata
+    // Store Blog News metadata at campaign level
     if (blogNewsMetadata !== undefined) {
-      // Store in a way that works - we can add proper fields later
-      // For now, we'll need to retrieve it from somewhere else or add it to the schema
-      console.log("Blog News metadata to store:", blogNewsMetadata);
+      updateFields.blogNewsMetadata = {
+        topics: blogNewsMetadata.topics,
+        angles: blogNewsMetadata.angles,
+        webhook: blogNewsMetadata.webhook,
+      };
     }
 
     console.log({ id });

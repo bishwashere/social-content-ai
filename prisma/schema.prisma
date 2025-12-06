@@ -30,7 +30,7 @@ model User {
   uploadedVideos    UploadedVideo[]
   projectFolders    ProjectFolder[]
   referralSignup    ReferralSignup?
-  ideas              Idea[]
+  ideas             Idea[]
 
   @@map("users")
 }
@@ -114,6 +114,7 @@ model CampaignPlanner {
   autoPostEnabled   Boolean        @default(false)
   autoPostTime      String?
   autoPostPlatforms String[]
+  blogNewsMetadata  Json? // Store Blog News metadata (topics, angles, webhook) at campaign level
   chats             CampaignChat[] @relation("PlannerChats")
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
@@ -252,17 +253,17 @@ model Wall {
 }
 
 model FirstViewTooltip {
-  id                         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId                     String   @db.ObjectId
-  addProject                 Boolean  @default(false)
-  contentPlanner             Boolean  @default(false)
-  quickGenerate              Boolean  @default(false)
-  videoGeneration            Boolean  @default(false)
-  platformIconsOnboarding    Boolean  @default(false)
-  dismissedProjectAlerts     String[] @default([])
-  approvedAutoLinks          Json     @default("[]")
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
+  id                      String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                  String   @db.ObjectId
+  addProject              Boolean  @default(false)
+  contentPlanner          Boolean  @default(false)
+  quickGenerate           Boolean  @default(false)
+  videoGeneration         Boolean  @default(false)
+  platformIconsOnboarding Boolean  @default(false)
+  dismissedProjectAlerts  String[] @default([])
+  approvedAutoLinks       Json     @default("[]")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -329,35 +330,35 @@ model PlatformPost {
 }
 
 model PostInsights {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  platformPostId    String   @unique @db.ObjectId
-  
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  platformPostId String @unique @db.ObjectId
+
   // Post metadata (optional fields - only for platforms that provide them)
-  postType          String?  // "photo", "video", "link", "status"
-  story             String?
-  permalinkUrl      String?
-  fullPictureUrl    String?
-  linkUrl           String?
-  
+  postType       String? // "photo", "video", "link", "status"
+  story          String?
+  permalinkUrl   String?
+  fullPictureUrl String?
+  linkUrl        String?
+
   // Reaction breakdowns (optional - only if platform provides them)
-  reactionsLike     Int?     @default(0)
-  reactionsLove     Int?     @default(0)
-  reactionsWow      Int?     @default(0)
-  reactionsHaha     Int?     @default(0)
-  reactionsSorry    Int?     @default(0)
-  reactionsAnger    Int?     @default(0)
-  
+  reactionsLike  Int? @default(0)
+  reactionsLove  Int? @default(0)
+  reactionsWow   Int? @default(0)
+  reactionsHaha  Int? @default(0)
+  reactionsSorry Int? @default(0)
+  reactionsAnger Int? @default(0)
+
   // Advanced metrics (optional - may require separate API calls)
-  postReach         Int?     // Different from impressions_unique
-  engagedUsers      Int?
-  postClicks        Int?
-  negativeFeedback  Int?
-  
+  postReach        Int? // Different from impressions_unique
+  engagedUsers     Int?
+  postClicks       Int?
+  negativeFeedback Int?
+
   // Metadata
   insightsFetchedAt DateTime @default(now())
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   platformPost PlatformPost @relation(fields: [platformPostId], references: [id], onDelete: Cascade)
 
   @@map("post-insights")
@@ -412,7 +413,7 @@ model ReferralPartner {
   name      String
   email     String
   username  String   @unique
-  password  String   // Hashed password
+  password  String // Hashed password
   code      String   @unique // Unique referral code for URL
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -462,18 +463,18 @@ enum TemplateCategory {
 }
 
 model Template {
-  id          String           @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String
-  category    TemplateCategory
-  content     String // Template content with {{placeholders}}
-  icon        String? // Icon name or identifier
-  source      String?
-  sourcePostId  String?
-  impressions   Int?
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  category     TemplateCategory
+  content      String // Template content with {{placeholders}}
+  icon         String? // Icon name or identifier
+  source       String?
+  sourcePostId String?
+  impressions  Int?
 
-  createdAt   DateTime?        @default(now())
-  updatedAt   DateTime?        @updatedAt
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 
   @@map("templates")
 }
@@ -488,7 +489,7 @@ model Idea {
   slug        String     @unique
   title       String
   summary     String
-  content     String     // Raw MDX/Markdown content
+  content     String // Raw MDX/Markdown content
   tags        String[]   @default([])
   thumbnail   String?
   status      IdeaStatus @default(draft)
