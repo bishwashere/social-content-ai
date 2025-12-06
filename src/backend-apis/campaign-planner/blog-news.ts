@@ -4,6 +4,7 @@ import { fetchRedditPosts, fetchHackerNewsPosts } from "@/backend-apis/metrics/a
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
+import { logger } from "@/utils/logger";
 
 export type BlogNewsMetadata = {
   topics: string[];
@@ -26,7 +27,7 @@ export async function getBlogNewsMetadataFromCampaign(
     });
 
     if (!campaign) {
-      console.error(`[Metadata] Campaign not found: ${campaignId}`);
+      logger.error(`[Metadata] Campaign not found: ${campaignId}`);
       return null;
     }
 
@@ -62,7 +63,7 @@ export async function getBlogNewsMetadataFromCampaign(
       const metadata = contents?._blogNewsMetadata;
 
       if (metadata) {
-        console.log(`[Metadata] Found metadata in first chat (backward compatibility)`);
+        logger.log(`[Metadata] Found metadata in first chat (backward compatibility)`);
         // Handle backward compatibility: if angle exists, convert to angles array
         const angles = metadata.angles || (metadata.angle ? [metadata.angle] : []);
         return {
@@ -75,10 +76,10 @@ export async function getBlogNewsMetadataFromCampaign(
       }
     }
 
-    console.error(`[Metadata] No metadata found for campaign: ${campaignId}`);
+    logger.error(`[Metadata] No metadata found for campaign: ${campaignId}`);
     return null;
   } catch (error) {
-    console.error("Error getting Blog News metadata from campaign:", error);
+    logger.error("Error getting Blog News metadata from campaign:", error);
     return null;
   }
 }
@@ -96,7 +97,7 @@ export async function storeBlogNewsMetadata(
     // TODO: Add proper schema fields (topics, angle, webhook) to CampaignPlanner
     // For now, storing in a separate collection or we can add it later
     // This is a temporary solution until schema migration
-    console.log("Storing Blog News metadata for campaign:", campaignId, metadata);
+    logger.log("Storing Blog News metadata for campaign:", campaignId, metadata);
     
     // We can create a separate collection or add fields to schema
     // For now, we'll need to retrieve it from somewhere else
@@ -108,7 +109,7 @@ export async function storeBlogNewsMetadata(
     
     return true;
   } catch (error) {
-    console.error("Error storing Blog News metadata:", error);
+    logger.error("Error storing Blog News metadata:", error);
     return false;
   }
 }
@@ -124,7 +125,7 @@ export async function getBlogNewsMetadata(
     // For now, return null and we'll need to pass it through
     return null;
   } catch (error) {
-    console.error("Error getting Blog News metadata:", error);
+    logger.error("Error getting Blog News metadata:", error);
     return null;
   }
 }
@@ -199,9 +200,14 @@ async function getUsedArticleIds(campaignId: string): Promise<Set<string>> {
       }
     }
 
+    logger.log(`[Duplicate Detection] Loaded ${usedIds.size} used article identifiers for campaign ${campaignId}`);
+    if (usedIds.size > 0) {
+      logger.log(`[Duplicate Detection] Used IDs:`, Array.from(usedIds).slice(0, 10)); // Log first 10 for debugging
+    }
+
     return usedIds;
   } catch (error) {
-    console.error("Error getting used article IDs:", error);
+    logger.error("Error getting used article IDs:", error);
     return new Set();
   }
 }
@@ -267,7 +273,7 @@ async function fetchArticleForTopics(
         const redditPosts = await fetchRedditPosts([topic], articlesPerTopic);
         redditPosts.forEach(post => allRedditPosts.push({ post, topic }));
       } catch (error) {
-        console.warn(`[Duplicate Detection] Error fetching Reddit posts for topic "${topic}":`, error);
+        logger.warn(`[Duplicate Detection] Error fetching Reddit posts for topic "${topic}":`, error);
       }
     }
     
@@ -276,10 +282,13 @@ async function fetchArticleForTopics(
       const postUrl = post.url || post.permalink || "";
       const postId = post.id || "";
       
-      // Check if this article is a duplicate
-      if (!isArticleDuplicate(postUrl, postId, "reddit", usedIds)) {
-        const finalUrl = postUrl.startsWith("http") ? postUrl : `https://reddit.com${postUrl}`;
-        console.log(`[Duplicate Detection] Found non-duplicate Reddit article: ${post.title} (ID: ${postId})`);
+      // Normalize URL to match what we store (absolute URL)
+      const finalUrl = postUrl.startsWith("http") ? postUrl : `https://reddit.com${postUrl}`;
+      
+      // Check if this article is a duplicate (use finalUrl for checking to match stored format)
+      const isDuplicate = isArticleDuplicate(finalUrl, postId, "reddit", usedIds);
+      if (!isDuplicate) {
+        logger.log(`[Duplicate Detection] Found non-duplicate Reddit article: ${post.title} (ID: ${postId}, URL: ${finalUrl})`);
         return {
           title: post.title || "Untitled",
           content: post.selftext || post.title || "",
@@ -288,7 +297,7 @@ async function fetchArticleForTopics(
           articleId: postId,
         };
       } else {
-        console.log(`[Duplicate Detection] Skipping duplicate Reddit article: ${post.title} (ID: ${postId})`);
+        logger.log(`[Duplicate Detection] Skipping duplicate Reddit article: ${post.title} (ID: ${postId}, URL: ${finalUrl})`);
       }
     }
     
@@ -299,18 +308,19 @@ async function fetchArticleForTopics(
         const hnPosts = await fetchHackerNewsPosts([topic], articlesPerTopic);
         hnPosts.forEach(post => allHnPosts.push({ post, topic }));
       } catch (error) {
-        console.warn(`[Duplicate Detection] Error fetching HackerNews posts for topic "${topic}":`, error);
+        logger.warn(`[Duplicate Detection] Error fetching HackerNews posts for topic "${topic}":`, error);
       }
     }
     
     // Filter out duplicates and find first valid article
     for (const { post } of allHnPosts) {
-      const postUrl = post.permalink || `https://news.ycombinator.com/item?id=${post.id}`;
       const postId = post.id?.toString() || "";
+      // Normalize URL to match what we store (absolute URL)
+      const postUrl = post.permalink || `https://news.ycombinator.com/item?id=${post.id}`;
       
-      // Check if this article is a duplicate
+      // Check if this article is a duplicate (use normalized postUrl for checking)
       if (!isArticleDuplicate(postUrl, postId, "hackernews", usedIds)) {
-        console.log(`[Duplicate Detection] Found non-duplicate HackerNews article: ${post.title} (ID: ${postId})`);
+        logger.log(`[Duplicate Detection] Found non-duplicate HackerNews article: ${post.title} (ID: ${postId})`);
         return {
           title: post.title || "Untitled",
           content: post.text || post.title || "",
@@ -319,14 +329,14 @@ async function fetchArticleForTopics(
           articleId: postId,
         };
       } else {
-        console.log(`[Duplicate Detection] Skipping duplicate HackerNews article: ${post.title} (ID: ${postId})`);
+        logger.log(`[Duplicate Detection] Skipping duplicate HackerNews article: ${post.title} (ID: ${postId})`);
       }
     }
     
-    console.warn(`[Duplicate Detection] No non-duplicate articles found for topics: ${topics.join(", ")}`);
+    logger.warn(`[Duplicate Detection] No non-duplicate articles found for topics: ${topics.join(", ")}`);
     return null;
   } catch (error) {
-    console.error("Error fetching article for topics:", error);
+    logger.error("Error fetching article for topics:", error);
     return null;
   }
 }
@@ -453,7 +463,7 @@ ADDITIONAL RULES:
       }
     } catch (parseError) {
       // If JSON parsing fails, try regex extraction
-      console.warn("Failed to parse AI response as JSON, trying regex extraction:", parseError);
+      logger.warn("Failed to parse AI response as JSON, trying regex extraction:", parseError);
       
       const titleMatch = responseText.match(/"title":\s*"([^"]+)"/);
       const contentMatch = responseText.match(/"content":\s*"([^"]+)"/);
@@ -490,7 +500,7 @@ ADDITIONAL RULES:
       tags,
     };
   } catch (error) {
-    console.error("Error generating blog from article:", error);
+    logger.error("Error generating blog from article:", error);
     return null;
   }
 }
@@ -507,7 +517,7 @@ export async function sendBlogToWebhook(
   try {
     // Validate webhook URL is provided
     if (!webhook || !webhook.trim()) {
-      console.warn("[Webhook] No webhook URL provided, skipping webhook send");
+      logger.warn("[Webhook] No webhook URL provided, skipping webhook send");
       return { success: false };
     }
 
@@ -517,14 +527,13 @@ export async function sendBlogToWebhook(
       webhookUrl = `https://${webhookUrl}`;
     }
 
-    console.log(`[Webhook] Sending blog to webhook: ${webhookUrl}`);
+    logger.log(`[Webhook] Sending blog to webhook: ${webhookUrl}`);
     const response = await axios.post(webhookUrl, {
       day,
       blog: {
         title: blog.title,
         content: blog.content,
         tags: blog.tags,
-        sourceArticle: blog.sourceArticle,
       },
       timestamp: new Date().toISOString(),
     }, {
@@ -532,10 +541,10 @@ export async function sendBlogToWebhook(
     });
 
     const success = response.status >= 200 && response.status < 300;
-    console.log(`[Webhook] ${success ? 'Successfully' : 'Failed to'} send blog to webhook. Status: ${response.status}`);
+    logger.log(`[Webhook] ${success ? 'Successfully' : 'Failed to'} send blog to webhook. Status: ${response.status}`);
     
     if (success && response.data) {
-      console.log(`[Webhook] Response data received:`, response.data);
+      logger.log(`[Webhook] Response data received:`, response.data);
       return {
         success: true,
         responseData: response.data,
@@ -544,9 +553,9 @@ export async function sendBlogToWebhook(
     
     return { success };
   } catch (error) {
-    console.error("[Webhook] Error sending blog to webhook:", error);
+    logger.error("[Webhook] Error sending blog to webhook:", error);
     if (error instanceof Error) {
-      console.error("[Webhook] Error details:", error.message);
+      logger.error("[Webhook] Error details:", error.message);
     }
     return { success: false };
   }
@@ -573,7 +582,7 @@ export async function retrySendBlogToWebhook({
   campaignId: string;
 }): Promise<{ success: boolean; message: string }> {
   try {
-    console.log(`[Webhook Retry] Starting retry for campaign ${campaignId}, day ${day}`);
+    logger.log(`[Webhook Retry] Starting retry for campaign ${campaignId}, day ${day}`);
     
     // Validate webhook URL is provided
     if (!webhook || !webhook.trim()) {
@@ -590,7 +599,6 @@ export async function retrySendBlogToWebhook({
         title: blog.title,
         content: blog.content,
         tags: blog.tags,
-        sourceArticle: blog.sourceArticle,
       },
       day
     );
@@ -602,7 +610,7 @@ export async function retrySendBlogToWebhook({
     const articleUrl = webhookResponseData?.data?.articleUrl || webhookResponseData?.articleUrl || null;
     
     if (articleUrl) {
-      console.log(`[Webhook Retry] Received article URL from webhook: ${articleUrl}`);
+      logger.log(`[Webhook Retry] Received article URL from webhook: ${articleUrl}`);
     }
 
     // Always update the blog content with webhook status (success or failure) and article URL
@@ -632,9 +640,9 @@ export async function retrySendBlogToWebhook({
           contents: updatedContents,
         },
       });
-      console.log(`[Webhook Retry] Updated database: webhookSent=${webhookSent}, articleUrl=${articleUrl || 'none'} for campaign ${campaignId}, day ${day}`);
+      logger.log(`[Webhook Retry] Updated database: webhookSent=${webhookSent}, articleUrl=${articleUrl || 'none'} for campaign ${campaignId}, day ${day}`);
     } else {
-      console.warn(`[Webhook Retry] Chat not found for campaign ${campaignId}, day ${day}`);
+      logger.warn(`[Webhook Retry] Chat not found for campaign ${campaignId}, day ${day}`);
     }
 
     return {
@@ -644,7 +652,7 @@ export async function retrySendBlogToWebhook({
         : "Failed to send blog to webhook",
     };
   } catch (error) {
-    console.error("[Webhook Retry] Error:", error);
+    logger.error("[Webhook Retry] Error:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to retry webhook",
@@ -779,31 +787,31 @@ export async function generateBlogNewsContent({
       
       // Debug logging
       if (webhookSent && webhookResponseData) {
-        console.log(`[Webhook] Full response data:`, JSON.stringify(webhookResponseData, null, 2));
-        console.log(`[Webhook] Response status:`, webhookResponseData?.status);
-        console.log(`[Webhook] Response message:`, webhookResponseData?.message);
-        console.log(`[Webhook] webhookResponseData.data:`, webhookResponseData?.data);
-        console.log(`[Webhook] webhookResponseData.data?.articleUrl:`, webhookResponseData?.data?.articleUrl);
-        console.log(`[Webhook] webhookResponseData?.articleUrl:`, webhookResponseData?.articleUrl);
-        console.log(`[Webhook] Extracted articleUrl:`, articleUrl);
+        logger.log(`[Webhook] Full response data:`, JSON.stringify(webhookResponseData, null, 2));
+        logger.log(`[Webhook] Response status:`, webhookResponseData?.status);
+        logger.log(`[Webhook] Response message:`, webhookResponseData?.message);
+        logger.log(`[Webhook] webhookResponseData.data:`, webhookResponseData?.data);
+        logger.log(`[Webhook] webhookResponseData.data?.articleUrl:`, webhookResponseData?.data?.articleUrl);
+        logger.log(`[Webhook] webhookResponseData?.articleUrl:`, webhookResponseData?.articleUrl);
+        logger.log(`[Webhook] Extracted articleUrl:`, articleUrl);
         
         // Also check if articleUrl is nested differently
         if (!articleUrl && webhookResponseData?.data) {
           const data = webhookResponseData.data as any;
-          console.log(`[Webhook] Checking data object keys:`, Object.keys(data));
-          console.log(`[Webhook] data.articleUrl:`, data.articleUrl);
+          logger.log(`[Webhook] Checking data object keys:`, Object.keys(data));
+          logger.log(`[Webhook] data.articleUrl:`, data.articleUrl);
         }
       }
       
       if (!webhookSent) {
-        console.warn(`Failed to send blog to webhook for day ${day}, but blog was saved`);
+        logger.warn(`Failed to send blog to webhook for day ${day}, but blog was saved`);
       } else if (articleUrl) {
-        console.log(`[Webhook] Received article URL from webhook: ${articleUrl}`);
+        logger.log(`[Webhook] Received article URL from webhook: ${articleUrl}`);
       } else {
-        console.warn(`[Webhook] Webhook sent successfully but no articleUrl found in response`);
+        logger.warn(`[Webhook] Webhook sent successfully but no articleUrl found in response`);
       }
     } else {
-      console.log(`[Webhook] No webhook URL configured for day ${day}, skipping webhook send`);
+      logger.log(`[Webhook] No webhook URL configured for day ${day}, skipping webhook send`);
     }
 
     // Store blog in contents as JSON (including article ID for duplicate detection, webhook status, webhook URL, and article URL)
@@ -853,7 +861,7 @@ export async function generateBlogNewsContent({
       },
     };
   } catch (error) {
-    console.error("Error generating blog news content:", error);
+    logger.error("Error generating blog news content:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to generate blog content",

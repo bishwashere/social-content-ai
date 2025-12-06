@@ -223,7 +223,7 @@ function AlertDialogTitle({
 }
 
 const alertDialogDescriptionVariants = cva(
-  ["text-muted-foreground text-sm"].join(" "),
+  ["text-muted-foreground text-sm whitespace-pre-line"].join(" "),
   {
     variants: {
       variant: {

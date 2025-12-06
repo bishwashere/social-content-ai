@@ -692,16 +692,8 @@ export default function CampaignPlannerPage({ project }: Props) {
         ) : (
           <>
             {!!campaignPlannerData.data?.chatsGroupedByCampaign?.length && (
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2">
                 <h2 className="text-xl font-bold">Active Campaigns:</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowOldCampaigns(!showOldCampaigns)}
-                  className="text-xs text-muted-foreground"
-                >
-                  {showOldCampaigns ? "Hide old" : "Show old"}
-                </Button>
               </div>
             )}
             {/* Show loading below Active Campaigns when generating campaign */}
@@ -749,7 +741,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                       onClick={() => setShowOldCampaigns(true)}
                       className="mt-2 text-xs text-muted-foreground"
                     >
-                      Show old campaigns
+                      Show older campaigns
                     </Button>
                   </div>
                 );
@@ -1336,24 +1328,6 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                         ))}
                                                       </div>
                                                     )}
-                                                    {blog.sourceArticle && (
-                                                      <p className="text-sm text-muted-foreground mt-2">
-                                                        Source: {blog.sourceArticle.source === "reddit" ? "Reddit" : "HackerNews"}
-                                                        {blog.sourceArticle.url && (
-                                                          <a href={blog.sourceArticle.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-primary hover:underline">
-                                                            View original
-                                                          </a>
-                                                        )}
-                                                      </p>
-                                                    )}
-                                                    {blog.articleUrl && (
-                                                      <p className="text-sm text-muted-foreground mt-2">
-                                                        Published Article:{" "}
-                                                        <a href={blog.articleUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                                          {blog.articleUrl}
-                                                        </a>
-                                                      </p>
-                                                    )}
                                                   </CardHeader>
                                                   <CardContent>
                                                     <div className="prose prose-sm max-w-none">
@@ -1661,6 +1635,38 @@ export default function CampaignPlannerPage({ project }: Props) {
                   </div>
                 );
                   })}
+                  {/* Show/Hide old campaigns button at bottom center */}
+                  {(() => {
+                    const allCampaigns = campaignPlannerData.data?.chatsGroupedByCampaign || [];
+                    const hasOldCampaigns = allCampaigns.some((campaign) => {
+                      if (!campaign.startDate) return false;
+                      const baseDate = new Date(campaign.startDate);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const allDaysPassed = campaign.chats.every((chat) => {
+                        const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
+                        chatDate.setHours(0, 0, 0, 0);
+                        return chatDate < today;
+                      });
+                      return allDaysPassed;
+                    });
+                    
+                    if (hasOldCampaigns) {
+                      return (
+                        <div className="flex justify-center mt-6">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowOldCampaigns(!showOldCampaigns)}
+                            className="text-xs text-muted-foreground"
+                          >
+                            {showOldCampaigns ? "Hide older campaigns" : "Show older campaigns"}
+                          </Button>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </>
               );
             })()}
