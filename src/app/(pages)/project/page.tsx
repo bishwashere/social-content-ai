@@ -12,12 +12,14 @@ import { RecentActivityFeed } from "./_components/recent-activity-feed";
 import { GetStartedGuide } from "./_components/get-started-guide";
 import { PendingTasksPanel } from "./_components/pending-tasks-panel";
 import { AchievementsPanel } from "./_components/achievements-panel";
+import { useGetAchievements } from "@/backend-apis/achievements/hooks";
 
 export default function Home() {
   const router = useRouter();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const { isLoading: sessionLoading, isError: sessionError } = useSession();
   const projects = useGetAllProjects();
+  const achievements = useGetAchievements();
   const { open: pricingModalOpen } = usePricingModal();
   const onboardingShownRef = useRef(false);
   const pricingModalWasOpenRef = useRef(false);
@@ -113,7 +115,7 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <GetStartedGuide />
-          <YourTodayPanel />
+          <YourTodayPanel achievements={achievements.data} />
           <PendingTasksPanel />
         </div>
         <div className="lg:col-span-1 space-y-6">

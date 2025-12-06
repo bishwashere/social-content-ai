@@ -289,7 +289,7 @@ export async function GET(request: NextRequest) {
             tasksByType["campaigns"].projects.push({
               projectId: projectId,
               projectName: projectName,
-              description: `Project "${projectName}" has active campaigns — all up to date`,
+              description: `"${projectName}" has active campaigns — all up to date`,
               userRole: userRole,
               needsAction: false
             });
@@ -298,7 +298,7 @@ export async function GET(request: NextRequest) {
             tasksByType["campaigns"].projects.push({
               projectId: projectId,
               projectName: projectName,
-              description: `Project "${projectName}" has campaigns — no active chats in the next 3 days`,
+              description: `"${projectName}" has campaigns — no active chats in the next 3 days`,
               userRole: userRole,
               needsAction: false
             });
@@ -307,7 +307,7 @@ export async function GET(request: NextRequest) {
             tasksByType["campaigns"].projects.push({
               projectId: projectId,
               projectName: projectName,
-              description: `Project "${projectName}" has no campaigns — create one to start planning content`,
+              description: `"${projectName}" is ready for a new campaign — kickstart planning`,
               userRole: userRole,
               needsAction: true
             });
@@ -396,7 +396,7 @@ export async function GET(request: NextRequest) {
               tasksByType["schedule_post"].projects.push({
                 projectId: projectId,
                 projectName: projectName,
-                description: "You scheduled 0 posts for today — want to schedule one?",
+                description: `"${projectName}" can boost consistency — schedule posts to keep your momentum`,
                 userRole: userRole,
                 needsAction: true
               });

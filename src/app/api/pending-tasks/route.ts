@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
             tasksByType["no_content_next_week"].projects.push({
               projectId: project.id,
               projectName: project.name,
-              description: `Project "${project.name}" has no content for next week`,
+              description: `"${project.name}" is ready for next week's plan`,
               userRole: userRole
             });
           }
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
             tasksByType["campaign_expiring"].projects.push({
               projectId: campaign.projectId,
               projectName: campaign.project?.name || "Unknown Project",
-              description: `Campaign "${campaign.name || 'Untitled'}" in "${campaign.project?.name}" is expiring tomorrow`,
+              description: `Campaign "${campaign.name || 'Untitled'}" in "${campaign.project?.name || 'Unknown Project'}" is expiring tomorrow`,
               campaignId: campaign.id,
               campaignName: campaign.name || "Untitled Campaign",
               userRole: userRole

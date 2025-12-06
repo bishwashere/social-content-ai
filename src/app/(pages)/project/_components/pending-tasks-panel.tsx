@@ -63,7 +63,12 @@ export function PendingTasksPanel() {
   if (isLoading) {
     return (
       <div className="w-full max-w-4xl mx-auto space-y-4">
-        <h2 className="text-2xl font-bold mb-4">Pending Tasks</h2>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold">Stay Ahead</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Suggestions to help you plan upcoming content.
+          </p>
+        </div>
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
@@ -73,7 +78,12 @@ export function PendingTasksPanel() {
   if (error) {
     return (
       <div className="w-full max-w-4xl mx-auto space-y-4">
-        <h2 className="text-2xl font-bold mb-4">Pending Tasks</h2>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold">Stay Ahead</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Suggestions to help you plan upcoming content.
+          </p>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Unable to load pending tasks</CardTitle>
@@ -92,7 +102,12 @@ export function PendingTasksPanel() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4">
-      <h2 className="text-2xl font-bold mb-4">Pending Tasks</h2>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold">Stay Ahead</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Suggestions to keep your content pipeline full.
+        </p>
+      </div>
       <div className="grid gap-4">
         {tasks.map((task, index) => {
           const isExpanded = expandedTasks.has(task.type);
@@ -114,8 +129,7 @@ export function PendingTasksPanel() {
                   <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
                     <div className="flex-1">
                       <CardDescription>
-                        {project.description || `Project "${project.projectName}"`}
-                        {project.projectName && ` • Project: ${project.projectName}`}
+                        {project.description?.replace(/\s+•\s+Project:.*$/, '') || (project.projectName ? `"${project.projectName}"` : '')}
                       </CardDescription>
                     </div>
                     <Button
@@ -124,7 +138,7 @@ export function PendingTasksPanel() {
                       size="sm"
                       className="flex-shrink-0"
                     >
-                      Take Action
+                      Take action
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>

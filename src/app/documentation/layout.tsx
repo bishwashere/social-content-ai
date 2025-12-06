@@ -19,6 +19,7 @@ const documentationLinks = [
       { title: "Webhooks", href: "/documentation/features/webhooks" },
       { title: "Scheduled Posts", href: "/documentation/features/scheduled-posts" },
       { title: "Advanced Customization", href: "/documentation/features/advanced-customization" },
+      { title: "Achievement Levels", href: "/documentation/features/achievement-levels" },
     ],
   },
   {
