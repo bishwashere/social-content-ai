@@ -551,7 +551,14 @@ ADDITIONAL RULES:
       tags,
     };
   } catch (error) {
-    logger.error("Error generating blog from article:", error);
+    const errorDetails = {
+      message: error instanceof Error ? error.message : "Unknown error",
+      type: error instanceof Error ? error.constructor.name : "Unknown",
+      stack: error instanceof Error ? error.stack : undefined,
+      articleTitle: articleTitle.substring(0, 100), // Truncate for logging
+      anglesCount: angles.length,
+    };
+    logger.error("Error generating blog from article:", errorDetails);
     return null;
   }
 }
@@ -777,15 +784,20 @@ export async function generateBlogNewsContent({
     }
 
     // 1. Fetch article from Olive Drift API (with duplicate detection)
+    logger.log(`📰 Fetching article for campaign ${campaignId}, day ${day}, topics: ${topics.join(", ")}`);
     const article = await fetchArticleForTopics(topics, campaignId);
     if (!article) {
+      const errorMessage = `Failed to fetch article for topics: ${topics.join(", ")}. No articles found matching the criteria.`;
+      logger.error(errorMessage);
       return {
         success: false,
-        message: "Failed to fetch article for the given topics",
+        message: errorMessage,
       };
     }
+    logger.log(`✅ Article fetched: ${article.title.substring(0, 50)}...`);
 
     // 2. Generate blog from article with angles
+    logger.log(`✍️ Generating blog from article with ${angles.length} angles`);
     const blog = await generateBlogFromArticle(
       article.title,
       article.content,
@@ -793,11 +805,14 @@ export async function generateBlogNewsContent({
     );
 
     if (!blog) {
+      const errorMessage = `Failed to generate blog from article "${article.title.substring(0, 50)}...". AI generation returned null. Check API key, rate limits, or content length.`;
+      logger.error(errorMessage);
       return {
         success: false,
-        message: "Failed to generate blog from article",
+        message: errorMessage,
       };
     }
+    logger.log(`✅ Blog generated: ${blog.title.substring(0, 50)}...`);
 
     // Add source article info (including articleId for duplicate detection)
     blog.sourceArticle = {
@@ -912,10 +927,19 @@ export async function generateBlogNewsContent({
       },
     };
   } catch (error) {
-    logger.error("Error generating blog news content:", error);
+    const errorDetails = {
+      message: error instanceof Error ? error.message : "Unknown error",
+      type: error instanceof Error ? error.constructor.name : "Unknown",
+      stack: error instanceof Error ? error.stack : undefined,
+      campaignId,
+      day,
+      topics,
+      anglesCount: angles.length,
+    };
+    logger.error("Error generating blog news content:", errorDetails);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to generate blog content",
+      message: `Failed to generate blog content: ${error instanceof Error ? error.message : "Unknown error"}. Campaign: ${campaignId}, Day: ${day}`,
     };
   }
 }

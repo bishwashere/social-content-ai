@@ -164,8 +164,8 @@ export const GET = applyMiddleware(
     const blogNewsResults = await Promise.all(
       blogNewsPosts.map(async (post) => {
         console.log(`🔄 Processing Blog News post ID: ${post.id}`);
+        const meta = post.meta as any;
         try {
-          const meta = post.meta as any;
           
           if (!meta || meta.type !== "blog-news") {
             await updatePostStatus(post.id, "failed", "Invalid Blog News metadata");
@@ -256,13 +256,27 @@ export const GET = applyMiddleware(
           });
 
           if (!result.success || !result.blog) {
-            // Update status to failed
-            await updatePostStatus(post.id, "failed", result.message || "Failed to generate blog");
+            // Build detailed error message
+            const errorDetails = {
+              message: result.message || "Failed to generate blog",
+              insufficientCoins: result.insufficientCoins || false,
+              campaignId: meta.campaignId,
+              day: meta.day,
+              topics: meta.topics || [],
+              angles: meta.angles || [],
+              timestamp: new Date().toISOString(),
+            };
+            const errorMessage = result.insufficientCoins 
+              ? `Insufficient coins: ${errorDetails.message}`
+              : `Failed to generate blog: ${errorDetails.message}. Campaign: ${meta.campaignId}, Day: ${meta.day}, Topics: ${(meta.topics || []).join(", ")}`;
+            
+            console.error(`❌ Blog generation failed for post ${post.id}:`, errorDetails);
+            await updatePostStatus(post.id, "failed", errorMessage);
             
             return {
               id: post.id,
               success: false,
-              error: result.message || "Failed to generate blog",
+              error: errorMessage,
               insufficientCoins: result.insufficientCoins,
             };
           }
@@ -351,8 +365,17 @@ export const GET = applyMiddleware(
             articleUrl,
           };
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          console.error(`❌ Error processing Blog News post ID: ${post.id}:`, error);
+          const errorDetails = {
+            message: error instanceof Error ? error.message : "Unknown error",
+            type: error instanceof Error ? error.constructor.name : "Unknown",
+            stack: error instanceof Error ? error.stack : undefined,
+            postId: post.id,
+            campaignId: meta?.campaignId || "N/A",
+            day: meta?.day || "N/A",
+            timestamp: new Date().toISOString(),
+          };
+          const errorMessage = `Unexpected error: ${errorDetails.message}. Post ID: ${post.id}, Campaign: ${errorDetails.campaignId}, Day: ${errorDetails.day}`;
+          console.error(`❌ Error processing Blog News post ID: ${post.id}:`, errorDetails);
           await updatePostStatus(post.id, "failed", errorMessage);
           
           return {
