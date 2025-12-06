@@ -237,20 +237,19 @@ export default function CampaignPlannerPage({ project }: Props) {
     setShowCampaignForm(false);
 
     try {
-      // For Blog News, pass empty platforms array
-      const platformsToUse = selectedGoal === "blog-news" ? [] : selectedPlatforms;
-
+      // Use selected platforms for all campaign types
       const { data: d } = await campaignPlannerMutation.mutateAsync({
         projectId: projectId as string,
         campaignName: name,
         plan,
-        platforms: platformsToUse,
+        platforms: selectedPlatforms,
         // Pass Blog News metadata if it's a Blog News campaign
         ...(selectedGoal === "blog-news" ? {
           blogNewsMetadata: {
             topics,
             angles: selectedAngles,
             webhook,
+            platforms: selectedPlatforms, // Include platforms in metadata
             targetAudience: intensityPlan.targetAudience || "Moderate",
             productRelated,
           }
@@ -452,36 +451,34 @@ export default function CampaignPlannerPage({ project }: Props) {
               ))}
             </RadioGroup>
 
-            {selectedGoal !== "blog-news" && (
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold mb-2">Select Platforms:</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {PLATFORMS.map((p) => (
-                    <label
-                      key={p.key}
-                      htmlFor={`select-${p.key}`}
-                      className={cn(
-                        "flex items-center gap-2 rounded-xl border p-3 cursor-pointer",
-                        selectedPlatforms.includes(p.key) ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"
-                      )}
-                      onClick={() => {
-                        if (selectedPlatforms.includes(p.key)) {
-                          setSelectedPlatforms(selectedPlatforms.filter(platform => platform !== p.key));
-                        } else {
-                          setSelectedPlatforms([...selectedPlatforms, p.key]);
-                        }
-                      }}
-                    >
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold mb-2">Select Platforms:</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {PLATFORMS.map((p) => (
+                  <label
+                    key={p.key}
+                    htmlFor={`select-${p.key}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-xl border p-3 cursor-pointer",
+                      selectedPlatforms.includes(p.key) ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"
+                    )}
+                    onClick={() => {
+                      if (selectedPlatforms.includes(p.key)) {
+                        setSelectedPlatforms(selectedPlatforms.filter(platform => platform !== p.key));
+                      } else {
+                        setSelectedPlatforms([...selectedPlatforms, p.key]);
+                      }
+                    }}
+                  >
 
-                      <Switch
-                        //@ts-expect-error: htmlFor is not a prop of Checkbox but it works
-                        htmlFor={`select-${p.key}`} checked={selectedPlatforms.includes(p.key)} />
-                      <span className="flex items-center gap-2 text-sm">{p.icon}{p.label}</span>
-                    </label>
-                  ))}
-                </div>
+                    <Switch
+                      //@ts-expect-error: htmlFor is not a prop of Checkbox but it works
+                      htmlFor={`select-${p.key}`} checked={selectedPlatforms.includes(p.key)} />
+                    <span className="flex items-center gap-2 text-sm">{p.icon}{p.label}</span>
+                  </label>
+                ))}
               </div>
-            )}
+            </div>
 
             {selectedGoal === "blog-news" && (
               <>
@@ -879,12 +876,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       return;
                                     }
                                     if (checked) {
-                                      // For Blog News, skip platform selection and go directly to time picker
-                                      if (campaign.goal === "Blog News") {
-                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
-                                        return;
-                                      }
-                                      // For regular campaigns, initialize selected platforms if not set
+                                      // Initialize selected platforms if not set
                                       if (!selectedPlatformsForAutoPost[campaign.id]) {
                                         setSelectedPlatformsForAutoPost({
                                           ...selectedPlatformsForAutoPost,
@@ -893,7 +885,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             : campaign.platforms,
                                         });
                                       }
-                                      // Open platform selector first
+                                      // Open platform selector first (for both regular and Blog News campaigns)
                                       setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
                                       return;
                                     } else {
@@ -912,11 +904,6 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     size="sm"
                                     className="h-auto p-1 text-xs"
                                     onClick={() => {
-                                      // For Blog News, go directly to time picker
-                                      if (campaign.goal === "Blog News") {
-                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
-                                        return;
-                                      }
                                       // When editing, open platform selector first
                                       setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
                                     }}
@@ -926,21 +913,22 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   </Button>
                                 )}
                               </div>
-                              {/* Platform Selection Dialog - Only show for non-Blog News campaigns */}
-                              {campaign.goal !== "Blog News" && (
-                                <Dialog
-                                  open={isPlatformSelectorOpen[campaign.id] || false}
-                                  onOpenChange={(open) => {
-                                    setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: open });
-                                  }}
-                                >
-                                  <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                      <DialogTitle>Select Platforms for Auto-Post</DialogTitle>
-                                      <DialogDescription>
-                                        Choose which platforms you want to auto-post for this campaign
-                                      </DialogDescription>
-                                    </DialogHeader>
+                              {/* Platform Selection Dialog */}
+                              <Dialog
+                                open={isPlatformSelectorOpen[campaign.id] || false}
+                                onOpenChange={(open) => {
+                                  setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: open });
+                                }}
+                              >
+                                <DialogContent className="sm:max-w-[425px]">
+                                  <DialogHeader>
+                                    <DialogTitle>Select Platforms for Auto-Post</DialogTitle>
+                                    <DialogDescription>
+                                      {campaign.goal === "Blog News" 
+                                        ? "Choose which platforms you want to post the blog link to after the blog is generated"
+                                        : "Choose which platforms you want to auto-post for this campaign"}
+                                    </DialogDescription>
+                                  </DialogHeader>
                                     <div className="py-4 space-y-3">
                                       {campaign.platforms.map((platform) => {
                                       const platformKey = platform as keyof typeof ICONS;
@@ -1005,7 +993,6 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   </DialogFooter>
                                 </DialogContent>
                               </Dialog>
-                              )}
                               <TimePickerDialog
                                 value={campaign.autoPostTime || undefined}
                                 open={isTimePickerOpen[campaign.id] || false}
@@ -1021,18 +1008,32 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   
                                   // Handle Blog News campaigns differently
                                   if (campaign.goal === "Blog News") {
-                                    // Save the time and enable auto-post (no platforms needed)
+                                    // Get platforms from campaign metadata or use selected platforms
+                                    const blogNewsMetadata = campaign.blogNewsMetadata as { platforms?: string[] } | null;
+                                    const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || 
+                                                          blogNewsMetadata?.platforms || 
+                                                          campaign.platforms || 
+                                                          [];
+                                    
+                                    if (platformsToUse.length === 0) {
+                                      toast.error("Please select at least one platform");
+                                      setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                      return;
+                                    }
+
+                                    // Save the time and enable auto-post
                                     await updateCampaignData.mutateAsync({
                                       id: campaign.id,
                                       autoPostEnabled: true,
                                       autoPostTime: time,
-                                      autoPostPlatforms: [], // Empty for Blog News
+                                      autoPostPlatforms: platformsToUse,
                                     });
                                     // Schedule tasks instead of posts
                                     scheduleCampaignTasks.mutate({
                                       campaignId: campaign.id,
                                       projectId: campaign.projectId,
                                       autoPostTime: time,
+                                      platforms: platformsToUse,
                                     });
                                   } else {
                                     // Get selected platforms from state or use saved ones

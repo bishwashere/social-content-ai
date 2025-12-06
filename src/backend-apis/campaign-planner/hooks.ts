@@ -32,7 +32,7 @@ export const useCampaignPlanner = () => {
       campaignName: string;
       plan: CampaignPlanner;
       platforms?: string[];
-      blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; targetAudience?: string; productRelated?: boolean };
+      blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; targetAudience?: string; productRelated?: boolean };
     }) =>
       startCampaignPlanner(
         id,
@@ -180,11 +180,13 @@ export const useScheduleCampaignTasks = () => {
       campaignId,
       projectId,
       autoPostTime,
+      platforms,
     }: {
       campaignId: string;
       projectId: string;
       autoPostTime: string;
-    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime }),
+      platforms: string[];
+    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, platforms }),
 
     onSuccess: (result, variables) => {
       if (result.success) {

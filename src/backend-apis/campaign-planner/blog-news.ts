@@ -6,10 +6,43 @@ import { prisma } from "@/lib/prisma";
 import axios from "axios";
 import { logger } from "@/utils/logger";
 
+/**
+ * Generate a 1-2 line social media excerpt from blog content
+ */
+export async function generateSocialExcerpt(blogTitle: string, blogContent: string, maxLength: number = 200): Promise<string> {
+  // Remove markdown formatting
+  const plainText = blogContent
+    .replace(/#{1,6}\s+/g, "") // Remove headers
+    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold
+    .replace(/\*(.*?)\*/g, "$1") // Remove italic
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1") // Remove links but keep text
+    .replace(/>\s*\*\*Quick Take:\*\*\s*/g, "") // Remove Quick Take blockquote
+    .replace(/>\s*/g, "") // Remove blockquotes
+    .replace(/\n+/g, " ") // Replace newlines with spaces
+    .trim();
+
+  // Try to find the first meaningful sentence/paragraph
+  const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  
+  if (sentences.length > 0) {
+    // Use first 1-2 sentences
+    let excerpt = sentences.slice(0, 2).join(". ").trim();
+    if (excerpt.length > maxLength) {
+      excerpt = excerpt.substring(0, maxLength - 3) + "...";
+    }
+    return `${blogTitle}\n\n${excerpt}`;
+  }
+
+  // Fallback: use title + first part of content
+  const contentPreview = plainText.substring(0, maxLength - blogTitle.length - 10);
+  return `${blogTitle}\n\n${contentPreview}${contentPreview.length < plainText.length ? "..." : ""}`;
+}
+
 export type BlogNewsMetadata = {
   topics: string[];
   angles: string[];
   webhook: string;
+  platforms?: string[]; // Platforms to post to after blog is generated
   targetAudience?: string;
   productRelated?: boolean;
 };
@@ -255,8 +288,20 @@ function isArticleDuplicate(
 }
 
 /**
+ * Shuffle array in place using Fisher-Yates algorithm
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]; // Create a copy to avoid mutating the original
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
  * Fetch article from Olive Drift API for given topics
- * Fetches multiple articles at once (3 per topic) and picks the first non-duplicate
+ * Fetches multiple articles at once (3 per topic), shuffles them randomly, then picks the first non-duplicate
  */
 async function fetchArticleForTopics(
   topics: string[],
@@ -277,8 +322,11 @@ async function fetchArticleForTopics(
       }
     }
     
-    // Filter out duplicates and find first valid article
-    for (const { post } of allRedditPosts) {
+    // Shuffle articles randomly before checking duplicates to avoid deterministic selection
+    const shuffledRedditPosts = shuffleArray(allRedditPosts);
+    
+    // Filter out duplicates and find first valid article from shuffled array
+    for (const { post } of shuffledRedditPosts) {
       const postUrl = post.url || post.permalink || "";
       const postId = post.id || "";
       
@@ -312,8 +360,11 @@ async function fetchArticleForTopics(
       }
     }
     
-    // Filter out duplicates and find first valid article
-    for (const { post } of allHnPosts) {
+    // Shuffle articles randomly before checking duplicates to avoid deterministic selection
+    const shuffledHnPosts = shuffleArray(allHnPosts);
+    
+    // Filter out duplicates and find first valid article from shuffled array
+    for (const { post } of shuffledHnPosts) {
       const postId = post.id?.toString() || "";
       // Normalize URL to match what we store (absolute URL)
       const postUrl = post.permalink || `https://news.ycombinator.com/item?id=${post.id}`;

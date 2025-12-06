@@ -8,6 +8,8 @@ import { postToSocial } from "@/lib/post-to-social";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import { Fb } from "@/lib/3rd-providers/fb";
 import { Threads } from "@/lib/3rd-providers/threads";
+import { generateBlogNewsContent, generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
+import { schedulePost } from "@/server-actions/schedule-post";
 
 export const dynamic = "force-dynamic";
 /**
@@ -37,16 +39,234 @@ export const GET = applyMiddleware(
     });
 
     console.log(`📊 Found ${pending.length} pending posts`);
-    const twitterPosts = pending.filter((p) => p.platform === "twitter");
-    const facebookPosts = pending.filter((p) => p.platform === "facebook");
-    const linkedinPosts = pending.filter((p) => p.platform === "linkedin");
-    const threadsPosts = pending.filter((p) => p.platform === "threads");
-    const redditPosts = pending.filter((p) => p.platform === "reddit");
+    
+    // Separate Blog News posts from regular posts
+    const blogNewsPosts = pending.filter((p) => {
+      const meta = p.meta as any;
+      return p.platform === "webhook" || meta?.type === "blog-news";
+    });
+    
+    const regularPosts = pending.filter((p) => {
+      const meta = p.meta as any;
+      return p.platform !== "webhook" && meta?.type !== "blog-news";
+    });
+    
+    const twitterPosts = regularPosts.filter((p) => p.platform === "twitter");
+    const facebookPosts = regularPosts.filter((p) => p.platform === "facebook");
+    const linkedinPosts = regularPosts.filter((p) => p.platform === "linkedin");
+    const threadsPosts = regularPosts.filter((p) => p.platform === "threads");
+    const redditPosts = regularPosts.filter((p) => p.platform === "reddit");
+    
+    console.log(`📰 Found ${blogNewsPosts.length} Blog News posts to process`);
     console.log(`🐦 Found ${twitterPosts.length} Twitter posts to process`);
     console.log(`📘 Found ${facebookPosts.length} Facebook posts to process`);
     console.log(`📘 Found ${linkedinPosts.length} Linkedin posts to process`);
     console.log(`🧵 Found ${threadsPosts.length} Threads posts to process`);
     console.log(`📘 Found ${redditPosts.length} Reddit posts to process`);
+
+    // Process Blog News posts first
+    const blogNewsResults = await Promise.all(
+      blogNewsPosts.map(async (post) => {
+        console.log(`🔄 Processing Blog News post ID: ${post.id}`);
+        try {
+          const meta = post.meta as any;
+          
+          if (!meta || meta.type !== "blog-news") {
+            await updatePostStatus(post.id, "failed", "Invalid Blog News metadata");
+            return {
+              id: post.id,
+              success: false,
+              error: "Invalid Blog News metadata",
+            };
+          }
+
+          // IDEMPOTENCY CHECK: Skip if already processed (status is "success" or "posted")
+          if (post.status === "success" || post.status === "posted") {
+            console.log(`⏭️ Skipping Blog News post ID: ${post.id} - already processed`);
+            return {
+              id: post.id,
+              success: true,
+              message: "Already processed",
+              skipped: true,
+            };
+          }
+
+          // IDEMPOTENCY CHECK: Check if blog was already generated for this campaign/day
+          const campaign = await prisma.campaignPlanner.findFirst({
+            where: { id: meta.campaignId },
+            include: {
+              chats: {
+                where: { day: meta.day },
+              },
+            },
+          });
+
+          const chat = campaign?.chats[0];
+          const blogData = chat?.contents as any;
+          const existingBlog = blogData?.blog;
+          const existingArticleUrl = existingBlog?.articleUrl;
+
+          // If blog already exists and has articleUrl, check if platform posts were created
+          if (existingBlog && existingArticleUrl) {
+            // Check if platform posts already exist for this campaign/day/articleUrl
+            // MongoDB Prisma doesn't support path queries, so fetch and filter
+            const allProjectPosts = await prisma.scheduledPost.findMany({
+              where: {
+                projectId: post.projectId,
+              },
+              select: {
+                id: true,
+                meta: true,
+                content: true,
+              },
+            });
+
+            // Filter posts that match the criteria
+            const existingPlatformPosts = allProjectPosts.filter((p) => {
+              const postMeta = p.meta as any;
+              return (
+                postMeta?.campaignId === meta.campaignId &&
+                postMeta?.day === meta.day &&
+                postMeta?.source === "blog-news" &&
+                (postMeta?.articleUrl === existingArticleUrl ||
+                  p.content?.includes(existingArticleUrl))
+              );
+            });
+
+            if (existingPlatformPosts.length > 0) {
+              console.log(`⏭️ Skipping Blog News post ID: ${post.id} - blog and platform posts already exist (${existingPlatformPosts.length} platform posts found)`);
+              // Mark as success since everything was already created
+              await updatePostStatus(post.id, "success");
+              return {
+                id: post.id,
+                success: true,
+                message: "Blog and platform posts already exist",
+                skipped: true,
+                articleUrl: existingArticleUrl,
+              };
+            }
+          }
+
+          // Update status to processing
+          await updatePostStatus(post.id, "processing");
+
+          // Generate blog on-the-fly (same function used by manual play)
+          const result = await generateBlogNewsContent({
+            campaignId: meta.campaignId,
+            day: meta.day,
+            topics: meta.topics || [],
+            angles: meta.angles || [],
+            webhook: meta.webhook || "",
+          });
+
+          if (!result.success || !result.blog) {
+            // Update status to failed
+            await updatePostStatus(post.id, "failed", result.message || "Failed to generate blog");
+            
+            return {
+              id: post.id,
+              success: false,
+              error: result.message || "Failed to generate blog",
+              insufficientCoins: result.insufficientCoins,
+            };
+          }
+
+          // Get the article URL from the blog (stored in chat contents)
+          // Small delay to ensure database write is complete
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Re-fetch campaign to get updated chat contents with articleUrl
+          const updatedCampaign = await prisma.campaignPlanner.findFirst({
+            where: { id: meta.campaignId },
+            include: {
+              chats: {
+                where: { day: meta.day },
+              },
+            },
+          });
+
+          const updatedChat = updatedCampaign?.chats[0];
+          const updatedBlogData = updatedChat?.contents as any;
+          const articleUrl = updatedBlogData?.blog?.articleUrl || null;
+
+          // Get platforms from metadata
+          const platforms = meta.platforms || [];
+          
+          // GRACEFUL FAILURE: Don't create platform posts if articleUrl is missing
+          if (platforms.length > 0) {
+            if (!articleUrl) {
+              console.log(`⚠️ No article URL found for Blog News post ID: ${post.id}. Skipping platform post creation.`);
+              await updatePostStatus(post.id, "failed", "Blog generated but article URL not received from webhook");
+              return {
+                id: post.id,
+                success: false,
+                error: "Blog generated but article URL not received from webhook. Platform posts not created.",
+                articleUrl: null,
+              };
+            }
+
+            // Generate social excerpt for each platform
+            const excerpt = await generateSocialExcerpt(result.blog.title, result.blog.content);
+            const socialContent = `${excerpt}\n\nRead more: ${articleUrl}`;
+
+            // Create ScheduledPost records for each platform
+            const platformPostResults = await Promise.all(
+              platforms.map(async (platform: string) => {
+                // Convert platform name (x -> twitter)
+                const platformName = platform === "x" ? "twitter" : platform;
+                
+                // Schedule the post for the same time (or slightly after)
+                const scheduledDate = new Date(post.date);
+                // Add 1 minute delay after blog generation to ensure blog is published
+                scheduledDate.setMinutes(scheduledDate.getMinutes() + 1);
+                
+                const scheduled = await schedulePost({
+                  projectId: post.projectId,
+                  platform: platformName,
+                  content: socialContent,
+                  date: scheduledDate.toISOString(),
+                  meta: {
+                    campaignId: meta.campaignId,
+                    campaignName: campaign?.name || "",
+                    day: meta.day,
+                    source: "blog-news",
+                    blogNewsPostId: post.id, // Link back to original Blog News post
+                    articleUrl: articleUrl, // Store articleUrl in meta for idempotency checks
+                  },
+                });
+
+                return {
+                  platform: platformName,
+                  success: scheduled,
+                };
+              })
+            );
+
+            console.log(`✅ Created ${platformPostResults.filter(r => r.success).length} platform posts for Blog News post ID: ${post.id}`);
+          }
+
+          // Mark original Blog News post as completed
+          await updatePostStatus(post.id, "success");
+
+          return {
+            id: post.id,
+            success: true,
+            message: result.message,
+            articleUrl,
+          };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error(`❌ Error processing Blog News post ID: ${post.id}:`, error);
+          await updatePostStatus(post.id, "failed", errorMessage);
+          
+          return {
+            id: post.id,
+            success: false,
+            error: errorMessage,
+          };
+        }
+      })
+    );
 
     // Helper function to get platform-specific OAuth provider
     const getOAuthProviderForPlatform = (
@@ -496,6 +716,7 @@ export const GET = applyMiddleware(
     );
 
     const allResults = [
+      ...blogNewsResults,
       ...twitterResults,
       ...facebookResults,
       ...linkedinResults,
@@ -511,6 +732,11 @@ export const GET = applyMiddleware(
         processed: allResults.length,
         successful: allResults.filter((r) => r.success).length,
         failed: allResults.filter((r) => !r.success).length,
+        blogNews: {
+          processed: blogNewsResults.length,
+          successful: blogNewsResults.filter((r) => r.success).length,
+          failed: blogNewsResults.filter((r) => !r.success).length,
+        },
         twitter: {
           processed: twitterResults.length,
           successful: twitterResults.filter((r) => r.success).length,

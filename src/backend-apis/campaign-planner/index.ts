@@ -13,7 +13,7 @@ export const startCampaignPlanner = async (
   plan: CampaignPlanner,
   userId: string,
   platforms: string[],
-  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; targetAudience?: string; productRelated?: boolean }
+  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; targetAudience?: string; productRelated?: boolean }
 ) => {
   const chatData: {
     title: string;
@@ -92,6 +92,7 @@ export const startCampaignPlanner = async (
             topics: blogNewsMetadata.topics,
             angles: blogNewsMetadata.angles,
             webhook: blogNewsMetadata.webhook,
+            platforms: blogNewsMetadata.platforms || [],
             targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
             productRelated: blogNewsMetadata.productRelated ?? true,
           },
@@ -118,6 +119,7 @@ export const startCampaignPlanner = async (
           topics: blogNewsMetadata.topics,
           angles: blogNewsMetadata.angles,
           webhook: blogNewsMetadata.webhook,
+          platforms: blogNewsMetadata.platforms || [],
           targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
           productRelated: blogNewsMetadata.productRelated ?? true,
         },
@@ -437,7 +439,7 @@ export const changeCampaignData = async (
   autoPostEnabled?: boolean,
   autoPostTime?: string,
   autoPostPlatforms?: string[],
-  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string }
+  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[] }
 ): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
@@ -454,6 +456,7 @@ export const changeCampaignData = async (
         topics: blogNewsMetadata.topics,
         angles: blogNewsMetadata.angles,
         webhook: blogNewsMetadata.webhook,
+        platforms: blogNewsMetadata.platforms || [],
       };
     }
 
@@ -479,6 +482,52 @@ export const changeCampaignData = async (
 
 export const deleteCampaign = async (id: string): Promise<boolean> => {
   try {
+    // First, delete all scheduled posts associated with this campaign
+    // MongoDB Prisma doesn't support path queries, so we fetch and filter
+    const allScheduledPosts = await prisma.scheduledPost.findMany({
+      select: {
+        id: true,
+        meta: true,
+      },
+    });
+
+    // Filter posts that have this campaignId in their meta
+    const postsToDelete = allScheduledPosts.filter((post) => {
+      const meta = post.meta as any;
+      const metaCampaignId = meta?.campaignId;
+      
+      // Exact match
+      if (metaCampaignId === id) {
+        return true;
+      }
+      
+      // Partial match (in case campaignId is a substring of ObjectId)
+      if (typeof metaCampaignId === 'string' && metaCampaignId.includes(id)) {
+        return true;
+      }
+      
+      // Also check if campaignId is at the end (common in MongoDB ObjectIds)
+      if (typeof metaCampaignId === 'string' && metaCampaignId.endsWith(id)) {
+        return true;
+      }
+      
+      return false;
+    });
+
+    // Delete the scheduled posts by their IDs
+    if (postsToDelete.length > 0) {
+      const postIds = postsToDelete.map((post) => post.id);
+      await prisma.scheduledPost.deleteMany({
+        where: {
+          id: {
+            in: postIds,
+          },
+        },
+      });
+      console.log(`Deleted ${postsToDelete.length} scheduled posts for campaign ${id}`);
+    }
+
+    // Then delete the campaign itself
     await prisma.campaignPlanner.delete({
       where: { id },
     });
@@ -645,14 +694,18 @@ export const scheduleCampaignPosts = async ({
     // For each chat in the campaign
     for (const chat of campaign.chats) {
       // Calculate the date for this chat: startDate + (day - 1) days
-      const chatDate = new Date(campaign.startDate);
-      chatDate.setDate(chatDate.getDate() + (chat.day - 1));
-      chatDate.setHours(hours, minutes, 0, 0);
+      // Use date components to avoid timezone issues
+      const startDate = new Date(campaign.startDate);
+      const year = startDate.getFullYear();
+      const month = startDate.getMonth();
+      const day = startDate.getDate();
+      
+      // Create date at midnight local time for the target day
+      const targetDay = day + (chat.day - 1);
+      const chatDate = new Date(year, month, targetDay, hours, minutes, 0, 0);
 
-      // Skip if date is in the past
-      if (chatDate < new Date()) {
-        continue;
-      }
+      // Don't skip past dates - allow scheduling even if in the past
+      // This ensures all campaign days are visible and can be manually triggered if needed
 
       // Get contents
       const contents = (chat.contents as Record<string, string>) || {};
@@ -712,10 +765,12 @@ export const scheduleCampaignTasks = async ({
   campaignId,
   projectId,
   autoPostTime,
+  platforms,
 }: {
   campaignId: string;
   projectId: string;
   autoPostTime: string; // Format: "HH:mm"
+  platforms: string[]; // Platforms to post to after blog is generated
 }): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
   try {
     // Get campaign with chats
@@ -753,6 +808,33 @@ export const scheduleCampaignTasks = async ({
       };
     }
 
+    // Get Blog News metadata
+    const metadata = campaign.blogNewsMetadata as {
+      topics: string[];
+      angles: string[];
+      webhook: string;
+      platforms?: string[];
+    } | null;
+
+    if (!metadata) {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["Blog News metadata not found"],
+      };
+    }
+
+    // Use platforms from parameter or metadata
+    const platformsToUse = platforms.length > 0 ? platforms : (metadata.platforms || []);
+
+    if (platformsToUse.length === 0) {
+      return {
+        success: false,
+        scheduledCount: 0,
+        errors: ["No platforms selected for Blog News campaign"],
+      };
+    }
+
     const errors: string[] = [];
     let scheduledCount = 0;
 
@@ -762,36 +844,47 @@ export const scheduleCampaignTasks = async ({
     // For each chat in the campaign
     for (const chat of campaign.chats) {
       // Calculate the date for this chat: startDate + (day - 1) days
-      const chatDate = new Date(campaign.startDate);
-      chatDate.setDate(chatDate.getDate() + (chat.day - 1));
-      chatDate.setHours(hours, minutes, 0, 0);
+      // Use date components to avoid timezone issues
+      const startDate = new Date(campaign.startDate);
+      const year = startDate.getFullYear();
+      const month = startDate.getMonth();
+      const day = startDate.getDate();
+      
+      // Create date at midnight local time for the target day
+      const targetDay = day + (chat.day - 1);
+      const chatDate = new Date(year, month, targetDay, hours, minutes, 0, 0);
 
-      // Skip if date is in the past
-      if (chatDate < new Date()) {
-        continue;
+      // Don't skip past dates - allow scheduling even if in the past
+      // This ensures all campaign days are visible and can be manually triggered if needed
+
+      try {
+        // Create metadata-only ScheduledPost record
+        await prisma.scheduledPost.create({
+          data: {
+            projectId,
+            platform: "webhook", // Special identifier for Blog News
+            content: "", // Empty - will be generated on-the-fly
+            date: chatDate.toISOString(),
+            status: "pending",
+            oauthProviderId: null, // Not needed for webhook
+            meta: {
+              type: "blog-news",
+              campaignId,
+              day: chat.day,
+              topics: metadata.topics,
+              angles: metadata.angles,
+              webhook: metadata.webhook,
+              platforms: platformsToUse, // Store platforms for later use
+            },
+          },
+        });
+
+        scheduledCount++;
+      } catch (error) {
+        errors.push(
+          `Failed to schedule day ${chat.day}: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
       }
-
-      // TODO: Schedule task execution here
-      // For now, we'll create a placeholder structure
-      // The actual task execution logic will be implemented later
-      // This could involve:
-      // 1. Creating a scheduled task record in the database
-      // 2. Setting up a cron job or queue system
-      // 3. Calling webhook endpoints
-      // 4. Executing specific actions based on campaign configuration
-
-      // Placeholder: Log the scheduled task
-      console.log(`Scheduled task for Blog News campaign:`, {
-        campaignId,
-        day: chat.day,
-        scheduledTime: chatDate.toISOString(),
-        // Additional metadata can be stored here
-        topics: [], // Will be populated from campaign metadata
-        angles: [], // Will be populated from campaign metadata
-        webhook: "", // Will be populated from campaign metadata
-      });
-
-      scheduledCount++;
     }
 
     return {

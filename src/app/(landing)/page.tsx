@@ -571,7 +571,7 @@ export default function HomeV3() {
               </a>
             </div>
             <div className="text-center md:text-left">
-              Copyright © 2025. All rights reserved. NextPost AI
+              Copyright © 2025. All rights reserved. NextPostAI
             </div>
             <div className="flex gap-4 justify-center md:justify-end">
               <a href="#">
