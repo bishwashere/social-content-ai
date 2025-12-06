@@ -11,6 +11,7 @@ import { YourTodayPanel } from "./_components/your-today-panel";
 import { RecentActivityFeed } from "./_components/recent-activity-feed";
 import { GetStartedGuide } from "./_components/get-started-guide";
 import { PendingTasksPanel } from "./_components/pending-tasks-panel";
+import { AchievementsPanel } from "./_components/achievements-panel";
 
 export default function Home() {
   const router = useRouter();
@@ -115,7 +116,8 @@ export default function Home() {
           <YourTodayPanel />
           <PendingTasksPanel />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
+          <AchievementsPanel />
           <RecentActivityFeed />
         </div>
       </div>

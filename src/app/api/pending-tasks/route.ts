@@ -192,61 +192,6 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // 3. Check projects with low posting frequency (less than 2 posts in last 7 days)
-        const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        for (const project of uniqueProjects) {
-          const recentPosts = await prisma.scheduledPost.count({
-            where: {
-              projectId: project.id,
-              date: {
-                gte: sevenDaysAgo,
-                lte: today
-              },
-              status: "success"
-            }
-          });
-
-          // Also check PlatformPost for posted content
-          const platformPosts = await prisma.platformPost.count({
-            where: {
-              oauthProvider: {
-                userId: user.id,
-                projectToOAuthProviders: {
-                  some: {
-                    projectId: project.id
-                  }
-                }
-              },
-              date: {
-                gte: sevenDaysAgo,
-                lte: today
-              }
-            }
-          });
-
-          const totalPosts = recentPosts + platformPosts;
-
-          if (totalPosts < 2) {
-            if (!tasksByType["low_posting_frequency"]) {
-              tasksByType["low_posting_frequency"] = {
-                type: "low_posting_frequency",
-                icon: "📊",
-                title: "Add 3-day mini campaign",
-                action: "create_mini_campaign",
-                projects: []
-              };
-            }
-            const userRole = projectRoleMap.get(project.id) || "viewer";
-            tasksByType["low_posting_frequency"].projects.push({
-              projectId: project.id,
-              projectName: project.name,
-              description: `Project "${project.name}" has very low posting frequency (${totalPosts} post${totalPosts === 1 ? '' : 's'} in last week)`,
-              userRole: userRole
-            });
-          }
-        }
 
         // 4. Check template library for missing platform templates
         // Get all templates

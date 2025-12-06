@@ -93,7 +93,7 @@ export function YourTodayPanel() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       <h2 className="text-2xl font-bold mb-4">Your Today</h2>
       <div className="grid gap-4">
         {tasks.map((task, index) => {

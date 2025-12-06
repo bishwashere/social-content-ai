@@ -153,8 +153,9 @@ export const DELETE = applyMiddleware(
       });
     }
 
-    // Delete related data
-    await prisma.$transaction([
+    // Delete related data - ignore errors for missing data
+    // Delete each relation independently to avoid transaction failures
+    await Promise.allSettled([
       prisma.projectTracking.deleteMany({ where: { projectId } }),
       prisma.projectChat.deleteMany({ where: { projectId } }),
       prisma.invitedUser.deleteMany({ where: { projectId } }),
@@ -162,8 +163,14 @@ export const DELETE = applyMiddleware(
       prisma.wall.deleteMany({ where: { projectId } }),
       prisma.uploadedVideo.deleteMany({ where: { projectId } }),
       prisma.projectsSubredditData.deleteMany({ where: { projectId } }),
-      prisma.projects.delete({ where: { id: projectId } }),
+      prisma.projectPulse.deleteMany({ where: { projectId } }),
+      prisma.projectToOAuthProvider.deleteMany({ where: { projectId } }),
+      prisma.scheduledPost.deleteMany({ where: { projectId } }),
+      prisma.projectFolderItem.deleteMany({ where: { projectId } }),
     ]);
+
+    // Delete the project itself
+    await prisma.projects.delete({ where: { id: projectId } });
 
     return sendNextResponse({
       status: 200,
