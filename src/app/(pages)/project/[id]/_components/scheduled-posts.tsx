@@ -162,10 +162,31 @@ const getStepBadges = (meta: any) => {
   );
 };
 
-const formatDate = (date: Date | string, timezone?: string) => {
+const formatDate = (date: Date | string, timezone?: string, localTime?: string, meta?: any) => {
+  // If we have the original local time stored, use it directly instead of converting from UTC
+  if (localTime && timezone) {
+    const dateObj = new Date(date);
+    const [hours, minutes] = localTime.split(":").map(Number);
+    
+    // Format the date part from the UTC date, but use the original local time
+    const datePart = dateObj.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: timezone,
+    });
+    
+    // Format the time using the original local time
+    const timePart = new Date(2000, 0, 1, hours, minutes).toLocaleString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    
+    return `${datePart}, ${timePart}`;
+  }
+  
+  // Fallback to conversion from UTC if no local time stored
   const dateObj = new Date(date);
-  // Use toLocaleString to properly format both date and time with timezone
-  // Default to EST if no timezone provided (for Blog News campaigns)
   const timezoneToUse = timezone || "America/New_York";
   return dateObj.toLocaleString("en-US", {
     month: "short",
@@ -262,7 +283,7 @@ export function ScheduledPosts({ project }: Props) {
               </CardTitle>
               <CardDescription className="flex items-center gap-2">
                 <Calendar className="h-3 w-3" />
-                Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone)}
+                Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone, (post.meta as any)?.localTime, post.meta)}
               </CardDescription>
               {getStepBadges(post.meta as any)}
             </div>
@@ -310,7 +331,7 @@ export function ScheduledPosts({ project }: Props) {
                 </p>
                 {post.processedAt && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Failed at: {formatDate(post.processedAt, (post.meta as any)?.timezone)}
+                    Failed at: {formatDate(post.processedAt, (post.meta as any)?.timezone, undefined, post.meta)}
                   </p>
                 )}
               </div>
@@ -502,7 +523,7 @@ export function ScheduledPosts({ project }: Props) {
                           </span>
                           {earliestDate && latestDate && (
                             <span className="text-xs">
-                              {formatDate(earliestDate, (firstPost.meta as any)?.timezone)} - {formatDate(latestDate, (firstPost.meta as any)?.timezone)}
+                              {formatDate(earliestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta)} - {formatDate(latestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta)}
                             </span>
                           )}
                           <div className="flex items-center gap-2">

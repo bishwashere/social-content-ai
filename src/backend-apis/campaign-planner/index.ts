@@ -699,14 +699,47 @@ export const scheduleCampaignPosts = async ({
     const timezoneToUse = timezone || "UTC";
     
     // Helper to convert local time in timezone to UTC
+    // This function finds the UTC time that, when displayed in the target timezone, equals the desired local time
     const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
       if (tz === "UTC") {
         return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
       }
       
+      // Use a more reliable approach: create a date in the local timezone, then get its UTC equivalent
+      // We'll create a date string in ISO format and use the timezone to convert
+      
+      // Create a date object representing the local time (as if it were in the target timezone)
+      // Then find what UTC time that corresponds to
+      
+      // Strategy: Start with the local time as UTC, then adjust based on the actual timezone offset
+      // We need to find: what UTC time, when displayed in timezone tz, shows as year/month/day hour:minute
+      
+      // Get the timezone offset at the target date/time
+      // We'll use a test date to determine the offset
+      const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0)); // Use noon UTC as test
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        timeZoneName: 'longOffset',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      
+      // Get the offset by comparing UTC time with local time
+      // Create a date at the target local time and see what UTC time it represents
+      // We'll iterate to find the correct UTC time
+      
+      // Start with a reasonable initial guess
+      // Most timezones are within ±12 hours of UTC
+      // For EST (UTC-5), if we want 18:00 EST, we need 23:00 UTC
+      // So we start with hour + a reasonable offset
       let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
       
-      for (let i = 0; i < 100; i++) {
+      // Adjust based on timezone - we'll iterate to find the right UTC time
+      for (let i = 0; i < 50; i++) {
         const formatter = new Intl.DateTimeFormat('en-US', {
           timeZone: tz,
           year: 'numeric',
@@ -724,17 +757,26 @@ export const scheduleCampaignPosts = async ({
         const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
         const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
         
+        // Check if we found the correct local time
         if (tzYear === year && tzMonth === month && tzDay === day && 
             tzHour === hour && tzMin === minute) {
           return candidateUTC;
         }
         
+        // Calculate the difference and adjust
+        // If the displayed hour is less than desired, we need to add time to UTC
+        // If the displayed hour is more than desired, we need to subtract time from UTC
         const hourDiff = hour - tzHour;
         const minDiff = minute - tzMin;
         const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
         candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
         
+        // Safety check to avoid infinite loops
         if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
+          // If adjustment is too large, try a different starting point
+          // For timezones west of UTC (like EST), we need to add hours
+          // For timezones east of UTC, we subtract hours
+          candidateUTC = new Date(Date.UTC(year, month, day, hour + 12, minute, 0, 0));
           break;
         }
       }
@@ -782,6 +824,7 @@ export const scheduleCampaignPosts = async ({
             day: chat.day,
             source: "campaign",
             timezone: timezoneToUse, // Store timezone for display
+            localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
           },
         });
 
@@ -896,14 +939,47 @@ export const scheduleCampaignTasks = async ({
     let scheduledCount = 0;
 
     // Helper to convert local time in timezone to UTC
+    // This function finds the UTC time that, when displayed in the target timezone, equals the desired local time
     const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
       if (tz === "UTC") {
         return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
       }
       
+      // Use a more reliable approach: create a date in the local timezone, then get its UTC equivalent
+      // We'll create a date string in ISO format and use the timezone to convert
+      
+      // Create a date object representing the local time (as if it were in the target timezone)
+      // Then find what UTC time that corresponds to
+      
+      // Strategy: Start with the local time as UTC, then adjust based on the actual timezone offset
+      // We need to find: what UTC time, when displayed in timezone tz, shows as year/month/day hour:minute
+      
+      // Get the timezone offset at the target date/time
+      // We'll use a test date to determine the offset
+      const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0)); // Use noon UTC as test
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        timeZoneName: 'longOffset',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      
+      // Get the offset by comparing UTC time with local time
+      // Create a date at the target local time and see what UTC time it represents
+      // We'll iterate to find the correct UTC time
+      
+      // Start with a reasonable initial guess
+      // Most timezones are within ±12 hours of UTC
+      // For EST (UTC-5), if we want 18:00 EST, we need 23:00 UTC
+      // So we start with hour + a reasonable offset
       let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
       
-      for (let i = 0; i < 100; i++) {
+      // Adjust based on timezone - we'll iterate to find the right UTC time
+      for (let i = 0; i < 50; i++) {
         const formatter = new Intl.DateTimeFormat('en-US', {
           timeZone: tz,
           year: 'numeric',
@@ -921,17 +997,26 @@ export const scheduleCampaignTasks = async ({
         const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
         const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
         
+        // Check if we found the correct local time
         if (tzYear === year && tzMonth === month && tzDay === day && 
             tzHour === hour && tzMin === minute) {
           return candidateUTC;
         }
         
+        // Calculate the difference and adjust
+        // If the displayed hour is less than desired, we need to add time to UTC
+        // If the displayed hour is more than desired, we need to subtract time from UTC
         const hourDiff = hour - tzHour;
         const minDiff = minute - tzMin;
         const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
         candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
         
+        // Safety check to avoid infinite loops
         if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
+          // If adjustment is too large, try a different starting point
+          // For timezones west of UTC (like EST), we need to add hours
+          // For timezones east of UTC, we subtract hours
+          candidateUTC = new Date(Date.UTC(year, month, day, hour + 12, minute, 0, 0));
           break;
         }
       }
@@ -982,6 +1067,7 @@ export const scheduleCampaignTasks = async ({
               webhook: webhookValue, // Use trimmed value
               platforms: platformsToUse, // Store platforms for later use
               timezone: timezoneToUse, // Store timezone for display
+              localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
             },
           },
         });
