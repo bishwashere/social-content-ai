@@ -502,3 +502,18 @@ model Idea {
 
   @@map("ideas")
 }
+
+model GeminiApiKeyState {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  keyName         String   @unique // e.g., "GEMINI_API_KEY", "GEMINI_API_KEY_1"
+  exhausted       Boolean  @default(false)
+  exhaustedAt     DateTime?
+  retryAfter      DateTime? // When to retry this key (based on API retry delay)
+  lastError       String?  // Last error message
+  lastErrorStatus Int?     // Last error status code
+  successCount    Int      @default(0) // Track successful calls to reset exhausted state
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("gemini-api-key-states")
+}

@@ -303,7 +303,7 @@ function shuffleArray<T>(array: T[]): T[] {
  * Fetch article from Olive Drift API for given topics
  * Fetches multiple articles at once (3 per topic), shuffles them randomly, then picks the first non-duplicate
  */
-async function fetchArticleForTopics(
+export async function fetchArticleForTopics(
   topics: string[],
   campaignId: string
 ): Promise<{ title: string; content: string; source: "reddit" | "hackernews"; url: string; articleId: string } | null> {
@@ -392,32 +392,168 @@ async function fetchArticleForTopics(
   }
 }
 
-async function generateBlogFromArticle(
+/**
+ * Get API key states from database and prioritize non-exhausted keys
+ */
+async function getPrioritizedApiKeys(): Promise<Array<{ key: string; keyName: string; keyIndex: number }>> {
+  const allKeys = [
+    { key: process.env.GEMINI_API_KEY || "", keyName: "GEMINI_API_KEY", keyIndex: 0 },
+    { key: process.env.GEMINI_API_KEY_1 || "", keyName: "GEMINI_API_KEY_1", keyIndex: 1 },
+    { key: process.env.GEMINI_API_KEY_2 || "", keyName: "GEMINI_API_KEY_2", keyIndex: 2 },
+  ].filter(item => item.key.trim() !== "");
+
+  if (allKeys.length === 0) {
+    return [];
+  }
+
+  // Get key states from database
+  const keyStates = await prisma.geminiApiKeyState.findMany({
+    where: {
+      keyName: { in: allKeys.map(k => k.keyName) },
+    },
+  });
+
+  const now = new Date();
+  const keyStateMap = new Map(keyStates.map((ks: typeof keyStates[0]) => [ks.keyName, ks]));
+
+  // Separate keys into three categories:
+  // 1. Never exhausted (highest priority)
+  // 2. Exhausted but retry time passed (medium priority - reset them)
+  // 3. Still exhausted (lowest priority)
+  const neverExhaustedKeys: typeof allKeys = [];
+  const resetKeys: typeof allKeys = [];
+  const exhaustedKeys: typeof allKeys = [];
+
+  for (const keyInfo of allKeys) {
+    const state = keyStateMap.get(keyInfo.keyName);
+    
+    if (!state) {
+      // Key has no state record - never exhausted, highest priority
+      neverExhaustedKeys.push(keyInfo);
+    } else if (!state.exhausted) {
+      // Key is not exhausted - never exhausted, highest priority
+      neverExhaustedKeys.push(keyInfo);
+    } else if (state.retryAfter && new Date(state.retryAfter) <= now) {
+      // Key was exhausted but retry time has passed - reset it and use as medium priority
+      await prisma.geminiApiKeyState.update({
+        where: { keyName: keyInfo.keyName },
+        data: {
+          exhausted: false,
+          exhaustedAt: null,
+          retryAfter: null,
+          lastError: null,
+          lastErrorStatus: null,
+        },
+      });
+      resetKeys.push(keyInfo);
+    } else {
+      // Key is still exhausted - lowest priority
+      exhaustedKeys.push(keyInfo);
+    }
+  }
+
+  // Return: never exhausted first, then reset keys, then still exhausted
+  return [...neverExhaustedKeys, ...resetKeys, ...exhaustedKeys];
+}
+
+/**
+ * Mark an API key as exhausted in the database
+ */
+async function markKeyAsExhausted(
+  keyName: string,
+  error: any,
+  retryDelaySeconds?: number
+): Promise<void> {
+  const now = new Date();
+  const retryAfter = retryDelaySeconds
+    ? new Date(now.getTime() + retryDelaySeconds * 1000)
+    : new Date(now.getTime() + 24 * 60 * 60 * 1000); // Default: 24 hours
+
+  await prisma.geminiApiKeyState.upsert({
+    where: { keyName },
+    create: {
+      keyName,
+      exhausted: true,
+      exhaustedAt: now,
+      retryAfter,
+      lastError: error?.message || "Rate limit exceeded",
+      lastErrorStatus: error?.status || 429,
+    },
+    update: {
+      exhausted: true,
+      exhaustedAt: now,
+      retryAfter,
+      lastError: error?.message || "Rate limit exceeded",
+      lastErrorStatus: error?.status || 429,
+    },
+  });
+
+  logger.log(`🔴 Marked ${keyName} as exhausted. Retry after: ${retryAfter.toISOString()}`);
+}
+
+/**
+ * Mark an API key as successful (reset exhausted state if needed)
+ */
+async function markKeyAsSuccessful(keyName: string): Promise<void> {
+  const state = await prisma.geminiApiKeyState.findUnique({
+    where: { keyName },
+  });
+
+  if (state && state.exhausted) {
+    // Reset exhausted state after successful call
+    await prisma.geminiApiKeyState.update({
+      where: { keyName },
+      data: {
+        exhausted: false,
+        exhaustedAt: null,
+        retryAfter: null,
+        successCount: { increment: 1 },
+      },
+    });
+    logger.log(`🟢 Reset ${keyName} - successful call after exhaustion`);
+  } else if (state) {
+    // Just increment success count
+    await prisma.geminiApiKeyState.update({
+      where: { keyName },
+      data: {
+        successCount: { increment: 1 },
+      },
+    });
+  } else {
+    // Create new state record
+    await prisma.geminiApiKeyState.create({
+      data: {
+        keyName,
+        exhausted: false,
+        successCount: 1,
+      },
+    });
+  }
+}
+
+export async function generateBlogFromArticle(
   articleTitle: string,
   articleContent: string,
   angles: string[]
 ): Promise<GeneratedBlog | null> {
   try {
-    // Try all API keys in order, falling back if rate limited
-    const apiKeys = [
-      process.env.GEMINI_API_KEY || "",
-      process.env.GEMINI_API_KEY_1 || "",
-      process.env.GEMINI_API_KEY_2 || "",
-    ].filter(key => key.trim() !== "");
+    // Get prioritized API keys (non-exhausted first)
+    const prioritizedKeys = await getPrioritizedApiKeys();
 
-    if (apiKeys.length === 0) {
+    if (prioritizedKeys.length === 0) {
       logger.error("No GEMINI_API_KEY configured");
       throw new Error("GEMINI_API_KEY is not configured. Please check environment variables.");
     }
 
     let lastError: any = null;
     
-    for (let keyIndex = 0; keyIndex < apiKeys.length; keyIndex++) {
-    const apiKey = apiKeys[keyIndex];
-    const keyName = keyIndex === 0 ? "GEMINI_API_KEY" : `GEMINI_API_KEY_${keyIndex}`;
+    for (const keyInfo of prioritizedKeys) {
+    const apiKey = keyInfo.key;
+    const keyName = keyInfo.keyName;
+    const keyIndex = keyInfo.keyIndex;
     
     try {
-      logger.log(`🔑 Using ${keyName} (key ${keyIndex + 1}/${apiKeys.length})`);
+      logger.log(`🔑 Using ${keyName} (key ${keyIndex + 1}/${prioritizedKeys.length})`);
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash-001" });
 
@@ -532,6 +668,9 @@ ADDITIONAL RULES:
         responseText = response.text().trim();
         
         logger.log(`✅ API response received - Response length: ${responseText.length} chars`);
+        
+        // Mark key as successful
+        await markKeyAsSuccessful(keyName);
       } catch (apiError: any) {
         const apiErrorDetails = {
           message: apiError?.message || "Unknown API error",
@@ -547,13 +686,30 @@ ADDITIONAL RULES:
         
         logger.warn(`⚠️  ${keyName} failed:`, apiErrorDetails);
         
-        // If rate limited (429) or service unavailable (503), try next key
+        // If rate limited (429) or service unavailable (503), mark as exhausted and try next key
         if (apiError?.status === 429 || apiError?.response?.status === 429) {
           logger.log(`⏭️  Rate limit on ${keyName}, trying next key...`);
+          
+          // Extract retry delay from error if available
+          let retryDelaySeconds: number | undefined;
+          try {
+            const errorMessage = apiError?.message || "";
+            const retryMatch = errorMessage.match(/Please retry in ([\d.]+)s/);
+            if (retryMatch) {
+              retryDelaySeconds = Math.ceil(parseFloat(retryMatch[1])) + 60; // Add 60s buffer
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+          
+          await markKeyAsExhausted(keyName, apiError, retryDelaySeconds);
           lastError = apiError;
           continue; // Try next key
         } else if (apiError?.status === 503 || apiError?.response?.status === 503) {
           logger.log(`⏭️  Service unavailable on ${keyName}, trying next key...`);
+          
+          // Mark as exhausted for 1 hour for service unavailable
+          await markKeyAsExhausted(keyName, apiError, 3600);
           lastError = apiError;
           continue; // Try next key
         } else {
@@ -652,7 +808,7 @@ ADDITIONAL RULES:
       ? `All API keys rate limited. Please try again later. Last error: Rate limit exceeded (429)`
       : `All API keys failed. Last error: ${lastError?.message || "Unknown error"}`;
     logger.error("❌ All API keys exhausted:", {
-      keysTried: apiKeys.length,
+      keysTried: prioritizedKeys.length,
       lastError: lastError?.message,
       lastStatus: lastError?.status,
     });

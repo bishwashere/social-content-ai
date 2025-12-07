@@ -10,6 +10,7 @@ import { Fb } from "@/lib/3rd-providers/fb";
 import { Threads } from "@/lib/3rd-providers/threads";
 import { generateBlogNewsContent, generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
 import { schedulePost } from "@/server-actions/schedule-post";
+import { logger } from "@/utils/logger";
 
 export const dynamic = "force-dynamic";
 // Increase timeout for blog generation (Vercel Pro allows up to 60s, Hobby is 10s)
@@ -57,12 +58,17 @@ export const GET = applyMiddleware(
 
     // Also query for "processing" webhook/blog-news posts that are past due
     // (in case they got stuck from a previous cron run)
+    // STUCK RECOVERY: Check for posts stuck in processing for more than 10 minutes
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
     const processingWebhook = await prisma.scheduledPost.findMany({
       where: {
         status: "processing",
         platform: "webhook",
         date: {
           lte: oneHourFromNow, // Use same lenient range
+        },
+        updatedAt: {
+          lte: tenMinutesAgo, // Only posts that haven't been updated in 10+ minutes
         },
       },
       include: {
@@ -85,9 +91,73 @@ export const GET = applyMiddleware(
       const isPastDue = new Date(p.date) <= now;
       return isBlogNews && isPastDue;
     });
+    
+    // STUCK RECOVERY: For each stuck post, determine which step to retry or mark as failed
+    const stuckRecoveryResults = await Promise.all(
+      processingBlogNews.map(async (post) => {
+        const meta = post.meta as any;
+        const lastStepCompleted = meta?.step4CompletedAt 
+          ? "step4" 
+          : meta?.step3CompletedAt 
+          ? "step3" 
+          : meta?.step2CompletedAt 
+          ? "step2" 
+          : meta?.step1CompletedAt 
+          ? "step1" 
+          : "none";
+        
+        logger.log(`[Stuck Recovery] Post ${post.id} stuck at step: ${lastStepCompleted}`);
+        
+        // If stuck for more than 30 minutes, mark as failed
+        const updatedAt = new Date(post.updatedAt);
+        const stuckDuration = now.getTime() - updatedAt.getTime();
+        const thirtyMinutes = 30 * 60 * 1000;
+        
+        if (stuckDuration > thirtyMinutes) {
+          logger.error(`[Stuck Recovery] Post ${post.id} stuck for ${Math.round(stuckDuration / 60000)} minutes, marking as failed`);
+          await updatePostStatus(
+            post.id,
+            "failed",
+            `Stuck in processing for more than 30 minutes. Last completed step: ${lastStepCompleted}`
+          );
+          return { id: post.id, action: "marked_failed", reason: "stuck_too_long" };
+        }
+        
+        // Otherwise, try to retry the next step
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+        
+        let retryUrl = "";
+        if (lastStepCompleted === "step1" && !meta?.step2Completed) {
+          retryUrl = `${baseUrl}/api/blog/step-2-generate`;
+        } else if (lastStepCompleted === "step2" && !meta?.step3Completed) {
+          retryUrl = `${baseUrl}/api/blog/step-3-send-webhook`;
+        } else if (lastStepCompleted === "step3" && !meta?.step4Completed) {
+          retryUrl = `${baseUrl}/api/blog/step-4-finalize`;
+        } else if (lastStepCompleted === "none" || !meta?.step1Completed) {
+          retryUrl = `${baseUrl}/api/blog/step-1-fetch-article`;
+        }
+        
+        if (retryUrl) {
+          logger.log(`[Stuck Recovery] Retrying ${retryUrl} for post ${post.id}`);
+          fetch(retryUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postId: post.id }),
+          }).catch((error) => {
+            logger.error(`[Stuck Recovery] Failed to retry for post ${post.id}`, error);
+          });
+          return { id: post.id, action: "retried", step: lastStepCompleted };
+        }
+        
+        return { id: post.id, action: "no_action", reason: "unknown_state" };
+      })
+    );
+    
+    logger.log(`[Stuck Recovery] Processed ${stuckRecoveryResults.length} stuck posts`);
 
     console.log(`📊 Found ${pending.length} pending posts (query), ${pendingPastDue.length} are past due`);
-    console.log(`📊 Found ${processingBlogNews.length} processing blog-news posts (stuck)`);
+    logger.log(`📊 Found ${processingBlogNews.length} processing blog-news posts (stuck)`);
     
     // Combine pending and stuck processing posts
     const allPostsToProcess = [...pendingPastDue, ...processingBlogNews];
@@ -249,122 +319,45 @@ export const GET = applyMiddleware(
           // Update status to processing
           await updatePostStatus(post.id, "processing");
 
-          // Generate blog on-the-fly (same function used by manual play)
-          const result = await generateBlogNewsContent({
-            campaignId: meta.campaignId,
-            day: meta.day,
-            topics: meta.topics || [],
-            angles: meta.angles || [],
-            webhook: meta.webhook || "",
-          });
+          // STEP-BASED APPROACH: Trigger Step 1 instead of calling generateBlogNewsContent directly
+          // Step 1 will handle article fetching, then trigger Step 2, which triggers Step 3, which triggers Step 4
+          console.log(`🚀 Triggering Step 1 for Blog News post ID: ${post.id}`);
+          
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+          const step1Url = `${baseUrl}/api/blog/step-1-fetch-article`;
+          
+          try {
+            // Trigger Step 1 asynchronously (don't wait for completion)
+            // Each step will trigger the next one automatically
+            fetch(step1Url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ postId: post.id }),
+            }).catch((error) => {
+              console.error(`❌ Failed to trigger Step 1 for post ${post.id}:`, error);
+              // Update status to failed if we can't even trigger Step 1
+              updatePostStatus(post.id, "failed", `Failed to trigger Step 1: ${error instanceof Error ? error.message : "Unknown error"}`);
+            });
 
-          if (!result.success || !result.blog) {
-            // Build detailed error message
-            const errorDetails = {
-              message: result.message || "Failed to generate blog",
-              insufficientCoins: result.insufficientCoins || false,
-              campaignId: meta.campaignId,
-              day: meta.day,
-              topics: meta.topics || [],
-              angles: meta.angles || [],
-              timestamp: new Date().toISOString(),
+            // Return immediately - the steps will process in the background
+            return {
+              id: post.id,
+              success: true,
+              message: "Step 1 triggered - Blog generation in progress",
+              inProgress: true,
             };
-            const errorMessage = result.insufficientCoins 
-              ? `Insufficient coins: ${errorDetails.message}`
-              : `Failed to generate blog: ${errorDetails.message}. Campaign: ${meta.campaignId}, Day: ${meta.day}, Topics: ${(meta.topics || []).join(", ")}`;
-            
-            console.error(`❌ Blog generation failed for post ${post.id}:`, errorDetails);
-            await updatePostStatus(post.id, "failed", errorMessage);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            console.error(`❌ Error triggering Step 1 for post ${post.id}:`, error);
+            await updatePostStatus(post.id, "failed", `Failed to trigger Step 1: ${errorMessage}`);
             
             return {
               id: post.id,
               success: false,
-              error: errorMessage,
-              insufficientCoins: result.insufficientCoins,
+              error: `Failed to trigger Step 1: ${errorMessage}`,
             };
           }
-
-          // Get the article URL from the blog (stored in chat contents)
-          // Re-fetch campaign to get updated chat contents with articleUrl
-          // Note: Removed 500ms delay to optimize for timeout - database write should be fast enough
-          const updatedCampaign = await prisma.campaignPlanner.findFirst({
-            where: { id: meta.campaignId },
-            include: {
-              chats: {
-                where: { day: meta.day },
-              },
-            },
-          });
-
-          const updatedChat = updatedCampaign?.chats[0];
-          const updatedBlogData = updatedChat?.contents as any;
-          const articleUrl = updatedBlogData?.blog?.articleUrl || null;
-
-          // Get platforms from metadata
-          const platforms = meta.platforms || [];
-          
-          // GRACEFUL FAILURE: Don't create platform posts if articleUrl is missing
-          if (platforms.length > 0) {
-            if (!articleUrl) {
-              console.log(`⚠️ No article URL found for Blog News post ID: ${post.id}. Skipping platform post creation.`);
-              await updatePostStatus(post.id, "failed", "Blog generated but article URL not received from webhook");
-              return {
-                id: post.id,
-                success: false,
-                error: "Blog generated but article URL not received from webhook. Platform posts not created.",
-                articleUrl: null,
-              };
-            }
-
-            // Generate social excerpt for each platform
-            const excerpt = await generateSocialExcerpt(result.blog.title, result.blog.content);
-            const socialContent = `${excerpt}\n\nRead more: ${articleUrl}`;
-
-            // Create ScheduledPost records for each platform
-            const platformPostResults = await Promise.all(
-              platforms.map(async (platform: string) => {
-                // Convert platform name (x -> twitter)
-                const platformName = platform === "x" ? "twitter" : platform;
-                
-                // Schedule the post for the same time (or slightly after)
-                const scheduledDate = new Date(post.date);
-                // Add 1 minute delay after blog generation to ensure blog is published
-                scheduledDate.setMinutes(scheduledDate.getMinutes() + 1);
-                
-                const scheduled = await schedulePost({
-                  projectId: post.projectId,
-                  platform: platformName,
-                  content: socialContent,
-                  date: scheduledDate.toISOString(),
-                  meta: {
-                    campaignId: meta.campaignId,
-                    campaignName: campaign?.name || "",
-                    day: meta.day,
-                    source: "blog-news",
-                    blogNewsPostId: post.id, // Link back to original Blog News post
-                    articleUrl: articleUrl, // Store articleUrl in meta for idempotency checks
-                  },
-                });
-
-                return {
-                  platform: platformName,
-                  success: scheduled,
-                };
-              })
-            );
-
-            console.log(`✅ Created ${platformPostResults.filter(r => r.success).length} platform posts for Blog News post ID: ${post.id}`);
-          }
-
-          // Mark original Blog News post as completed
-          await updatePostStatus(post.id, "success");
-
-          return {
-            id: post.id,
-            success: true,
-            message: result.message,
-            articleUrl,
-          };
         } catch (error) {
           const errorDetails = {
             message: error instanceof Error ? error.message : "Unknown error",

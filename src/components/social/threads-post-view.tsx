@@ -76,7 +76,7 @@ const ThreadsPostView = ({
   );
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-2 sm:p-4 mb-4 max-w-md flex gap-2">
+    <div className="bg-white dark:bg-muted shadow-md rounded-lg p-2 sm:p-4 mb-4 max-w-md flex gap-2">
       <img
         src="https://randomuser.me/api/portraits/women/60.jpg" // Replace with the actual avatar URL
         alt="User Avatar"
@@ -85,10 +85,10 @@ const ThreadsPostView = ({
       <div>
         <div className="flex justify-between mb-1">
           <div className="flex items-center gap-0">
-            <p className="text-base font-semibold font-sans opacity-80">
+            <p className="text-base font-semibold font-sans opacity-80 dark:text-foreground dark:opacity-100">
               username
             </p>
-            <span className="text-gray-400 text-sm font-sans ml-1.5">1h</span>
+            <span className="text-gray-400 dark:text-gray-500 text-sm font-sans ml-1.5">1h</span>
           </div>
           <div className="flex gap-2 justify-center">
             <ThreeDotIcon />

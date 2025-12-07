@@ -60,7 +60,7 @@ const XPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
   )
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-2 sm:p-4 mb-4 max-w-md flex gap-2">
+    <div className="bg-white dark:bg-muted shadow-md rounded-lg p-2 sm:p-4 mb-4 max-w-md flex gap-2">
       <img
         src="https://randomuser.me/api/portraits/women/60.jpg" // Replace with the actual avatar URL
         alt="User Avatar"
@@ -69,7 +69,7 @@ const XPostView = ({ post, viewContentEdit, setViewContentEdit }: Props) => {
       <div>
         <div className="flex justify-between mb-1">
           <div className="flex items-center gap-0">
-            <h2 className="font-bold">Your Name</h2>
+            <h2 className="font-bold dark:text-foreground">Your Name</h2>
             <p className="text-muted-foreground ml-2 text-sm">@PujaJaiswal</p>
             <Dot className="stroke-muted-foreground size-4" />
             <span className="text-muted-foreground text-xs">1d</span>

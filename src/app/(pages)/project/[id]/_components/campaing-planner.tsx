@@ -58,13 +58,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const PLATFORMS = [
-  { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" /> },
-  { key: 'facebook', label: 'Facebook', icon: <Image src="/fb.svg" width={16} height={16} alt="Facebook" /> },
-  { key: 'linkedin', label: 'LinkedIn', icon: <Image src="/linkedin.png" width={16} height={16} alt="LinkedIn" /> },
-  { key: 'instagram', label: 'Instagram', icon: <Image src="/instagram.svg" width={16} height={16} alt="Instagram" /> },
-  { key: 'threads', label: 'Threads', icon: <Image src="/threads.svg" width={16} height={16} alt="Threads" /> },
-  { key: 'reddit', label: 'Reddit', icon: <Image src="/reddit.svg" width={16} height={16} alt="Reddit" /> },
-  { key: 'tiktok', label: 'TikTok', icon: <Image src="/tiktok.svg" width={16} height={16} alt="TikTok" /> }
+  { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" className="dark:brightness-0 dark:invert" /> },
+  { key: 'facebook', label: 'Facebook', icon: <Image src="/fb.svg" width={16} height={16} alt="Facebook" className="dark:brightness-0 dark:invert" /> },
+  { key: 'linkedin', label: 'LinkedIn', icon: <Image src="/linkedin.png" width={16} height={16} alt="LinkedIn" className="dark:brightness-0 dark:invert" /> },
+  { key: 'instagram', label: 'Instagram', icon: <Image src="/instagram.svg" width={16} height={16} alt="Instagram" className="dark:brightness-0 dark:invert" /> },
+  { key: 'threads', label: 'Threads', icon: <Image src="/threads.svg" width={16} height={16} alt="Threads" className="dark:brightness-0 dark:invert" /> },
+  { key: 'reddit', label: 'Reddit', icon: <Image src="/reddit.svg" width={16} height={16} alt="Reddit" className="dark:brightness-0 dark:invert" /> },
+  { key: 'tiktok', label: 'TikTok', icon: <Image src="/tiktok.svg" width={16} height={16} alt="TikTok" className="dark:brightness-0 dark:invert" /> }
 ];
 
 const ICONS = {
@@ -411,9 +411,11 @@ export default function CampaignPlannerPage({ project }: Props) {
             "fixed bottom-4 right-4 w-auto min-w-[100px]",
             // Medium and larger screens: full width in body
             "md:static md:w-full md:mt-5 md:right-auto md:bottom-auto",
+            // Fixed blue color that doesn't change with dark mode (like Add Project button)
+            "bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors",
             !campaignPlannerData.data?.chatsGroupedByCampaign?.length 
               ? "" 
-              : "md:bg-primary/40 hover:bg-primary"
+              : ""
           )} 
           onClick={() => setShowCampaignForm(true)}
         >
@@ -422,14 +424,14 @@ export default function CampaignPlannerPage({ project }: Props) {
       )}
 
       {showCampaignForm && (
-        <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
+        <div className="w-full max-w-2xl bg-card border border-border p-6 rounded-2xl shadow-md">
           <div className="space-y-5">
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold mb-2">Campaign Name:</h2>
+              <h2 className="text-xl font-semibold mb-2 text-foreground">Campaign Name:</h2>
               <Input type="text" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
 
-            <h2 className="text-xl font-semibold mb-2">Select a goal:</h2>
+            <h2 className="text-xl font-semibold mb-2 text-foreground">Select a goal:</h2>
             <RadioGroup
               className="flex flex-row gap-4 flex-wrap"
               value={selectedGoal || ""}
@@ -452,15 +454,17 @@ export default function CampaignPlannerPage({ project }: Props) {
             </RadioGroup>
 
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold mb-2">Select Platforms:</h2>
+              <h2 className="text-xl font-semibold mb-2 text-foreground">Select Platforms:</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {PLATFORMS.map((p) => (
                   <label
                     key={p.key}
                     htmlFor={`select-${p.key}`}
                     className={cn(
-                      "flex items-center gap-2 rounded-xl border p-3 cursor-pointer",
-                      selectedPlatforms.includes(p.key) ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"
+                      "flex items-center gap-2 rounded-xl border p-3 cursor-pointer transition-colors",
+                      selectedPlatforms.includes(p.key) 
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 dark:border-indigo-400" 
+                        : "hover:border-slate-300 dark:hover:border-slate-600 border-border bg-background"
                     )}
                     onClick={() => {
                       if (selectedPlatforms.includes(p.key)) {
@@ -483,7 +487,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             {selectedGoal === "blog-news" && (
               <>
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold mb-2">Topic:</h2>
+                  <h2 className="text-xl font-semibold mb-2 text-foreground">Topic:</h2>
                   <div className="flex flex-col gap-2">
                     <div className="flex gap-2">
                       <Input
@@ -533,8 +537,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold mb-2">Angles:</h2>
-                  <div className="border rounded-lg p-4 flex flex-wrap gap-3">
+                  <h2 className="text-xl font-semibold mb-2 text-foreground">Angles:</h2>
+                  <div className="border border-border rounded-lg p-4 flex flex-wrap gap-3 bg-muted/30">
                     {BLOG_NEWS_ANGLES.map((angle) => (
                       <Tooltip key={angle}>
                         <TooltipTrigger asChild>
@@ -584,7 +588,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold mb-2">Webhook:</h2>
+                    <h2 className="text-xl font-semibold mb-2 text-foreground">Webhook:</h2>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -634,7 +638,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             )}
 
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Target Audience:</h2>
+              <h2 className="text-xl font-semibold text-foreground">Target Audience:</h2>
               <div className="overflow-x-auto pt-3 pb-2 w-full">
                 <Slider
                   min={1}
@@ -669,7 +673,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
             <Button
               size="lg"
-              className="w-full"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
               loading={campaignPlannerMutation.isPending}
               onClick={onGenerate}
             >
@@ -803,7 +807,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
 
                 return (
-                  <div key={campaign.id} className="border rounded-lg pb-5">
+                  <div key={campaign.id} className="border rounded-lg pb-5 bg-muted/50 dark:bg-muted/30 shadow-sm hover:shadow-md transition-shadow border-border/50 dark:border-border/70 backdrop-blur-sm">
 
                     <div className="w-full relative">
                       {/* <div
@@ -959,6 +963,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 width={16}
                                                 height={16}
                                                 alt={platform}
+                                                className="dark:brightness-0 dark:invert"
                                               />
                                             )}
                                             {platform.charAt(0).toUpperCase() + platform.slice(1)}
@@ -1457,7 +1462,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       return (
                                                         <Button variant="ghost" size="icon" asChild>
                                                           <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
-                                                            <Image src={ICONS[platform]} alt={platform} width={16} height={16} />
+                                                            <Image src={ICONS[platform]} alt={platform} width={16} height={16} className="dark:brightness-0 dark:invert" />
                                                           </Link>
                                                         </Button>
                                                       );
