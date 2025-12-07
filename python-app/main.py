@@ -163,7 +163,8 @@ class Database:
                 "$set": {
                     "meta.step1InProgress": True,
                     "status": "processing",
-                    "meta.step1StartedAt": datetime.utcnow().isoformat()
+                    "meta.step1StartedAt": datetime.utcnow().isoformat(),
+                    "updatedAt": datetime.utcnow()
                 }
             }
         )
@@ -196,7 +197,8 @@ class Database:
             {
                 "$set": {
                     "meta.step2InProgress": True,
-                    "meta.step2StartedAt": datetime.utcnow().isoformat()
+                    "meta.step2StartedAt": datetime.utcnow().isoformat(),
+                    "updatedAt": datetime.utcnow()
                 }
             }
         )
@@ -213,6 +215,7 @@ class Database:
                     "meta.step1CompletedAt": datetime.utcnow().isoformat(),
                     "meta.step1InProgress": False,
                     "meta.step1Error": None,
+                    "updatedAt": datetime.utcnow()
                 },
                 "$unset": {
                     "meta.step1RetryCount": ""
@@ -236,6 +239,7 @@ class Database:
         else:
             logger.warning(f"Post {post_id}: Step 1 failed (retry {retry_count}/{STEP1_MAX_RETRIES})")
         
+        update_data["updatedAt"] = datetime.utcnow()
         self.scheduled_posts.update_one(
             {"_id": post_id},
             {"$set": update_data}
@@ -253,6 +257,7 @@ class Database:
                     "meta.step2CompletedAt": datetime.utcnow().isoformat(),
                     "meta.step2InProgress": False,
                     "meta.step2Error": None,
+                    "updatedAt": datetime.utcnow()
                 },
                 "$unset": {
                     "meta.step2RetryCount": ""
@@ -291,6 +296,7 @@ class Database:
         else:
             logger.warning(f"Post {post_id}: Step 2 failed (retry {retry_count}/{STEP2_MAX_RETRIES})")
         
+        update_data["updatedAt"] = datetime.utcnow()
         self.scheduled_posts.update_one(
             {"_id": post_id},
             {"$set": update_data}
