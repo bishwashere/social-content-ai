@@ -26,7 +26,7 @@ export default function WebhooksPage() {
                 Blog News campaigns can send generated blog posts to your webhook endpoint at:
               </p>
               <code className="block bg-muted p-2 rounded text-sm">
-                POST https://www.nextpostai.com/ideas/receive
+                POST https://example.com/api/webhook/receive
               </code>
             </CardContent>
           </Card>

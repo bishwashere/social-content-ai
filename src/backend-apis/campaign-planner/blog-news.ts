@@ -953,11 +953,20 @@ export async function sendBlogToWebhook(
     }
 
     // Normalize webhook URL - add https:// if protocol is missing
+    // IMPORTANT: Preserve the full path (e.g., /ideas/receive) - do not modify the path
     let webhookUrl = webhook.trim();
+    const originalUrl = webhookUrl; // Store for logging
     if (!webhookUrl.startsWith("http://") && !webhookUrl.startsWith("https://")) {
       webhookUrl = `https://${webhookUrl}`;
     }
 
+    // Verify path is preserved
+    if (originalUrl.includes("/") && !webhookUrl.includes(originalUrl.split("/", 1)[0] + "/")) {
+      logger.error(`[Webhook] ⚠️  URL path may have been lost! Original: "${originalUrl}", Normalized: "${webhookUrl}"`);
+    }
+
+    logger.log(`[Webhook] Original URL: "${originalUrl}"`);
+    logger.log(`[Webhook] Normalized URL: "${webhookUrl}"`);
     logger.log(`[Webhook] Sending blog to webhook: ${webhookUrl}`);
     const response = await axios.post(webhookUrl, {
       day,
@@ -967,8 +976,6 @@ export async function sendBlogToWebhook(
         tags: blog.tags,
       },
       timestamp: new Date().toISOString(),
-    }, {
-      timeout: 9000, // 9 second timeout to leave buffer for overall function timeout
     });
 
     const success = response.status >= 200 && response.status < 300;
@@ -1241,17 +1248,12 @@ export async function generateBlogNewsContent({
     }
 
     // 4. Try to send to webhook (only if webhook URL is provided, don't fail if this fails)
-    // Use Promise.race to timeout webhook after 8 seconds to avoid overall timeout
     let webhookSent = false;
     let articleUrl: string | null = null;
     
     if (webhook && webhook.trim()) {
       try {
-        const webhookPromise = sendBlogToWebhook(webhook, blog, day);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Webhook timeout after 9 seconds")), 9000)
-        );
-        const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
+        const webhookResult = await sendBlogToWebhook(webhook, blog, day);
       webhookSent = webhookResult.success;
       const webhookResponseData = webhookResult.responseData;
       

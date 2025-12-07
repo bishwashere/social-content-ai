@@ -770,7 +770,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                       // Store the raw value as entered by user
                       setWebhook(e.target.value);
                     }}
-                    placeholder="www.nextpostai.com/ideas/receive"
+                    placeholder="https://example.com/api/webhook/receive"
                   />
                 </div>
               </>

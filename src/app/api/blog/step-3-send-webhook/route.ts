@@ -12,7 +12,7 @@ export const maxDuration = 30;
  * This endpoint:
  * 1. Reads the scheduled post by ID
  * 2. Gets blog data from Step 2 (stored in post.meta.blog)
- * 3. Sends blog to webhook URL (with 8s timeout)
+ * 3. Sends blog to webhook URL
  * 4. Extracts articleUrl from webhook response
  * 5. Updates CampaignChat with articleUrl and webhook status
  * 6. Stores webhook result in post.meta
@@ -187,7 +187,11 @@ export async function POST(request: NextRequest) {
 
     // Trim webhook URL to ensure no whitespace issues (should already be trimmed, but be safe)
     const webhookUrl = (meta.webhook || "").trim();
-    console.log(`[Step 3] Webhook URL from meta: "${meta.webhook}" -> trimmed: "${webhookUrl}"`);
+    console.log(`[Step 3] Webhook URL from meta (raw): "${meta.webhook}"`);
+    console.log(`[Step 3] Webhook URL from meta (trimmed): "${webhookUrl}"`);
+    console.log(`[Step 3] Webhook URL length: ${webhookUrl.length}`);
+    console.log(`[Step 3] Contains '/ideas': ${webhookUrl.includes('/ideas')}`);
+    console.log(`[Step 3] Contains '/receive': ${webhookUrl.includes('/receive')}`);
     if (!webhookUrl) {
       logger.log(`[Step 3] No webhook URL provided for postId: ${postId}, skipping webhook`);
       // Skip webhook but continue to Step 4
@@ -231,7 +235,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    logger.log(`[Step 3] Webhook URL: ${webhookUrl}`);
+    logger.log(`[Step 3] Webhook URL (final): "${webhookUrl}"`);
+    logger.log(`[Step 3] Webhook URL length: ${webhookUrl.length} characters`);
 
     // 3. REAL: Send blog to webhook
     logger.log(`[Step 3] Sending blog to webhook...`);
@@ -252,19 +257,16 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Use Promise.race to timeout webhook after 9 seconds
+    // Send blog to webhook
     let webhookSent = false;
     let articleUrl: string | null = null;
     const webhookStartTime = Date.now();
     
     try {
-      console.log(`[Step 3] Starting webhook call to: ${webhookUrl} (timeout: 9s)`);
-      logger.log(`[Step 3] Starting webhook call to: ${webhookUrl} (timeout: 9s)`);
-      const webhookPromise = sendBlogToWebhook(webhookUrl, blog, meta.day);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Webhook timeout after 9 seconds")), 9000)
-      );
-      const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
+      console.log(`[Step 3] Starting webhook call to: "${webhookUrl}"`);
+      logger.log(`[Step 3] Starting webhook call to: "${webhookUrl}"`);
+      logger.log(`[Step 3] Webhook URL being passed to sendBlogToWebhook: "${webhookUrl}"`);
+      const webhookResult = await sendBlogToWebhook(webhookUrl, blog, meta.day);
       
       const webhookDuration = Date.now() - webhookStartTime;
       console.log(`[Step 3] ⏱️  Webhook call: ${webhookDuration}ms (${(webhookDuration / 1000).toFixed(2)}s)`);

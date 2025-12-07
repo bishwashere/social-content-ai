@@ -165,13 +165,15 @@ const getStepBadges = (meta: any) => {
 const formatDate = (date: Date | string, timezone?: string) => {
   const dateObj = new Date(date);
   // Use toLocaleString to properly format both date and time with timezone
+  // Default to EST if no timezone provided (for Blog News campaigns)
+  const timezoneToUse = timezone || "America/New_York";
   return dateObj.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true, // Use 12-hour format (AM/PM)
-    ...(timezone && { timeZone: timezone }),
+    timeZone: timezoneToUse,
   });
 };
 

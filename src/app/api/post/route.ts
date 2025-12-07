@@ -308,6 +308,19 @@ export const GET = applyMiddleware(
 
           // STATE CHECK: Step 2 completed, check if Step 3 needs to run
           if (meta?.step2Completed && !meta?.step3Completed) {
+            // RACE CONDITION CHECK: Skip if Step 3 is already in progress
+            if (meta?.step3InProgress) {
+              const startedAt = meta?.step3StartedAt;
+              const duration = startedAt ? Math.round((Date.now() - new Date(startedAt).getTime()) / 1000) : 0;
+              console.log(`⏭️ Skipping Blog News post ID: ${post.id} - Step 3 already in progress (started ${duration}s ago)`);
+              return {
+                id: post.id,
+                success: true,
+                message: "Step 3 already in progress",
+                skipped: true,
+              };
+            }
+
             console.log(`🚀 Triggering Step 3 for Blog News post ID: ${post.id}`);
             
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
@@ -346,6 +359,19 @@ export const GET = applyMiddleware(
 
           // STATE CHECK: Step 3 completed, check if Step 4 needs to run
           if (meta?.step3Completed && !meta?.step4Completed) {
+            // RACE CONDITION CHECK: Skip if Step 4 is already in progress
+            if (meta?.step4InProgress) {
+              const startedAt = meta?.step4StartedAt;
+              const duration = startedAt ? Math.round((Date.now() - new Date(startedAt).getTime()) / 1000) : 0;
+              console.log(`⏭️ Skipping Blog News post ID: ${post.id} - Step 4 already in progress (started ${duration}s ago)`);
+              return {
+                id: post.id,
+                success: true,
+                message: "Step 4 already in progress",
+                skipped: true,
+              };
+            }
+
             console.log(`🚀 Triggering Step 4 for Blog News post ID: ${post.id}`);
             
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 

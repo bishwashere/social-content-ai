@@ -84,7 +84,7 @@ class Database:
         
         self.db = self.client[db_name]
         self.scheduled_posts = self.db["scheduled-posts"]  # From Prisma @@map
-        self.campaign_chats = self.db["campaign-chats"]  # CampaignChat collection (no @@map, uses default name)
+        self.campaign_chats = self.db["CampaignChat"]  # CampaignChat collection (no @@map, Prisma uses PascalCase: CampaignChat)
         self.campaign_planners = self.db["campaign-planners"]  # From Prisma @@map
         self.gemini_key_states = self.db["gemini-api-key-states"]  # For tracking exhausted API keys
         logger.info(f"Connected to database: {db_name}")
@@ -292,11 +292,31 @@ class Database:
             })
             
             if not chat:
-                # Log all chats for this campaign to help debug
-                all_chats = list(self.campaign_chats.find({"plannerId": campaign_id_obj}))
-                logger.warning(f"CampaignChat not found for campaignId={campaign_id}, day={day_int}.")
-                logger.warning(f"Found {len(all_chats)} chats for this campaign. Days: {[c.get('day') for c in all_chats]}")
-                logger.warning(f"Blog saved to post.meta but may not appear in UI. CampaignChat needs to exist for day {day_int}.")
+                # Create CampaignChat if it doesn't exist (this is the whole point of the steps)
+                logger.info(f"CampaignChat not found for campaignId={campaign_id}, day={day_int}. Creating it...")
+                
+                try:
+                    new_chat = {
+                        "plannerId": campaign_id_obj,
+                        "day": day_int,
+                        "title": None,
+                        "prompt": "",
+                        "completed": False,
+                        "contents": {
+                            "blog": blog
+                        },
+                        "tickMark": {},
+                        "status": "GENERATED",
+                        "createdAt": datetime.utcnow(),
+                        "updatedAt": datetime.utcnow()
+                    }
+                    
+                    result = self.campaign_chats.insert_one(new_chat)
+                    chat_id = result.inserted_id
+                    logger.info(f"✅ Created CampaignChat {chat_id} for campaignId={campaign_id}, day={day_int} with blog")
+                except Exception as e:
+                    logger.error(f"Failed to create CampaignChat for campaignId={campaign_id}, day={day_int}: {e}")
+                    logger.warning(f"Blog saved to post.meta but CampaignChat creation failed")
             else:
                 chat_id = chat.get("_id")
                 logger.info(f"Found CampaignChat {chat_id} for campaignId={campaign_id}, day={day_int}, updating with blog...")
@@ -733,6 +753,92 @@ class BlogGenerator:
         self.test_mode = test_mode
         self.db = db  # Store database reference for marking exhausted keys
     
+    def get_prioritized_api_keys(self) -> List[Dict[str, Any]]:
+        """
+        Get API keys prioritized by exhaustion status.
+        Returns list of {key, keyName, keyIndex} dicts in priority order:
+        1. Never exhausted (highest priority)
+        2. Exhausted but retry time passed (medium priority - will be reset)
+        3. Still exhausted (lowest priority - will be skipped)
+        """
+        if not self.db:
+            # If no db, return all keys in order
+            return [
+                {
+                    "key": key,
+                    "keyName": f"GEMINI_API_KEY_{i}" if i > 0 else "GEMINI_API_KEY",
+                    "keyIndex": i
+                }
+                for i, key in enumerate(self.api_keys) if key
+            ]
+        
+        now = datetime.utcnow()
+        all_keys = [
+            {
+                "key": key,
+                "keyName": f"GEMINI_API_KEY_{i}" if i > 0 else "GEMINI_API_KEY",
+                "keyIndex": i
+            }
+            for i, key in enumerate(self.api_keys) if key
+        ]
+        
+        # Get key states from database
+        key_states = {}
+        for key_info in all_keys:
+            state = self.db.gemini_key_states.find_one({"keyName": key_info["keyName"]})
+            if state:
+                key_states[key_info["keyName"]] = state
+        
+        # Separate keys into three categories
+        never_exhausted_keys = []
+        reset_keys = []
+        exhausted_keys = []
+        
+        for key_info in all_keys:
+            state = key_states.get(key_info["keyName"])
+            
+            if not state:
+                # Key has no state record - never exhausted, highest priority
+                never_exhausted_keys.append(key_info)
+            elif not state.get("exhausted"):
+                # Key is not exhausted - never exhausted, highest priority
+                never_exhausted_keys.append(key_info)
+            else:
+                # Key is exhausted - check if retry time has passed
+                retry_after = state.get("retryAfter")
+                if retry_after:
+                    try:
+                        retry_after_dt = date_parser.parse(retry_after) if isinstance(retry_after, str) else retry_after
+                        if retry_after_dt <= now:
+                            # Retry time has passed - reset it and use as medium priority
+                            self.db.gemini_key_states.update_one(
+                                {"keyName": key_info["keyName"]},
+                                {
+                                    "$set": {
+                                        "exhausted": False,
+                                        "exhaustedAt": None,
+                                        "retryAfter": None,
+                                        "lastError": None,
+                                        "lastErrorStatus": None,
+                                        "updatedAt": now
+                                    }
+                                }
+                            )
+                            logger.info(f"🟢 Reset {key_info['keyName']} - retry time passed")
+                            reset_keys.append(key_info)
+                        else:
+                            # Still exhausted - lowest priority
+                            exhausted_keys.append(key_info)
+                    except Exception as e:
+                        logger.warning(f"Error parsing retryAfter for {key_info['keyName']}: {e}")
+                        exhausted_keys.append(key_info)
+                else:
+                    # Exhausted but no retry time - treat as still exhausted
+                    exhausted_keys.append(key_info)
+        
+        # Return: never exhausted first, then reset keys, then still exhausted
+        return never_exhausted_keys + reset_keys + exhausted_keys
+    
     def get_api_key(self) -> Optional[str]:
         """Get current API key (supports rotation)"""
         if not self.api_keys:
@@ -778,22 +884,26 @@ This concludes the test blog post.
                 "tags": ["test", "ai", "technology"] + angles[:2] if angles else ["test"]
             }
         
-        # Check if we've tried all keys
-        if len(tried_key_indices) >= len(self.api_keys):
-            error_msg = f"All {len(self.api_keys)} API keys exhausted. Last error: Quota exceeded"
+        # Get prioritized API keys (skips exhausted keys that haven't passed retry time)
+        prioritized_keys = self.get_prioritized_api_keys()
+        
+        # Filter out keys we've already tried
+        available_keys = [k for k in prioritized_keys if k["keyIndex"] not in tried_key_indices]
+        
+        if not available_keys:
+            error_msg = f"All {len(self.api_keys)} API keys exhausted or already tried. Last error: Quota exceeded"
             logger.error(error_msg)
             raise Exception(error_msg)
         
-        # Find next untried key
-        while self.current_key_index in tried_key_indices:
-            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        # Use the first available key (highest priority)
+        key_info = available_keys[0]
+        api_key = key_info["key"]
+        key_name = key_info["keyName"]
+        current_key_index = key_info["keyIndex"]
         
-        api_key = self.get_api_key()
-        if not api_key:
-            raise ValueError("No GEMINI_API_KEY configured")
-        
-        current_key_index = self.current_key_index
         tried_key_indices.append(current_key_index)
+        
+        logger.info(f"🔑 Using {key_name} (key {current_key_index + 1}/{len(self.api_keys)})")
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("models/gemini-2.0-flash-001")
@@ -907,16 +1017,18 @@ ADDITIONAL RULES:
                 
                 # Mark key as exhausted in database (if db is available)
                 try:
-                    key_name = f"GEMINI_API_KEY_{current_key_index}" if current_key_index > 0 else "GEMINI_API_KEY"
+                    # key_name was already set when we selected the key
                     if self.db:
                         self.db.mark_key_as_exhausted(key_name, error_str, retry_delay_seconds)
                 except Exception as db_error:
                     logger.warning(f"Failed to mark key as exhausted in database: {db_error}")
             
-            # Try next API key if available and not all tried
-            if len(tried_key_indices) < len(self.api_keys):
-                self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-                logger.info(f"Retrying with next API key (index {self.current_key_index + 1}/{len(self.api_keys)})")
+            # Try next available API key if not all tried
+            prioritized_keys = self.get_prioritized_api_keys()
+            available_keys = [k for k in prioritized_keys if k["keyIndex"] not in tried_key_indices]
+            
+            if available_keys:
+                logger.info(f"Retrying with next available API key ({len(available_keys)} keys remaining)")
                 return self.generate_blog_from_article(article_title, article_content, angles, tried_key_indices)
             
             # All keys exhausted - raise with descriptive error

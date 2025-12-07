@@ -177,19 +177,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. REAL: Generate blog from article with angles (with 9s timeout)
+    // 4. REAL: Generate blog from article with angles
     logger.log(`[Step 2] Generating blog from article with ${(meta.angles || []).length} angles`);
     let blog;
     try {
-      const generatePromise = generateBlogFromArticle(
+      blog = await generateBlogFromArticle(
         meta.article.title,
         meta.article.content,
         meta.angles || []
       );
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Step 2 timeout after 9 seconds")), 9000)
-      );
-      blog = await Promise.race([generatePromise, timeoutPromise]) as Awaited<ReturnType<typeof generateBlogFromArticle>>;
       
       if (!blog) {
         throw new Error("Blog generation returned null");

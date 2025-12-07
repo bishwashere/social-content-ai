@@ -93,13 +93,9 @@ export async function POST(request: NextRequest) {
       data: { status: "processing" },
     });
 
-    // 5. REAL: Fetch article from Olive Drift API (with 9s timeout)
+    // 5. REAL: Fetch article from Olive Drift API
     logger.log(`[Step 1] Fetching article for campaign ${meta.campaignId}, day ${meta.day}, topics: ${(meta.topics || []).join(", ")}`);
-    const fetchPromise = fetchArticleForTopics(meta.topics || [], meta.campaignId);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Step 1 timeout after 9 seconds")), 9000)
-    );
-    const article = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<ReturnType<typeof fetchArticleForTopics>>;
+    const article = await fetchArticleForTopics(meta.topics || [], meta.campaignId);
     
     if (!article) {
       const errorMessage = `Failed to fetch article for topics: ${(meta.topics || []).join(", ")}. No articles found matching the criteria.`;

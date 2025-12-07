@@ -162,7 +162,11 @@ export async function POST(request: NextRequest) {
     // IDEMPOTENCY CHECK: Verify campaign/platform config still valid
     const campaign = await prisma.campaignPlanner.findFirst({
       where: { id: meta.campaignId },
-      select: { name: true, projectId: true },
+      select: { 
+        name: true, 
+        projectId: true,
+        blogNewsMetadata: true, // Get timezone from campaign metadata
+      },
     });
     
     if (!campaign) {
@@ -257,13 +261,9 @@ export async function POST(request: NextRequest) {
 
     logger.log(`[Step 4] Creating platform posts for: ${platforms.join(", ")}`);
 
-    // 4. Generate social excerpt (with 9s timeout)
+    // 4. Generate social excerpt
     const blog = meta.blog;
-    const excerptPromise = generateSocialExcerpt(blog.title, blog.content);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Step 4 timeout after 9 seconds")), 9000)
-    );
-    const excerpt = await Promise.race([excerptPromise, timeoutPromise]) as Awaited<ReturnType<typeof generateSocialExcerpt>>;
+    const excerpt = await generateSocialExcerpt(blog.title, blog.content);
     const socialContent = `${excerpt}\n\nRead more: ${articleUrl}`;
 
     // 6. Create ScheduledPost records for each platform
@@ -277,6 +277,10 @@ export async function POST(request: NextRequest) {
           const scheduledDate = new Date(post.date);
           scheduledDate.setMinutes(scheduledDate.getMinutes() + 1);
 
+          // Get timezone from campaign metadata or use EST as default
+          const campaignMetadata = campaign?.blogNewsMetadata as { timezone?: string } | null;
+          const timezoneToUse = campaignMetadata?.timezone || meta.timezone || "America/New_York";
+
           const scheduled = await schedulePost({
             projectId: post.projectId,
             platform: platformName,
@@ -289,6 +293,7 @@ export async function POST(request: NextRequest) {
               source: "blog-news",
               blogNewsPostId: postId,
               articleUrl: articleUrl,
+              timezone: timezoneToUse, // Store timezone for display
             },
           });
 
