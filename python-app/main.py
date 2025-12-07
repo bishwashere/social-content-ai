@@ -20,6 +20,7 @@ from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 import pymongo
 from pymongo import MongoClient
+from bson import ObjectId
 import requests
 import google.generativeai as genai
 from dateutil import parser as date_parser
@@ -83,7 +84,7 @@ class Database:
         
         self.db = self.client[db_name]
         self.scheduled_posts = self.db["scheduled-posts"]  # From Prisma @@map
-        self.campaign_chats = self.db["project-chats"]  # From Prisma @@map
+        self.campaign_chats = self.db["campaign-chats"]  # CampaignChat collection (no @@map, uses default name)
         self.campaign_planners = self.db["campaign-planners"]  # From Prisma @@map
         logger.info(f"Connected to database: {db_name}")
     
@@ -266,18 +267,31 @@ class Database:
         )
         
         # Update CampaignChat
-        self.campaign_chats.update_one(
+        # Convert campaign_id to ObjectId if it's a string
+        try:
+            planner_id_obj = ObjectId(campaign_id) if isinstance(campaign_id, str) else campaign_id
+        except Exception:
+            logger.error(f"Invalid campaign_id format: {campaign_id}")
+            planner_id_obj = campaign_id  # Fallback to original value
+        
+        result = self.campaign_chats.update_one(
             {
-                "plannerId": campaign_id,
+                "plannerId": planner_id_obj,
                 "day": day
             },
             {
                 "$set": {
                     "contents.blog": blog,
-                    "status": "GENERATED"
+                    "status": "GENERATED",
+                    "updatedAt": datetime.utcnow()
                 }
             }
         )
+        
+        if result.matched_count == 0:
+            logger.warning(f"CampaignChat not found for plannerId={campaign_id}, day={day}. Blog may not appear in UI.")
+        else:
+            logger.info(f"Updated CampaignChat for plannerId={campaign_id}, day={day}")
         
         logger.info(f"Post {post_id}: Step 2 completed")
     
@@ -516,7 +530,14 @@ class ArticleFetcher:
         used_ids = set()
         
         # Get all chats for this campaign
-        chats = db.campaign_chats.find({"plannerId": campaign_id})
+        # Convert campaign_id to ObjectId if it's a string
+        try:
+            planner_id_obj = ObjectId(campaign_id) if isinstance(campaign_id, str) else campaign_id
+        except Exception:
+            logger.warning(f"Invalid campaign_id format in get_used_article_ids: {campaign_id}")
+            planner_id_obj = campaign_id  # Fallback to original value
+        
+        chats = db.campaign_chats.find({"plannerId": planner_id_obj})
         
         for chat in chats:
             contents = chat.get("contents", {})
