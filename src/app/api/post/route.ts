@@ -12,6 +12,9 @@ import { generateBlogNewsContent, generateSocialExcerpt } from "@/backend-apis/c
 import { schedulePost } from "@/server-actions/schedule-post";
 
 export const dynamic = "force-dynamic";
+// Increase timeout for blog generation (Vercel Pro allows up to 60s, Hobby is 10s)
+export const maxDuration = 60; // 60 seconds for Pro plan, will be capped at 10s on Hobby plan
+
 /**
  * Process pending scheduled posts
  */
@@ -282,10 +285,8 @@ export const GET = applyMiddleware(
           }
 
           // Get the article URL from the blog (stored in chat contents)
-          // Small delay to ensure database write is complete
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
           // Re-fetch campaign to get updated chat contents with articleUrl
+          // Note: Removed 500ms delay to optimize for timeout - database write should be fast enough
           const updatedCampaign = await prisma.campaignPlanner.findFirst({
             where: { id: meta.campaignId },
             include: {

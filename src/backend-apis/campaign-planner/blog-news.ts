@@ -709,7 +709,7 @@ export async function sendBlogToWebhook(
       },
       timestamp: new Date().toISOString(),
     }, {
-      timeout: 10000, // 10 second timeout
+      timeout: 8000, // 8 second timeout to leave buffer for overall function timeout
     });
 
     const success = response.status >= 200 && response.status < 300;
@@ -969,11 +969,17 @@ export async function generateBlogNewsContent({
     }
 
     // 4. Try to send to webhook (only if webhook URL is provided, don't fail if this fails)
+    // Use Promise.race to timeout webhook after 8 seconds to avoid overall timeout
     let webhookSent = false;
     let articleUrl: string | null = null;
     
     if (webhook && webhook.trim()) {
-      const webhookResult = await sendBlogToWebhook(webhook, blog, day);
+      try {
+        const webhookPromise = sendBlogToWebhook(webhook, blog, day);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Webhook timeout after 8 seconds")), 8000)
+        );
+        const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
       webhookSent = webhookResult.success;
       const webhookResponseData = webhookResult.responseData;
       
@@ -1002,12 +1008,17 @@ export async function generateBlogNewsContent({
         }
       }
       
-      if (!webhookSent) {
-        logger.warn(`Failed to send blog to webhook for day ${day}, but blog was saved`);
-      } else if (articleUrl) {
-        logger.log(`[Webhook] Received article URL from webhook: ${articleUrl}`);
-      } else {
-        logger.warn(`[Webhook] Webhook sent successfully but no articleUrl found in response`);
+        if (!webhookSent) {
+          logger.warn(`Failed to send blog to webhook for day ${day}, but blog was saved`);
+        } else if (articleUrl) {
+          logger.log(`[Webhook] Received article URL from webhook: ${articleUrl}`);
+        } else {
+          logger.warn(`[Webhook] Webhook sent successfully but no articleUrl found in response`);
+        }
+      } catch (webhookError) {
+        logger.warn(`[Webhook] Webhook call failed or timed out for day ${day}:`, webhookError);
+        // Continue without failing - blog is already saved
+        webhookSent = false;
       }
     } else {
       logger.log(`[Webhook] No webhook URL configured for day ${day}, skipping webhook send`);
