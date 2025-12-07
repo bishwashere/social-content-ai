@@ -98,7 +98,9 @@ export async function POST(request: NextRequest) {
     // 4. RACE CONDITION CHECK: Claim this post for Step 3 processing
     // Check if already in progress (read first to avoid race condition)
     if (meta?.step3InProgress) {
-      logger.warn(`[Step 3] Post ${postId} already being processed by another worker`);
+      const startedAt = meta?.step3StartedAt;
+      const duration = startedAt ? Math.round((Date.now() - new Date(startedAt).getTime()) / 1000) : 0;
+      logger.warn(`[Step 3] Post ${postId} already being processed by another worker (started ${duration}s ago)`);
       return NextResponse.json({
         success: false,
         error: "Step 3 already in progress",
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
     // Atomically set step3InProgress
     // Re-read post to get latest meta (in case it changed)
     // Select only id and meta to avoid schema validation issues
+    logger.log(`[Step 3] Checking for race condition - re-reading post ${postId}`);
     const currentPost = await prisma.scheduledPost.findFirst({
       where: { id: postId },
       select: { id: true, meta: true },
@@ -115,13 +118,16 @@ export async function POST(request: NextRequest) {
     const currentMeta = (currentPost?.meta as any) || {};
     
     if (currentMeta?.step3InProgress) {
-      logger.warn(`[Step 3] Post ${postId} already being processed (double-check)`);
+      const startedAt = currentMeta?.step3StartedAt;
+      const duration = startedAt ? Math.round((Date.now() - new Date(startedAt).getTime()) / 1000) : 0;
+      logger.warn(`[Step 3] Post ${postId} already being processed (double-check, started ${duration}s ago)`);
       return NextResponse.json({
         success: false,
         error: "Step 3 already in progress",
       });
     }
     
+    logger.log(`[Step 3] Claiming post ${postId} for Step 3 processing`);
     // Update only meta field to avoid createdAt validation issues
     await prisma.$runCommandRaw({
       update: "scheduled-posts",
@@ -135,6 +141,7 @@ export async function POST(request: NextRequest) {
         }
       }]
     });
+    logger.log(`[Step 3] Successfully claimed post ${postId}`);
     
     // 5. Verify blog exists in CampaignChat (additional safety check)
     // Select only needed fields to avoid schema validation issues
@@ -228,13 +235,18 @@ export async function POST(request: NextRequest) {
     // Use Promise.race to timeout webhook after 9 seconds
     let webhookSent = false;
     let articleUrl: string | null = null;
+    const webhookStartTime = Date.now();
     
     try {
+      logger.log(`[Step 3] Starting webhook call to: ${webhookUrl} (timeout: 9s)`);
       const webhookPromise = sendBlogToWebhook(webhookUrl, blog, meta.day);
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Webhook timeout after 9 seconds")), 9000)
       );
       const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
+      
+      const webhookDuration = Math.round((Date.now() - webhookStartTime) / 1000);
+      logger.log(`[Step 3] Webhook call completed in ${webhookDuration}s`);
       
       webhookSent = webhookResult.success;
       const webhookResponseData = webhookResult.responseData;
@@ -253,11 +265,13 @@ export async function POST(request: NextRequest) {
       
       logger.log(`[Step 3] ${webhookSent ? '✅ Successfully' : '❌ Failed to'} send blog to webhook`);
     } catch (error) {
-      logger.error(`[Step 3] Webhook error:`, error);
+      const webhookDuration = Math.round((Date.now() - webhookStartTime) / 1000);
+      logger.error(`[Step 3] Webhook error after ${webhookDuration}s:`, error);
       webhookSent = false;
       
       // Store error in meta
       const errorMessage = error instanceof Error ? error.message : "Unknown webhook error";
+      logger.error(`[Step 3] Storing error in meta: ${errorMessage}`);
       await prisma.scheduledPost.update({
         where: { id: postId },
         data: {
@@ -271,6 +285,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Update CampaignChat with articleUrl and webhook status
+    logger.log(`[Step 3] Updating CampaignChat for campaign ${meta.campaignId}, day ${meta.day}`);
     // Select only needed fields to avoid schema validation issues
     const campaignForUpdate = await prisma.campaignPlanner.findFirst({
       where: { id: meta.campaignId },
@@ -289,6 +304,7 @@ export async function POST(request: NextRequest) {
     if (campaignForUpdate && campaignForUpdate.chats[0]) {
       const chat = campaignForUpdate.chats[0];
       const contents = chat.contents as any;
+      logger.log(`[Step 3] Found CampaignChat ${chat.id}, updating with webhook status`);
       await prisma.campaignChat.update({
         where: { id: chat.id },
         data: {
@@ -306,9 +322,13 @@ export async function POST(request: NextRequest) {
       if (articleUrl) {
         logger.log(`[Step 3] Article URL stored in CampaignChat: ${chat.id}`);
       }
+      logger.log(`[Step 3] CampaignChat updated successfully`);
+    } else {
+      logger.warn(`[Step 3] CampaignChat not found for campaign ${meta.campaignId}, day ${meta.day}`);
     }
 
     // 6. Store webhook result in post.meta
+    logger.log(`[Step 3] Updating ScheduledPost ${postId} with Step 3 completion status`);
     await prisma.scheduledPost.update({
       where: { id: postId },
       data: {
@@ -324,7 +344,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    logger.log(`[Step 3] ✅ Completed for postId: ${postId}. Webhook ${webhookSent ? 'sent' : 'failed'}.${articleUrl ? ` Article URL: ${articleUrl}` : ''}`);
+    const totalDuration = Math.round((Date.now() - new Date(meta.step3StartedAt || new Date().toISOString()).getTime()) / 1000);
+    logger.log(`[Step 3] ✅ Completed for postId: ${postId} (took ${totalDuration}s). Webhook ${webhookSent ? 'sent' : 'failed'}.${articleUrl ? ` Article URL: ${articleUrl}` : ''}`);
 
     // Note: Step 4 will be triggered by the next cron run (/api/post)
     // This ensures proper state machine flow and allows for retries if needed
