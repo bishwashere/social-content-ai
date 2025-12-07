@@ -19,9 +19,10 @@ export const maxDuration = 30;
  * 7. Updates status and triggers Step 4
  */
 export async function POST(request: NextRequest) {
+  let postId: string | undefined;
   try {
     const body = await request.json();
-    const { postId } = body;
+    postId = body.postId;
 
     if (!postId) {
       logger.error("[Step 3] Missing postId in request body");
@@ -360,30 +361,39 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
-    // Try to get postId from request body (already parsed at top)
-    let errorPostId = "unknown";
-    try {
-      const body = await request.json();
-      errorPostId = body.postId || "unknown";
-    } catch {
-      // Request body already consumed, use unknown
-    }
+    // Get postId from the outer scope (already parsed at top)
+    const errorPostId = postId || "unknown";
     
     logger.error(`[Step 3] Error processing postId: ${errorPostId}`, {
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    // Update post status to failed (if we have postId)
+    // Update post status to failed and clear inProgress flag (if we have postId)
     if (errorPostId !== "unknown") {
       try {
-        await prisma.scheduledPost.update({
+        // Get current meta to preserve it
+        const errorPost = await prisma.scheduledPost.findFirst({
           where: { id: errorPostId },
-          data: {
-            status: "failed",
-            error: `Step 3 failed: ${errorMessage}`,
-          },
+          select: { meta: true },
         });
+        const errorMeta = (errorPost?.meta as any) || {};
+        
+        await prisma.$runCommandRaw({
+          update: "scheduled-posts",
+          updates: [{
+            q: { _id: { $oid: errorPostId } },
+            u: {
+              $set: {
+                status: "failed",
+                error: `Step 3 failed: ${errorMessage}`,
+                "meta.step3Error": errorMessage,
+                "meta.step3InProgress": false, // Clear inProgress flag to prevent stuck state
+              }
+            }
+          }]
+        });
+        logger.log(`[Step 3] Cleared step3InProgress flag and marked as failed for postId: ${errorPostId}`);
       } catch (updateError) {
         logger.error(`[Step 3] Failed to update post status`, updateError);
       }
