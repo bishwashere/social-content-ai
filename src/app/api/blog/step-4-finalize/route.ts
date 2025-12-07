@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.log(`[Step 4] Starting for postId: ${postId}`);
+    // Check if called by Step 3
+    const calledBy = request.headers.get("x-called-by") || "unknown";
+    logger.log(`[Step 4] 🚀 Starting for postId: ${postId} | Called by: ${calledBy}`);
 
     // 1. Fetch the scheduled post
     const post = await prisma.scheduledPost.findUnique({
@@ -227,9 +229,13 @@ export async function POST(request: NextRequest) {
 
     logger.log(`[Step 4] Creating platform posts for: ${platforms.join(", ")}`);
 
-    // 4. Generate social excerpt
+    // 4. Generate social excerpt (with 9s timeout)
     const blog = meta.blog;
-    const excerpt = await generateSocialExcerpt(blog.title, blog.content);
+    const excerptPromise = generateSocialExcerpt(blog.title, blog.content);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Step 4 timeout after 9 seconds")), 9000)
+    );
+    const excerpt = await Promise.race([excerptPromise, timeoutPromise]) as Awaited<ReturnType<typeof generateSocialExcerpt>>;
     const socialContent = `${excerpt}\n\nRead more: ${articleUrl}`;
 
     // 6. Create ScheduledPost records for each platform

@@ -31,7 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.log(`[Step 2] Starting for postId: ${postId}`);
+    // Check if called by Step 1
+    const calledBy = request.headers.get("x-called-by") || "unknown";
+    logger.log(`[Step 2] 🚀 Starting for postId: ${postId} | Called by: ${calledBy}`);
 
     // 1. Fetch the scheduled post
     const post = await prisma.scheduledPost.findUnique({
@@ -175,15 +177,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. REAL: Generate blog from article with angles
+    // 4. REAL: Generate blog from article with angles (with 9s timeout)
     logger.log(`[Step 2] Generating blog from article with ${(meta.angles || []).length} angles`);
     let blog;
     try {
-      blog = await generateBlogFromArticle(
+      const generatePromise = generateBlogFromArticle(
         meta.article.title,
         meta.article.content,
         meta.angles || []
       );
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Step 2 timeout after 9 seconds")), 9000)
+      );
+      blog = await Promise.race([generatePromise, timeoutPromise]) as Awaited<ReturnType<typeof generateBlogFromArticle>>;
       
       if (!blog) {
         throw new Error("Blog generation returned null");
@@ -317,13 +323,20 @@ export async function POST(request: NextRequest) {
                     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
     const step3Url = `${baseUrl}/api/blog/step-3-send-webhook`;
     
-    logger.log(`[Step 2] Triggering Step 3: ${step3Url}`);
+    logger.log(`[Step 2] 🔄 Calling Step 3 for postId: ${postId} | URL: ${step3Url}`);
     fetch(step3Url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Called-By": "step-2-generate"
+      },
       body: JSON.stringify({ postId }),
-    }).catch((error) => {
-      logger.error(`[Step 2] Failed to trigger Step 3 for postId: ${postId}`, error);
+    })
+    .then(() => {
+      logger.log(`[Step 2] ✅ Successfully called Step 3 for postId: ${postId}`);
+    })
+    .catch((error) => {
+      logger.error(`[Step 2] ❌ Failed to trigger Step 3 for postId: ${postId}`, error);
     });
 
     return NextResponse.json({

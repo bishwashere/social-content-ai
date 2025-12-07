@@ -31,7 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.log(`[Step 3] Starting for postId: ${postId}`);
+    // Check if called by Step 2
+    const calledBy = request.headers.get("x-called-by") || "unknown";
+    logger.log(`[Step 3] 🚀 Starting for postId: ${postId} | Called by: ${calledBy}`);
 
     // 1. Fetch the scheduled post
     const post = await prisma.scheduledPost.findUnique({
@@ -144,13 +146,20 @@ export async function POST(request: NextRequest) {
                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
       const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
       
-      logger.log(`[Step 3] Triggering Step 4: ${step4Url}`);
+      logger.log(`[Step 3] 🔄 Calling Step 4 for postId: ${postId} | URL: ${step4Url}`);
       fetch(step4Url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Called-By": "step-3-send-webhook"
+        },
         body: JSON.stringify({ postId }),
-      }).catch((error) => {
-        logger.error(`[Step 3] Failed to trigger Step 4 for postId: ${postId}`, error);
+      })
+      .then(() => {
+        logger.log(`[Step 3] ✅ Successfully called Step 4 for postId: ${postId}`);
+      })
+      .catch((error) => {
+        logger.error(`[Step 3] ❌ Failed to trigger Step 4 for postId: ${postId}`, error);
       });
 
       return NextResponse.json({
@@ -181,14 +190,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Use Promise.race to timeout webhook after 8 seconds
+    // Use Promise.race to timeout webhook after 9 seconds
     let webhookSent = false;
     let articleUrl: string | null = null;
     
     try {
       const webhookPromise = sendBlogToWebhook(webhookUrl, blog, meta.day);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Webhook timeout after 8 seconds")), 8000)
+        setTimeout(() => reject(new Error("Webhook timeout after 9 seconds")), 9000)
       );
       const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
       
@@ -266,13 +275,20 @@ export async function POST(request: NextRequest) {
                     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
     const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
     
-    logger.log(`[Step 3] Triggering Step 4: ${step4Url}`);
+    logger.log(`[Step 3] 🔄 Calling Step 4 for postId: ${postId} | URL: ${step4Url}`);
     fetch(step4Url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Called-By": "step-3-send-webhook"
+      },
       body: JSON.stringify({ postId }),
-    }).catch((error) => {
-      logger.error(`[Step 3] Failed to trigger Step 4 for postId: ${postId}`, error);
+    })
+    .then(() => {
+      logger.log(`[Step 3] ✅ Successfully called Step 4 for postId: ${postId}`);
+    })
+    .catch((error) => {
+      logger.error(`[Step 3] ❌ Failed to trigger Step 4 for postId: ${postId}`, error);
     });
 
     return NextResponse.json({

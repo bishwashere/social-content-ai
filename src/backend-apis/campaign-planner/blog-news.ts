@@ -865,7 +865,7 @@ export async function sendBlogToWebhook(
       },
       timestamp: new Date().toISOString(),
     }, {
-      timeout: 8000, // 8 second timeout to leave buffer for overall function timeout
+      timeout: 9000, // 9 second timeout to leave buffer for overall function timeout
     });
 
     const success = response.status >= 200 && response.status < 300;
@@ -1133,7 +1133,7 @@ export async function generateBlogNewsContent({
       try {
         const webhookPromise = sendBlogToWebhook(webhook, blog, day);
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Webhook timeout after 8 seconds")), 8000)
+          setTimeout(() => reject(new Error("Webhook timeout after 9 seconds")), 9000)
         );
         const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
       webhookSent = webhookResult.success;

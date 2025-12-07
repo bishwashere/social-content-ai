@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.log(`[Step 1] Starting for postId: ${postId}`);
+    // Check if called by another step (usually Step 1 is entry point)
+    const calledBy = request.headers.get("x-called-by") || "entry-point";
+    logger.log(`[Step 1] 🚀 Starting for postId: ${postId} | Called by: ${calledBy}`);
 
     // 1. Fetch the scheduled post
     const post = await prisma.scheduledPost.findUnique({
@@ -91,9 +93,13 @@ export async function POST(request: NextRequest) {
       data: { status: "processing" },
     });
 
-    // 5. REAL: Fetch article from Olive Drift API
+    // 5. REAL: Fetch article from Olive Drift API (with 9s timeout)
     logger.log(`[Step 1] Fetching article for campaign ${meta.campaignId}, day ${meta.day}, topics: ${(meta.topics || []).join(", ")}`);
-    const article = await fetchArticleForTopics(meta.topics || [], meta.campaignId);
+    const fetchPromise = fetchArticleForTopics(meta.topics || [], meta.campaignId);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Step 1 timeout after 9 seconds")), 9000)
+    );
+    const article = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<ReturnType<typeof fetchArticleForTopics>>;
     
     if (!article) {
       const errorMessage = `Failed to fetch article for topics: ${(meta.topics || []).join(", ")}. No articles found matching the criteria.`;
@@ -133,13 +139,20 @@ export async function POST(request: NextRequest) {
                     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
     const step2Url = `${baseUrl}/api/blog/step-2-generate`;
     
-    logger.log(`[Step 1] Triggering Step 2: ${step2Url}`);
+    logger.log(`[Step 1] 🔄 Calling Step 2 for postId: ${postId} | URL: ${step2Url}`);
     fetch(step2Url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Called-By": "step-1-fetch-article"
+      },
       body: JSON.stringify({ postId }),
-    }).catch((error) => {
-      logger.error(`[Step 1] Failed to trigger Step 2 for postId: ${postId}`, error);
+    })
+    .then(() => {
+      logger.log(`[Step 1] ✅ Successfully called Step 2 for postId: ${postId}`);
+    })
+    .catch((error) => {
+      logger.error(`[Step 1] ❌ Failed to trigger Step 2 for postId: ${postId}`, error);
     });
 
     return NextResponse.json({
