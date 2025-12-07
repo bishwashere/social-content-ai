@@ -10,19 +10,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface TimePickerDialogProps {
   /** Current value as "HH:mm" string or undefined */
   value?: string
+  /** Current timezone (IANA timezone string, e.g., "America/New_York") */
+  timezone?: string
   /** Callback when time changes */
   onChange?: (time: string | undefined) => void
+  /** Callback when timezone changes */
+  onTimezoneChange?: (timezone: string) => void
   /** Whether the dialog is open */
   open: boolean
   /** Callback when dialog open state changes */
   onOpenChange?: (open: boolean) => void
   /** Callback when confirm is clicked */
-  onConfirm?: (time: string | undefined) => void
+  onConfirm?: (time: string | undefined, timezone?: string) => void
 }
+
+// Major timezones with common abbreviations
+const TIMEZONES = [
+  { value: "America/New_York", label: "EST/EDT (Eastern)" },
+  { value: "America/Chicago", label: "CST/CDT (Central)" },
+  { value: "America/Denver", label: "MST/MDT (Mountain)" },
+  { value: "America/Los_Angeles", label: "PST/PDT (Pacific)" },
+  { value: "America/Phoenix", label: "MST (Arizona)" },
+  { value: "America/Anchorage", label: "AKST/AKDT (Alaska)" },
+  { value: "Pacific/Honolulu", label: "HST (Hawaii)" },
+  { value: "Asia/Kolkata", label: "IST (India)" },
+  { value: "Europe/London", label: "GMT/BST (UK)" },
+  { value: "Europe/Paris", label: "CET/CEST (Central Europe)" },
+  { value: "Asia/Tokyo", label: "JST (Japan)" },
+  { value: "Asia/Shanghai", label: "CST (China)" },
+  { value: "Australia/Sydney", label: "AEST/AEDT (Sydney)" },
+  { value: "America/Toronto", label: "EST/EDT (Toronto)" },
+  { value: "America/Vancouver", label: "PST/PDT (Vancouver)" },
+  { value: "UTC", label: "UTC" },
+]
 
 export function TimePickerDialog({
   value,
+  timezone,
   onChange,
+  onTimezoneChange,
   open,
   onOpenChange,
   onConfirm
@@ -33,6 +59,9 @@ export function TimePickerDialog({
   )
   const [selectedMinute, setSelectedMinute] = React.useState<string>(
     value ? value.split(":")[1] : "00"
+  )
+  const [selectedTimezone, setSelectedTimezone] = React.useState<string>(
+    timezone || "America/New_York"
   )
 
   // Update internal state when value prop changes
@@ -46,6 +75,13 @@ export function TimePickerDialog({
       setSelectedMinute("00")
     }
   }, [value])
+
+  // Update timezone when prop changes
+  React.useEffect(() => {
+    if (timezone) {
+      setSelectedTimezone(timezone)
+    }
+  }, [timezone])
 
   // Generate hours (00-23)
   const hours = Array.from({ length: 24 }, (_, i) =>
@@ -67,11 +103,17 @@ export function TimePickerDialog({
     setSelectedMinute(minute)
   }
 
+  // Handle timezone change
+  const handleTimezoneChange = (tz: string) => {
+    setSelectedTimezone(tz)
+    onTimezoneChange?.(tz)
+  }
+
   // Handle confirm button click
   const handleConfirm = () => {
     const timeString = `${selectedHour}:${selectedMinute}`
     onChange?.(timeString)
-    if (onConfirm) onConfirm(timeString)
+    if (onConfirm) onConfirm(timeString, selectedTimezone)
     onOpenChange?.(false)
   }
 
@@ -137,9 +179,26 @@ export function TimePickerDialog({
                 </Select>
               </div>
             </div>
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Timezone
+              </label>
+              <Select value={selectedTimezone} onValueChange={handleTimezoneChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="text-center pt-2">
               <p className="text-sm text-muted-foreground">
-                Selected: {selectedHour}:{selectedMinute}
+                Selected: {selectedHour}:{selectedMinute} ({TIMEZONES.find(tz => tz.value === selectedTimezone)?.label.split(" ")[0] || selectedTimezone})
               </p>
             </div>
           </div>

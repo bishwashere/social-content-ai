@@ -161,6 +161,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [isTimePickerOpen, setIsTimePickerOpen] = useState<Record<string, boolean>>({});
   const [isPlatformSelectorOpen, setIsPlatformSelectorOpen] = useState<Record<string, boolean>>({});
   const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
+  const [campaignTimezones, setCampaignTimezones] = useState<Record<string, string>>({});
   const [showOldCampaigns, setShowOldCampaigns] = useState(false);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
   const scheduleCampaignTasks = useScheduleCampaignTasks();
@@ -999,21 +1000,27 @@ export default function CampaignPlannerPage({ project }: Props) {
                               </Dialog>
                               <TimePickerDialog
                                 value={campaign.autoPostTime || undefined}
+                                timezone={(campaign.blogNewsMetadata as any)?.timezone || campaignTimezones[campaign.id] || "America/New_York"}
                                 open={isTimePickerOpen[campaign.id] || false}
                                 onOpenChange={(open) => {
                                   setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: open });
                                 }}
-                                onConfirm={async (time) => {
+                                onTimezoneChange={(tz) => {
+                                  setCampaignTimezones({ ...campaignTimezones, [campaign.id]: tz });
+                                }}
+                                onConfirm={async (time, timezone) => {
                                   if (!time) return;
                                   if (!campaign.startDate) {
                                     toast.error("Please set a start date first");
                                     return;
                                   }
                                   
+                                  const selectedTimezone = timezone || campaignTimezones[campaign.id] || "America/New_York";
+                                  
                                   // Handle Blog News campaigns differently
                                   if (campaign.goal === "Blog News") {
                                     // Get platforms from campaign metadata or use selected platforms
-                                    const blogNewsMetadata = campaign.blogNewsMetadata as { platforms?: string[] } | null;
+                                    const blogNewsMetadata = campaign.blogNewsMetadata as { platforms?: string[]; timezone?: string } | null;
                                     const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || 
                                                           blogNewsMetadata?.platforms || 
                                                           campaign.platforms || 
@@ -1025,18 +1032,24 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       return;
                                     }
 
-                                    // Save the time and enable auto-post
+                                    // Save the time, timezone, and enable auto-post
                                     await updateCampaignData.mutateAsync({
                                       id: campaign.id,
                                       autoPostEnabled: true,
                                       autoPostTime: time,
                                       autoPostPlatforms: platformsToUse,
+                                      blogNewsMetadata: {
+                                        ...blogNewsMetadata,
+                                        platforms: platformsToUse,
+                                        timezone: selectedTimezone,
+                                      },
                                     });
                                     // Schedule tasks instead of posts
                                     scheduleCampaignTasks.mutate({
                                       campaignId: campaign.id,
                                       projectId: campaign.projectId,
                                       autoPostTime: time,
+                                      timezone: selectedTimezone,
                                       platforms: platformsToUse,
                                     });
                                   } else {
@@ -1061,6 +1074,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       campaignId: campaign.id,
                                       projectId: campaign.projectId,
                                       autoPostTime: time,
+                                      timezone: selectedTimezone,
                                       platforms: platformsToUse,
                                     });
                                   }

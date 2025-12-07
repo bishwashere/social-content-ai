@@ -141,13 +141,15 @@ export const useScheduleCampaignPosts = () => {
       campaignId,
       projectId,
       autoPostTime,
+      timezone,
       platforms,
     }: {
       campaignId: string;
       projectId: string;
       autoPostTime: string;
+      timezone?: string;
       platforms: string[];
-    }) => scheduleCampaignPosts({ campaignId, projectId, autoPostTime, platforms }),
+    }) => scheduleCampaignPosts({ campaignId, projectId, autoPostTime, timezone, platforms }),
 
     onSuccess: (result, variables) => {
       if (result.success) {
@@ -180,13 +182,15 @@ export const useScheduleCampaignTasks = () => {
       campaignId,
       projectId,
       autoPostTime,
+      timezone,
       platforms,
     }: {
       campaignId: string;
       projectId: string;
       autoPostTime: string;
+      timezone?: string;
       platforms: string[];
-    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, platforms }),
+    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, timezone, platforms }),
 
     onSuccess: (result, variables) => {
       if (result.success) {

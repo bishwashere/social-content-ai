@@ -109,12 +109,14 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const formatDate = (date: Date | string) => {
-  return new Date(date).toLocaleDateString("en-US", {
+const formatDate = (date: Date | string, timezone?: string) => {
+  const dateObj = new Date(date);
+  return dateObj.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    ...(timezone && { timeZone: timezone }),
   });
 };
 
@@ -203,7 +205,7 @@ export function ScheduledPosts({ project }: Props) {
               </CardTitle>
               <CardDescription className="flex items-center gap-2">
                 <Calendar className="h-3 w-3" />
-                Scheduled For: {formatDate(post.date)}
+                Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone)}
               </CardDescription>
             </div>
           </div>
@@ -250,7 +252,7 @@ export function ScheduledPosts({ project }: Props) {
                 </p>
                 {post.processedAt && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Failed at: {formatDate(post.processedAt)}
+                    Failed at: {formatDate(post.processedAt, (post.meta as any)?.timezone)}
                   </p>
                 )}
               </div>
@@ -442,7 +444,7 @@ export function ScheduledPosts({ project }: Props) {
                           </span>
                           {earliestDate && latestDate && (
                             <span className="text-xs">
-                              {formatDate(earliestDate)} - {formatDate(latestDate)}
+                              {formatDate(earliestDate, (firstPost.meta as any)?.timezone)} - {formatDate(latestDate, (firstPost.meta as any)?.timezone)}
                             </span>
                           )}
                           <div className="flex items-center gap-2">

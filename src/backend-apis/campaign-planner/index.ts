@@ -457,6 +457,7 @@ export const changeCampaignData = async (
         angles: blogNewsMetadata.angles,
         webhook: blogNewsMetadata.webhook,
         platforms: blogNewsMetadata.platforms || [],
+        ...(blogNewsMetadata.timezone && { timezone: blogNewsMetadata.timezone }),
       };
     }
 
@@ -731,6 +732,7 @@ export const scheduleCampaignPosts = async ({
             campaignName: campaign.name || "",
             day: chat.day,
             source: "campaign",
+            timezone: timezoneToUse, // Store timezone for display
           },
         });
 
@@ -814,7 +816,11 @@ export const scheduleCampaignTasks = async ({
       angles: string[];
       webhook: string;
       platforms?: string[];
+      timezone?: string;
     } | null;
+    
+    // Use timezone from parameter, metadata, or default to UTC
+    const timezoneToUse = timezone || metadata?.timezone || "UTC";
 
     if (!metadata) {
       return {
@@ -875,6 +881,7 @@ export const scheduleCampaignTasks = async ({
               angles: metadata.angles,
               webhook: metadata.webhook,
               platforms: platformsToUse, // Store platforms for later use
+              timezone: timezoneToUse, // Store timezone for display
             },
           },
         });
