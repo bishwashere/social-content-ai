@@ -881,8 +881,21 @@ export async function sendBlogToWebhook(
     
     return { success };
   } catch (error) {
+    console.error("[Webhook] ❌ Error sending blog to webhook:", error);
     logger.error("[Webhook] Error sending blog to webhook:", error);
     if (error instanceof Error) {
+      console.error("[Webhook] ❌ Error message:", error.message);
+      if (error.stack) {
+        console.error("[Webhook] ❌ Error stack:", error.stack);
+      }
+      // Check if it's an axios error with response
+      if ((error as any).response) {
+        console.error("[Webhook] ❌ Response status:", (error as any).response.status);
+        console.error("[Webhook] ❌ Response data:", (error as any).response.data);
+      }
+      if ((error as any).code) {
+        console.error("[Webhook] ❌ Error code:", (error as any).code);
+      }
       logger.error("[Webhook] Error details:", error.message);
     }
     return { success: false };

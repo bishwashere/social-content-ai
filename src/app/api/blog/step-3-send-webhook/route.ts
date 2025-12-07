@@ -19,10 +19,14 @@ export const maxDuration = 30;
  * 7. Updates status and triggers Step 4
  */
 export async function POST(request: NextRequest) {
+  const overallStartTime = Date.now();
   let postId: string | undefined;
   try {
+    const parseStartTime = Date.now();
     const body = await request.json();
     postId = body.postId;
+    const parseDuration = Date.now() - parseStartTime;
+    console.log(`[Step 3] ⏱️  Request parsing: ${parseDuration}ms`);
 
     if (!postId) {
       logger.error("[Step 3] Missing postId in request body");
@@ -34,9 +38,11 @@ export async function POST(request: NextRequest) {
 
     // Check if called by Step 2
     const calledBy = request.headers.get("x-called-by") || "unknown";
+    console.log(`[Step 3] 🚀 Starting for postId: ${postId} | Called by: ${calledBy}`);
     logger.log(`[Step 3] 🚀 Starting for postId: ${postId} | Called by: ${calledBy}`);
 
     // 1. Fetch the scheduled post
+    const fetchPostStartTime = Date.now();
     const post = await prisma.scheduledPost.findUnique({
       where: { id: postId },
       select: {
@@ -46,6 +52,8 @@ export async function POST(request: NextRequest) {
         projectId: true,
       },
     });
+    const fetchPostDuration = Date.now() - fetchPostStartTime;
+    console.log(`[Step 3] ⏱️  Fetch post from DB: ${fetchPostDuration}ms`);
 
     if (!post) {
       logger.error(`[Step 3] Post not found: ${postId}`);
@@ -111,12 +119,15 @@ export async function POST(request: NextRequest) {
     // Atomically set step3InProgress
     // Re-read post to get latest meta (in case it changed)
     // Select only id and meta to avoid schema validation issues
+    const raceCheckStartTime = Date.now();
     logger.log(`[Step 3] Checking for race condition - re-reading post ${postId}`);
     const currentPost = await prisma.scheduledPost.findFirst({
       where: { id: postId },
       select: { id: true, meta: true },
     });
     const currentMeta = (currentPost?.meta as any) || {};
+    const raceCheckDuration = Date.now() - raceCheckStartTime;
+    console.log(`[Step 3] ⏱️  Race condition check: ${raceCheckDuration}ms`);
     
     if (currentMeta?.step3InProgress) {
       const startedAt = currentMeta?.step3StartedAt;
@@ -129,6 +140,7 @@ export async function POST(request: NextRequest) {
     }
     
     logger.log(`[Step 3] Claiming post ${postId} for Step 3 processing`);
+    const claimStartTime = Date.now();
     // Update only meta field to avoid createdAt validation issues
     await prisma.$runCommandRaw({
       update: "scheduled-posts",
@@ -142,10 +154,13 @@ export async function POST(request: NextRequest) {
         }
       }]
     });
+    const claimDuration = Date.now() - claimStartTime;
+    console.log(`[Step 3] ⏱️  Claim post (set inProgress): ${claimDuration}ms`);
     logger.log(`[Step 3] Successfully claimed post ${postId}`);
     
     // 5. Verify blog exists in CampaignChat (additional safety check)
     // Select only needed fields to avoid schema validation issues
+    const checkChatStartTime = Date.now();
     const campaignForCheck = await prisma.campaignPlanner.findFirst({
       where: { id: meta.campaignId },
       select: {
@@ -159,6 +174,8 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+    const checkChatDuration = Date.now() - checkChatStartTime;
+    console.log(`[Step 3] ⏱️  Check CampaignChat exists: ${checkChatDuration}ms`);
     
     const chatForCheck = campaignForCheck?.chats[0];
     if (chatForCheck) {
@@ -168,7 +185,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const webhookUrl = meta.webhook || "";
+    // Trim webhook URL to ensure no whitespace issues (should already be trimmed, but be safe)
+    const webhookUrl = (meta.webhook || "").trim();
+    console.log(`[Step 3] Webhook URL from meta: "${meta.webhook}" -> trimmed: "${webhookUrl}"`);
     if (!webhookUrl) {
       logger.log(`[Step 3] No webhook URL provided for postId: ${postId}, skipping webhook`);
       // Skip webhook but continue to Step 4
@@ -239,6 +258,7 @@ export async function POST(request: NextRequest) {
     const webhookStartTime = Date.now();
     
     try {
+      console.log(`[Step 3] Starting webhook call to: ${webhookUrl} (timeout: 9s)`);
       logger.log(`[Step 3] Starting webhook call to: ${webhookUrl} (timeout: 9s)`);
       const webhookPromise = sendBlogToWebhook(webhookUrl, blog, meta.day);
       const timeoutPromise = new Promise((_, reject) => 
@@ -246,8 +266,9 @@ export async function POST(request: NextRequest) {
       );
       const webhookResult = await Promise.race([webhookPromise, timeoutPromise]) as Awaited<ReturnType<typeof sendBlogToWebhook>>;
       
-      const webhookDuration = Math.round((Date.now() - webhookStartTime) / 1000);
-      logger.log(`[Step 3] Webhook call completed in ${webhookDuration}s`);
+      const webhookDuration = Date.now() - webhookStartTime;
+      console.log(`[Step 3] ⏱️  Webhook call: ${webhookDuration}ms (${(webhookDuration / 1000).toFixed(2)}s)`);
+      logger.log(`[Step 3] Webhook call completed in ${Math.round(webhookDuration / 1000)}s`);
       
       webhookSent = webhookResult.success;
       const webhookResponseData = webhookResult.responseData;
@@ -266,12 +287,16 @@ export async function POST(request: NextRequest) {
       
       logger.log(`[Step 3] ${webhookSent ? '✅ Successfully' : '❌ Failed to'} send blog to webhook`);
     } catch (error) {
-      const webhookDuration = Math.round((Date.now() - webhookStartTime) / 1000);
-      logger.error(`[Step 3] Webhook error after ${webhookDuration}s:`, error);
+      const webhookDuration = Date.now() - webhookStartTime;
+      const errorMessage = error instanceof Error ? error.message : "Unknown webhook error";
+      console.error(`[Step 3] ❌ Webhook error after ${webhookDuration}ms (${(webhookDuration / 1000).toFixed(2)}s):`, errorMessage);
+      if (error instanceof Error && error.stack) {
+        console.error(`[Step 3] ❌ Error stack:`, error.stack);
+      }
+      logger.error(`[Step 3] Webhook error after ${Math.round(webhookDuration / 1000)}s:`, error);
       webhookSent = false;
       
       // Store error in meta
-      const errorMessage = error instanceof Error ? error.message : "Unknown webhook error";
       logger.error(`[Step 3] Storing error in meta: ${errorMessage}`);
       await prisma.scheduledPost.update({
         where: { id: postId },
@@ -287,6 +312,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Update CampaignChat with articleUrl and webhook status
     logger.log(`[Step 3] Updating CampaignChat for campaign ${meta.campaignId}, day ${meta.day}`);
+    const updateChatStartTime = Date.now();
     // Select only needed fields to avoid schema validation issues
     const campaignForUpdate = await prisma.campaignPlanner.findFirst({
       where: { id: meta.campaignId },
@@ -301,11 +327,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+    const fetchChatForUpdateDuration = Date.now() - updateChatStartTime;
+    console.log(`[Step 3] ⏱️  Fetch CampaignChat for update: ${fetchChatForUpdateDuration}ms`);
 
     if (campaignForUpdate && campaignForUpdate.chats[0]) {
       const chat = campaignForUpdate.chats[0];
       const contents = chat.contents as any;
       logger.log(`[Step 3] Found CampaignChat ${chat.id}, updating with webhook status`);
+      const updateChatWriteStartTime = Date.now();
       await prisma.campaignChat.update({
         where: { id: chat.id },
         data: {
@@ -320,6 +349,8 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+      const updateChatWriteDuration = Date.now() - updateChatWriteStartTime;
+      console.log(`[Step 3] ⏱️  Update CampaignChat write: ${updateChatWriteDuration}ms`);
       if (articleUrl) {
         logger.log(`[Step 3] Article URL stored in CampaignChat: ${chat.id}`);
       }
@@ -330,6 +361,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Store webhook result in post.meta
     logger.log(`[Step 3] Updating ScheduledPost ${postId} with Step 3 completion status`);
+    const updatePostStartTime = Date.now();
     await prisma.scheduledPost.update({
       where: { id: postId },
       data: {
@@ -344,8 +376,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+    const updatePostDuration = Date.now() - updatePostStartTime;
+    console.log(`[Step 3] ⏱️  Update ScheduledPost: ${updatePostDuration}ms`);
 
     const totalDuration = Math.round((Date.now() - new Date(meta.step3StartedAt || new Date().toISOString()).getTime()) / 1000);
+    const overallDuration = Date.now() - overallStartTime;
+    console.log(`[Step 3] ⏱️  ════════════════════════════════════════`);
+    console.log(`[Step 3] ⏱️  TOTAL DURATION: ${overallDuration}ms (${(overallDuration / 1000).toFixed(2)}s)`);
+    console.log(`[Step 3] ⏱️  ════════════════════════════════════════`);
     logger.log(`[Step 3] ✅ Completed for postId: ${postId} (took ${totalDuration}s). Webhook ${webhookSent ? 'sent' : 'failed'}.${articleUrl ? ` Article URL: ${articleUrl}` : ''}`);
 
     // Note: Step 4 will be triggered by the next cron run (/api/post)

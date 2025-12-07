@@ -9,6 +9,11 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Skip API routes, static files, and known routes
+  // Normalize pathname (remove trailing slash for comparison)
+  const normalizedPath = pathname.endsWith("/") && pathname.length > 1 
+    ? pathname.slice(0, -1) 
+    : pathname;
+  
   if (
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
@@ -24,6 +29,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/error") ||
     pathname.startsWith("/checkout") ||
     pathname.startsWith("/documentation") ||
+    normalizedPath === "/receive" || // Skip /receive (webhook endpoint, should be /ideas/receive but handle legacy)
+    pathname === "/receive" || // Also check original pathname
     pathname === "/" ||
     pathname.length === 0
   ) {
@@ -38,7 +45,14 @@ export async function middleware(request: NextRequest) {
 
   const username = segments[0];
 
+  // Additional safety check: skip common paths that might be mistaken for usernames
+  const skipPaths = ["receive", "admin", "login", "signup", "dashboard", "settings"];
+  if (skipPaths.includes(username.toLowerCase())) {
+    return NextResponse.next();
+  }
+
   // Check if it's a referral username by querying the database
+  // Only import Prisma here, after all early returns, to avoid Edge Runtime issues
   try {
     const { prisma } = await import("@/lib/prisma");
     const partner = await prisma.referralPartner.findUnique({
@@ -94,7 +108,20 @@ export async function middleware(request: NextRequest) {
     console.log(`🔄 Redirecting ${username} to homepage with referral cookie set`);
     return response;
   } catch (error) {
-    // If there's an error, just continue with normal routing
+    // If there's an error (e.g., Prisma in Edge Runtime), just continue with normal routing
+    // Prisma doesn't work in Edge Runtime, so we catch and silently continue
+    if (error instanceof Error) {
+      const errorMessage = error.message || "";
+      if (errorMessage.includes("browser environment") || 
+          errorMessage.includes("bundled for the browser") ||
+          errorMessage.includes("Edge Runtime") ||
+          errorMessage.includes("PrismaClient is unable to run")) {
+        // Silently skip - this is expected in Edge Runtime where Prisma doesn't work
+        // The route will be handled by Next.js routing normally
+        return NextResponse.next();
+      }
+    }
+    // Log other unexpected errors
     console.error("❌ Error in referral middleware:", error);
     return NextResponse.next();
   }

@@ -910,6 +910,7 @@ export const GET = applyMiddleware(
 
 /**
  * Update a post status in the database
+ * Handles cases where the post might not exist (e.g., deleted, race condition)
  */
 async function updatePostStatus(
   postId: string,
@@ -917,15 +918,40 @@ async function updatePostStatus(
   error?: string,
   meta?: any
 ) {
-  await prisma.scheduledPost.update({
-    where: { id: postId },
-    data: {
-      status,
-      error: typeof error === "string" ? error : JSON.stringify(error),
-      processedAt: new Date(),
-      meta,
-    },
-  });
+  try {
+    // First check if post exists
+    const existingPost = await prisma.scheduledPost.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!existingPost) {
+      console.warn(`[updatePostStatus] Post ${postId} not found, skipping update`);
+      return;
+    }
+
+    await prisma.scheduledPost.update({
+      where: { id: postId },
+      data: {
+        status,
+        error: typeof error === "string" ? error : JSON.stringify(error),
+        processedAt: new Date(),
+        meta,
+      },
+    });
+  } catch (error) {
+    // Handle Prisma errors gracefully
+    if (error instanceof Error) {
+      // Check if it's a "record not found" error
+      if (error.message.includes("required but not found") || 
+          error.message.includes("Record to update not found")) {
+        console.warn(`[updatePostStatus] Post ${postId} not found, skipping update:`, error.message);
+        return;
+      }
+    }
+    // Log other errors but don't throw (to prevent breaking the cron)
+    console.error(`[updatePostStatus] Error updating post ${postId}:`, error);
+  }
 }
 
 /**

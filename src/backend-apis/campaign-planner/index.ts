@@ -118,7 +118,7 @@ export const startCampaignPlanner = async (
         blogNewsMetadata: {
           topics: blogNewsMetadata.topics,
           angles: blogNewsMetadata.angles,
-          webhook: blogNewsMetadata.webhook,
+          webhook: blogNewsMetadata.webhook ? blogNewsMetadata.webhook.trim() : "", // Trim whitespace only
           platforms: blogNewsMetadata.platforms || [],
           targetAudience: blogNewsMetadata.targetAudience || plan.targetAudience,
           productRelated: blogNewsMetadata.productRelated ?? true,
@@ -452,17 +452,21 @@ export const changeCampaignData = async (
     
     // Store Blog News metadata at campaign level
     if (blogNewsMetadata !== undefined) {
+      // Preserve webhook URL exactly as provided (trim whitespace only)
+      const webhookValue = blogNewsMetadata.webhook ? blogNewsMetadata.webhook.trim() : "";
+      console.log("[changeCampaignData] Saving webhook URL:", webhookValue);
+      
       updateFields.blogNewsMetadata = {
         topics: blogNewsMetadata.topics,
         angles: blogNewsMetadata.angles,
-        webhook: blogNewsMetadata.webhook,
+        webhook: webhookValue, // Save trimmed value
         platforms: blogNewsMetadata.platforms || [],
         ...(blogNewsMetadata.timezone && { timezone: blogNewsMetadata.timezone }),
       };
     }
 
     console.log({ id });
-    console.log(updateFields);
+    console.log("[changeCampaignData] Update fields:", JSON.stringify(updateFields, null, 2));
 
     const planner = await prisma.campaignPlanner.update({
       where: { id },
@@ -912,6 +916,10 @@ export const scheduleCampaignTasks = async ({
 
       try {
         // Create metadata-only ScheduledPost record
+        // Trim webhook URL to ensure consistency (should already be trimmed, but be safe)
+        const webhookValue = metadata.webhook ? metadata.webhook.trim() : "";
+        console.log(`[scheduleCampaignTasks] Saving webhook URL to ScheduledPost: ${webhookValue}`);
+        
         await prisma.scheduledPost.create({
           data: {
             projectId,
@@ -926,7 +934,7 @@ export const scheduleCampaignTasks = async ({
               day: chat.day,
               topics: metadata.topics,
               angles: metadata.angles,
-              webhook: metadata.webhook,
+              webhook: webhookValue, // Use trimmed value
               platforms: platformsToUse, // Store platforms for later use
               timezone: timezoneToUse, // Store timezone for display
             },

@@ -86,6 +86,7 @@ class Database:
         self.scheduled_posts = self.db["scheduled-posts"]  # From Prisma @@map
         self.campaign_chats = self.db["campaign-chats"]  # CampaignChat collection (no @@map, uses default name)
         self.campaign_planners = self.db["campaign-planners"]  # From Prisma @@map
+        self.gemini_key_states = self.db["gemini-api-key-states"]  # For tracking exhausted API keys
         logger.info(f"Connected to database: {db_name}")
     
     def find_pending_posts(self) -> List[Dict[str, Any]]:
@@ -266,32 +267,56 @@ class Database:
             }
         )
         
-        # Update CampaignChat
+        # Update CampaignChat - Match Next.js approach: find campaign first, then get chat
         # Convert campaign_id to ObjectId if it's a string
         try:
-            planner_id_obj = ObjectId(campaign_id) if isinstance(campaign_id, str) else campaign_id
+            campaign_id_obj = ObjectId(campaign_id) if isinstance(campaign_id, str) else campaign_id
         except Exception:
             logger.error(f"Invalid campaign_id format: {campaign_id}")
-            planner_id_obj = campaign_id  # Fallback to original value
+            campaign_id_obj = campaign_id  # Fallback to original value
         
-        result = self.campaign_chats.update_one(
-            {
-                "plannerId": planner_id_obj,
-                "day": day
-            },
-            {
-                "$set": {
-                    "contents.blog": blog,
-                    "status": "GENERATED",
-                    "updatedAt": datetime.utcnow()
-                }
-            }
-        )
+        # Ensure day is an integer (not string)
+        day_int = int(day) if isinstance(day, str) else day
         
-        if result.matched_count == 0:
-            logger.warning(f"CampaignChat not found for plannerId={campaign_id}, day={day}. Blog may not appear in UI.")
+        # Find campaign first (matching Next.js approach)
+        campaign = self.campaign_planners.find_one({"_id": campaign_id_obj})
+        
+        if not campaign:
+            logger.error(f"Campaign not found: {campaign_id}")
+            logger.warning(f"Blog saved to post.meta but CampaignChat won't be updated. Campaign {campaign_id} doesn't exist.")
         else:
-            logger.info(f"Updated CampaignChat for plannerId={campaign_id}, day={day}")
+            # Find chat for this day (matching Next.js approach)
+            chat = self.campaign_chats.find_one({
+                "plannerId": campaign_id_obj,
+                "day": day_int
+            })
+            
+            if not chat:
+                # Log all chats for this campaign to help debug
+                all_chats = list(self.campaign_chats.find({"plannerId": campaign_id_obj}))
+                logger.warning(f"CampaignChat not found for campaignId={campaign_id}, day={day_int}.")
+                logger.warning(f"Found {len(all_chats)} chats for this campaign. Days: {[c.get('day') for c in all_chats]}")
+                logger.warning(f"Blog saved to post.meta but may not appear in UI. CampaignChat needs to exist for day {day_int}.")
+            else:
+                chat_id = chat.get("_id")
+                logger.info(f"Found CampaignChat {chat_id} for campaignId={campaign_id}, day={day_int}, updating with blog...")
+                
+                # Update chat using chat ID (matching Next.js approach - more reliable)
+                result = self.campaign_chats.update_one(
+                    {"_id": chat_id},
+                    {
+                        "$set": {
+                            "contents.blog": blog,
+                            "status": "GENERATED",
+                            "updatedAt": datetime.utcnow()
+                        }
+                    }
+                )
+                
+                if result.matched_count == 0:
+                    logger.error(f"Failed to update CampaignChat (matched_count=0) even though it exists!")
+                else:
+                    logger.info(f"✅ Updated CampaignChat {chat_id} for campaignId={campaign_id}, day={day_int}")
         
         logger.info(f"Post {post_id}: Step 2 completed")
     
@@ -315,6 +340,35 @@ class Database:
             {"_id": post_id},
             {"$set": update_data}
         )
+    
+    def mark_key_as_exhausted(self, key_name: str, error_message: str, retry_delay_seconds: int):
+        """
+        Mark a Gemini API key as exhausted in the database.
+        Matches the Next.js implementation.
+        """
+        try:
+            now = datetime.utcnow()
+            retry_after = now + timedelta(seconds=retry_delay_seconds)
+            
+            self.gemini_key_states.update_one(
+                {"keyName": key_name},
+                {
+                    "$set": {
+                        "keyName": key_name,
+                        "exhausted": True,
+                        "exhaustedAt": now,
+                        "retryAfter": retry_after,
+                        "lastError": error_message[:500] if len(error_message) > 500 else error_message,  # Limit error message length
+                        "lastErrorStatus": 429,  # Rate limit status
+                        "updatedAt": now
+                    }
+                },
+                upsert=True  # Create if doesn't exist
+            )
+            
+            logger.info(f"🔴 Marked {key_name} as exhausted. Retry after: {retry_after.isoformat()}")
+        except Exception as e:
+            logger.warning(f"Failed to mark key {key_name} as exhausted in database: {e}")
 
 
 def shuffle_array(array: List[Any]) -> List[Any]:
@@ -673,10 +727,11 @@ class ArticleFetcher:
 class BlogGenerator:
     """Generates blog content using Google Gemini AI"""
     
-    def __init__(self, api_keys: List[str], test_mode: bool = False):
+    def __init__(self, api_keys: List[str], test_mode: bool = False, db: Optional[Database] = None):
         self.api_keys = api_keys
         self.current_key_index = 0
         self.test_mode = test_mode
+        self.db = db  # Store database reference for marking exhausted keys
     
     def get_api_key(self) -> Optional[str]:
         """Get current API key (supports rotation)"""
@@ -841,6 +896,22 @@ ADDITIONAL RULES:
             
             if is_quota_error:
                 logger.warning(f"API key {current_key_index + 1} exhausted (quota/rate limit)")
+                
+                # Extract retry delay from error message if available
+                retry_delay_seconds = None
+                retry_match = re.search(r"Please retry in ([\d.]+)s", error_str)
+                if retry_match:
+                    retry_delay_seconds = int(float(retry_match.group(1))) + 60  # Add 60s buffer
+                else:
+                    retry_delay_seconds = 24 * 60 * 60  # Default: 24 hours
+                
+                # Mark key as exhausted in database (if db is available)
+                try:
+                    key_name = f"GEMINI_API_KEY_{current_key_index}" if current_key_index > 0 else "GEMINI_API_KEY"
+                    if self.db:
+                        self.db.mark_key_as_exhausted(key_name, error_str, retry_delay_seconds)
+                except Exception as db_error:
+                    logger.warning(f"Failed to mark key as exhausted in database: {db_error}")
             
             # Try next API key if available and not all tried
             if len(tried_key_indices) < len(self.api_keys):
@@ -993,7 +1064,7 @@ def main():
     # Initialize components
     db = Database(DATABASE_URL)
     article_fetcher = ArticleFetcher(OLIVEDRIFT_API_KEY, OLIVEDRIFT_BASE_URL, TEST_MODE)
-    blog_generator = BlogGenerator(GEMINI_API_KEYS, TEST_MODE)
+    blog_generator = BlogGenerator(GEMINI_API_KEYS, TEST_MODE, db)  # Pass db for marking exhausted keys
     
     if args.post_id:
         # Process single post

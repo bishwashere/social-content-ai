@@ -249,7 +249,7 @@ export default function CampaignPlannerPage({ project }: Props) {
           blogNewsMetadata: {
             topics,
             angles: selectedAngles,
-            webhook,
+            webhook: webhook.trim(), // Trim whitespace but preserve the exact URL
             platforms: selectedPlatforms, // Include platforms in metadata
             targetAudience: intensityPlan.targetAudience || "Moderate",
             productRelated,
@@ -628,10 +628,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                     </Tooltip>
                   </div>
                   <Input
-                    type="url"
+                    type="text"
                     value={webhook}
-                    onChange={(e) => setWebhook(e.target.value)}
-                    placeholder="Enter webhook URL"
+                    onChange={(e) => {
+                      // Store the raw value as entered by user
+                      setWebhook(e.target.value);
+                    }}
+                    placeholder="www.nextpostai.com/ideas/receive"
                   />
                 </div>
               </>
@@ -1042,6 +1045,8 @@ export default function CampaignPlannerPage({ project }: Props) {
 
                                     // Save the time, timezone, and enable auto-post
                                     // Ensure we include all required fields from existing metadata
+                                    // Note: webhook should be read from existing metadata, not from state
+                                    // (state is only for new campaigns)
                                     await updateCampaignData.mutateAsync({
                                       id: campaign.id,
                                       autoPostEnabled: true,
@@ -1050,7 +1055,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       blogNewsMetadata: {
                                         topics: blogNewsMetadata?.topics || [],
                                         angles: blogNewsMetadata?.angles || [],
-                                        webhook: blogNewsMetadata?.webhook || "",
+                                        webhook: blogNewsMetadata?.webhook || "", // Use existing webhook from metadata
                                         platforms: platformsToUse,
                                         timezone: selectedTimezone,
                                       },
