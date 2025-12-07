@@ -115,6 +115,7 @@ export const useChangeCampaignData = () => {
       autoPostEnabled,
       autoPostTime,
       autoPostPlatforms,
+      blogNewsMetadata,
     }: {
       id: string;
       name?: string;
@@ -122,7 +123,8 @@ export const useChangeCampaignData = () => {
       autoPostEnabled?: boolean;
       autoPostTime?: string;
       autoPostPlatforms?: string[];
-    }) => changeCampaignData(id, name, startDate, autoPostEnabled, autoPostTime, autoPostPlatforms),
+      blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; timezone?: string };
+    }) => changeCampaignData(id, name, startDate, autoPostEnabled, autoPostTime, autoPostPlatforms, blogNewsMetadata),
 
     onSuccess: (projectId: string | boolean) => {
       if (projectId)

@@ -57,3 +57,13 @@ Replaced `<img>` tags with Next.js `<Image>` component:
 
 ✅ Build compiles successfully with no errors
 ⚠️ Remaining warnings are non-blocking (mostly unused variables and React Hook dependencies)
+
+## Recent Fixes (2025-01-07)
+
+### 7. Timezone Feature Type Errors
+Fixed TypeScript type errors related to timezone feature implementation:
+- `src/backend-apis/campaign-planner/index.ts` - Added `timezone` parameter to `scheduleCampaignPosts` and `scheduleCampaignTasks` function signatures
+- `src/backend-apis/campaign-planner/index.ts` - Added `timezone` to `blogNewsMetadata` type in `changeCampaignData`
+- `src/backend-apis/campaign-planner/hooks.ts` - Added `timezone` parameter to `useScheduleCampaignPosts` and `useScheduleCampaignTasks` hook types
+- `src/backend-apis/campaign-planner/hooks.ts` - Added `blogNewsMetadata` with `timezone` to `useChangeCampaignData` hook type
+- `src/app/(pages)/project/[id]/_components/campaing-planner.tsx` - Fixed `blogNewsMetadata` object to include all required fields (`topics`, `angles`, `webhook`) when updating

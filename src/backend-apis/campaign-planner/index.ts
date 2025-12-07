@@ -439,7 +439,7 @@ export const changeCampaignData = async (
   autoPostEnabled?: boolean,
   autoPostTime?: string,
   autoPostPlatforms?: string[],
-  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[] }
+  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; timezone?: string }
 ): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
@@ -651,11 +651,13 @@ export const scheduleCampaignPosts = async ({
   campaignId,
   projectId,
   autoPostTime,
+  timezone,
   platforms,
 }: {
   campaignId: string;
   projectId: string;
   autoPostTime: string; // Format: "HH:mm"
+  timezone?: string; // IANA timezone string (e.g., "America/New_York")
   platforms: string[];
 }): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
   try {
@@ -810,11 +812,13 @@ export const scheduleCampaignTasks = async ({
   campaignId,
   projectId,
   autoPostTime,
+  timezone,
   platforms,
 }: {
   campaignId: string;
   projectId: string;
   autoPostTime: string; // Format: "HH:mm"
+  timezone?: string; // IANA timezone string (e.g., "America/New_York")
   platforms: string[]; // Platforms to post to after blog is generated
 }): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
   try {

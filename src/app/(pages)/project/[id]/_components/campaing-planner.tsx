@@ -1020,7 +1020,15 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   // Handle Blog News campaigns differently
                                   if (campaign.goal === "Blog News") {
                                     // Get platforms from campaign metadata or use selected platforms
-                                    const blogNewsMetadata = campaign.blogNewsMetadata as { platforms?: string[]; timezone?: string } | null;
+                                    const blogNewsMetadata = campaign.blogNewsMetadata as { 
+                                      topics?: string[]; 
+                                      angles?: string[]; 
+                                      webhook?: string; 
+                                      platforms?: string[]; 
+                                      timezone?: string;
+                                      targetAudience?: string;
+                                      productRelated?: boolean;
+                                    } | null;
                                     const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || 
                                                           blogNewsMetadata?.platforms || 
                                                           campaign.platforms || 
@@ -1033,13 +1041,16 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     }
 
                                     // Save the time, timezone, and enable auto-post
+                                    // Ensure we include all required fields from existing metadata
                                     await updateCampaignData.mutateAsync({
                                       id: campaign.id,
                                       autoPostEnabled: true,
                                       autoPostTime: time,
                                       autoPostPlatforms: platformsToUse,
                                       blogNewsMetadata: {
-                                        ...blogNewsMetadata,
+                                        topics: blogNewsMetadata?.topics || [],
+                                        angles: blogNewsMetadata?.angles || [],
+                                        webhook: blogNewsMetadata?.webhook || "",
                                         platforms: platformsToUse,
                                         timezone: selectedTimezone,
                                       },
