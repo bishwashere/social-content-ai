@@ -790,14 +790,21 @@ export const scheduleCampaignPosts = async ({
     // For each chat in the campaign
     for (const chat of campaign.chats) {
       // Calculate the date for this chat: startDate + (day - 1) days
+      // Use proper date arithmetic to handle month/year boundaries correctly
       const startDate = new Date(campaign.startDate);
-      const year = startDate.getFullYear();
-      const month = startDate.getMonth();
-      const day = startDate.getDate();
-      const targetDay = day + (chat.day - 1);
+      startDate.setHours(0, 0, 0, 0); // Reset to midnight to avoid timezone issues
+      
+      // Add (chat.day - 1) days to the start date
+      const chatDateLocal = new Date(startDate);
+      chatDateLocal.setDate(chatDateLocal.getDate() + (chat.day - 1));
+      
+      // Extract date components from the calculated date
+      const year = chatDateLocal.getFullYear();
+      const month = chatDateLocal.getMonth();
+      const day = chatDateLocal.getDate();
       
       // Convert local time in user's timezone to UTC
-      const chatDate = convertLocalTimeToUTC(year, month, targetDay, hours, minutes, timezoneToUse);
+      const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
 
       // Get contents
       const contents = (chat.contents as Record<string, string>) || {};
@@ -813,26 +820,49 @@ export const scheduleCampaignPosts = async ({
         const platformName = platform === "x" ? "twitter" : platform;
 
         // Schedule the post
-        const scheduled = await schedulePost({
-          projectId: projectId,
-          platform: platformName,
-          content: content,
-          date: chatDate.toISOString(),
-          meta: {
-            campaignId: campaignId,
-            campaignName: campaign.name || "",
-            day: chat.day,
-            source: "campaign",
-            timezone: timezoneToUse, // Store timezone for display
-            localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
-          },
-        });
+        try {
+          const scheduled = await schedulePost({
+            projectId: projectId,
+            platform: platformName,
+            content: content,
+            date: chatDate.toISOString(),
+            meta: {
+              campaignId: campaignId,
+              campaignName: campaign.name || "",
+              day: chat.day,
+              source: "campaign",
+              timezone: timezoneToUse, // Store timezone for display
+              localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
+            },
+          });
 
-        if (scheduled) {
-          scheduledCount++;
-        } else {
+          if (scheduled) {
+            scheduledCount++;
+          } else {
+            // Check if OAuth provider is mapped
+            const hasProvider = await prisma.projectToOAuthProvider.findFirst({
+              where: {
+                projectId: projectId,
+                oauthProvider: {
+                  platform: platformName as any,
+                },
+              },
+            });
+
+            if (!hasProvider) {
+              errors.push(
+                `Failed to schedule post for day ${chat.day} on ${platform}: No OAuth provider mapped. Please connect your ${platform} account in project settings.`
+              );
+            } else {
+              errors.push(
+                `Failed to schedule post for day ${chat.day} on ${platform}`
+              );
+            }
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           errors.push(
-            `Failed to schedule post for day ${chat.day} on ${platform}`
+            `Failed to schedule post for day ${chat.day} on ${platform}: ${errorMessage}`
           );
         }
       }
@@ -1030,16 +1060,23 @@ export const scheduleCampaignTasks = async ({
     // For each chat in the campaign
     for (const chat of campaign.chats) {
       // Calculate the date for this chat: startDate + (day - 1) days
+      // Use proper date arithmetic to handle month/year boundaries correctly
       const startDate = new Date(campaign.startDate);
-      const year = startDate.getFullYear();
-      const month = startDate.getMonth();
-      const day = startDate.getDate();
-      const targetDay = day + (chat.day - 1);
+      startDate.setHours(0, 0, 0, 0); // Reset to midnight to avoid timezone issues
+      
+      // Add (chat.day - 1) days to the start date
+      const chatDateLocal = new Date(startDate);
+      chatDateLocal.setDate(chatDateLocal.getDate() + (chat.day - 1));
+      
+      // Extract date components from the calculated date
+      const year = chatDateLocal.getFullYear();
+      const month = chatDateLocal.getMonth();
+      const day = chatDateLocal.getDate();
       
       // Convert user's local time in their timezone to UTC for storage
       // Example: 16:00 EST -> 21:00 UTC (stored in DB)
       // When displayed, UTC is converted back to EST: 21:00 UTC -> 16:00 EST
-      const chatDate = convertLocalTimeToUTC(year, month, targetDay, hours, minutes, timezoneToUse);
+      const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
 
       // Don't skip past dates - allow scheduling even if in the past
       // This ensures all campaign days are visible and can be manually triggered if needed
