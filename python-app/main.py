@@ -1,0 +1,858 @@
+#!/usr/bin/env python3
+"""
+Blog News Python Worker
+Handles Step 1 (Fetch Article) and Step 2 (Generate Blog) for Blog News auto-post system.
+
+State Machine:
+- pending → processing (Step 1) → processing (Step 2) → ready_for_step3
+- Any step can transition to error state on failure
+"""
+
+import os
+import sys
+import json
+import logging
+import argparse
+import random
+import re
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, List
+from dotenv import load_dotenv
+import pymongo
+from pymongo import MongoClient
+import requests
+import google.generativeai as genai
+from dateutil import parser as date_parser
+
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+log_format = "[%(asctime)s] [%(levelname)s] %(message)s"
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format=log_format,
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(
+            os.getenv("LOG_FILE", "logs/blog-news-worker.log"),
+            mode="a"
+        ) if os.getenv("LOG_FILE") else logging.NullHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+# Configuration
+DATABASE_URL = os.getenv("DATABASE_URL")
+GEMINI_API_KEYS = [
+    os.getenv("GEMINI_API_KEY"),
+    os.getenv("GEMINI_API_KEY_1"),
+    os.getenv("GEMINI_API_KEY_2"),
+]
+GEMINI_API_KEYS = [key for key in GEMINI_API_KEYS if key]  # Filter None values
+OLIVE_DRIFT_API_KEY = os.getenv("OLIVE_DRIFT_API_KEY")
+OLIVE_DRIFT_API_URL = os.getenv("OLIVE_DRIFT_API_URL", "https://api.olivedrift.com")
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
+RETRY_DELAY_SECONDS = int(os.getenv("RETRY_DELAY_SECONDS", "60"))
+
+# Test mode - set TEST_MODE=true to use mock APIs
+TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
+
+# Constants
+STEP1_MAX_RETRIES = MAX_RETRIES
+STEP2_MAX_RETRIES = MAX_RETRIES
+
+
+class Database:
+    """Database connection and operations"""
+    
+    def __init__(self, database_url: str):
+        self.client = MongoClient(database_url)
+        # Extract database name from URL or use default
+        # Format: mongodb://host:port/database_name
+        if "/" in database_url:
+            parts = database_url.split("/")
+            if len(parts) > 3:
+                db_name = parts[-1].split("?")[0]
+            else:
+                db_name = "social-content-ai"
+        else:
+            db_name = "social-content-ai"
+        
+        self.db = self.client[db_name]
+        self.scheduled_posts = self.db["scheduled-posts"]  # From Prisma @@map
+        self.campaign_chats = self.db["project-chats"]  # From Prisma @@map
+        self.campaign_planners = self.db["campaign-planners"]  # From Prisma @@map
+        logger.info(f"Connected to database: {db_name}")
+    
+    def find_pending_posts(self) -> List[Dict[str, Any]]:
+        """
+        Find posts ready for Step 1 & 2 processing.
+        
+        Criteria:
+        - status = "pending" OR (status = "processing" AND step1Completed != true)
+        - meta.type = "blog-news"
+        - meta.step1Completed != true (not already done)
+        - meta.step1InProgress != true (not being processed by another worker)
+        - date <= now (scheduled time has passed)
+        - No terminal error state
+        """
+        now = datetime.utcnow()
+        
+        query = {
+            "platform": "webhook",
+            "meta.type": "blog-news",
+            "$or": [
+                {"status": "pending"},
+                {"status": "processing"}
+            ],
+            "$and": [
+                {
+                    "$or": [
+                        {"meta.step1Completed": {"$ne": True}},
+                        {"meta.step1Completed": {"$exists": False}}
+                    ]
+                },
+                {
+                    "$or": [
+                        {"meta.step1InProgress": {"$ne": True}},
+                        {"meta.step1InProgress": {"$exists": False}}
+                    ]
+                },
+                {
+                    "$or": [
+                        {"meta.step1Error": None},
+                        {"meta.step1Error": {"$exists": False}}
+                    ]
+                }
+            ],
+            "status": {"$ne": "error"},  # Skip terminal error states
+            "date": {"$lte": now},
+        }
+        
+        posts = list(self.scheduled_posts.find(query))
+        logger.info(f"Found {len(posts)} pending posts for Step 1 & 2")
+        return posts
+    
+    def claim_post_for_step1(self, post_id: str) -> bool:
+        """
+        Atomically claim a post for Step 1 processing.
+        Returns True if successfully claimed, False if already claimed.
+        """
+        result = self.scheduled_posts.update_one(
+            {
+                "_id": post_id,
+                "$and": [
+                    {
+                        "$or": [
+                            {"meta.step1InProgress": {"$ne": True}},
+                            {"meta.step1InProgress": {"$exists": False}}
+                        ]
+                    },
+                    {
+                        "$or": [
+                            {"meta.step1Completed": {"$ne": True}},
+                            {"meta.step1Completed": {"$exists": False}}
+                        ]
+                    }
+                ]
+            },
+            {
+                "$set": {
+                    "meta.step1InProgress": True,
+                    "status": "processing",
+                    "meta.step1StartedAt": datetime.utcnow().isoformat()
+                }
+            }
+        )
+        return result.modified_count > 0
+    
+    def claim_post_for_step2(self, post_id: str) -> bool:
+        """
+        Atomically claim a post for Step 2 processing.
+        Returns True if successfully claimed, False if already claimed.
+        """
+        result = self.scheduled_posts.update_one(
+            {
+                "_id": post_id,
+                "meta.step1Completed": True,
+                "$and": [
+                    {
+                        "$or": [
+                            {"meta.step2InProgress": {"$ne": True}},
+                            {"meta.step2InProgress": {"$exists": False}}
+                        ]
+                    },
+                    {
+                        "$or": [
+                            {"meta.step2Completed": {"$ne": True}},
+                            {"meta.step2Completed": {"$exists": False}}
+                        ]
+                    }
+                ]
+            },
+            {
+                "$set": {
+                    "meta.step2InProgress": True,
+                    "meta.step2StartedAt": datetime.utcnow().isoformat()
+                }
+            }
+        )
+        return result.modified_count > 0
+    
+    def mark_step1_complete(self, post_id: str, article: Dict[str, Any]):
+        """Mark Step 1 as complete and store article data"""
+        self.scheduled_posts.update_one(
+            {"_id": post_id},
+            {
+                "$set": {
+                    "meta.article": article,
+                    "meta.step1Completed": True,
+                    "meta.step1CompletedAt": datetime.utcnow().isoformat(),
+                    "meta.step1InProgress": False,
+                    "meta.step1Error": None,
+                },
+                "$unset": {
+                    "meta.step1RetryCount": ""
+                }
+            }
+        )
+        logger.info(f"Post {post_id}: Step 1 completed")
+    
+    def mark_step1_error(self, post_id: str, error: str, retry_count: int):
+        """Mark Step 1 as failed with error"""
+        update_data = {
+            "meta.step1Error": error,
+            "meta.step1RetryCount": retry_count,
+            "meta.step1InProgress": False,
+        }
+        
+        # If max retries exceeded, mark as terminal error
+        if retry_count >= STEP1_MAX_RETRIES:
+            update_data["status"] = "error"
+            logger.error(f"Post {post_id}: Step 1 failed permanently after {retry_count} retries")
+        else:
+            logger.warning(f"Post {post_id}: Step 1 failed (retry {retry_count}/{STEP1_MAX_RETRIES})")
+        
+        self.scheduled_posts.update_one(
+            {"_id": post_id},
+            {"$set": update_data}
+        )
+    
+    def mark_step2_complete(self, post_id: str, blog: Dict[str, Any], campaign_id: str, day: int):
+        """Mark Step 2 as complete and store blog data"""
+        # Update ScheduledPost
+        self.scheduled_posts.update_one(
+            {"_id": post_id},
+            {
+                "$set": {
+                    "meta.blog": blog,
+                    "meta.step2Completed": True,
+                    "meta.step2CompletedAt": datetime.utcnow().isoformat(),
+                    "meta.step2InProgress": False,
+                    "meta.step2Error": None,
+                },
+                "$unset": {
+                    "meta.step2RetryCount": ""
+                }
+            }
+        )
+        
+        # Update CampaignChat
+        self.campaign_chats.update_one(
+            {
+                "plannerId": campaign_id,
+                "day": day
+            },
+            {
+                "$set": {
+                    "contents.blog": blog,
+                    "status": "GENERATED"
+                }
+            }
+        )
+        
+        logger.info(f"Post {post_id}: Step 2 completed")
+    
+    def mark_step2_error(self, post_id: str, error: str, retry_count: int):
+        """Mark Step 2 as failed with error"""
+        update_data = {
+            "meta.step2Error": error,
+            "meta.step2RetryCount": retry_count,
+            "meta.step2InProgress": False,
+        }
+        
+        # If max retries exceeded, mark as terminal error
+        if retry_count >= STEP2_MAX_RETRIES:
+            update_data["status"] = "error"
+            logger.error(f"Post {post_id}: Step 2 failed permanently after {retry_count} retries")
+        else:
+            logger.warning(f"Post {post_id}: Step 2 failed (retry {retry_count}/{STEP2_MAX_RETRIES})")
+        
+        self.scheduled_posts.update_one(
+            {"_id": post_id},
+            {"$set": update_data}
+        )
+
+
+def shuffle_array(array: List[Any]) -> List[Any]:
+    """
+    Shuffle array in place using Fisher-Yates algorithm.
+    Returns a shuffled copy (doesn't mutate original).
+    """
+    shuffled = array.copy()
+    for i in range(len(shuffled) - 1, 0, -1):
+        j = random.randint(0, i)
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+    return shuffled
+
+
+def is_article_duplicate(
+    post_url: str,
+    post_id: str,
+    source: str,
+    used_ids: set
+) -> bool:
+    """
+    Check if an article is a duplicate based on used IDs.
+    Matches the original Next.js implementation.
+    """
+    # Check by URL (primary check)
+    if post_url and post_url in used_ids:
+        return True
+    
+    # Check by articleId with source prefix
+    if post_id and f"{source}:{post_id}" in used_ids:
+        return True
+    
+    # Additional checks for Reddit
+    if source == "reddit" and post_url:
+        # Extract Reddit post ID from URL: /r/subreddit/comments/POST_ID/...
+        reddit_match = re.search(r'/r/\w+/comments/(\w+)', post_url)
+        if reddit_match and f"reddit:{reddit_match.group(1)}" in used_ids:
+            return True
+        
+        # Also try to extract from permalink if URL doesn't match
+        permalink_match = re.search(r'/comments/(\w+)', post_url)
+        if permalink_match and not reddit_match and f"reddit:{permalink_match.group(1)}" in used_ids:
+            return True
+    
+    # Additional checks for HackerNews
+    if source == "hackernews" and post_url:
+        # Extract HN post ID from URL: item?id=123456
+        hn_match = re.search(r'item\?id=(\d+)', post_url)
+        if hn_match and f"hackernews:{hn_match.group(1)}" in used_ids:
+            return True
+    
+    return False
+
+
+class ArticleFetcher:
+    """Fetches articles from Reddit/HackerNews via Olive Drift API"""
+    
+    def __init__(self, api_key: str, api_url: str, test_mode: bool = False):
+        self.api_key = api_key
+        self.api_url = api_url
+        self.test_mode = test_mode
+    
+    def fetch_reddit_posts(self, topics: List[str], limit: int = 3) -> List[Dict[str, Any]]:
+        """Fetch Reddit posts for given topics"""
+        if self.test_mode:
+            # Mock data for testing
+            logger.info("TEST_MODE: Using mock Reddit posts")
+            return [
+                {
+                    "id": f"test_reddit_{i}",
+                    "title": f"Test Reddit Post {i} about {topics[0] if topics else 'AI'}",
+                    "selftext": f"This is a test Reddit post content about {topics[0] if topics else 'AI'}. It contains some interesting information for testing purposes.",
+                    "url": f"https://reddit.com/r/test/comments/test_reddit_{i}/test_post/",
+                    "permalink": f"/r/test/comments/test_reddit_{i}/test_post/"
+                }
+                for i in range(limit)
+            ]
+        
+        # TODO: Implement actual Olive Drift API call
+        # This is a placeholder - replace with actual API implementation
+        logger.warning("fetch_reddit_posts: Placeholder implementation - needs actual API call")
+        return []
+    
+    def fetch_hackernews_posts(self, topics: List[str], limit: int = 3) -> List[Dict[str, Any]]:
+        """Fetch HackerNews posts for given topics"""
+        if self.test_mode:
+            # Mock data for testing
+            logger.info("TEST_MODE: Using mock HackerNews posts")
+            return [
+                {
+                    "id": 1000000 + i,
+                    "title": f"Test HN Post {i} about {topics[0] if topics else 'Technology'}",
+                    "text": f"This is a test HackerNews post content about {topics[0] if topics else 'Technology'}. It contains some interesting information for testing purposes.",
+                    "permalink": f"https://news.ycombinator.com/item?id={1000000 + i}"
+                }
+                for i in range(limit)
+            ]
+        
+        # TODO: Implement actual Olive Drift API call
+        # This is a placeholder - replace with actual API implementation
+        logger.warning("fetch_hackernews_posts: Placeholder implementation - needs actual API call")
+        return []
+    
+    def get_used_article_ids(self, campaign_id: str, db: Database) -> set:
+        """
+        Get used article IDs/URLs for a campaign to avoid duplicates.
+        Matches the original Next.js implementation exactly.
+        """
+        used_ids = set()
+        
+        # Get all chats for this campaign
+        chats = db.campaign_chats.find({"plannerId": campaign_id})
+        
+        for chat in chats:
+            contents = chat.get("contents", {})
+            blog = contents.get("blog", {})
+            source_article = blog.get("sourceArticle", {})
+            
+            if source_article:
+                # Use URL as the primary unique identifier (most reliable)
+                if source_article.get("url"):
+                    used_ids.add(source_article["url"])
+                
+                # Also store articleId if available (for additional duplicate detection)
+                if source_article.get("articleId"):
+                    source = source_article.get("source", "unknown")
+                    used_ids.add(f"{source}:{source_article['articleId']}")
+                
+                # Fallback: Extract IDs from URLs for additional matching
+                source = source_article.get("source", "")
+                url = source_article.get("url", "")
+                
+                if source == "reddit" and url:
+                    # Extract Reddit post ID from URL
+                    reddit_match = re.search(r'/r/\w+/comments/(\w+)', url)
+                    if reddit_match:
+                        used_ids.add(f"reddit:{reddit_match.group(1)}")
+                    
+                    # Also try to extract from permalink if URL doesn't match
+                    permalink_match = re.search(r'/comments/(\w+)', url)
+                    if permalink_match and not reddit_match:
+                        used_ids.add(f"reddit:{permalink_match.group(1)}")
+                
+                elif source == "hackernews" and url:
+                    # Extract HN post ID from URL
+                    hn_match = re.search(r'item\?id=(\d+)', url)
+                    if hn_match:
+                        used_ids.add(f"hackernews:{hn_match.group(1)}")
+        
+        logger.info(f"Found {len(used_ids)} used article identifiers for campaign {campaign_id}")
+        if len(used_ids) > 0:
+            # Log first 10 for debugging
+            sample_ids = list(used_ids)[:10]
+            logger.info(f"Used IDs sample: {sample_ids}")
+        
+        return used_ids
+    
+    def fetch_article_for_topics(
+        self,
+        topics: List[str],
+        campaign_id: str,
+        db: Database
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetch a non-duplicate article for given topics.
+        Fetches multiple articles at once (3 per topic), shuffles them randomly,
+        then picks the first non-duplicate.
+        Matches the original Next.js implementation exactly.
+        """
+        used_ids = self.get_used_article_ids(campaign_id, db)
+        articles_per_topic = 3  # Fetch 3 articles per topic for better duplicate detection
+        
+        # Try Reddit first - fetch multiple posts for all topics
+        all_reddit_posts: List[Dict[str, Any]] = []
+        for topic in topics:
+            try:
+                posts = self.fetch_reddit_posts([topic], articles_per_topic)
+                all_reddit_posts.extend(posts)
+            except Exception as e:
+                logger.warning(f"Error fetching Reddit posts for topic '{topic}': {e}")
+        
+        # Shuffle articles randomly before checking duplicates to avoid deterministic selection
+        shuffled_reddit_posts = shuffle_array(all_reddit_posts)
+        
+        # Filter out duplicates and find first valid article from shuffled array
+        for post in shuffled_reddit_posts:
+            post_url = post.get("url") or post.get("permalink", "")
+            post_id = post.get("id", "")
+            
+            # Normalize URL to match what we store (absolute URL)
+            final_url = post_url
+            if post_url and not post_url.startswith("http"):
+                final_url = f"https://reddit.com{post_url}"
+            
+            # Check if this article is a duplicate (use final_url for checking to match stored format)
+            is_duplicate = is_article_duplicate(final_url, post_id, "reddit", used_ids)
+            if not is_duplicate:
+                logger.info(f"Found non-duplicate Reddit article: {post.get('title', 'Untitled')[:50]} (ID: {post_id}, URL: {final_url[:50]}...)")
+                return {
+                    "title": post.get("title", "Untitled"),
+                    "content": post.get("selftext") or post.get("title", ""),
+                    "source": "reddit",
+                    "url": final_url,
+                    "articleId": post_id
+                }
+            else:
+                logger.info(f"Skipping duplicate Reddit article: {post.get('title', 'Untitled')[:50]} (ID: {post_id}, URL: {final_url[:50]}...)")
+        
+        # Try HackerNews if Reddit didn't yield results - fetch multiple posts for all topics
+        all_hn_posts: List[Dict[str, Any]] = []
+        for topic in topics:
+            try:
+                posts = self.fetch_hackernews_posts([topic], articles_per_topic)
+                all_hn_posts.extend(posts)
+            except Exception as e:
+                logger.warning(f"Error fetching HackerNews posts for topic '{topic}': {e}")
+        
+        # Shuffle articles randomly before checking duplicates to avoid deterministic selection
+        shuffled_hn_posts = shuffle_array(all_hn_posts)
+        
+        # Filter out duplicates and find first valid article from shuffled array
+        for post in shuffled_hn_posts:
+            post_id = str(post.get("id", ""))
+            # Normalize URL to match what we store (absolute URL)
+            post_url = post.get("permalink") or f"https://news.ycombinator.com/item?id={post.get('id')}"
+            
+            # Check if this article is a duplicate (use normalized post_url for checking)
+            is_duplicate = is_article_duplicate(post_url, post_id, "hackernews", used_ids)
+            if not is_duplicate:
+                logger.info(f"Found non-duplicate HackerNews article: {post.get('title', 'Untitled')[:50]} (ID: {post_id})")
+                return {
+                    "title": post.get("title", "Untitled"),
+                    "content": post.get("text") or post.get("title", ""),
+                    "source": "hackernews",
+                    "url": post_url,
+                    "articleId": post_id
+                }
+            else:
+                logger.info(f"Skipping duplicate HackerNews article: {post.get('title', 'Untitled')[:50]} (ID: {post_id})")
+        
+        logger.warning(f"No non-duplicate articles found for topics: {topics}")
+        return None
+
+
+class BlogGenerator:
+    """Generates blog content using Google Gemini AI"""
+    
+    def __init__(self, api_keys: List[str], test_mode: bool = False):
+        self.api_keys = api_keys
+        self.current_key_index = 0
+        self.test_mode = test_mode
+    
+    def get_api_key(self) -> Optional[str]:
+        """Get current API key (supports rotation)"""
+        if not self.api_keys:
+            return None
+        return self.api_keys[self.current_key_index % len(self.api_keys)]
+    
+    def generate_blog_from_article(
+        self,
+        article_title: str,
+        article_content: str,
+        angles: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Generate blog from article using Gemini AI.
+        Returns blog dict with title, content, tags.
+        """
+        if self.test_mode:
+            # Mock blog generation for testing
+            logger.info("TEST_MODE: Using mock blog generation")
+            angles_formatted = ", ".join(angles)
+            return {
+                "title": f"Test Blog: {article_title}",
+                "content": f"""# Test Blog: {article_title}
+
+> **Quick Take:** This is a test blog post generated from the article "{article_title}". It covers the angles: {angles_formatted}.
+
+## Introduction
+
+This is a test blog post generated for testing purposes. The original article was about: {article_title}.
+
+## {angles[0] if angles else "Test Angle"}
+
+This section covers the {angles[0] if angles else "test"} angle of the topic.
+
+## Conclusion
+
+This concludes the test blog post.
+""",
+                "tags": ["test", "ai", "technology"] + angles[:2] if angles else ["test"]
+            }
+        
+        api_key = self.get_api_key()
+        if not api_key:
+            raise ValueError("No GEMINI_API_KEY configured")
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("models/gemini-2.0-flash-001")
+        
+        # Format angles for prompt
+        angles_formatted = "\n".join([f"- {angle}" for angle in angles])
+        
+        prompt = f"""You are an expert content writer. Write a comprehensive MDX-formatted blog post using multiple perspectives based on the article below. You MUST follow all formatting rules because the output will be parsed programmatically.
+
+Article Title: {article_title}
+
+Article Content:
+
+{article_content}
+
+Primary Topic Angles To Cover (write full sections for each):
+
+{angles_formatted}
+
+REQUIREMENTS:
+
+1. Create an engaging blog title (max 80 characters).
+
+2. Write a detailed blog post (900-1300 words) with the following structure:
+
+   - Start with a "Quick Take" summary block at the very top using MDX blockquote format (> **Quick Take:** ...). This should be a concise 1-2 sentence summary that captures the essence of the article and key angles.
+
+   - A compelling introduction that hooks the reader
+
+   - Multiple clearly separated angle sections. For EACH angle above, create its OWN section using an MDX H2 heading (##) that contains the full angle text. Example: "## Economic Reality Angle: Job Displacement & Value Creation"
+
+   - Provide analysis, reasoning, and examples in each angle section
+
+   - Use lists or bullet points when useful
+
+   - A concluding section that unifies all perspectives into a clear takeaway
+
+3. Write in valid MDX only (no code blocks, no backticks).
+
+4. Escape ALL double quotes in the "content" value.
+
+5. Generate 3-5 relevant tags dynamically based on the article content. Tags should reflect key themes, topics, technologies, industries, or concepts mentioned in the article (e.g., AI, ethics, environment, economics, technology, innovation, etc.). Make tags specific and relevant to the article content.
+
+6. Output MUST be strictly raw JSON ONLY, following this structure exactly:
+
+{{
+  "title": "Blog Title Here",
+  "content": "MDX formatted article with escaped quotes. Use \\n for line breaks.",
+  "tags": ["tag1","tag2","tag3"]
+}}
+
+ADDITIONAL RULES:
+
+- Output exactly ONE JSON object.
+- No explanations.
+- No text outside the JSON.
+- No additional fields or keys beyond title, content, and tags.
+- No trailing commas.
+- No unescaped line breaks; use \\n inside JSON string values.
+- No smart quotes; use standard ASCII quotes only."""
+        
+        try:
+            logger.info(f"Generating blog - Article: {article_title[:50]}...")
+            response = model.generate_content(prompt)
+            response_text = response.text.strip()
+            
+            # Parse JSON from response
+            json_match = None
+            if "{" in response_text and "}" in response_text:
+                json_start = response_text.find("{")
+                json_end = response_text.rfind("}") + 1
+                json_match = response_text[json_start:json_end]
+            
+            if json_match:
+                parsed = json.loads(json_match)
+            else:
+                parsed = json.loads(response_text)
+            
+            # Validate and clean
+            title = parsed.get("title", article_title)
+            content = parsed.get("content", f"# {title}\n\n{article_content}")
+            tags = parsed.get("tags", [])
+            if isinstance(tags, str):
+                tags = [t.strip() for t in tags.split(",")]
+            tags = tags[:5]  # Limit to 5 tags
+            
+            logger.info(f"Blog generated successfully - Title: {title[:50]}...")
+            return {
+                "title": title,
+                "content": content,
+                "tags": tags
+            }
+        
+        except Exception as e:
+            logger.error(f"Error generating blog: {e}")
+            # Try next API key if available
+            if len(self.api_keys) > 1:
+                self.current_key_index += 1
+                logger.info(f"Retrying with next API key (index {self.current_key_index})")
+                return self.generate_blog_from_article(article_title, article_content, angles)
+            raise
+
+
+def process_step1(post: Dict[str, Any], db: Database, article_fetcher: ArticleFetcher) -> bool:
+    """
+    Process Step 1: Fetch article.
+    Returns True if successful, False otherwise.
+    """
+    post_id = post["_id"]
+    meta = post.get("meta", {})
+    topics = meta.get("topics", [])
+    campaign_id = meta.get("campaignId")
+    
+    logger.info(f"Post {post_id}: Starting Step 1 - Fetching article for topics: {topics}")
+    
+    try:
+        article = article_fetcher.fetch_article_for_topics(topics, campaign_id, db)
+        
+        if not article:
+            error_msg = f"No articles found for topics: {topics}"
+            retry_count = meta.get("step1RetryCount", 0) + 1
+            db.mark_step1_error(post_id, error_msg, retry_count)
+            return False
+        
+        # Store article and mark complete
+        db.mark_step1_complete(post_id, article)
+        logger.info(f"Post {post_id}: Step 1 completed - Article: {article['title'][:50]}...")
+        return True
+    
+    except Exception as e:
+        error_msg = str(e)
+        retry_count = meta.get("step1RetryCount", 0) + 1
+        db.mark_step1_error(post_id, error_msg, retry_count)
+        logger.error(f"Post {post_id}: Step 1 failed - {error_msg}")
+        return False
+
+
+def process_step2(post: Dict[str, Any], db: Database, blog_generator: BlogGenerator) -> bool:
+    """
+    Process Step 2: Generate blog.
+    Returns True if successful, False otherwise.
+    """
+    post_id = post["_id"]
+    meta = post.get("meta", {})
+    article = meta.get("article")
+    angles = meta.get("angles", [])
+    campaign_id = meta.get("campaignId")
+    day = meta.get("day")
+    
+    if not article:
+        error_msg = "Article data missing - Step 1 must complete first"
+        retry_count = meta.get("step2RetryCount", 0) + 1
+        db.mark_step2_error(post_id, error_msg, retry_count)
+        return False
+    
+    logger.info(f"Post {post_id}: Starting Step 2 - Generating blog with {len(angles)} angles")
+    
+    try:
+        blog = blog_generator.generate_blog_from_article(
+            article["title"],
+            article["content"],
+            angles
+        )
+        
+        # Add source article info
+        blog["sourceArticle"] = article
+        blog["generatedAt"] = datetime.utcnow().isoformat()
+        
+        # Store blog and mark complete
+        db.mark_step2_complete(post_id, blog, campaign_id, day)
+        logger.info(f"Post {post_id}: Step 2 completed - Blog: {blog['title'][:50]}...")
+        return True
+    
+    except Exception as e:
+        error_msg = str(e)
+        retry_count = meta.get("step2RetryCount", 0) + 1
+        db.mark_step2_error(post_id, error_msg, retry_count)
+        logger.error(f"Post {post_id}: Step 2 failed - {error_msg}")
+        return False
+
+
+def process_post(post: Dict[str, Any], db: Database, article_fetcher: ArticleFetcher, blog_generator: BlogGenerator):
+    """Process a single post through Steps 1 & 2"""
+    post_id = post["_id"]
+    meta = post.get("meta", {})
+    
+    logger.info(f"Processing post {post_id}")
+    
+    # Step 1: Fetch article
+    if not meta.get("step1Completed"):
+        # Claim post for Step 1
+        if not db.claim_post_for_step1(post_id):
+            logger.warning(f"Post {post_id}: Could not claim for Step 1 (may be in progress)")
+            return
+        
+        success = process_step1(post, db, article_fetcher)
+        if not success:
+            return  # Error already logged and stored
+        
+        # Re-fetch post to get updated meta
+        post = db.scheduled_posts.find_one({"_id": post_id})
+        if not post:
+            logger.error(f"Post {post_id}: Not found after Step 1")
+            return
+        meta = post.get("meta", {})
+    
+    # Step 2: Generate blog
+    if not meta.get("step2Completed"):
+        # Claim post for Step 2
+        if not db.claim_post_for_step2(post_id):
+            logger.warning(f"Post {post_id}: Could not claim for Step 2 (may be in progress)")
+            return
+        
+        process_step2(post, db, blog_generator)
+
+
+def main():
+    """Main entry point"""
+    parser = argparse.ArgumentParser(description="Blog News Python Worker - Steps 1 & 2")
+    parser.add_argument("--post-id", help="Process a specific post ID (for debugging)")
+    args = parser.parse_args()
+    
+    # Validate configuration
+    if not DATABASE_URL:
+        logger.error("DATABASE_URL not configured")
+        sys.exit(1)
+    
+    if not GEMINI_API_KEYS:
+        logger.error("No GEMINI_API_KEY configured")
+        sys.exit(1)
+    
+    # Initialize components
+    db = Database(DATABASE_URL)
+    article_fetcher = ArticleFetcher(OLIVE_DRIFT_API_KEY, OLIVE_DRIFT_API_URL, TEST_MODE)
+    blog_generator = BlogGenerator(GEMINI_API_KEYS, TEST_MODE)
+    
+    if args.post_id:
+        # Process single post
+        post = db.scheduled_posts.find_one({"_id": args.post_id})
+        if not post:
+            logger.error(f"Post {args.post_id} not found")
+            sys.exit(1)
+        
+        process_post(post, db, article_fetcher, blog_generator)
+    else:
+        # Process all pending posts
+        pending_posts = db.find_pending_posts()
+        
+        if not pending_posts:
+            logger.info("No pending posts to process")
+            return
+        
+        logger.info(f"Processing {len(pending_posts)} posts")
+        
+        for post in pending_posts:
+            try:
+                process_post(post, db, article_fetcher, blog_generator)
+            except Exception as e:
+                logger.error(f"Error processing post {post.get('_id')}: {e}", exc_info=True)
+        
+        logger.info("Processing complete")
+
+
+if __name__ == "__main__":
+    main()

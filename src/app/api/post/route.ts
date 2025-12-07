@@ -233,7 +233,14 @@ export const GET = applyMiddleware(
       }
     }
 
-    // Process Blog News posts first
+    // Process Blog News posts - Steps 3 & 4 (Python app handles Steps 1 & 2)
+    // State Machine:
+    // - pending/processing + step2Completed=false → Python app will handle (skip)
+    // - processing + step2Completed=true + step3Completed=false → Trigger Step 3
+    // - processing + step3Completed=true + step4Completed=false → Trigger Step 4
+    // - success → Already complete (skip)
+    // - error → Terminal error (skip, requires manual intervention)
+    
     const blogNewsResults = await Promise.all(
       blogNewsPosts.map(async (post) => {
         console.log(`🔄 Processing Blog News post ID: ${post.id}`);
@@ -260,104 +267,112 @@ export const GET = applyMiddleware(
             };
           }
 
-          // IDEMPOTENCY CHECK: Check if blog was already generated for this campaign/day
-          const campaign = await prisma.campaignPlanner.findFirst({
-            where: { id: meta.campaignId },
-            include: {
-              chats: {
-                where: { day: meta.day },
-              },
-            },
-          });
+          // IDEMPOTENCY CHECK: Skip if in terminal error state
+          if (post.status === "error") {
+            console.log(`⏭️ Skipping Blog News post ID: ${post.id} - terminal error state (requires manual intervention)`);
+            return {
+              id: post.id,
+              success: false,
+              message: "Terminal error - requires manual intervention",
+              skipped: true,
+            };
+          }
 
-          const chat = campaign?.chats[0];
-          const blogData = chat?.contents as any;
-          const existingBlog = blogData?.blog;
-          const existingArticleUrl = existingBlog?.articleUrl;
+          // STATE CHECK: If Step 2 not completed, Python app will handle it
+          if (!meta?.step2Completed || !meta?.blog) {
+            console.log(`⏭️ Skipping Blog News post ID: ${post.id} - Step 2 not completed (Python app will handle)`);
+            return {
+              id: post.id,
+              success: true,
+              message: "Waiting for Python app to complete Steps 1 & 2",
+              skipped: true,
+            };
+          }
 
-          // If blog already exists and has articleUrl, check if platform posts were created
-          if (existingBlog && existingArticleUrl) {
-            // Check if platform posts already exist for this campaign/day/articleUrl
-            // MongoDB Prisma doesn't support path queries, so fetch and filter
-            const allProjectPosts = await prisma.scheduledPost.findMany({
-              where: {
-                projectId: post.projectId,
-              },
-              select: {
-                id: true,
-                meta: true,
-                content: true,
-              },
-            });
+          // STATE CHECK: Step 2 completed, check if Step 3 needs to run
+          if (meta?.step2Completed && !meta?.step3Completed) {
+            console.log(`🚀 Triggering Step 3 for Blog News post ID: ${post.id}`);
+            
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+            const step3Url = `${baseUrl}/api/blog/step-3-send-webhook`;
+            
+            try {
+              // Trigger Step 3 asynchronously (don't wait for completion)
+              fetch(step3Url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ postId: post.id }),
+              }).catch((error) => {
+                console.error(`❌ Failed to trigger Step 3 for post ${post.id}:`, error);
+                updatePostStatus(post.id, "failed", `Failed to trigger Step 3: ${error instanceof Error ? error.message : "Unknown error"}`);
+              });
 
-            // Filter posts that match the criteria
-            const existingPlatformPosts = allProjectPosts.filter((p) => {
-              const postMeta = p.meta as any;
-              return (
-                postMeta?.campaignId === meta.campaignId &&
-                postMeta?.day === meta.day &&
-                postMeta?.source === "blog-news" &&
-                (postMeta?.articleUrl === existingArticleUrl ||
-                  p.content?.includes(existingArticleUrl))
-              );
-            });
-
-            if (existingPlatformPosts.length > 0) {
-              console.log(`⏭️ Skipping Blog News post ID: ${post.id} - blog and platform posts already exist (${existingPlatformPosts.length} platform posts found)`);
-              // Mark as success since everything was already created
-              await updatePostStatus(post.id, "success");
               return {
                 id: post.id,
                 success: true,
-                message: "Blog and platform posts already exist",
-                skipped: true,
-                articleUrl: existingArticleUrl,
+                message: "Step 3 triggered - Webhook in progress",
+                inProgress: true,
+              };
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              console.error(`❌ Error triggering Step 3 for post ${post.id}:`, error);
+              await updatePostStatus(post.id, "failed", `Failed to trigger Step 3: ${errorMessage}`);
+              
+              return {
+                id: post.id,
+                success: false,
+                error: `Failed to trigger Step 3: ${errorMessage}`,
               };
             }
           }
 
-          // Update status to processing
-          await updatePostStatus(post.id, "processing");
-
-          // STEP-BASED APPROACH: Trigger Step 1 instead of calling generateBlogNewsContent directly
-          // Step 1 will handle article fetching, then trigger Step 2, which triggers Step 3, which triggers Step 4
-          console.log(`🚀 Triggering Step 1 for Blog News post ID: ${post.id}`);
-          
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-          const step1Url = `${baseUrl}/api/blog/step-1-fetch-article`;
-          
-          try {
-            // Trigger Step 1 asynchronously (don't wait for completion)
-            // Each step will trigger the next one automatically
-            fetch(step1Url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ postId: post.id }),
-            }).catch((error) => {
-              console.error(`❌ Failed to trigger Step 1 for post ${post.id}:`, error);
-              // Update status to failed if we can't even trigger Step 1
-              updatePostStatus(post.id, "failed", `Failed to trigger Step 1: ${error instanceof Error ? error.message : "Unknown error"}`);
-            });
-
-            // Return immediately - the steps will process in the background
-            return {
-              id: post.id,
-              success: true,
-              message: "Step 1 triggered - Blog generation in progress",
-              inProgress: true,
-            };
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Unknown error";
-            console.error(`❌ Error triggering Step 1 for post ${post.id}:`, error);
-            await updatePostStatus(post.id, "failed", `Failed to trigger Step 1: ${errorMessage}`);
+          // STATE CHECK: Step 3 completed, check if Step 4 needs to run
+          if (meta?.step3Completed && !meta?.step4Completed) {
+            console.log(`🚀 Triggering Step 4 for Blog News post ID: ${post.id}`);
             
-            return {
-              id: post.id,
-              success: false,
-              error: `Failed to trigger Step 1: ${errorMessage}`,
-            };
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+            const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
+            
+            try {
+              // Trigger Step 4 asynchronously (don't wait for completion)
+              fetch(step4Url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ postId: post.id }),
+              }).catch((error) => {
+                console.error(`❌ Failed to trigger Step 4 for post ${post.id}:`, error);
+                updatePostStatus(post.id, "failed", `Failed to trigger Step 4: ${error instanceof Error ? error.message : "Unknown error"}`);
+              });
+
+              return {
+                id: post.id,
+                success: true,
+                message: "Step 4 triggered - Platform posts in progress",
+                inProgress: true,
+              };
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              console.error(`❌ Error triggering Step 4 for post ${post.id}:`, error);
+              await updatePostStatus(post.id, "failed", `Failed to trigger Step 4: ${errorMessage}`);
+              
+              return {
+                id: post.id,
+                success: false,
+                error: `Failed to trigger Step 4: ${errorMessage}`,
+              };
+            }
           }
+
+          // All steps completed
+          console.log(`⏭️ Skipping Blog News post ID: ${post.id} - all steps completed`);
+          return {
+            id: post.id,
+            success: true,
+            message: "All steps completed",
+            skipped: true,
+          };
         } catch (error) {
           const errorDetails = {
             message: error instanceof Error ? error.message : "Unknown error",

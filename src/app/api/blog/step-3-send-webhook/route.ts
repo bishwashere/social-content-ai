@@ -54,56 +54,100 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Check if Step 2 completed (PRECONDITION CHECK)
+    // 2. IDEMPOTENCY CHECK: If already completed, return success
     const meta = post.meta as any;
+    if (meta?.step3Completed) {
+      logger.log(`[Step 3] Already completed for postId: ${postId}`);
+      return NextResponse.json({
+        success: true,
+        message: "Step 3 already completed",
+        postId,
+      });
+    }
+
+    // 3. PRECONDITION CHECK: Verify Step 2 completed
     if (!meta?.step2Completed || !meta?.blog) {
       logger.error(`[Step 3] Step 2 not completed for postId: ${postId}`);
       
-      // RETRY LOGIC: If Step 2 hasn't completed, try to retry it
-      const step2CompletedAt = meta?.step2CompletedAt ? new Date(meta.step2CompletedAt) : null;
-      const now = new Date();
-      const timeSinceStep2Start = step2CompletedAt ? now.getTime() - step2CompletedAt.getTime() : Infinity;
-      
-      // If Step 2 was started more than 10 minutes ago and still not complete, mark as failed
-      if (timeSinceStep2Start > 10 * 60 * 1000) {
-        logger.error(`[Step 3] Step 2 stuck for more than 10 minutes, marking as failed`);
-        await prisma.scheduledPost.update({
-          where: { id: postId },
-          data: {
-            status: "failed",
-            error: "Step 2 (generate blog) did not complete. Blog content missing.",
-          },
-        });
+      // Check if Step 2 is in progress (Python app working on it)
+      if (meta?.step2InProgress) {
+        logger.log(`[Step 3] Step 2 in progress (Python app), waiting...`);
         return NextResponse.json(
-          { success: false, error: "Step 2 did not complete - blog content missing" },
+          { success: false, error: "Step 2 in progress - waiting for Python app" },
           { status: 400 }
         );
       }
       
-      // Otherwise, try to retry Step 2
-      logger.log(`[Step 3] Retrying Step 2 for postId: ${postId}`);
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-      fetch(`${baseUrl}/api/blog/step-2-generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId }),
-      }).catch((error) => {
-        logger.error(`[Step 3] Failed to retry Step 2 for postId: ${postId}`, error);
-      });
+      // Check if Step 2 has terminal error
+      if (meta?.step2Error && post.status === "error") {
+        logger.error(`[Step 3] Step 2 has terminal error: ${meta.step2Error}`);
+        return NextResponse.json(
+          { success: false, error: `Step 2 failed: ${meta.step2Error}` },
+          { status: 400 }
+        );
+      }
       
+      // Step 2 not started or failed - this shouldn't happen if cron is working correctly
+      logger.error(`[Step 3] Step 2 not completed and not in progress - may need manual intervention`);
       return NextResponse.json(
-        { success: false, error: "Step 2 must be completed first - retrying Step 2" },
+        { success: false, error: "Step 2 must be completed first" },
         { status: 400 }
       );
     }
+
+    // 4. RACE CONDITION CHECK: Claim this post for Step 3 processing
+    // Check if already in progress (read first to avoid race condition)
+    if (meta?.step3InProgress) {
+      logger.warn(`[Step 3] Post ${postId} already being processed by another worker`);
+      return NextResponse.json({
+        success: false,
+        error: "Step 3 already in progress",
+      });
+    }
+
+    // Atomically set step3InProgress
+    // Re-read post to get latest meta (in case it changed)
+    // Select only id and meta to avoid schema validation issues
+    const currentPost = await prisma.scheduledPost.findFirst({
+      where: { id: postId },
+      select: { id: true, meta: true },
+    });
+    const currentMeta = (currentPost?.meta as any) || {};
     
-    // Also verify blog exists in CampaignChat (additional safety check)
+    if (currentMeta?.step3InProgress) {
+      logger.warn(`[Step 3] Post ${postId} already being processed (double-check)`);
+      return NextResponse.json({
+        success: false,
+        error: "Step 3 already in progress",
+      });
+    }
+    
+    // Update only meta field to avoid createdAt validation issues
+    await prisma.$runCommandRaw({
+      update: "scheduled-posts",
+      updates: [{
+        q: { _id: { $oid: postId } },
+        u: {
+          $set: {
+            "meta.step3InProgress": true,
+            "meta.step3StartedAt": new Date().toISOString(),
+          }
+        }
+      }]
+    });
+    
+    // 5. Verify blog exists in CampaignChat (additional safety check)
+    // Select only needed fields to avoid schema validation issues
     const campaignForCheck = await prisma.campaignPlanner.findFirst({
       where: { id: meta.campaignId },
-      include: {
+      select: {
+        id: true,
         chats: {
           where: { day: meta.day },
+          select: {
+            id: true,
+            contents: true,
+          },
         },
       },
     });
@@ -114,15 +158,6 @@ export async function POST(request: NextRequest) {
       if (!contents?.blog) {
         logger.warn(`[Step 3] Blog not found in CampaignChat for postId: ${postId}, but exists in meta. Continuing...`);
       }
-    }
-
-    if (meta.step3Completed) {
-      logger.log(`[Step 3] Already completed for postId: ${postId}`);
-      return NextResponse.json({
-        success: true,
-        message: "Step 3 already completed",
-        postId,
-      });
     }
 
     const webhookUrl = meta.webhook || "";
@@ -220,14 +255,33 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error(`[Step 3] Webhook error:`, error);
       webhookSent = false;
+      
+      // Store error in meta
+      const errorMessage = error instanceof Error ? error.message : "Unknown webhook error";
+      await prisma.scheduledPost.update({
+        where: { id: postId },
+        data: {
+          meta: {
+            ...meta,
+            step3Error: errorMessage,
+            step3InProgress: false,
+          },
+        },
+      });
     }
 
     // 4. Update CampaignChat with articleUrl and webhook status
+    // Select only needed fields to avoid schema validation issues
     const campaignForUpdate = await prisma.campaignPlanner.findFirst({
       where: { id: meta.campaignId },
-      include: {
+      select: {
+        id: true,
         chats: {
           where: { day: meta.day },
+          select: {
+            id: true,
+            contents: true,
+          },
         },
       },
     });
@@ -254,7 +308,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Store webhook result in post.meta
+    // 6. Store webhook result in post.meta
     await prisma.scheduledPost.update({
       where: { id: postId },
       data: {
@@ -264,32 +318,16 @@ export async function POST(request: NextRequest) {
           ...(articleUrl && { articleUrl: articleUrl }),
           step3Completed: true,
           step3CompletedAt: new Date().toISOString(),
+          step3InProgress: false,
+          step3Error: null, // Clear any previous errors
         },
       },
     });
 
     logger.log(`[Step 3] ✅ Completed for postId: ${postId}. Webhook ${webhookSent ? 'sent' : 'failed'}.${articleUrl ? ` Article URL: ${articleUrl}` : ''}`);
 
-    // 6. Trigger Step 4 (asynchronously)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-    const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
-    
-    logger.log(`[Step 3] 🔄 Calling Step 4 for postId: ${postId} | URL: ${step4Url}`);
-    fetch(step4Url, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "X-Called-By": "step-3-send-webhook"
-      },
-      body: JSON.stringify({ postId }),
-    })
-    .then(() => {
-      logger.log(`[Step 3] ✅ Successfully called Step 4 for postId: ${postId}`);
-    })
-    .catch((error) => {
-      logger.error(`[Step 3] ❌ Failed to trigger Step 4 for postId: ${postId}`, error);
-    });
+    // Note: Step 4 will be triggered by the next cron run (/api/post)
+    // This ensures proper state machine flow and allows for retries if needed
 
     return NextResponse.json({
       success: true,

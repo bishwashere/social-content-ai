@@ -54,52 +54,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Check if Step 3 completed (PRECONDITION CHECK)
+    // 2. IDEMPOTENCY CHECK: If already completed, return success
     const meta = post.meta as any;
-    if (!meta?.step3Completed || !meta?.blog) {
-      logger.error(`[Step 4] Step 3 not completed for postId: ${postId}`);
-      
-      // RETRY LOGIC: If Step 3 hasn't completed, try to retry it
-      const step3CompletedAt = meta?.step3CompletedAt ? new Date(meta.step3CompletedAt) : null;
-      const now = new Date();
-      const timeSinceStep3Start = step3CompletedAt ? now.getTime() - step3CompletedAt.getTime() : Infinity;
-      
-      // If Step 3 was started more than 5 minutes ago and still not complete, mark as failed
-      if (timeSinceStep3Start > 5 * 60 * 1000) {
-        logger.error(`[Step 4] Step 3 stuck for more than 5 minutes, marking as failed`);
-        await prisma.scheduledPost.update({
-          where: { id: postId },
-          data: {
-            status: "failed",
-            error: "Step 3 (send webhook) did not complete. Article URL missing.",
-          },
-        });
-        return NextResponse.json(
-          { success: false, error: "Step 3 did not complete - article URL missing" },
-          { status: 400 }
-        );
-      }
-      
-      // Otherwise, try to retry Step 3
-      logger.log(`[Step 4] Retrying Step 3 for postId: ${postId}`);
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-      fetch(`${baseUrl}/api/blog/step-3-send-webhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId }),
-      }).catch((error) => {
-        logger.error(`[Step 4] Failed to retry Step 3 for postId: ${postId}`, error);
-      });
-      
-      return NextResponse.json(
-        { success: false, error: "Step 3 must be completed first - retrying Step 3" },
-        { status: 400 }
-      );
-    }
-
-    // IDEMPOTENCY CHECK: If Step 4 already completed, return success
-    if (meta.step4Completed) {
+    if (meta?.step4Completed) {
       logger.log(`[Step 4] Already completed for postId: ${postId}`);
       return NextResponse.json({
         success: true,
@@ -107,6 +64,77 @@ export async function POST(request: NextRequest) {
         postId,
       });
     }
+
+    // 3. PRECONDITION CHECK: Verify Step 3 completed
+    if (!meta?.step3Completed || !meta?.blog) {
+      logger.error(`[Step 4] Step 3 not completed for postId: ${postId}`);
+      
+      // Check if Step 3 is in progress
+      if (meta?.step3InProgress) {
+        logger.log(`[Step 4] Step 3 in progress, waiting...`);
+        return NextResponse.json(
+          { success: false, error: "Step 3 in progress - waiting" },
+          { status: 400 }
+        );
+      }
+      
+      // Check if Step 3 has terminal error
+      if (meta?.step3Error && post.status === "error") {
+        logger.error(`[Step 4] Step 3 has terminal error: ${meta.step3Error}`);
+        return NextResponse.json(
+          { success: false, error: `Step 3 failed: ${meta.step3Error}` },
+          { status: 400 }
+        );
+      }
+      
+      // Step 3 not started or failed
+      logger.error(`[Step 4] Step 3 not completed and not in progress - may need manual intervention`);
+      return NextResponse.json(
+        { success: false, error: "Step 3 must be completed first" },
+        { status: 400 }
+      );
+    }
+
+    // 4. RACE CONDITION CHECK: Claim this post for Step 4 processing
+    // Check if already in progress (read first to avoid race condition)
+    if (meta?.step4InProgress) {
+      logger.warn(`[Step 4] Post ${postId} already being processed by another worker`);
+      return NextResponse.json({
+        success: false,
+        error: "Step 4 already in progress",
+      });
+    }
+
+    // Atomically set step4InProgress
+    // Re-read post to get latest meta (in case it changed)
+    // Select only id and meta to avoid schema validation issues
+    const currentPost = await prisma.scheduledPost.findFirst({
+      where: { id: postId },
+      select: { id: true, meta: true },
+    });
+    const currentMeta = (currentPost?.meta as any) || {};
+    
+    if (currentMeta?.step4InProgress) {
+      logger.warn(`[Step 4] Post ${postId} already being processed (double-check)`);
+      return NextResponse.json({
+        success: false,
+        error: "Step 4 already in progress",
+      });
+    }
+    
+    // Update only meta field to avoid createdAt validation issues
+    await prisma.$runCommandRaw({
+      update: "scheduled-posts",
+      updates: [{
+        q: { _id: { $oid: postId } },
+        u: {
+          $set: {
+            "meta.step4InProgress": true,
+            "meta.step4StartedAt": new Date().toISOString(),
+          }
+        }
+      }]
+    });
 
     const articleUrl = meta.articleUrl;
     if (!articleUrl) {
@@ -293,6 +321,8 @@ export async function POST(request: NextRequest) {
           ...meta,
           step4Completed: true,
           step4CompletedAt: new Date().toISOString(),
+          step4InProgress: false,
+          step4Error: null, // Clear any previous errors
           platformPosts: platformPostResults,
         },
       },
@@ -326,11 +356,21 @@ export async function POST(request: NextRequest) {
     // Update post status to failed (if we have postId)
     if (errorPostId !== "unknown") {
       try {
+        const failedPost = await prisma.scheduledPost.findUnique({
+          where: { id: errorPostId },
+        });
+        const failedMeta = (failedPost?.meta as any) || {};
+        
         await prisma.scheduledPost.update({
           where: { id: errorPostId },
           data: {
             status: "failed",
             error: `Step 4 failed: ${errorMessage}`,
+            meta: {
+              ...failedMeta,
+              step4Error: errorMessage,
+              step4InProgress: false,
+            },
           },
         });
       } catch (updateError) {
