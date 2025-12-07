@@ -206,8 +206,8 @@ const AnalyticsTabs = () => {
                 <Card
                   key={project.id}
                   className={`flex flex-col gap-1.5 p-2 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer min-w-[100px] sm:min-w-[120px] ${isSelected
-                      ? 'bg-blue-50 border-2 border-blue-300'
-                      : 'bg-white'
+                      ? 'bg-blue-50 dark:bg-transparent border-2 border-blue-300'
+                      : 'bg-white dark:bg-transparent shadow-sm'
                     }`}
                   onClick={() => setSelectedProject(project.id || null)}
                 >
