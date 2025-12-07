@@ -57,9 +57,12 @@ export const GET = applyMiddleware(
     const pendingPastDue = pending.filter(p => new Date(p.date) <= now);
 
     // Also query for "processing" webhook/blog-news posts that are past due
-    // (in case they got stuck from a previous cron run)
-    // STUCK RECOVERY: Check for posts stuck in processing for more than 10 minutes
+    // This includes:
+    // 1. Posts ready for Steps 3 & 4 (step2Completed = true, recently updated by Python app)
+    // 2. Stuck posts (haven't been updated in 10+ minutes - for recovery)
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    
+    // Query for processing webhook posts - include both fresh and stuck posts
     const processingWebhook = await prisma.scheduledPost.findMany({
       where: {
         status: "processing",
@@ -67,9 +70,23 @@ export const GET = applyMiddleware(
         date: {
           lte: oneHourFromNow, // Use same lenient range
         },
-        updatedAt: {
-          lte: tenMinutesAgo, // Only posts that haven't been updated in 10+ minutes
-        },
+        // Include posts that are either:
+        // - Recently updated (ready for Steps 3 & 4 after Python app completes Steps 1 & 2)
+        // - Stuck (not updated in 10+ minutes, for recovery)
+        OR: [
+          {
+            // Fresh posts: updated recently (Python app just completed Steps 1 & 2)
+            updatedAt: {
+              gte: tenMinutesAgo,
+            },
+          },
+          {
+            // Stuck posts: not updated in 10+ minutes (for recovery)
+            updatedAt: {
+              lte: tenMinutesAgo,
+            },
+          },
+        ],
       },
       include: {
         project: {
