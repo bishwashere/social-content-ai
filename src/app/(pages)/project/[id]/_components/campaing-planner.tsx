@@ -11,7 +11,8 @@ import {
   useRetryWebhook,
   useScheduleCampaignPosts,
   useScheduleCampaignTasks,
-  useToggleTickMark
+  useToggleTickMark,
+  useBlogFromScheduledPost
 } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,141 @@ import { Switch } from "@/components/ui/switch";
 import { TimePickerDialog } from "@/components/common/time-picker";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Component to display blog from ScheduledPost (where Python saves it)
+function BlogNewsDayContent({ 
+  campaignId, 
+  day, 
+  retryWebhook 
+}: { 
+  campaignId: string; 
+  day: number; 
+  retryWebhook: ReturnType<typeof useRetryWebhook>;
+}) {
+  // Fetch blog from ScheduledPost (where Python saves it)
+  const { data: scheduledPostData, isLoading: isLoadingBlog } = useBlogFromScheduledPost(campaignId, day);
+  
+  // Get blog from ScheduledPost.meta.blog (where Python saves it after steps 1 and 2)
+  const blog = scheduledPostData?.blog;
+  const step1Completed = scheduledPostData?.step1Completed || false;
+  const step2Completed = scheduledPostData?.step2Completed || false;
+  const step3Completed = scheduledPostData?.step3Completed || false;
+  const step4Completed = scheduledPostData?.step4Completed || false;
+  const allStepsComplete = scheduledPostData?.allStepsComplete || false;
+  const articleUrl = scheduledPostData?.articleUrl;
+  const webhookSent = scheduledPostData?.webhookSent;
+  
+  // Show blog if steps 1 and 2 are complete (blog exists in ScheduledPost)
+  if (!step1Completed || !step2Completed || !blog) {
+    return (
+      <div className="col-span-2 flex items-center justify-center py-12">
+        {isLoadingBlog ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <p className="text-muted-foreground">Loading blog...</p>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">
+            {step1Completed && !step2Completed 
+              ? "Step 1 complete. Generating blog (Step 2)..." 
+              : !step1Completed 
+              ? "Fetching article (Step 1)..." 
+              : "No blog generated yet. Click the play button to generate."}
+          </p>
+        )}
+      </div>
+    );
+  }
+  
+  return (
+    <div className="col-span-2 space-y-4">
+      <Card className="rounded-lg border">
+        <CardHeader>
+          <CardTitle>{blog.title || "Untitled Blog"}</CardTitle>
+          {blog.tags && blog.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {blog.tags.map((tag: string, index: number) => (
+                <Badge key={index} variant="secondary">{tag}</Badge>
+              ))}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="prose prose-sm max-w-none">
+            <Markdown>{blog.content || ""}</Markdown>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-between items-center pt-4 border-t">
+          <div className="text-sm text-muted-foreground flex flex-col gap-1">
+            {allStepsComplete && webhookSent !== undefined && (
+              <span className={webhookSent ? "text-green-600" : "text-red-600"}>
+                {webhookSent ? "✓ Webhook sent" : "✗ Webhook failed"}
+              </span>
+            )}
+            {allStepsComplete && articleUrl && (
+              <a 
+                href={articleUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-primary hover:underline text-xs break-all"
+              >
+                {articleUrl}
+              </a>
+            )}
+            {!allStepsComplete && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant={step1Completed ? "default" : "outline"} className={step1Completed ? "bg-green-500" : ""}>
+                  Step 1 {step1Completed ? "✓" : "..."}
+                </Badge>
+                <Badge variant={step2Completed ? "default" : "outline"} className={step2Completed ? "bg-green-500" : ""}>
+                  Step 2 {step2Completed ? "✓" : "..."}
+                </Badge>
+                <Badge variant={step3Completed ? "default" : "outline"} className={step3Completed ? "bg-green-500" : ""}>
+                  Step 3 {step3Completed ? "✓" : "..."}
+                </Badge>
+                <Badge variant={step4Completed ? "default" : "outline"} className={step4Completed ? "bg-green-500" : ""}>
+                  Step 4 {step4Completed ? "✓" : "..."}
+                </Badge>
+              </div>
+            )}
+          </div>
+          {allStepsComplete && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
+                const metadata = await getBlogNewsMetadataFromCampaign(campaignId);
+                const finalWebhookUrl = metadata?.webhook || "";
+                
+                if (!finalWebhookUrl) {
+                  toast.error("Webhook URL not found. Please configure the webhook in campaign settings.");
+                  return;
+                }
+                retryWebhook.mutate({
+                  webhook: finalWebhookUrl,
+                  blog: {
+                    title: blog.title,
+                    content: blog.content,
+                    tags: blog.tags,
+                    sourceArticle: blog.sourceArticle,
+                  },
+                  day: day,
+                  campaignId: campaignId,
+                });
+              }}
+              loading={retryWebhook.isPending}
+              disabled={retryWebhook.isPending}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Resend Webhook
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
 
 export const PLATFORMS = [
   { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" className="dark:brightness-0 dark:invert" /> },
@@ -1339,103 +1475,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       <DialogContent className="grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-y-auto sm:max-w-[90vw] lg:max-w-[1000px] p-5 sm:p-8 scrollbar-none">
                                         {/* Blog display for Blog News campaigns */}
                                         {campaign.goal === "Blog News" ? (
-                                          (() => {
-                                            const contents = timeline.contents as Record<string, any>;
-                                            const blog = contents?.blog;
-                                            
-                                            if (!blog) {
-                                              return (
-                                                <div className="col-span-2 flex items-center justify-center py-12">
-                                                  <p className="text-muted-foreground">No blog generated yet. Click the play button to generate.</p>
-                                                </div>
-                                              );
-                                            }
-                                            
-                                            return (
-                                              <div className="col-span-2 space-y-4">
-                                                <Card className="rounded-lg border">
-                                                  <CardHeader>
-                                                    <CardTitle>{blog.title || "Untitled Blog"}</CardTitle>
-                                                    {blog.tags && blog.tags.length > 0 && (
-                                                      <div className="flex flex-wrap gap-2 mt-2">
-                                                        {blog.tags.map((tag: string, index: number) => (
-                                                          <Badge key={index} variant="secondary">{tag}</Badge>
-                                                        ))}
-                                                      </div>
-                                                    )}
-                                                  </CardHeader>
-                                                  <CardContent>
-                                                    <div className="prose prose-sm max-w-none">
-                                                      <Markdown>{blog.content || ""}</Markdown>
-                                                    </div>
-                                                  </CardContent>
-                                                  <CardFooter className="flex justify-between items-center pt-4 border-t">
-                                                    <div className="text-sm text-muted-foreground flex flex-col gap-1">
-                                                      {blog.webhookSent !== undefined && (
-                                                        <span className={blog.webhookSent ? "text-green-600" : "text-red-600"}>
-                                                          {blog.webhookSent ? "✓ Webhook sent" : "✗ Webhook failed"}
-                                                        </span>
-                                                      )}
-                                                      {blog.webhookSent && blog.articleUrl && (
-                                                        <a 
-                                                          href={blog.articleUrl} 
-                                                          target="_blank" 
-                                                          rel="noopener noreferrer" 
-                                                          className="text-primary hover:underline text-xs break-all"
-                                                        >
-                                                          {blog.articleUrl}
-                                                        </a>
-                                                      )}
-                                                    </div>
-                                                    {(() => {
-                                                      // Get webhook URL from blog data (stored when blog was generated)
-                                                      // Fallback to metadata if not in blog
-                                                      const webhookUrl = blog.webhookUrl;
-                                                      
-                                                      // Always show the button if there's a blog
-                                                      return (
-                                                        <Button
-                                                          variant="outline"
-                                                          size="sm"
-                                                          onClick={async () => {
-                                                            // If webhook URL not in blog, fetch from database
-                                                            let finalWebhookUrl = webhookUrl;
-                                                            if (!finalWebhookUrl) {
-                                                              const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
-                                                              const metadata = await getBlogNewsMetadataFromCampaign(campaign.id);
-                                                              finalWebhookUrl = metadata?.webhook || "";
-                                                            }
-                                                            
-                                                            if (!finalWebhookUrl) {
-                                                              toast.error("Webhook URL not found. Please configure the webhook in campaign settings.");
-                                                              return;
-                                                            }
-                                                            retryWebhook.mutate({
-                                                              webhook: finalWebhookUrl,
-                                                              blog: {
-                                                                title: blog.title,
-                                                                content: blog.content,
-                                                                tags: blog.tags,
-                                                                sourceArticle: blog.sourceArticle,
-                                                              },
-                                                              day: timeline.day,
-                                                              campaignId: campaign.id,
-                                                            });
-                                                          }}
-                                                          loading={retryWebhook.isPending}
-                                                          disabled={retryWebhook.isPending || !webhookUrl}
-                                                          title={!webhookUrl ? "Webhook URL not configured" : undefined}
-                                                        >
-                                                          <RefreshCw className="h-4 w-4 mr-2" />
-                                                          Resend Webhook
-                                                        </Button>
-                                                      );
-                                                    })()}
-                                                  </CardFooter>
-                                                </Card>
-                                              </div>
-                                            );
-                                          })()
+                                          <BlogNewsDayContent 
+                                            campaignId={campaign.id}
+                                            day={timeline.day}
+                                            retryWebhook={retryWebhook}
+                                          />
                                         ) : (
                                           <>
                                             {/* TikTok Video Link Card */}

@@ -109,6 +109,59 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+const getStepBadges = (meta: any) => {
+  if (!meta || meta.type !== "blog-news") {
+    return null;
+  }
+
+  const steps = [
+    { key: "step1Completed", label: "Step 1", description: "Fetch Article" },
+    { key: "step2Completed", label: "Step 2", description: "Generate Blog" },
+    { key: "step3Completed", label: "Step 3", description: "Send Webhook" },
+    { key: "step4Completed", label: "Step 4", description: "Finalize" },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {steps.map((step) => {
+        const isCompleted = meta[step.key] === true;
+        const isInProgress = meta[`${step.key.replace("Completed", "InProgress")}`] === true;
+        const hasError = meta[`${step.key.replace("Completed", "Error")}`];
+        
+        if (isCompleted) {
+          return (
+            <Badge key={step.key} variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              {step.label}
+            </Badge>
+          );
+        } else if (isInProgress) {
+          return (
+            <Badge key={step.key} variant="secondary" className="text-xs">
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              {step.label}
+            </Badge>
+          );
+        } else if (hasError) {
+          return (
+            <Badge key={step.key} variant="destructive" className="text-xs">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {step.label}
+            </Badge>
+          );
+        } else {
+          return (
+            <Badge key={step.key} variant="outline" className="text-xs">
+              <Clock className="h-3 w-3 mr-1" />
+              {step.label}
+            </Badge>
+          );
+        }
+      })}
+    </div>
+  );
+};
+
 const formatDate = (date: Date | string, timezone?: string) => {
   const dateObj = new Date(date);
   // Use toLocaleString to properly format both date and time with timezone
@@ -198,7 +251,7 @@ export function ScheduledPosts({ project }: Props) {
             >
               {getPlatformIcon(post.platform)}
             </div>
-            <div>
+            <div className="flex-1">
               <CardTitle className="text-lg capitalize flex flex-row gap-2">
                 {post.platform}
                 <div className="flex items-center gap-2">
@@ -209,6 +262,7 @@ export function ScheduledPosts({ project }: Props) {
                 <Calendar className="h-3 w-3" />
                 Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone)}
               </CardDescription>
+              {getStepBadges(post.meta as any)}
             </div>
           </div>
           <div className="absolute -top-3 right-0 flex gap-2">

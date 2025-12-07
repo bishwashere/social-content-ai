@@ -289,6 +289,9 @@ export const useRetryWebhook = () => {
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner"],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["blogFromScheduledPost"],
+        });
       } else {
         toast.error(result.message);
       }
@@ -296,6 +299,23 @@ export const useRetryWebhook = () => {
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to send blog to webhook");
     },
+  });
+};
+
+/**
+ * Hook to get blog from ScheduledPost for a campaign day
+ * This fetches from where Python saves the blog (ScheduledPost.meta.blog)
+ */
+export const useBlogFromScheduledPost = (campaignId: string | undefined, day: number | undefined) => {
+  return useQuery({
+    queryKey: ["blogFromScheduledPost", campaignId, day],
+    queryFn: async () => {
+      if (!campaignId || !day) return null;
+      const { getBlogFromScheduledPost } = await import("@/backend-apis/campaign-planner/blog-news");
+      return getBlogFromScheduledPost(campaignId, day);
+    },
+    enabled: !!campaignId && !!day,
+    refetchInterval: 5000, // Refetch every 5 seconds to check for updates from Python
   });
 };
 

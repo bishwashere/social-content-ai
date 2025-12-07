@@ -67,3 +67,15 @@ Fixed TypeScript type errors related to timezone feature implementation:
 - `src/backend-apis/campaign-planner/hooks.ts` - Added `timezone` parameter to `useScheduleCampaignPosts` and `useScheduleCampaignTasks` hook types
 - `src/backend-apis/campaign-planner/hooks.ts` - Added `blogNewsMetadata` with `timezone` to `useChangeCampaignData` hook type
 - `src/app/(pages)/project/[id]/_components/campaing-planner.tsx` - Fixed `blogNewsMetadata` object to include all required fields (`topics`, `angles`, `webhook`) when updating
+
+### 8. Build Errors from Scripts Directory
+**Error**: `Type error: Cannot find module 'X' or its corresponding type declarations.` (where X is any package like 'mongodb', etc.)
+
+**Cause**: The `scripts/` directory contains utility/test scripts that may import packages not included in the main project dependencies. These scripts were being included in the Next.js TypeScript build process, causing compilation errors.
+
+**Fix**: Excluded the `scripts/` directory from TypeScript compilation in `tsconfig.json`:
+```json
+"exclude": ["node_modules", "scripts"]
+```
+
+**Note**: Scripts in the `scripts/` directory are utility/test scripts and should not be part of the Next.js build. If you need to run these scripts directly, install any missing packages as dev dependencies: `pnpm add -D <package-name> @types/<package-name>`

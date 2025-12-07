@@ -48,6 +48,109 @@ export type BlogNewsMetadata = {
 };
 
 /**
+ * Get blog data from ScheduledPost for a campaign and day
+ * This is where Python saves the blog after steps 1 and 2 complete
+ */
+export async function getBlogFromScheduledPost(
+  campaignId: string,
+  day: number
+): Promise<{
+  blog: any | null;
+  step1Completed: boolean;
+  step2Completed: boolean;
+  step3Completed: boolean;
+  step4Completed: boolean;
+  allStepsComplete: boolean;
+  articleUrl?: string | null;
+  webhookSent?: boolean;
+} | null> {
+  try {
+    // Find the ScheduledPost for this campaign and day
+    const allPosts = await prisma.scheduledPost.findMany({
+      where: {
+        platform: "webhook",
+      },
+      select: {
+        id: true,
+        meta: true,
+        status: true,
+      },
+    });
+
+    // Filter to find the post matching this campaign and day
+    const post = allPosts.find((p) => {
+      const meta = p.meta as any;
+      return (
+        meta?.type === "blog-news" &&
+        meta?.campaignId === campaignId &&
+        meta?.day === day
+      );
+    });
+
+    if (!post) {
+      return null;
+    }
+
+    const meta = post.meta as any;
+    const step1Completed = meta?.step1Completed === true;
+    const step2Completed = meta?.step2Completed === true;
+    const step3Completed = meta?.step3Completed === true;
+    const step4Completed = meta?.step4Completed === true || post.status === "success" || post.status === "posted";
+    const allStepsComplete = step1Completed && step2Completed && step3Completed && step4Completed;
+
+    // Get blog from ScheduledPost.meta.blog (where Python saves it)
+    const blog = meta?.blog || null;
+    const articleUrl = meta?.articleUrl || null;
+    const webhookSent = meta?.webhookSent !== undefined ? meta.webhookSent : null;
+
+    return {
+      blog,
+      step1Completed,
+      step2Completed,
+      step3Completed,
+      step4Completed,
+      allStepsComplete,
+      articleUrl,
+      webhookSent,
+    };
+  } catch (error) {
+    logger.error("Error getting blog from ScheduledPost:", error);
+    return null;
+  }
+}
+
+/**
+ * Get step completion status for a blog post by campaign and day
+ * Returns step completion flags from ScheduledPost
+ */
+export async function getBlogStepStatus(
+  campaignId: string,
+  day: number
+): Promise<{
+  step1Completed: boolean;
+  step2Completed: boolean;
+  step3Completed: boolean;
+  step4Completed: boolean;
+  allStepsComplete: boolean;
+} | null> {
+  try {
+    const result = await getBlogFromScheduledPost(campaignId, day);
+    if (!result) return null;
+    
+    return {
+      step1Completed: result.step1Completed,
+      step2Completed: result.step2Completed,
+      step3Completed: result.step3Completed,
+      step4Completed: result.step4Completed,
+      allStepsComplete: result.allStepsComplete,
+    };
+  } catch (error) {
+    logger.error("Error getting blog step status:", error);
+    return null;
+  }
+}
+
+/**
  * Get Blog News metadata from campaign
  * Retrieves metadata stored in the first chat's contents
  */
