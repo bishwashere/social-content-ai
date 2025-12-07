@@ -57,9 +57,9 @@ GEMINI_API_KEY=your-key-here
 GEMINI_API_KEY_1=backup-key-1
 GEMINI_API_KEY_2=backup-key-2
 
-# Olive Drift API (for Step 1 - Article Fetching)
-OLIVE_DRIFT_API_KEY=your-key-here
-OLIVE_DRIFT_API_URL=https://api.olivedrift.com
+# Olive Drift API (for Step 1 - Article Fetching) - Match Next.js env var names exactly
+OLIVEDRIFT_API_KEY=your-key-here
+OLIVEDRIFT_BASE_URL=https://api.olivedrift.com
 
 # Retry Configuration
 MAX_RETRIES=3

@@ -37,8 +37,8 @@ DATABASE_URL=your-mongodb-connection-string
 GEMINI_API_KEY=your-key
 GEMINI_API_KEY_1=backup-key-1  # Optional
 GEMINI_API_KEY_2=backup-key-2  # Optional
-OLIVE_DRIFT_API_KEY=your-key
-OLIVE_DRIFT_API_URL=https://api.olivedrift.com
+OLIVEDRIFT_API_KEY=your-key
+OLIVEDRIFT_BASE_URL=https://api.olivedrift.com
 TEST_MODE=false  # Important: false for production
 ```
 
