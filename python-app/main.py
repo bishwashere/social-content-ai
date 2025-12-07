@@ -667,12 +667,16 @@ class BlogGenerator:
         self,
         article_title: str,
         article_content: str,
-        angles: List[str]
+        angles: List[str],
+        tried_key_indices: Optional[List[int]] = None
     ) -> Dict[str, Any]:
         """
         Generate blog from article using Gemini AI.
         Returns blog dict with title, content, tags.
         """
+        if tried_key_indices is None:
+            tried_key_indices = []
+        
         if self.test_mode:
             # Mock blog generation for testing
             logger.info("TEST_MODE: Using mock blog generation")
@@ -698,9 +702,22 @@ This concludes the test blog post.
                 "tags": ["test", "ai", "technology"] + angles[:2] if angles else ["test"]
             }
         
+        # Check if we've tried all keys
+        if len(tried_key_indices) >= len(self.api_keys):
+            error_msg = f"All {len(self.api_keys)} API keys exhausted. Last error: Quota exceeded"
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        
+        # Find next untried key
+        while self.current_key_index in tried_key_indices:
+            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        
         api_key = self.get_api_key()
         if not api_key:
             raise ValueError("No GEMINI_API_KEY configured")
+        
+        current_key_index = self.current_key_index
+        tried_key_indices.append(current_key_index)
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("models/gemini-2.0-flash-001")
@@ -795,13 +812,25 @@ ADDITIONAL RULES:
             }
         
         except Exception as e:
-            logger.error(f"Error generating blog: {e}")
-            # Try next API key if available
-            if len(self.api_keys) > 1:
-                self.current_key_index += 1
-                logger.info(f"Retrying with next API key (index {self.current_key_index})")
-                return self.generate_blog_from_article(article_title, article_content, angles)
-            raise
+            error_str = str(e)
+            logger.error(f"Error generating blog with API key {current_key_index + 1}: {error_str}")
+            
+            # Check if it's a quota/rate limit error (429)
+            is_quota_error = "429" in error_str or "quota" in error_str.lower() or "rate limit" in error_str.lower()
+            
+            if is_quota_error:
+                logger.warning(f"API key {current_key_index + 1} exhausted (quota/rate limit)")
+            
+            # Try next API key if available and not all tried
+            if len(tried_key_indices) < len(self.api_keys):
+                self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                logger.info(f"Retrying with next API key (index {self.current_key_index + 1}/{len(self.api_keys)})")
+                return self.generate_blog_from_article(article_title, article_content, angles, tried_key_indices)
+            
+            # All keys exhausted - raise with descriptive error
+            error_msg = f"All {len(self.api_keys)} API keys exhausted. Last error: {error_str}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
 
 
 def process_step1(post: Dict[str, Any], db: Database, article_fetcher: ArticleFetcher) -> bool:
