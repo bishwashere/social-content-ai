@@ -45,14 +45,7 @@ export default function WebhooksPage() {
   "blog": {
     "title": "Generated Blog Title",
     "content": "MDX formatted article content...",
-    "tags": ["tag1", "tag2", "tag3"],
-    "sourceArticle": {
-      "title": "Original Post Title",
-      "content": "Original post content",
-      "source": "reddit" | "hackernews",
-      "url": "https://...",
-      "articleId": "unique-id"
-    }
+    "tags": ["tag1", "tag2", "tag3"]
   },
   "timestamp": "2024-01-15T10:30:00.000Z"
 }`}

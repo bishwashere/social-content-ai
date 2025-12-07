@@ -232,28 +232,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Add sourceArticle to blog if article data exists (from Step 1)
-    // This matches the original webhook payload structure
-    const article = meta.article;
-    const blogWithSourceArticle = {
-      ...blog,
-      ...(article && {
-        sourceArticle: {
-          title: article.title,
-          content: article.content,
-          source: article.source,
-          url: article.url,
-          articleId: article.articleId,
-        },
-      }),
-    };
-    
-    if (article) {
-      logger.log(`[Step 3] Added sourceArticle to blog payload (source: ${article.source})`);
-    } else {
-      logger.warn(`[Step 3] No article data found in meta - webhook will receive blog without sourceArticle`);
-    }
-    
     // Use Promise.race to timeout webhook after 9 seconds
     let webhookSent = false;
     let articleUrl: string | null = null;
@@ -261,7 +239,7 @@ export async function POST(request: NextRequest) {
     
     try {
       logger.log(`[Step 3] Starting webhook call to: ${webhookUrl} (timeout: 9s)`);
-      const webhookPromise = sendBlogToWebhook(webhookUrl, blogWithSourceArticle, meta.day);
+      const webhookPromise = sendBlogToWebhook(webhookUrl, blog, meta.day);
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Webhook timeout after 9 seconds")), 9000)
       );

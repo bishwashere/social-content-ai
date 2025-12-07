@@ -24,14 +24,7 @@ The webhook receives a JSON payload with the following structure:
   "blog": {
     "title": "Article Title Here",
     "content": "MDX formatted article content with proper headings, paragraphs, and lists...",
-    "tags": ["tag1", "tag2", "tag3"],
-    "sourceArticle": {
-      "title": "Original Post Title",
-      "content": "Original post content or text",
-      "source": "reddit" | "hackernews",
-      "url": "https://reddit.com/r/subreddit/comments/...",
-      "articleId": "abc123"
-    }
+    "tags": ["tag1", "tag2", "tag3"]
   },
   "timestamp": "2024-01-15T10:30:00.000Z"
 }
@@ -54,17 +47,6 @@ The webhook receives a JSON payload with the following structure:
 | `title` | `string` | The generated blog article title (max 80 characters) |
 | `content` | `string` | The full blog article content in MDX format |
 | `tags` | `string[]` | Array of 3-5 relevant tags |
-| `sourceArticle` | `object` | Information about the source article used to generate the blog |
-
-### Source Article Object Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `title` | `string` | Original post/article title from Reddit or HackerNews |
-| `content` | `string` | Original post content or text |
-| `source` | `string` | Either `"reddit"` or `"hackernews"` |
-| `url` | `string` | Full URL to the original post/article |
-| `articleId` | `string` | Unique identifier for the article (for duplicate detection) |
 
 ## Example Payload
 
@@ -74,14 +56,7 @@ The webhook receives a JSON payload with the following structure:
   "blog": {
     "title": "The Hidden Impact of AI on Startup Culture",
     "content": "# The Hidden Impact of AI on Startup Culture\n\nIn recent years, artificial intelligence has fundamentally transformed how startups operate...\n\n## Key Takeaways\n\n- AI is reshaping startup workflows\n- Early adoption provides competitive advantages\n- Cultural shifts are inevitable",
-    "tags": ["AI", "startups", "technology", "innovation"],
-    "sourceArticle": {
-      "title": "How AI is changing startup culture",
-      "content": "Discussion about AI's impact on startups...",
-      "source": "reddit",
-      "url": "https://reddit.com/r/startups/comments/abc123/how_ai_is_changing_startup_culture/",
-      "articleId": "abc123"
-    }
+    "tags": ["AI", "startups", "technology", "innovation"]
   },
   "timestamp": "2024-01-15T14:30:45.123Z"
 }

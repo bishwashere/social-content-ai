@@ -605,8 +605,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   "blog": {
     "title": "Blog Title",
     "content": "MDX content...",
-    "tags": ["tag1", "tag2"],
-    "sourceArticle": {...}
+    "tags": ["tag1", "tag2"]
   },
   "timestamp": "2024-01-01T00:00:00.000Z"
 }`}
