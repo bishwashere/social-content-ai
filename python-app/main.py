@@ -52,8 +52,8 @@ GEMINI_API_KEYS = [
     os.getenv("GEMINI_API_KEY_2"),
 ]
 GEMINI_API_KEYS = [key for key in GEMINI_API_KEYS if key]  # Filter None values
-OLIVE_DRIFT_API_KEY = os.getenv("OLIVE_DRIFT_API_KEY")
-OLIVE_DRIFT_API_URL = os.getenv("OLIVE_DRIFT_API_URL", "https://api.olivedrift.com")
+OLIVEDRIFT_API_KEY = os.getenv("OLIVEDRIFT_API_KEY")  # Match Next.js env var name
+OLIVEDRIFT_BASE_URL = os.getenv("OLIVEDRIFT_BASE_URL")  # Match Next.js env var name
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 RETRY_DELAY_SECONDS = int(os.getenv("RETRY_DELAY_SECONDS", "60"))
 
@@ -352,13 +352,13 @@ def is_article_duplicate(
 class ArticleFetcher:
     """Fetches articles from Reddit/HackerNews via Olive Drift API"""
     
-    def __init__(self, api_key: str, api_url: str, test_mode: bool = False):
+    def __init__(self, api_key: str, base_url: str, test_mode: bool = False):
         self.api_key = api_key
-        self.api_url = api_url
+        self.base_url = base_url
         self.test_mode = test_mode
     
     def fetch_reddit_posts(self, topics: List[str], limit: int = 3) -> List[Dict[str, Any]]:
-        """Fetch Reddit posts for given topics"""
+        """Fetch Reddit posts for given topics via Olive Drift API"""
         if self.test_mode:
             # Mock data for testing
             logger.info("TEST_MODE: Using mock Reddit posts")
@@ -373,13 +373,75 @@ class ArticleFetcher:
                 for i in range(limit)
             ]
         
-        # TODO: Implement actual Olive Drift API call
-        # This is a placeholder - replace with actual API implementation
-        logger.warning("fetch_reddit_posts: Placeholder implementation - needs actual API call")
-        return []
+        if not self.base_url or not self.api_key:
+            raise ValueError("OLIVEDRIFT_BASE_URL and OLIVEDRIFT_API_KEY must be configured")
+        
+        # Use popular subreddits for better results (matching Next.js implementation)
+        popular_subreddits = [
+            "technology",
+            "programming",
+            "startups",
+            "investing",
+            "cryptocurrency",
+            "stocks",
+            "artificial",
+            "MachineLearning",
+            "webdev",
+            "entrepreneur",
+            "business",
+            "finance",
+        ]
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/getRedditPosts",
+                json={
+                    "keywords": topics,
+                    "maxPosts": limit,
+                    "subreddits": popular_subreddits,  # Required field
+                    "timeFilter": "week",  # Get recent posts
+                },
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                timeout=10,
+            )
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            if not data.get("success"):
+                raise ValueError(data.get("message", "Failed to fetch Reddit posts"))
+            
+            # Transform Olive Drift response to our format (matching Next.js)
+            posts = []
+            for post in data.get("posts", []):
+                posts.append({
+                    "id": post.get("id") or post.get("name") or "",
+                    "title": post.get("title") or "",
+                    "selftext": post.get("selftext") or "",
+                    "author": post.get("author") or "",
+                    "score": post.get("score") or 0,
+                    "num_comments": post.get("num_comments") or 0,
+                    "created_utc": post.get("created_utc") or (int(datetime.now().timestamp())),
+                    "permalink": post.get("permalink") or "",
+                    "url": post.get("url") or (f"https://reddit.com{post.get('permalink', '')}"),
+                    "subreddit": post.get("subreddit") or "",
+                })
+            
+            logger.info(f"Fetched {len(posts)} Reddit posts for topics: {topics}")
+            return posts
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching Reddit posts: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error processing Reddit posts response: {e}")
+            raise
     
     def fetch_hackernews_posts(self, topics: List[str], limit: int = 3) -> List[Dict[str, Any]]:
-        """Fetch HackerNews posts for given topics"""
+        """Fetch HackerNews posts for given topics via Olive Drift API"""
         if self.test_mode:
             # Mock data for testing
             logger.info("TEST_MODE: Using mock HackerNews posts")
@@ -393,10 +455,52 @@ class ArticleFetcher:
                 for i in range(limit)
             ]
         
-        # TODO: Implement actual Olive Drift API call
-        # This is a placeholder - replace with actual API implementation
-        logger.warning("fetch_hackernews_posts: Placeholder implementation - needs actual API call")
-        return []
+        if not self.base_url or not self.api_key:
+            raise ValueError("OLIVEDRIFT_BASE_URL and OLIVEDRIFT_API_KEY must be configured")
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/getHackerNewsPosts",
+                json={
+                    "keywords": topics,
+                    "maxPosts": limit,
+                },
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                timeout=10,
+            )
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            if not data.get("success"):
+                raise ValueError(data.get("message", "Failed to fetch HackerNews posts"))
+            
+            # Transform Olive Drift response to our format (matching Next.js)
+            posts = []
+            for post in data.get("posts", []):
+                posts.append({
+                    "id": post.get("id"),
+                    "title": post.get("title") or "",
+                    "text": post.get("selftext") or "",
+                    "author": post.get("author") or "",
+                    "score": post.get("score") or 0,
+                    "num_comments": post.get("num_comments") or 0,
+                    "created_utc": post.get("created_utc") or (int(datetime.now().timestamp())),
+                    "permalink": post.get("permalink") or "",
+                })
+            
+            logger.info(f"Fetched {len(posts)} HackerNews posts for topics: {topics}")
+            return posts
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching HackerNews posts: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error processing HackerNews posts response: {e}")
+            raise
     
     def get_used_article_ids(self, campaign_id: str, db: Database) -> set:
         """
@@ -822,9 +926,17 @@ def main():
         logger.error("No GEMINI_API_KEY configured")
         sys.exit(1)
     
+    if not TEST_MODE:
+        if not OLIVEDRIFT_API_KEY:
+            logger.error("OLIVEDRIFT_API_KEY not configured (required for production)")
+            sys.exit(1)
+        if not OLIVEDRIFT_BASE_URL:
+            logger.error("OLIVEDRIFT_BASE_URL not configured (required for production)")
+            sys.exit(1)
+    
     # Initialize components
     db = Database(DATABASE_URL)
-    article_fetcher = ArticleFetcher(OLIVE_DRIFT_API_KEY, OLIVE_DRIFT_API_URL, TEST_MODE)
+    article_fetcher = ArticleFetcher(OLIVEDRIFT_API_KEY, OLIVEDRIFT_BASE_URL, TEST_MODE)
     blog_generator = BlogGenerator(GEMINI_API_KEYS, TEST_MODE)
     
     if args.post_id:
