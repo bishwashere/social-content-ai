@@ -895,21 +895,66 @@ export const scheduleCampaignTasks = async ({
     const errors: string[] = [];
     let scheduledCount = 0;
 
+    // Helper to convert local time in timezone to UTC
+    const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
+      if (tz === "UTC") {
+        return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+      }
+      
+      let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+      
+      for (let i = 0; i < 100; i++) {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        
+        const parts = formatter.formatToParts(candidateUTC);
+        const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+        const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
+        const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+        const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+        const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+        
+        if (tzYear === year && tzMonth === month && tzDay === day && 
+            tzHour === hour && tzMin === minute) {
+          return candidateUTC;
+        }
+        
+        const hourDiff = hour - tzHour;
+        const minDiff = minute - tzMin;
+        const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
+        candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
+        
+        if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
+          break;
+        }
+      }
+      
+      return candidateUTC;
+    };
+
     // Parse time
     const [hours, minutes] = autoPostTime.split(":").map(Number);
 
     // For each chat in the campaign
     for (const chat of campaign.chats) {
       // Calculate the date for this chat: startDate + (day - 1) days
-      // Use date components to avoid timezone issues
       const startDate = new Date(campaign.startDate);
       const year = startDate.getFullYear();
       const month = startDate.getMonth();
       const day = startDate.getDate();
-      
-      // Create date at midnight local time for the target day
       const targetDay = day + (chat.day - 1);
-      const chatDate = new Date(year, month, targetDay, hours, minutes, 0, 0);
+      
+      // Convert user's local time in their timezone to UTC for storage
+      // Example: 16:00 EST -> 21:00 UTC (stored in DB)
+      // When displayed, UTC is converted back to EST: 21:00 UTC -> 16:00 EST
+      const chatDate = convertLocalTimeToUTC(year, month, targetDay, hours, minutes, timezoneToUse);
 
       // Don't skip past dates - allow scheduling even if in the past
       // This ensures all campaign days are visible and can be manually triggered if needed
