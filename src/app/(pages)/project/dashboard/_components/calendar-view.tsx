@@ -97,7 +97,7 @@ function EventInfo({ event }: { event: MyEvent }) {
             </div>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-50 bg-primary">
+        <PopoverContent className="w-50 bg-primary dark:bg-[hsl(215,44%,22%)]">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-lg">{getEventIcon()}</span>
@@ -159,7 +159,7 @@ function EventInfo({ event }: { event: MyEvent }) {
           </div>
         </div>
       </TooltipTrigger>
-      <TooltipContent className="w-80">
+      <TooltipContent className="w-80 dark:bg-[hsl(215,44%,22%)]">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-lg">{getEventIcon()}</span>
@@ -208,28 +208,28 @@ function CustomToolbar({ label, onNavigate, date }: ToolbarProps<MyEvent>) {
   const formattedLabel = format(date, "MMMM yyyy");
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-2 bg-white shadow-md rounded-md mb-3">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-2 bg-white dark:bg-[hsl(215,44%,22%)] shadow-md rounded-md mb-3">
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => onNavigate("TODAY")}
-          className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
+          className="px-3 py-1 bg-gray-100 dark:bg-[hsl(240,11%,18%)] dark:text-gray-200 text-sm rounded hover:bg-gray-200 dark:hover:bg-[hsl(240,11%,25%)] transition"
         >
           Today
         </button>
         <button
           onClick={() => onNavigate("PREV")}
-          className="px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200 transition"
+          className="px-3 py-1 bg-gray-100 dark:bg-[hsl(240,11%,18%)] dark:text-gray-200 text-sm rounded hover:bg-gray-200 dark:hover:bg-[hsl(240,11%,25%)] transition"
         >
           ← Prev
         </button>
         <button
           onClick={() => onNavigate("NEXT")}
-          className="px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200 transition"
+          className="px-3 py-1 bg-gray-100 dark:bg-[hsl(240,11%,18%)] dark:text-gray-200 text-sm rounded hover:bg-gray-200 dark:hover:bg-[hsl(240,11%,25%)] transition"
         >
           Next →
         </button>
       </div>
-      <span className="text-xl md:text-2xl font-bold">{formattedLabel}</span>
+      <span className="text-xl md:text-2xl font-bold dark:text-gray-100">{formattedLabel}</span>
     </div>
   );
 }
@@ -243,14 +243,14 @@ export default function CalendarView() {
   // Calculate the date range for 3 weeks: 1 week before, current week, 1 week after
   const focusViewRange = useMemo(() => {
     if (view !== "focus") return null;
-    
+
     // Get the start of the current week (Sunday) based on the current date
     const currentWeekStart = startOfWeek(date, { weekStartsOn: 0 });
     // Go back one week for the start
     const start = subWeeks(currentWeekStart, 1);
     // Go forward 2 weeks from start (total 3 weeks: previous, current, next)
     const end = endOfWeek(addDays(start, 20), { weekStartsOn: 0 });
-    
+
     return { start, end };
   }, [date, view]);
 
@@ -296,7 +296,7 @@ export default function CalendarView() {
 
   const projects = useGetAllProjects();
   const scheduledPosts = useGetAllScheduledPosts();
-  
+
   // Debug: Log scheduled posts query status
   useEffect(() => {
     console.log('🔍 useGetAllScheduledPosts status:', {
@@ -364,7 +364,7 @@ export default function CalendarView() {
         isLoading: scheduledPosts.isLoading,
         error: scheduledPosts.error,
       });
-      
+
       if (scheduledPosts.data) {
         console.log('📅 Calendar View - Scheduled Posts Data:', {
           totalPosts: scheduledPosts.data.length,
@@ -376,7 +376,7 @@ export default function CalendarView() {
       } else {
         console.warn('⚠️ scheduledPosts.data is null/undefined');
       }
-      
+
       let processedCount = 0;
       if (!scheduledPosts.data || scheduledPosts.data.length === 0) {
         console.warn('⚠️ No scheduled posts data to process');
@@ -389,7 +389,7 @@ export default function CalendarView() {
             return;
           }
           const dayKey = format(postDate, "yyyy-MM-dd");
-          
+
           // Generate a title - use campaign name if from campaign, otherwise use content preview or project name
           const meta = post.meta as any;
           let title = '';
@@ -397,11 +397,11 @@ export default function CalendarView() {
             title = `${meta.campaignName} - Day ${meta.day || ''}`;
           } else {
             // Use first 50 chars of content or project name + platform
-            title = post.content 
+            title = post.content
               ? (post.content.length > 50 ? post.content.substring(0, 50) + '...' : post.content)
               : `${post.project?.name || 'Post'} - ${post.platform}`;
           }
-          
+
           // Use post ID + date as key to ensure uniqueness (multiple posts can be on same date)
           const key = `${post.id}-${dayKey}-scheduled`;
           if (!map.has(key)) {
@@ -485,7 +485,7 @@ export default function CalendarView() {
       platforms: item.platforms,
       allDay: true,
     }));
-    
+
     // Debug: Log final events array
     console.log('📊 Calendar View - Final Events Array:', {
       totalEvents: eventsArray.length,
@@ -493,7 +493,7 @@ export default function CalendarView() {
       sampleEvent: eventsArray[0],
       eventDates: eventsArray.slice(0, 5).map(e => ({ title: e.title, start: e.start.toISOString() }))
     });
-    
+
     return eventsArray;
   }, [projects.data, scheduledPosts.data, showTracking, showScheduled, showPlanned, showFuturePlansOnly]);
 
@@ -517,11 +517,11 @@ export default function CalendarView() {
               id="showScheduled"
               checked={showScheduled}
               onChange={(e) => { setShowScheduled(e.target.checked); localStorage.setItem('calendar-showScheduled', JSON.stringify(e.target.checked)); }}
-              className="rounded"
+              className="rounded dark:bg-[hsl(240,11%,18%)] dark:border-gray-600"
             />
             <label htmlFor="showScheduled" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📅</span>
-              <span className="text-gray-600">
+              <span className="text-gray-600 dark:text-gray-300">
                 Scheduled Posts{scheduledPosts.data ? ` (${scheduledPosts.data.length})` : ''}
               </span>
             </label>
@@ -532,11 +532,11 @@ export default function CalendarView() {
               id="showTracking"
               checked={showTracking}
               onChange={(e) => { setShowTracking(e.target.checked); localStorage.setItem('calendar-showTracking', JSON.stringify(e.target.checked)); }}
-              className="rounded"
+              className="rounded dark:bg-[hsl(240,11%,18%)] dark:border-gray-600"
             />
             <label htmlFor="showTracking" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📊</span>
-              <span className="text-gray-600">
+              <span className="text-gray-600 dark:text-gray-300">
                 Manual Entry{projects.data ? ` (${manualEntryCount})` : ''}
               </span>
             </label>
@@ -547,11 +547,11 @@ export default function CalendarView() {
               id="showPlanned"
               checked={showPlanned}
               onChange={(e) => { setShowPlanned(e.target.checked); localStorage.setItem('calendar-showPlanned', JSON.stringify(e.target.checked)); }}
-              className="rounded"
+              className="rounded dark:bg-[hsl(240,11%,18%)] dark:border-gray-600"
             />
             <label htmlFor="showPlanned" className="flex items-center gap-2 cursor-pointer">
               <span className="text-lg">📋</span>
-              <span className="text-gray-600">
+              <span className="text-gray-600 dark:text-gray-300">
                 Campaign Plans{projects.data ? ` (${campaignPlansCount})` : ''}
               </span>
             </label>
@@ -562,9 +562,9 @@ export default function CalendarView() {
                   id="showFuturePlansOnly"
                   checked={showFuturePlansOnly}
                   onChange={(e) => { setShowFuturePlansOnly(e.target.checked); localStorage.setItem('calendar-showFuturePlansOnly', JSON.stringify(e.target.checked)); }}
-                  className="rounded"
+                  className="rounded dark:bg-[hsl(240,11%,18%)] dark:border-gray-600"
                 />
-                <label htmlFor="showFuturePlansOnly" className="text-xs text-gray-500 cursor-pointer">
+                <label htmlFor="showFuturePlansOnly" className="text-gray-600 dark:text-gray-300">
                   Future Only
                 </label>
               </div>
@@ -574,19 +574,19 @@ export default function CalendarView() {
         <div className="flex gap-2">
           <button
             onClick={() => setView("focus")}
-            className={`px-3 py-1 text-sm rounded transition ${view === "focus" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+            className={`px-3 py-1 text-sm rounded transition ${view === "focus" ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-[hsl(240,11%,18%)] dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[hsl(240,11%,25%)]"}`}
           >
             Focus
           </button>
           <button
             onClick={() => setView("week")}
-            className={`px-3 py-1 text-sm rounded transition ${view === "week" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+            className={`px-3 py-1 text-sm rounded transition ${view === "week" ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-[hsl(240,11%,18%)] dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[hsl(240,11%,25%)]"}`}
           >
             Week
           </button>
           <button
             onClick={() => setView("month")}
-            className={`px-3 py-1 text-sm rounded transition ${view === "month" ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+            className={`px-3 py-1 text-sm rounded transition ${view === "month" ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-[hsl(240,11%,18%)] dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[hsl(240,11%,25%)]"}`}
           >
             Month
           </button>
@@ -598,7 +598,7 @@ export default function CalendarView() {
         <Badge variant="destructive" className="text-xs">Failed</Badge>
         <Badge variant="secondary" className="text-xs bg-purple-500 text-white">Planned</Badge>
       </div>
-      <div className="text-sm text-gray-600 mb-4">
+      <div className="text-sm text-gray-600 dark:text-gray-300 mb-4">
         Showing {events.length} events
       </div>
       {

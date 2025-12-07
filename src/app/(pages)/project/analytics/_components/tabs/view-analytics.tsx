@@ -83,7 +83,7 @@ const ViewAnalytics = ({ totalPosts, totalLikes, totalFollowers, totalImpression
     });
 
     return (
-      <div className="bg-white p-3 border rounded shadow text-sm">
+      <div className="bg-white dark:bg-[hsl(215,44%,22%)] p-3 border rounded shadow text-sm">
         <p className="font-bold mb-2">{label}</p>
         {sortedPayload.map((entry, index) => (
           <div key={index} className="flex items-center justify-between gap-3 mb-1">

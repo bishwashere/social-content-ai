@@ -99,6 +99,7 @@ export function ConnectAccountsButton() {
           alt="Facebook connected"
           width={20}
           height={20}
+          className="dark:invert"
         />
       </div>}
       {hasLinkedin && <div className="opacity-40">
@@ -107,6 +108,7 @@ export function ConnectAccountsButton() {
           alt="LinkedIn connected"
           width={20}
           height={20}
+          className="dark:invert"
         />
       </div>}
       {hasTwitter && <div className="opacity-40">
@@ -115,6 +117,7 @@ export function ConnectAccountsButton() {
           alt="X connected"
           width={20}
           height={20}
+          className="dark:invert"
         />
       </div>}
       {hasReddit && <div className="opacity-40">
@@ -123,14 +126,16 @@ export function ConnectAccountsButton() {
           alt="Reddit connected"
           width={20}
           height={20}
+          className="dark:invert"
         />
       </div>}
       {hasTiktok && <div className="opacity-40">
         <Image
-          src="tiktok.svg"
+          src="/tiktok.svg"
           alt="Tiktok connected"
           width={20}
           height={20}
+          className="dark:invert"
         />
       </div>}
       {hasThreads && <div className="opacity-40">
@@ -148,7 +153,7 @@ export function ConnectAccountsButton() {
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+              className="gap-2 border-blue-500 text-blue-600 "
             >
               <LinkIcon className="h-4 w-4" />
               <p className="hidden sm:block">Connect Socials</p>

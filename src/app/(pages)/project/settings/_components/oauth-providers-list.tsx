@@ -235,6 +235,7 @@ export function OAuthProvidersList() {
                   alt={platform.name}
                   width={16}
                   height={16}
+                  className="dark:invert"
                 />
                 <span>
                   Connect {platform.name}
@@ -255,7 +256,7 @@ export function OAuthProvidersList() {
                   alt={platform.name}
                   width={16}
                   height={16}
-                  className="opacity-40"
+                  className="opacity-40 dark:invert"
                 />
                 <span>
                   Reconnect {platform.name}
