@@ -234,11 +234,11 @@ export default function HomeV3() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 text-white place-items-center">
             {/* Traditional Approach */}
             <div>
-              <h3 className="text-3xl font-bold mb-2 text-black">
+              <h3 className="text-3xl font-bold mb-2 text-black dark:text-white">
                 Traditional Approach
               </h3>
               <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
-              <ul className="space-y-3 text-base font-light text-black">
+              <ul className="space-y-3 text-base font-light text-black dark:text-white">
                 <li className="flex items-start gap-2">
                   <span className="text-red-500">✖</span> Time-consuming trend
                   analysis
@@ -260,11 +260,11 @@ export default function HomeV3() {
 
             {/* With NextPostAI */}
             <div>
-              <h3 className="text-3xl font-bold text-black mb-2 ">
+              <h3 className="text-3xl font-bold mb-2 text-black dark:text-white">
                 With NextPostAI
               </h3>
               <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
-              <ul className="space-y-3 text-base font-light text-black">
+              <ul className="space-y-3 text-base font-light text-black dark:text-white">
                 <li className="flex items-start gap-2">
                   <span className="text-green-400">✔</span> Smart marketing
                   plans built with AI
@@ -318,7 +318,7 @@ export default function HomeV3() {
               ].map((user, idx) => (
                 <div
                   key={idx}
-                  className="bg-white text-black rounded-2xl p-6 flex flex-col gap-4 items-start"
+                  className="bg-white dark:bg-gray-300 text-black rounded-2xl p-6 flex flex-col gap-4 items-start"
                 >
                   <Image
                     width={40}
@@ -357,12 +357,12 @@ export default function HomeV3() {
               className="w-40 md:w-60"
             />
             <div className="flex flex-col max-w-xl">
-              <h3 className="text-3xl md:text-5xl font-bold text-[#0F1124]">
+              <h3 className="text-3xl md:text-5xl font-bold text-[#0F1124] dark:text-white">
                 Mobile-Friendly <br />
                 <span className="text-[#FAA41B]">Design</span>
               </h3>
               <div className="w-10 h-1 bg-[#FAA41B] my-4" />
-              <p className="text-sm md:text-lg text-[#0F1124]">
+              <p className="text-sm md:text-lg text-[#0F1124] dark:text-white">
                 Access NextPostAI on any device. Whether you&apos;re on the go
                 or at your desk, your marketing tools are always within reach.
               </p>
@@ -375,10 +375,10 @@ export default function HomeV3() {
           <div className="flex flex-col md:flex-row items-center justify-around gap-10">
             <div className="flex flex-col max-w-xl order-2 md:order-1">
               <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">
-                Privacy <span className="text-[#0F1124]">& Security</span>
+                Privacy <span className="text-[#0F1124] dark:text-white">& Security</span>
               </h3>
               <div className="w-10 h-1 bg-[#FAA41B] my-4" />
-              <ul className="list-disc pl-5 space-y-2 text-[#0F1124] text-sm md:text-lg">
+              <ul className="list-disc pl-5 space-y-2 text-[#0F1124] dark:text-white text-sm md:text-lg">
                 <li>100% free to start - no credit card required</li>
                 <li>Upgrade later for pro features</li>
                 <li>Stay with the free version if that’s all you need</li>
@@ -455,7 +455,7 @@ export default function HomeV3() {
 
         <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
           <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-4xl text-[#0F1124] font-light">
+            <h2 className="text-2xl md:text-4xl text-[#0F1124] dark:text-white font-light">
               Frequently
             </h2>
             <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">
@@ -478,7 +478,7 @@ export default function HomeV3() {
                   </span>
                 </button>
                 {openIndex === idx && (
-                  <div className="bg-white text-[#222639] px-6 py-4 text-sm">
+                  <div className="bg-white dark:bg-transparent text-[#222639] dark:text-white px-6 py-4 text-sm">
                     {faq.answer}
                   </div>
                 )}
