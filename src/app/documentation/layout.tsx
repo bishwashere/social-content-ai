@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { ChevronRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentationHeader } from "./_components/documentation-header";
+import Footer from "@/components/footer";
 
 const documentationLinks = [
   {
@@ -153,6 +154,7 @@ export default function DocumentationLayout({
           </div>
         </main>
       </div>
+      <Footer />
     </div>
   );
 }

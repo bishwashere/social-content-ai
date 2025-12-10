@@ -11,6 +11,7 @@ import { IdeaHeader } from "../_components/idea-header"
 import { ShareButton } from "../_components/share-button"
 import { Inter } from "next/font/google"
 import { ReadingProgressBar } from "./_components/reading-progress-bar"
+import Footer from "@/components/footer"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -257,6 +258,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
           </section>
         )}
       </div>
+      <Footer />
     </div>
   )
 }

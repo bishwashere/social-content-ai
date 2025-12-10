@@ -4,6 +4,7 @@ import { getAllIdeas } from "@/lib/blogs"
 import { BookOpen } from "lucide-react"
 import { IdeaCard } from "@/components/idea-card"
 import { IdeasHeader } from "./_components/ideas-header"
+import Footer from "@/components/footer"
 
 // Force dynamic rendering to always fetch fresh data from database
 export const dynamic = 'force-dynamic'
@@ -61,6 +62,8 @@ export default async function IdeasPage() {
           </>
         )}
       </div>
+
+      <Footer />
     </div>
   )
 }

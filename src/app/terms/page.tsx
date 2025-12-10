@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
+import Footer from "@/components/footer"
 
 export default function TermsPage() {
   return (
@@ -117,6 +118,7 @@ export default function TermsPage() {
           </div>
         </article>
       </div>
+      <Footer />
     </div>
   )
 }
