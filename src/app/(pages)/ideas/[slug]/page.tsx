@@ -10,8 +10,9 @@ import { IdeaCard } from "@/components/idea-card"
 import { IdeaHeader } from "../_components/idea-header"
 import { ShareButton } from "../_components/share-button"
 import { Inter } from "next/font/google"
+import { ReadingProgressBar } from "./_components/reading-progress-bar"
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
   variable: "--font-inter"
@@ -66,19 +67,19 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
     const lines = content.split('\n')
     const processedLines: string[] = []
     const replacementRegex = /^.*\b(?:as|for|of|to|the|with)\b\s+((?:\w+\s+){2,10}\w+)\s*(?=[.?!]|$)/i
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
       const headingMatch = line.match(/^(#{2,6})\s+(.+)$/)
-      
+
       if (headingMatch) {
         const headingLevel = headingMatch[1]
         const originalHeading = headingMatch[2]
-        
+
         // Count words in original heading
         const headingWords = originalHeading.split(/\s+/).filter(w => w.length > 0)
         const headingWordCount = headingWords.length
-        
+
         // Only replace if heading has 3 words or less
         if (headingWordCount <= 3) {
           // Find the first non-empty line after the heading
@@ -91,7 +92,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
               break
             }
           }
-          
+
           // Apply regex to find match in first content line
           if (firstContentLine) {
             // Remove markdown formatting for regex matching
@@ -100,9 +101,9 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
               .replace(/\*([^*]+)\*/g, '$1') // Remove italic
               .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links
               .replace(/`([^`]+)`/g, '$1') // Remove inline code
-            
+
             const match = plainText.match(replacementRegex)
-            
+
             if (match && match[1]) {
               // Use captured group, capitalize first letter
               const newHeading = match[1].charAt(0).toUpperCase() + match[1].slice(1)
@@ -111,14 +112,14 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
             }
           }
         }
-        
+
         // No match found or heading has more than 3 words, keep original heading
         processedLines.push(line)
       } else {
         processedLines.push(line)
       }
     }
-    
+
     return processedLines.join('\n')
   }
 
@@ -128,6 +129,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadingProgressBar />
       {/* Header similar to /ideas */}
       <IdeaHeader slug={idea.slug} title={idea.title} />
 
@@ -165,7 +167,7 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
                     {readingTime} min read
                   </Badge>
                 </div>
-                <ShareButton 
+                <ShareButton
                   title={idea.title}
                   url={`/ideas/${idea.slug}`}
                   summary={idea.summary}
