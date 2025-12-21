@@ -10,12 +10,13 @@ export type YourTodayProject = {
   campaignId?: string;
   campaignName?: string;
   day?: number;
+  startDate?: string; // Campaign start date ISO string for calculating actual dates
   userRole?: string; // "admin" | "editor" | "viewer"
   needsAction?: boolean; // true if action button should be shown
 };
 
 export type YourTodayTask = {
-  type: "failed_post" | "campaigns" | "schedule_post" | "campaign_ending_soon";
+  type: "failed_post" | "campaigns" | "schedule_post" | "campaign_ending_soon" | "stuck_blog_news";
   icon: string;
   title: string;
   action: string;

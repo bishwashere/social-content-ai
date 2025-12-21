@@ -6,6 +6,7 @@ import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
 import { TooltipManagerProvider } from "@/providers/first-view-tooltip-manager";
 import { PricingModalProvider } from "@/providers/pricing-modal-provider";
+import { FocusProvider } from "@/providers/focus-provider";
 import { DashboardTour } from "@/components/common/dashboard-tour";
 import { NavigationTour } from "@/components/common/navigation-tour";
 import { FoldersTour } from "@/components/common/folders-tour";
@@ -21,7 +22,9 @@ export default function ProjectLayout({
     <TooltipManagerProvider>
       <SidebarProvider defaultOpen={true}>
         <PricingModalProvider>
-          <Main>{children}</Main>
+          <FocusProvider>
+            <Main>{children}</Main>
+          </FocusProvider>
         </PricingModalProvider>
       </SidebarProvider>
     </TooltipManagerProvider>

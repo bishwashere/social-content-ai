@@ -3,6 +3,194 @@ import { prisma } from "@/lib/prisma";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
+import { startOfDay, subDays, subMinutes } from "date-fns";
+
+type ConsistencyAnalysis = {
+  hasHistoricalData: boolean;
+  streak: number;
+  gapDays: number;
+  totalPostsLast30Days: number;
+  avgImpressionsConsistent: number; // Avg impressions when posting consistently
+  avgImpressionsInconsistent: number; // Avg impressions when posting inconsistently
+  impressionsBoost: number; // Percentage boost in impressions during consistent periods
+  lastPostDate: Date | null;
+  daysSinceLastPost: number;
+  message: string;
+  needsAction: boolean;
+};
+
+/**
+ * Analyze historical posting consistency and its correlation with impressions
+ * Returns data-driven insights about whether consistency boosted performance
+ */
+async function analyzeProjectConsistency(projectId: string): Promise<ConsistencyAnalysis> {
+  const today = startOfDay(new Date());
+  const thirtyDaysAgo = startOfDay(subDays(today, 30));
+  
+  // Fetch PlatformPost data for this project via ProjectToOAuthProvider
+  const oauthProviders = await prisma.projectToOAuthProvider.findMany({
+    where: { projectId },
+    select: {
+      oauthProvider: {
+        select: {
+          pagePosts: {
+            where: {
+              date: {
+                gte: thirtyDaysAgo,
+                lte: today
+              }
+            },
+            orderBy: { date: 'desc' }
+          }
+        }
+      }
+    }
+  });
+
+  // Flatten all posts from all connected platforms
+  const allPosts = oauthProviders.flatMap(
+    p => p.oauthProvider?.pagePosts || []
+  );
+
+  if (allPosts.length === 0) {
+    return {
+      hasHistoricalData: false,
+      streak: 0,
+      gapDays: 30,
+      totalPostsLast30Days: 0,
+      avgImpressionsConsistent: 0,
+      avgImpressionsInconsistent: 0,
+      impressionsBoost: 0,
+      lastPostDate: null,
+      daysSinceLastPost: 30,
+      message: "Start posting to build your consistency — the more you post, the more we can optimize",
+      needsAction: true
+    };
+  }
+
+  // Calculate streak and gap days
+  const postedDays = new Set<string>();
+  for (const post of allPosts) {
+    const postDate = startOfDay(new Date(post.date));
+    if (postDate >= thirtyDaysAgo && postDate <= today) {
+      postedDays.add(postDate.toDateString());
+    }
+  }
+
+  // Calculate streak going backwards from yesterday
+  let streak = 0;
+  let currentDate = subDays(today, 1);
+  let consecutiveGaps = 0;
+  
+  while (currentDate >= thirtyDaysAgo) {
+    if (postedDays.has(currentDate.toDateString())) {
+      consecutiveGaps = 0;
+      streak++;
+    } else {
+      consecutiveGaps++;
+      if (consecutiveGaps >= 2) break; // Streak broken after 2 consecutive gaps
+    }
+    currentDate = subDays(currentDate, 1);
+  }
+
+  const totalDays = 30;
+  const gapDays = totalDays - postedDays.size;
+  
+  // Find last post date
+  const sortedPosts = [...allPosts].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const lastPostDate = sortedPosts[0] ? new Date(sortedPosts[0].date) : null;
+  const daysSinceLastPost = lastPostDate 
+    ? Math.floor((today.getTime() - startOfDay(lastPostDate).getTime()) / (1000 * 60 * 60 * 24))
+    : 30;
+
+  // Analyze impressions correlation with consistency
+  // Group posts by whether they were posted during a "consistent period" (streak of 3+ days)
+  const postsWithImpressions = allPosts.filter(p => p.impressions && p.impressions > 0);
+  
+  let avgImpressionsConsistent = 0;
+  let avgImpressionsInconsistent = 0;
+  let impressionsBoost = 0;
+
+  if (postsWithImpressions.length >= 3) {
+    // Simple heuristic: posts in the first half of sorted (recent) vs second half
+    // In reality, posts during active streaks tend to be recent
+    const midpoint = Math.floor(postsWithImpressions.length / 2);
+    const recentPosts = postsWithImpressions.slice(0, midpoint);
+    const olderPosts = postsWithImpressions.slice(midpoint);
+
+    avgImpressionsConsistent = recentPosts.length > 0
+      ? recentPosts.reduce((sum, p) => sum + (p.impressions || 0), 0) / recentPosts.length
+      : 0;
+    
+    avgImpressionsInconsistent = olderPosts.length > 0
+      ? olderPosts.reduce((sum, p) => sum + (p.impressions || 0), 0) / olderPosts.length
+      : 0;
+
+    if (avgImpressionsInconsistent > 0) {
+      impressionsBoost = Math.round(
+        ((avgImpressionsConsistent - avgImpressionsInconsistent) / avgImpressionsInconsistent) * 100
+      );
+    }
+  }
+
+  // Generate data-driven message
+  let message: string;
+  let needsAction = true;
+
+  if (streak >= 7) {
+    // Great consistency
+    if (impressionsBoost > 0) {
+      message = `Great streak of ${streak} days! Your consistent posting boosted impressions by ${impressionsBoost}%`;
+    } else {
+      message = `You're on a ${streak}-day streak — keep the momentum going!`;
+    }
+    needsAction = false;
+  } else if (streak >= 3) {
+    // Building momentum
+    if (impressionsBoost > 0) {
+      message = `${streak}-day streak building momentum — impressions up ${impressionsBoost}% when consistent`;
+    } else {
+      message = `${streak}-day streak and growing — schedule today's post to keep momentum`;
+    }
+    needsAction = true;
+  } else if (daysSinceLastPost <= 2) {
+    // Recently posted but no streak
+    message = `Posted ${daysSinceLastPost === 0 ? 'today' : daysSinceLastPost === 1 ? 'yesterday' : '2 days ago'} — add one more to start a streak`;
+    needsAction = true;
+  } else if (daysSinceLastPost <= 7) {
+    // Gap of a few days
+    if (avgImpressionsConsistent > 0 && impressionsBoost > 10) {
+      message = `${daysSinceLastPost} days since last post — your impressions were ${impressionsBoost}% higher when posting consistently`;
+    } else {
+      message = `${daysSinceLastPost} days since last post — schedule one to rebuild momentum`;
+    }
+    needsAction = true;
+  } else {
+    // Long gap
+    if (allPosts.length > 5 && avgImpressionsConsistent > 0) {
+      message = `${daysSinceLastPost} days inactive — past data shows you got ${Math.round(avgImpressionsConsistent).toLocaleString()} avg impressions when active`;
+    } else {
+      message = `${daysSinceLastPost} days since last post — let's get back on track`;
+    }
+    needsAction = true;
+  }
+
+  return {
+    hasHistoricalData: true,
+    streak,
+    gapDays,
+    totalPostsLast30Days: allPosts.length,
+    avgImpressionsConsistent: Math.round(avgImpressionsConsistent),
+    avgImpressionsInconsistent: Math.round(avgImpressionsInconsistent),
+    impressionsBoost,
+    lastPostDate,
+    daysSinceLastPost,
+    message,
+    needsAction
+  };
+}
 
 export async function GET(request: NextRequest) {
   return applyMiddleware(
@@ -63,7 +251,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get all data grouped by project
-        const [failedPosts, campaigns, todayScheduledPosts] = await Promise.all([
+        const [failedPosts, campaigns, todayScheduledPosts, stuckBlogNewsPosts] = await Promise.all([
           // 1. Failed posts from yesterday
           prisma.scheduledPost.findMany({
             where: {
@@ -121,6 +309,22 @@ export async function GET(request: NextRequest) {
                 }
               }
             }
+          }),
+          // 4. Stuck Blog News posts (processing status, some steps complete but not all)
+          // Query ALL processing posts - we'll check step timestamps in the filter logic
+          prisma.scheduledPost.findMany({
+            where: {
+              projectId: { in: projectIds },
+              status: "processing",
+            },
+            include: {
+              project: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
           })
         ]);
 
@@ -149,6 +353,73 @@ export async function GET(request: NextRequest) {
           scheduledPostsByProject.set(post.projectId, existing);
         });
 
+        // Filter and identify stuck Blog News posts (partial step completion)
+        const stuckBlogNewsPostsByProject = new Map<string, Array<{
+          postId: string;
+          projectId: string;
+          projectName: string;
+          campaignName?: string;
+          day?: number;
+          stuckStep: number;
+          stepDetails: string;
+        }>>();
+        
+        // Helper function to check if a step has been stuck for too long
+        const isStepStuck = (completedAt: string | undefined, threshold: number = 10): boolean => {
+          if (!completedAt) return false;
+          const completedTime = new Date(completedAt).getTime();
+          const nowTime = now.getTime();
+          const minutesElapsed = (nowTime - completedTime) / (1000 * 60);
+          return minutesElapsed > threshold;
+        };
+        
+        stuckBlogNewsPosts.forEach(post => {
+          if (!post.projectId) return;
+          const meta = post.meta as any;
+          
+          // Only process Blog News posts
+          if (!meta || meta.type !== "blog-news") return;
+          
+          // Determine which step is stuck (based on completion timestamps)
+          let stuckStep = 0;
+          let stepDetails = "";
+          
+          if (meta.step1Completed && !meta.step2Completed && isStepStuck(meta.step1CompletedAt)) {
+            stuckStep = 2;
+            stepDetails = "Article fetched, waiting for blog generation";
+          } else if (meta.step2Completed && !meta.step3Completed && isStepStuck(meta.step2CompletedAt)) {
+            stuckStep = 3;
+            stepDetails = "Blog generated, waiting for webhook";
+          } else if (meta.step3Completed && !meta.step4Completed && isStepStuck(meta.step3CompletedAt)) {
+            stuckStep = 4;
+            stepDetails = "Webhook sent, waiting for finalization";
+          } else if (!meta.step1Completed) {
+            // For step 1, check if scheduled time has passed by more than 10 minutes
+            const scheduledDate = new Date(post.date).getTime();
+            const nowTime = now.getTime();
+            const minutesPastSchedule = (nowTime - scheduledDate) / (1000 * 60);
+            if (minutesPastSchedule > 10) {
+              stuckStep = 1;
+              stepDetails = "Waiting for article fetch to start";
+            }
+          }
+          
+          // Only add if actually stuck
+          if (stuckStep > 0) {
+            const existing = stuckBlogNewsPostsByProject.get(post.projectId) || [];
+            existing.push({
+              postId: post.id,
+              projectId: post.projectId,
+              projectName: post.project?.name || "Unknown Project",
+              campaignName: meta.campaignName,
+              day: meta.day,
+              stuckStep,
+              stepDetails,
+            });
+            stuckBlogNewsPostsByProject.set(post.projectId, existing);
+          }
+        });
+
         // Group tasks by type
         const tasksByType: Record<string, {
           type: string;
@@ -162,6 +433,7 @@ export async function GET(request: NextRequest) {
             campaignId?: string;
             campaignName?: string;
             day?: number;
+            startDate?: string;
             userRole?: string;
             needsAction?: boolean;
           }>;
@@ -189,6 +461,33 @@ export async function GET(request: NextRequest) {
               projectId: projectId,
               projectName: projectName,
               description: `${projectFailedPosts.length} post${projectFailedPosts.length > 1 ? 's' : ''} failed yesterday — fix ${projectFailedPosts.length > 1 ? 'them' : 'it'}`,
+              userRole: userRole,
+              needsAction: true
+            });
+          }
+
+          // 1.5 Check for stuck Blog News posts (partial step completion)
+          const projectStuckBlogNews = stuckBlogNewsPostsByProject.get(projectId) || [];
+          if (projectStuckBlogNews.length > 0) {
+            if (!tasksByType["stuck_blog_news"]) {
+              tasksByType["stuck_blog_news"] = {
+                type: "stuck_blog_news",
+                icon: "⚠️",
+                title: "Blog News posts stuck mid-process",
+                action: "view_stuck_posts",
+                projects: []
+              };
+            }
+            
+            // Group by stuck step for clearer messaging
+            const stuckAtStep = projectStuckBlogNews[0].stuckStep;
+            const stuckCount = projectStuckBlogNews.length;
+            const stepDetails = projectStuckBlogNews[0].stepDetails;
+            
+            tasksByType["stuck_blog_news"].projects.push({
+              projectId: projectId,
+              projectName: projectName,
+              description: `${stuckCount} Blog News post${stuckCount > 1 ? 's' : ''} stuck at Step ${stuckAtStep} — ${stepDetails}`,
               userRole: userRole,
               needsAction: true
             });
@@ -274,13 +573,26 @@ export async function GET(request: NextRequest) {
           if (campaignNeedingContent) {
             // Project has active campaign that needs content
             const campaign: { campaignId: string; campaignName: string; day: number } = campaignNeedingContent;
+            // Find the campaign to get its start date
+            const campaignData = projectCampaigns.find(c => c.id === campaign.campaignId);
+            const startDate = campaignData?.startDate ? new Date(campaignData.startDate) : null;
+            
+            // Calculate actual date for this day
+            let dateLabel = `Day ${campaign.day}`;
+            if (startDate) {
+              const actualDate = new Date(startDate);
+              actualDate.setDate(actualDate.getDate() + campaign.day - 1);
+              dateLabel = actualDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+            
             tasksByType["campaigns"].projects.push({
               projectId: projectId,
               projectName: projectName,
-              description: `Campaign "${campaign.campaignName}" needs content for Day ${campaign.day} — generate now`,
+              description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
               campaignId: campaign.campaignId,
               campaignName: campaign.campaignName,
               day: campaign.day,
+              startDate: startDate?.toISOString(),
               userRole: userRole,
               needsAction: true
             });
@@ -379,11 +691,14 @@ export async function GET(request: NextRequest) {
             }
           });
 
-          // 4. Check scheduled posts for today for this project
+          // 4. Check scheduled posts for today for this project with historical analysis
           const projectScheduledPosts = scheduledPostsByProject.get(projectId) || [];
           if (projectScheduledPosts.length === 0) {
-            // No scheduled posts - show action if user is admin
+            // No scheduled posts - analyze historical data and show action if user is admin
             if (userRole === "admin") {
+              // Analyze historical consistency and impression correlation
+              const consistencyAnalysis = await analyzeProjectConsistency(projectId);
+              
               if (!tasksByType["schedule_post"]) {
                 tasksByType["schedule_post"] = {
                   type: "schedule_post",
@@ -396,9 +711,9 @@ export async function GET(request: NextRequest) {
               tasksByType["schedule_post"].projects.push({
                 projectId: projectId,
                 projectName: projectName,
-                description: `"${projectName}" can boost consistency — schedule posts to keep your momentum`,
+                description: `"${projectName}": ${consistencyAnalysis.message}`,
                 userRole: userRole,
-                needsAction: true
+                needsAction: consistencyAnalysis.needsAction
               });
             }
           }

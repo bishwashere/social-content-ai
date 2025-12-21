@@ -1325,22 +1325,14 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 <div className="flex items-center flex-grow px-4 py-2 gap-4" key={id}>
                                   <div className={`absolute hidden md:block left-3.5 h-4 w-4 rounded-full ${isToday ? "bg-primary" : "bg-gray-400"}`} />
                                   <div className="hidden md:flex items-center justify-end gap-4 min-w-28">
-                                    {campaign.goal === "Blog News" ? (
-                                      <div className="flex flex-col items-center justify-end">
-                                        <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
-                                          Day {timeline.day}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-col items-center justify-end">
-                                        <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
-                                          {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                        </span>
-                                      </div>
-                                    )}
+                                    <div className="flex flex-col items-center justify-end">
+                                      <span className={`text-sm font-semibold ${isHighlighted ? "text-primary" : "text-gray-600"}`}>
+                                        {futureDate.toLocaleDateString("en-US", { weekday: "long" })}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                      </span>
+                                    </div>
                                   </div>
 
                                   {/* Content Cards Right Column */}
@@ -1366,21 +1358,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                                           )}
                                           <DialogTrigger asChild>
                                             <div className="flex flex-row gap-1 flex-grow text-sm sm:text-base">
-                                              {/* For Blog News, show "Day 1", "Day 2", etc. */}
-                                              {campaign.goal === "Blog News" ? (
-                                                <p className="font-medium">Day {timeline.day}</p>
-                                              ) : (
-                                                <>
-                                                  <p className={`block md:hidden font-medium ${isHighlighted ? 'text-primary' : 'text-gray-600'}`}>
-                                                    {futureDate.toLocaleDateString("en-US", {
-                                                      year: "numeric",
-                                                      month: "long",
-                                                      day: "numeric",
-                                                    })}:
-                                                  </p>
-                                                  <p>{timeline.title}</p>
-                                                </>
-                                              )}
+                                              <p className={`block md:hidden font-medium ${isHighlighted ? 'text-primary' : 'text-gray-600'}`}>
+                                                {futureDate.toLocaleDateString("en-US", {
+                                                  month: "short",
+                                                  day: "numeric",
+                                                })}:
+                                              </p>
+                                              <p>{timeline.title || (campaign.goal === "Blog News" ? `Blog for ${futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : '')}</p>
                                             </div>
                                           </DialogTrigger>
                                         </div>

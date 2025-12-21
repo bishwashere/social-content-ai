@@ -94,10 +94,10 @@ class Database:
         Find posts ready for Step 1 & 2 processing.
         
         Criteria:
-        - status = "pending" OR (status = "processing" AND step1Completed != true)
+        - status = "pending" OR "processing" (not "error", "success", or "posted")
         - meta.type = "blog-news"
-        - meta.step1Completed != true (not already done)
-        - meta.step1InProgress != true (not being processed by another worker)
+        - Needs Step 1: (step1Completed != true AND step1InProgress != true)
+        - OR Needs Step 2: (step1Completed == true AND step2Completed != true AND step2InProgress != true)
         - date <= now (scheduled time has passed)
         - No terminal error state
         """
@@ -112,21 +112,55 @@ class Database:
             ],
             "$and": [
                 {
+                    # Posts that need Step 1 OR Step 2
                     "$or": [
-                        {"meta.step1Completed": {"$ne": True}},
-                        {"meta.step1Completed": {"$exists": False}}
-                    ]
-                },
-                {
-                    "$or": [
-                        {"meta.step1InProgress": {"$ne": True}},
-                        {"meta.step1InProgress": {"$exists": False}}
-                    ]
-                },
-                {
-                    "$or": [
-                        {"meta.step1Error": None},
-                        {"meta.step1Error": {"$exists": False}}
+                        # Need Step 1: step1Completed != true AND step1InProgress != true
+                        {
+                            "$and": [
+                                {
+                                    "$or": [
+                                        {"meta.step1Completed": {"$ne": True}},
+                                        {"meta.step1Completed": {"$exists": False}}
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {"meta.step1InProgress": {"$ne": True}},
+                                        {"meta.step1InProgress": {"$exists": False}}
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {"meta.step1Error": None},
+                                        {"meta.step1Error": {"$exists": False}}
+                                    ]
+                                }
+                            ]
+                        },
+                        # Need Step 2: step1Completed == true AND step2Completed != true AND step2InProgress != true
+                        {
+                            "$and": [
+                                {"meta.step1Completed": True},
+                                {
+                                    "$or": [
+                                        {"meta.step2Completed": {"$ne": True}},
+                                        {"meta.step2Completed": {"$exists": False}}
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {"meta.step2InProgress": {"$ne": True}},
+                                        {"meta.step2InProgress": {"$exists": False}}
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {"meta.step2Error": None},
+                                        {"meta.step2Error": {"$exists": False}}
+                                    ]
+                                }
+                            ]
+                        }
                     ]
                 }
             ],

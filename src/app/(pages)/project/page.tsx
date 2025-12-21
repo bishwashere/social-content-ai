@@ -7,19 +7,14 @@ import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
 import { OnboardingModal } from "./_components/onboarding-modal";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
-import { YourTodayPanel } from "./_components/your-today-panel";
-import { RecentActivityFeed } from "./_components/recent-activity-feed";
+import { TodayTimelineView } from "./_components/today-timeline-view";
 import { GetStartedGuide } from "./_components/get-started-guide";
-import { PendingTasksPanel } from "./_components/pending-tasks-panel";
-import { AchievementsPanel } from "./_components/achievements-panel";
-import { useGetAchievements } from "@/backend-apis/achievements/hooks";
 
 export default function Home() {
   const router = useRouter();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const { isLoading: sessionLoading, isError: sessionError } = useSession();
   const projects = useGetAllProjects();
-  const achievements = useGetAchievements();
   const { open: pricingModalOpen } = usePricingModal();
   const onboardingShownRef = useRef(false);
   const pricingModalWasOpenRef = useRef(false);
@@ -110,19 +105,19 @@ export default function Home() {
     return <Loading className="h-screen" />;
   }
 
+  // Determine if user is new (has fewer than 3 projects)
+  const isNewUser = (projects.data?.length ?? 0) < 3;
+
   return (
-    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <GetStartedGuide />
-          <YourTodayPanel achievements={achievements.data} />
-          <PendingTasksPanel />
-        </div>
-        <div className="lg:col-span-1 space-y-6">
-          <AchievementsPanel />
-          <RecentActivityFeed />
-        </div>
+    <div className="flex-grow max-w-4xl mx-auto py-6 px-6 md:px-8 lg:px-12">
+      <div className="space-y-6">
+        {/* Show GetStartedGuide only for new users */}
+        {isNewUser && <GetStartedGuide />}
+        
+        {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
+        <TodayTimelineView />
       </div>
+      
       <AddGuidedProjectModal />
       <OnboardingModal 
         open={onboardingOpen} 
