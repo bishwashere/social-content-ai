@@ -26,6 +26,7 @@ export type TimelineProject = {
     campaignCount: number;
     publishedPostsCount: number;
     totalImpressions: number;
+    recentImpressions: number;
   };
 };
 

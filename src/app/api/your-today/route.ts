@@ -448,6 +448,7 @@ export async function GET(request: NextRequest) {
               campaignCount: number;
               publishedPostsCount: number;
               totalImpressions: number;
+              recentImpressions: number;
             };
           }>;
         }> = {};
@@ -785,11 +786,16 @@ export async function GET(request: NextRequest) {
               const totalCampaigns = projectCampaigns.length;
               let publishedPostsCount = 0;
               let totalImpressions = 0;
+              let recentImpressions = 0; // Last 3 days
               
               try {
                 // Count platform posts (published posts) and impressions - look back 30 days
                 const thirtyDaysAgo = new Date(today);
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                
+                // Get impressions from last 3 days for recent performance highlight
+                const threeDaysAgo = new Date(today);
+                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
                 
                 // Get OAuth provider IDs linked to this project
                 const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
@@ -815,7 +821,8 @@ export async function GET(request: NextRequest) {
                     },
                     select: {
                       id: true,
-                      impressions: true
+                      impressions: true,
+                      date: true
                     }
                   });
                   
@@ -826,13 +833,20 @@ export async function GET(request: NextRequest) {
                   totalImpressions = allPosts.reduce((sum, post) => {
                     return sum + (post.impressions || 0);
                   }, 0);
+                  
+                  // Calculate recent impressions (last 3 days)
+                  recentImpressions = allPosts
+                    .filter(post => new Date(post.date) >= threeDaysAgo)
+                    .reduce((sum, post) => {
+                      return sum + (post.impressions || 0);
+                    }, 0);
                 }
               } catch (error) {
                 console.error(`Error calculating stats for project ${projectId}:`, error);
                 // Continue with default values
               }
               
-              console.log(`📊 Stats for project "${projectName}": ${totalCampaigns} campaigns, ${publishedPostsCount} published posts, ${totalImpressions.toLocaleString()} total impressions`);
+              console.log(`📊 Stats for project "${projectName}": ${totalCampaigns} campaigns, ${publishedPostsCount} published posts, ${totalImpressions.toLocaleString()} total impressions, ${recentImpressions.toLocaleString()} recent (3d)`);
               
               const projectData: {
                 projectId: string;
@@ -844,6 +858,7 @@ export async function GET(request: NextRequest) {
                   campaignCount: number;
                   publishedPostsCount: number;
                   totalImpressions: number;
+                  recentImpressions: number;
                 };
               } = {
                 projectId: projectId,
@@ -854,7 +869,8 @@ export async function GET(request: NextRequest) {
                 stats: {
                   campaignCount: totalCampaigns,
                   publishedPostsCount: publishedPostsCount,
-                  totalImpressions: totalImpressions
+                  totalImpressions: totalImpressions,
+                  recentImpressions: recentImpressions
                 }
               };
               

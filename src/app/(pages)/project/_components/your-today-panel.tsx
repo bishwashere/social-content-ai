@@ -326,9 +326,16 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                                   </CardDescription>
                                 </div>
                                 {project.stats !== undefined ? (
-                                  <div className="text-xs text-gray-500 ml-7">
-                                    {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
-                                  </div>
+                                  <>
+                                    <div className="text-xs text-gray-500 ml-7">
+                                      {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
+                                    </div>
+                                    {project.stats.recentImpressions >= 500 && (
+                                      <div className="text-xs text-emerald-600 dark:text-emerald-400 ml-7 mt-1 font-medium">
+                                        🔥 {project.projectName} got {project.stats.recentImpressions.toLocaleString()} impressions in the last 3 days
+                                      </div>
+                                    )}
+                                  </>
                                 ) : null}
                               </div>
                               {project.needsAction !== false && (

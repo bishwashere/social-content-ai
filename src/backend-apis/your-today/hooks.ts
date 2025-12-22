@@ -17,6 +17,7 @@ export type YourTodayProject = {
     campaignCount: number;
     publishedPostsCount: number;
     totalImpressions: number;
+    recentImpressions: number;
   };
 };
 

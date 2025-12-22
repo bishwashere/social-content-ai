@@ -492,9 +492,16 @@ function ProjectRow({ project, variant }: ProjectRowProps) {
             </p>
           )}
           {project.stats && (
-            <p className="text-xs text-gray-500 mt-0.5">
-              {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
-            </p>
+            <>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
+              </p>
+              {project.stats.recentImpressions >= 500 && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                  🔥 {project.projectName} got {project.stats.recentImpressions.toLocaleString()} impressions in the last 3 days
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
