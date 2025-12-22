@@ -131,21 +131,21 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         <SidebarContent 
           className={cn("py-4 space-y-4 relative", isOpen ? "px-3" : "px-1")}
         >
-          {/* Invisible button overlay for clicking empty space */}
+          {/* Invisible button overlay for clicking empty space - behind content */}
           <button
-            onClick={() => {
-              sidebar.toggleSidebar();
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleSidebar();
             }}
-            className="absolute inset-0 w-full h-full cursor-pointer z-0"
-            style={{ pointerEvents: 'auto' }}
+            className="absolute inset-0 w-full h-full cursor-pointer z-0 bg-transparent border-0 p-0"
             aria-label="Toggle Sidebar"
           />
           
-          {/* Content with higher z-index */}
-          <div className="relative z-10">
+          {/* Content with higher z-index - interactive elements stop propagation */}
+          <div className="relative z-10 pointer-events-none">
           
           {/* Navigation Links */}
-          <div className="space-y-1">
+          <div className="space-y-1 pointer-events-auto">
             {navItems.map((item) => {
               const active = isNavActive(item);
               const Icon = item.icon;
@@ -185,14 +185,14 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                         >
                           <div className={cn(
                             "flex items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0",
-                            isOpen ? "w-8 h-8" : "w-7 h-7",
+                            isOpen ? "w-8 h-8" : "w-8 h-8",
                             active 
                               ? `bg-gradient-to-br ${item.accent} shadow-sm` 
                               : "bg-slate-100 dark:bg-slate-800 group-hover/item:scale-105"
                           )}>
                             <Icon className={cn(
                               "transition-colors",
-                              isOpen ? "h-4 w-4" : "h-3.5 w-3.5",
+                              isOpen ? "h-4 w-4" : "h-4 w-4",
                               active ? "text-white" : "text-slate-500 dark:text-slate-400"
                             )} />
                           </div>
@@ -224,15 +224,13 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* What's this for navigation */}
           {isOpen && onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end px-2">
+            <div className="flex justify-end px-2 pointer-events-auto">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onNavigationTourStart();
                 }}
-                onMouseDown={(e) => e.stopPropagation()}
-                onMouseUp={(e) => e.stopPropagation()}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors relative z-20"
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
                 What&apos;s this?
               </button>
@@ -246,19 +244,20 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       <SidebarFooter 
         className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1")}
       >
-        {/* Invisible button overlay for clicking empty space */}
+        {/* Invisible button overlay for clicking empty space - behind content */}
         <button
-          onClick={() => {
-            sidebar.toggleSidebar();
+          onClick={(event) => {
+            event.stopPropagation();
+            toggleSidebar();
           }}
-          className="absolute inset-0 w-full h-full cursor-pointer z-0"
-          style={{ pointerEvents: 'auto' }}
+          className="absolute inset-0 w-full h-full cursor-pointer z-0 bg-transparent border-0 p-0"
           aria-label="Toggle Sidebar"
         />
         
-        {/* Footer content with higher z-index */}
-        <div className="relative z-10">
-        <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
+        {/* Footer content with higher z-index - interactive elements stop propagation */}
+        <div className="relative z-10 pointer-events-none">
+          <div className="pointer-events-auto">
+          <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
           <PopoverTrigger asChild>
             <button
               ref={(el) => {
@@ -376,6 +375,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             </div>
           </PopoverContent>
         </Popover>
+          </div>
         </div>
       </SidebarFooter>
 
