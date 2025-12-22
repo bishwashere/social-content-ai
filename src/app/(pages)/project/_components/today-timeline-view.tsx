@@ -62,7 +62,15 @@ export function TodayTimelineView() {
     groupedItems.action.forEach(item => {
       if (item.isGrouped && item.projects) {
         item.projects.forEach(project => {
+          console.log(`🔍 Checking project: ${project.projectName}`, {
+            hasStats: !!project.stats,
+            recentImpressions: project.stats?.recentImpressions,
+            totalImpressions: project.stats?.totalImpressions,
+            threshold: 500
+          });
+          
           if (project.stats && project.stats.recentImpressions >= 500) {
+            console.log(`✅ Adding to trending: ${project.projectName} with ${project.stats.recentImpressions} recent impressions`);
             trending.push({
               projectId: project.projectId,
               projectName: project.projectName,
@@ -76,6 +84,8 @@ export function TodayTimelineView() {
         });
       }
     });
+    
+    console.log(`📊 Total trending projects found: ${trending.length}`, trending);
     
     // Sort by recent impressions (highest first)
     return trending.sort((a, b) => b.recentImpressions - a.recentImpressions);
