@@ -127,21 +127,27 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         </div>
       </SidebarHeader>
 
-      <ScrollArea className="relative h-[calc(100vh-8rem)] overflow-y-auto">
+      <ScrollArea 
+        className={cn(
+          "relative h-[calc(100vh-8rem)] overflow-y-auto",
+          isOpen ? "cursor-w-resize" : "cursor-e-resize"
+        )}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          // Check if click is on interactive elements
+          const isInteractive = target.closest('a, button, [role="button"]') || 
+                               target.tagName === 'A' || 
+                               target.tagName === 'BUTTON' ||
+                               target.closest('[data-sidebar="rail"]');
+          
+          // If not on interactive element, toggle sidebar
+          if (!isInteractive) {
+            toggleSidebar();
+          }
+        }}
+      >
         <SidebarContent 
-          className={cn("py-4 space-y-4 cursor-pointer", isOpen ? "px-3" : "px-1")}
-          onClick={(e) => {
-            const target = e.target as HTMLElement;
-            // Check if click is on interactive elements
-            const isInteractive = target.closest('a, button, [role="button"]') || 
-                                 target.tagName === 'A' || 
-                                 target.tagName === 'BUTTON';
-            
-            // If not on interactive element, toggle sidebar
-            if (!isInteractive) {
-              toggleSidebar();
-            }
-          }}
+          className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1")}
         >
           {/* Navigation Links */}
           <div className="space-y-1">
@@ -172,7 +178,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                           }}
                           className={cn(
                             "flex items-center gap-3 h-11 rounded-xl transition-all duration-200 group/item",
-                            isOpen ? "px-3" : "px-2 justify-center",
+                            isOpen ? "px-2" : "px-1.5 justify-center",
                             active
                               ? "bg-white dark:bg-slate-800 shadow-md shadow-slate-200/50 dark:shadow-slate-900/50"
                               : "hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
@@ -180,14 +186,14 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                         >
                           <div className={cn(
                             "flex items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0",
-                            isOpen ? "w-8 h-8" : "w-8 h-8",
+                            isOpen ? "w-9 h-9" : "w-9 h-9",
                             active 
                               ? `bg-gradient-to-br ${item.accent} shadow-sm` 
                               : "bg-slate-100 dark:bg-slate-800 group-hover/item:scale-105"
                           )}>
                             <Icon className={cn(
                               "transition-colors",
-                              isOpen ? "h-4 w-4" : "h-4 w-4",
+                              isOpen ? "h-5 w-5" : "h-5 w-5",
                               active ? "text-white" : "text-slate-500 dark:text-slate-400"
                             )} />
                           </div>
@@ -236,16 +242,22 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
       {/* Footer with Project Selector */}
       <SidebarFooter 
-        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50 cursor-pointer", isOpen ? "px-3" : "px-1")}
+        className={cn(
+          "relative py-4 border-t border-slate-200/50 dark:border-slate-700/50",
+          isOpen ? "px-3 cursor-w-resize" : "px-1 cursor-e-resize"
+        )}
         onClick={(e) => {
           const target = e.target as HTMLElement;
           // Check if click is on interactive elements
           const isInteractive = target.closest('a, button, [role="button"], [data-radix-popover-trigger]') || 
                                target.tagName === 'A' || 
-                               target.tagName === 'BUTTON';
+                               target.tagName === 'BUTTON' ||
+                               target.closest('[data-sidebar="rail"]');
           
           // If not on interactive element, toggle sidebar
           if (!isInteractive) {
+            e.preventDefault();
+            e.stopPropagation();
             toggleSidebar();
           }
         }}
