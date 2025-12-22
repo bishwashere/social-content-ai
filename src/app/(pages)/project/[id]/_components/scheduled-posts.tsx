@@ -149,12 +149,20 @@ const getStepBadges = (meta: any) => {
         
         // Determine tooltip text
         let tooltipText = step.description;
-        if (isCompleted && completedAt) {
-          const formattedTime = formatStepTimestamp(completedAt);
-          tooltipText = `Completed at ${formattedTime}`;
-        } else if (isInProgress && startedAt) {
-          const formattedTime = formatStepTimestamp(startedAt);
-          tooltipText = `Started at ${formattedTime}`;
+        if (isCompleted) {
+          if (completedAt) {
+            const formattedTime = formatStepTimestamp(completedAt);
+            tooltipText = formattedTime ? `Completed at ${formattedTime}` : "Completed";
+          } else {
+            tooltipText = "Completed";
+          }
+        } else if (isInProgress) {
+          if (startedAt) {
+            const formattedTime = formatStepTimestamp(startedAt);
+            tooltipText = formattedTime ? `Started at ${formattedTime}` : "In progress";
+          } else {
+            tooltipText = "In progress";
+          }
         } else if (hasError) {
           tooltipText = `Error: ${hasError}`;
         } else {
@@ -164,28 +172,28 @@ const getStepBadges = (meta: any) => {
         let badgeContent;
         if (isCompleted) {
           badgeContent = (
-            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs cursor-help">
+            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               {step.label}
             </Badge>
           );
         } else if (isInProgress) {
           badgeContent = (
-            <Badge variant="secondary" className="text-xs cursor-help">
+            <Badge variant="secondary" className="text-xs">
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               {step.label}
             </Badge>
           );
         } else if (hasError) {
           badgeContent = (
-            <Badge variant="destructive" className="text-xs cursor-help">
+            <Badge variant="destructive" className="text-xs">
               <AlertCircle className="h-3 w-3 mr-1" />
               {step.label}
             </Badge>
           );
         } else {
           badgeContent = (
-            <Badge variant="outline" className="text-xs cursor-help">
+            <Badge variant="outline" className="text-xs">
               <Clock className="h-3 w-3 mr-1" />
               {step.label}
             </Badge>
@@ -195,10 +203,10 @@ const getStepBadges = (meta: any) => {
         return (
           <Tooltip key={step.key}>
             <TooltipTrigger asChild>
-              {badgeContent}
+              <span className="inline-block">{badgeContent}</span>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>{tooltipText}</p>
+            <TooltipContent side="top" className="z-50">
+              <p className="text-xs">{tooltipText}</p>
             </TooltipContent>
           </Tooltip>
         );
