@@ -118,7 +118,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
     <Sidebar collapsible="icon" className="border-r-0 bg-transparent overflow-hidden cursor-pointer">
       {/* Glassmorphism background */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50/90 via-white/80 to-slate-50/90 dark:from-slate-950/90 dark:via-slate-900/80 dark:to-slate-950/90 backdrop-blur-xl" />
-      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200/60 dark:via-slate-700/60 to-transparent" />
+      <div className="absolute top-16 bottom-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200/60 dark:via-slate-700/60 to-transparent" />
 
       {/* Header with Logo */}
       <SidebarHeader className={cn("relative py-4 border-b border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-4" : "px-2")}>
@@ -129,23 +129,22 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
       <ScrollArea className="relative h-[calc(100vh-8rem)] overflow-y-auto">
         <SidebarContent 
-          className={cn("py-4 space-y-4 relative", isOpen ? "px-3" : "px-1")}
-        >
-          {/* Invisible button overlay for clicking empty space - behind content */}
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
+          className={cn("py-4 space-y-4 cursor-pointer", isOpen ? "px-3" : "px-1")}
+          onClick={(e) => {
+            const target = e.target as HTMLElement;
+            // Check if click is on interactive elements
+            const isInteractive = target.closest('a, button, [role="button"]') || 
+                                 target.tagName === 'A' || 
+                                 target.tagName === 'BUTTON';
+            
+            // If not on interactive element, toggle sidebar
+            if (!isInteractive) {
               toggleSidebar();
-            }}
-            className="absolute inset-0 w-full h-full cursor-pointer z-0 bg-transparent border-0 p-0"
-            aria-label="Toggle Sidebar"
-          />
-          
-          {/* Content with higher z-index - interactive elements stop propagation */}
-          <div className="relative z-10 pointer-events-none">
-          
+            }
+          }}
+        >
           {/* Navigation Links */}
-          <div className="space-y-1 pointer-events-auto">
+          <div className="space-y-1">
             {navItems.map((item) => {
               const active = isNavActive(item);
               const Icon = item.icon;
@@ -167,14 +166,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                           href={item.href}
                           onClick={(e) => {
                             e.stopPropagation();
-                            e.preventDefault();
                             if (window.innerWidth <= 768) {
                               toggleSidebar();
                             }
-                            router.push(item.href);
                           }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onMouseUp={(e) => e.stopPropagation()}
                           className={cn(
                             "flex items-center gap-3 h-11 rounded-xl transition-all duration-200 group/item",
                             isOpen ? "px-3" : "px-2 justify-center",
@@ -224,7 +219,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* What's this for navigation */}
           {isOpen && onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
-            <div className="flex justify-end px-2 pointer-events-auto">
+            <div className="flex justify-end px-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -236,28 +231,26 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
               </button>
             </div>
           )}
-          </div>
         </SidebarContent>
       </ScrollArea>
 
       {/* Footer with Project Selector */}
       <SidebarFooter 
-        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1")}
-      >
-        {/* Invisible button overlay for clicking empty space - behind content */}
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
+        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50 cursor-pointer", isOpen ? "px-3" : "px-1")}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          // Check if click is on interactive elements
+          const isInteractive = target.closest('a, button, [role="button"], [data-radix-popover-trigger]') || 
+                               target.tagName === 'A' || 
+                               target.tagName === 'BUTTON';
+          
+          // If not on interactive element, toggle sidebar
+          if (!isInteractive) {
             toggleSidebar();
-          }}
-          className="absolute inset-0 w-full h-full cursor-pointer z-0 bg-transparent border-0 p-0"
-          aria-label="Toggle Sidebar"
-        />
-        
-        {/* Footer content with higher z-index - interactive elements stop propagation */}
-        <div className="relative z-10 pointer-events-none">
-          <div className="pointer-events-auto">
-          <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
+          }
+        }}
+      >
+        <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
           <PopoverTrigger asChild>
             <button
               ref={(el) => {
@@ -375,8 +368,6 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             </div>
           </PopoverContent>
         </Popover>
-          </div>
-        </div>
       </SidebarFooter>
 
       <SidebarRail className="bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/50" />
