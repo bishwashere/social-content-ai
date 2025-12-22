@@ -43,6 +43,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ThreadsPost from "@/components/social/threads-post-view";
 import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 interface Props {
   project: Project;
 }
@@ -109,16 +110,32 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+const formatStepTimestamp = (timestamp: string | undefined): string => {
+  if (!timestamp) return "";
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "";
+  }
+};
+
 const getStepBadges = (meta: any) => {
   if (!meta || meta.type !== "blog-news") {
     return null;
   }
 
   const steps = [
-    { key: "step1Completed", label: "Step 1", description: "Fetch Article" },
-    { key: "step2Completed", label: "Step 2", description: "Generate Blog" },
-    { key: "step3Completed", label: "Step 3", description: "Send Webhook" },
-    { key: "step4Completed", label: "Step 4", description: "Finalize" },
+    { key: "step1Completed", label: "Step 1", description: "Fetch Article", completedAtKey: "step1CompletedAt", startedAtKey: "step1StartedAt" },
+    { key: "step2Completed", label: "Step 2", description: "Generate Blog", completedAtKey: "step2CompletedAt", startedAtKey: "step2StartedAt" },
+    { key: "step3Completed", label: "Step 3", description: "Send Webhook", completedAtKey: "step3CompletedAt", startedAtKey: "step3StartedAt" },
+    { key: "step4Completed", label: "Step 4", description: "Finalize", completedAtKey: "step4CompletedAt", startedAtKey: "step4StartedAt" },
   ];
 
   return (
@@ -127,36 +144,64 @@ const getStepBadges = (meta: any) => {
         const isCompleted = meta[step.key] === true;
         const isInProgress = meta[`${step.key.replace("Completed", "InProgress")}`] === true;
         const hasError = meta[`${step.key.replace("Completed", "Error")}`];
+        const completedAt = meta[step.completedAtKey];
+        const startedAt = meta[step.startedAtKey];
         
+        // Determine tooltip text
+        let tooltipText = step.description;
+        if (isCompleted && completedAt) {
+          const formattedTime = formatStepTimestamp(completedAt);
+          tooltipText = `Completed at ${formattedTime}`;
+        } else if (isInProgress && startedAt) {
+          const formattedTime = formatStepTimestamp(startedAt);
+          tooltipText = `Started at ${formattedTime}`;
+        } else if (hasError) {
+          tooltipText = `Error: ${hasError}`;
+        } else {
+          tooltipText = "Not started yet";
+        }
+        
+        let badgeContent;
         if (isCompleted) {
-          return (
-            <Badge key={step.key} variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
+          badgeContent = (
+            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs cursor-help">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               {step.label}
             </Badge>
           );
         } else if (isInProgress) {
-          return (
-            <Badge key={step.key} variant="secondary" className="text-xs">
+          badgeContent = (
+            <Badge variant="secondary" className="text-xs cursor-help">
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               {step.label}
             </Badge>
           );
         } else if (hasError) {
-          return (
-            <Badge key={step.key} variant="destructive" className="text-xs">
+          badgeContent = (
+            <Badge variant="destructive" className="text-xs cursor-help">
               <AlertCircle className="h-3 w-3 mr-1" />
               {step.label}
             </Badge>
           );
         } else {
-          return (
-            <Badge key={step.key} variant="outline" className="text-xs">
+          badgeContent = (
+            <Badge variant="outline" className="text-xs cursor-help">
               <Clock className="h-3 w-3 mr-1" />
               {step.label}
             </Badge>
           );
         }
+        
+        return (
+          <Tooltip key={step.key}>
+            <TooltipTrigger asChild>
+              {badgeContent}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{tooltipText}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
       })}
     </div>
   );
