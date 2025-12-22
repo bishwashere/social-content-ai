@@ -14,7 +14,6 @@ import {
   Calendar,
   Newspaper,
   Layers,
-  AlertCircle,
   Home,
   Settings,
 } from "lucide-react";
@@ -63,7 +62,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
   const { data: session } = useSession();
   
   // Get focus context
-  const { focusContext, needsAttentionProjects, isLoading: focusLoading } = useFocus();
+  const { focusContext } = useFocus();
   
   // Initialize open sections from localStorage or default values
   const [openSections, setOpenSections] = React.useState<string[]>(() => {
@@ -184,44 +183,6 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                   </div>
                 </div>
               </Link>
-            </div>
-          )}
-
-          {/* Needs Attention - Show urgent items */}
-          {sidebar.open && needsAttentionProjects.length > 0 && (
-            <div className="bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900 shadow-sm p-3 min-w-0 max-w-full overflow-hidden">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Needs Attention</span>
-                </div>
-                <Badge variant="destructive" className="text-xs">{needsAttentionProjects.length}</Badge>
-              </div>
-              <div className="space-y-1">
-                {needsAttentionProjects.slice(0, 3).map((item) => (
-                  <Link
-                    key={item.projectId}
-                    onClick={() => {
-                      if (window.innerWidth <= 768) {
-                        toggleSidebar()
-                      }
-                    }}
-                    href={`/project/${item.projectId}?tab=campaign`}
-                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium truncate">{item.projectName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{item.reason}</p>
-                    </div>
-                  </Link>
-                ))}
-                {needsAttentionProjects.length > 3 && (
-                  <p className="text-xs text-muted-foreground text-center py-1">
-                    +{needsAttentionProjects.length - 3} more
-                  </p>
-                )}
-              </div>
             </div>
           )}
 
