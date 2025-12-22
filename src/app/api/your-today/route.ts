@@ -251,7 +251,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get all data grouped by project
-        const [failedPosts, campaigns, todayScheduledPosts, stuckBlogNewsPosts, allBlogNewsPosts] = await Promise.all([
+        const [failedPosts, campaigns, todayScheduledPosts, stuckBlogNewsPosts] = await Promise.all([
           // 1. Failed posts from yesterday
           prisma.scheduledPost.findMany({
             where: {
@@ -325,19 +325,6 @@ export async function GET(request: NextRequest) {
                 }
               }
             }
-          }),
-          // 5. All Blog News posts to check for content existence
-          // Query all webhook posts and filter in code (Prisma JSON queries are complex)
-          prisma.scheduledPost.findMany({
-            where: {
-              projectId: { in: projectIds },
-              platform: "webhook"
-            },
-            select: {
-              id: true,
-              projectId: true,
-              meta: true
-            }
           })
         ]);
 
@@ -364,22 +351,6 @@ export async function GET(request: NextRequest) {
           const existing = scheduledPostsByProject.get(post.projectId) || [];
           existing.push(post);
           scheduledPostsByProject.set(post.projectId, existing);
-        });
-
-        // Create a map of Blog News posts by campaign and day for quick lookup
-        // Filter to only include blog-news type posts
-        const blogNewsPostsByCampaign = new Map<string, Map<number, typeof allBlogNewsPosts[0]>>();
-        allBlogNewsPosts.forEach(post => {
-          if (!post.projectId) return;
-          const meta = post.meta as any;
-          // Only include blog-news type posts
-          if (meta?.type === "blog-news" && meta?.campaignId && meta?.day !== undefined) {
-            const key = `${post.projectId}-${meta.campaignId}`;
-            if (!blogNewsPostsByCampaign.has(key)) {
-              blogNewsPostsByCampaign.set(key, new Map());
-            }
-            blogNewsPostsByCampaign.get(key)!.set(meta.day, post);
-          }
         });
 
         // Filter and identify stuck Blog News posts (partial step completion)
@@ -537,14 +508,37 @@ export async function GET(request: NextRequest) {
             projectCampaigns.forEach(campaign => {
               if (!campaign.startDate) return;
               
+              // Check if this is a Blog News campaign (has webhook in blogNewsMetadata)
+              // Blog News campaigns generate content automatically, so skip them
+              const campaignMeta = campaign.blogNewsMetadata as Record<string, any> | null | undefined;
+              const isBlogNewsCampaign = campaignMeta?.webhook && typeof campaignMeta.webhook === 'string' && campaignMeta.webhook.trim().length > 0;
+              
+              // Skip Blog News campaigns - they generate content automatically at scheduled time
+              if (isBlogNewsCampaign) {
+                // Still track as active campaign for display purposes, but don't show "needs content" alert
+                const startDate = new Date(campaign.startDate);
+                startDate.setHours(0, 0, 0, 0);
+                const todayDate = new Date(today);
+                todayDate.setHours(0, 0, 0, 0);
+                
+                // Check if campaign has active chats (within next 3 days)
+                const activeChats = campaign.chats.filter(chat => {
+                  const chatDate = new Date(startDate.getTime() + (chat.day - 1) * 86400000);
+                  chatDate.setHours(0, 0, 0, 0);
+                  const daysUntilChat = Math.floor((chatDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+                  return daysUntilChat >= 0 && daysUntilChat <= 3;
+                });
+                
+                if (activeChats.length > 0) {
+                  hasActiveCampaign = true;
+                }
+                return; // Skip Blog News campaigns for "needs content" check
+              }
+              
               const startDate = new Date(campaign.startDate);
               startDate.setHours(0, 0, 0, 0);
               const todayDate = new Date(today);
               todayDate.setHours(0, 0, 0, 0);
-              
-              // Check if this is a Blog News campaign (has webhook in blogNewsMetadata)
-              const campaignMeta = campaign.blogNewsMetadata as Record<string, any> | null | undefined;
-              const isBlogNewsCampaign = campaignMeta?.webhook && typeof campaignMeta.webhook === 'string' && campaignMeta.webhook.trim().length > 0;
               
               // Find chats that are within the next 3 days (today, tomorrow, day after tomorrow, day after that)
               // chat.day is the day number in the campaign (1, 2, 3...)
@@ -568,41 +562,17 @@ export async function GET(request: NextRequest) {
                 
                 // Check if any active chat needs content
                 const chatNeedingContent = activeChats.find(chat => {
-                  // For Blog News campaigns, check ScheduledPost instead of chat.contents
-                  if (isBlogNewsCampaign) {
-                    // Look up Blog News post for this campaign and day
-                    const blogNewsKey = `${projectId}-${campaign.id}`;
-                    const blogNewsPosts = blogNewsPostsByCampaign.get(blogNewsKey);
-                    if (blogNewsPosts) {
-                      const blogPost = blogNewsPosts.get(chat.day);
-                      if (blogPost) {
-                        const postMeta = blogPost.meta as any;
-                        // Check if blog content exists
-                        const hasBlogContent = postMeta?.blog && 
-                          typeof postMeta.blog === 'object' && 
-                          postMeta.blog.title && 
-                          postMeta.blog.content;
-                        // If blog content exists, this chat doesn't need content
-                        if (hasBlogContent) {
-                          return false;
-                        }
-                      }
-                    }
-                    // For Blog News, if no ScheduledPost or no blog content, it needs content
-                    return true;
-                  } else {
-                    // For regular campaigns, check chat.contents
-                    // Chat needs content if:
-                    // 1. Status is PENDING, OR
-                    // 2. Status is GENERATED but contents is empty/missing
-                    const contents = chat.contents as Record<string, any> | null | undefined;
-                    const hasContent = contents && 
-                                      typeof contents === 'object' && 
-                                      Object.keys(contents).length > 0 &&
-                                      Object.values(contents).some(val => val && typeof val === 'string' && val.trim().length > 0);
-                    
-                    return chat.status === "PENDING" || !hasContent;
-                  }
+                  // For regular campaigns, check chat.contents
+                  // Chat needs content if:
+                  // 1. Status is PENDING, OR
+                  // 2. Status is GENERATED but contents is empty/missing
+                  const contents = chat.contents as Record<string, any> | null | undefined;
+                  const hasContent = contents && 
+                                    typeof contents === 'object' && 
+                                    Object.keys(contents).length > 0 &&
+                                    Object.values(contents).some(val => val && typeof val === 'string' && val.trim().length > 0);
+                  
+                  return chat.status === "PENDING" || !hasContent;
                 });
 
                 if (chatNeedingContent && !campaignNeedingContent) {
