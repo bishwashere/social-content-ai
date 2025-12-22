@@ -15,7 +15,6 @@ import {
   Newspaper,
   Layers,
   AlertCircle,
-  Zap,
   Home,
   Settings,
 } from "lucide-react";
@@ -133,8 +132,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       className={cn(
                         "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
                         pathname === "/project" 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          ? "bg-gray-200 dark:bg-gray-600" 
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
                       )}
                     >
                       <Home className="h-4 w-4" />
@@ -158,10 +157,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
           {/* Current Focus - Show when there's an active focus */}
           {sidebar.open && focusContext && focusContext.type !== "empty" && focusedProject && (
-            <div className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 rounded-lg border border-primary/20 shadow-sm p-3 min-w-0 max-w-full overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 min-w-0 max-w-full overflow-hidden">
               <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-4 w-4 text-primary" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-primary">Current Focus</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-medium text-muted-foreground">Working on</span>
               </div>
               <Link
                 onClick={() => {
@@ -172,8 +171,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                 href={`/project/${focusContext.projectId}?tab=campaign`}
                 className="block"
               >
-                <div className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-primary/10 transition-colors cursor-pointer">
-                  <Folder className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                  <Folder className="h-4 w-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{focusContext.projectName}</p>
                     {focusContext.campaignName && (
@@ -382,12 +381,14 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                         }}
                         href="/project/video-maker"
                         className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-800 dark:hover:to-pink-800 transition-colors",
-                          pathname === '/project/video-maker' && "ring-2 ring-purple-400 dark:ring-purple-500"
+                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          pathname === '/project/video-maker' 
+                            ? "bg-gray-200 dark:bg-gray-600" 
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
                         )}
                       >
-                        <Video className="h-4 w-4 text-purple-600 dark:text-purple-300" />
-                        <span className="ml-2 text-purple-900 dark:text-purple-100 font-semibold">Video Maker</span>
+                        <Video className="h-4 w-4" />
+                        <span className="ml-2">Video Maker</span>
                       </Link>
                     </TooltipTrigger>
                   </Tooltip>
