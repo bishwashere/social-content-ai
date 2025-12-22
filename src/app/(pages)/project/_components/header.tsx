@@ -46,7 +46,8 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
   const { data: settings } = useUserSettings();
 
   return (
-    <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
+    <div className="w-full px-4 h-fit relative overflow-hidden flex items-center justify-center">
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
       <div className="flex h-16 items-center justify-between bg-background w-full max-w-7xl 2xl:max-w-[90%] mx-auto px-2 md:px-4 lg:px-6 xl:px-10 2xl:px-14">
         <div className="flex items-center gap-2">
           <Button
