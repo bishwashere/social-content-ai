@@ -66,10 +66,10 @@ export function TodayTimelineView() {
             hasStats: !!project.stats,
             recentImpressions: project.stats?.recentImpressions,
             totalImpressions: project.stats?.totalImpressions,
-            threshold: 500
+            threshold: 50
           });
           
-          if (project.stats && project.stats.recentImpressions >= 500) {
+          if (project.stats && project.stats.recentImpressions >= 50) {
             console.log(`✅ Adding to trending: ${project.projectName} with ${project.stats.recentImpressions} recent impressions`);
             trending.push({
               projectId: project.projectId,
@@ -585,7 +585,7 @@ function ProjectRow({ project, variant }: ProjectRowProps) {
               <p className="text-xs text-gray-500 mt-0.5">
                 {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
               </p>
-              {project.stats.recentImpressions >= 500 && (
+              {project.stats.recentImpressions >= 50 && (
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
                   🔥 {project.projectName} got {project.stats.recentImpressions.toLocaleString()} impressions in the last 3 days
                 </p>

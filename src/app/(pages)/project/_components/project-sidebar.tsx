@@ -128,7 +128,24 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       </SidebarHeader>
 
       <ScrollArea className="relative h-[calc(100vh-8rem)] overflow-y-auto">
-        <SidebarContent className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1")}>
+        <SidebarContent 
+          className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1", !isOpen && "cursor-pointer")}
+          onClick={(e) => {
+            // Only maximize if sidebar is closed and click is not on an interactive element
+            if (!isOpen) {
+              const target = e.target as HTMLElement;
+              // Check if click is on an interactive element
+              const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
+                                   target.tagName === 'A' || 
+                                   target.tagName === 'BUTTON' ||
+                                   target.closest('[data-sidebar]');
+              
+              if (!isInteractive) {
+                sidebar.setOpen(true);
+              }
+            }
+          }}
+        >
           
           {/* Navigation Links */}
           <div className="space-y-1">
@@ -151,7 +168,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       <TooltipTrigger asChild>
                         <Link
                           href={item.href}
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (window.innerWidth <= 768) {
                               toggleSidebar();
                             }
@@ -218,7 +236,24 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       </ScrollArea>
 
       {/* Footer with Project Selector */}
-      <SidebarFooter className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1")}>
+      <SidebarFooter 
+        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1", !isOpen && "cursor-pointer")}
+        onClick={(e) => {
+          // Only maximize if sidebar is closed and click is not on an interactive element
+          if (!isOpen) {
+            const target = e.target as HTMLElement;
+            // Check if click is on an interactive element
+            const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
+                                 target.tagName === 'A' || 
+                                 target.tagName === 'BUTTON' ||
+                                 target.closest('[data-sidebar]');
+            
+            if (!isInteractive) {
+              sidebar.setOpen(true);
+            }
+          }
+        }}
+      >
         <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
           <PopoverTrigger asChild>
             <button
