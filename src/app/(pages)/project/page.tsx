@@ -109,20 +109,29 @@ export default function Home() {
   const isNewUser = (projects.data?.length ?? 0) < 3;
 
   return (
-    <div className="flex-grow max-w-4xl mx-auto py-6 px-6 md:px-8 lg:px-12">
-      <div className="space-y-6">
-        {/* Show GetStartedGuide only for new users */}
-        {isNewUser && <GetStartedGuide />}
-        
-        {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
-        <TodayTimelineView />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      {/* Decorative background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-gradient-to-br from-amber-400/10 to-orange-400/10 rounded-full blur-3xl" />
       </div>
-      
-      <AddGuidedProjectModal />
-      <OnboardingModal 
-        open={onboardingOpen} 
-        onProjectCreated={handleProjectCreated}
-      />
+
+      <div className="relative max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="space-y-6">
+          {/* Show GetStartedGuide only for new users */}
+          {isNewUser && <GetStartedGuide />}
+          
+          {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
+          <TodayTimelineView />
+        </div>
+        
+        <AddGuidedProjectModal />
+        <OnboardingModal 
+          open={onboardingOpen} 
+          onProjectCreated={handleProjectCreated}
+        />
+      </div>
     </div>
   );
 }
