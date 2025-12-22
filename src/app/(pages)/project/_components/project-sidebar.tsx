@@ -127,42 +127,22 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         </div>
       </SidebarHeader>
 
-      <ScrollArea className={cn("relative h-[calc(100vh-8rem)] overflow-y-auto", "cursor-pointer")}>
+      <ScrollArea className="relative h-[calc(100vh-8rem)] overflow-y-auto">
         <SidebarContent 
-          className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1", "cursor-pointer")}
-          onClick={(e) => {
-            const target = e.target as HTMLElement;
-            
-            // Check if click is on interactive elements
-            const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
-                                 target.tagName === 'A' || 
-                                 target.tagName === 'BUTTON' ||
-                                 target.closest('[data-sidebar="rail"]');
-            
-            // If not on interactive element, toggle sidebar
-            if (!isInteractive) {
-              if (!isOpen) {
-                sidebar.setOpen(true);
-              } else {
-                sidebar.setOpen(false);
-              }
-            }
-          }}
-          onMouseMove={(e) => {
-            const target = e.target as HTMLElement;
-            const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
-                                 target.tagName === 'A' || 
-                                 target.tagName === 'BUTTON' ||
-                                 target.closest('[data-sidebar="rail"]');
-            
-            // Change cursor based on whether hovering over interactive element
-            if (isInteractive) {
-              target.style.cursor = '';
-            } else {
-              (e.currentTarget as HTMLElement).style.cursor = 'pointer';
-            }
-          }}
+          className={cn("py-4 space-y-4 relative", isOpen ? "px-3" : "px-1")}
         >
+          {/* Invisible button overlay for clicking empty space */}
+          <button
+            onClick={() => {
+              sidebar.toggleSidebar();
+            }}
+            className="absolute inset-0 w-full h-full cursor-pointer z-0"
+            style={{ pointerEvents: 'auto' }}
+            aria-label="Toggle Sidebar"
+          />
+          
+          {/* Content with higher z-index */}
+          <div className="relative z-10">
           
           {/* Navigation Links */}
           <div className="space-y-1">
@@ -187,10 +167,14 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                           href={item.href}
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             if (window.innerWidth <= 768) {
                               toggleSidebar();
                             }
+                            router.push(item.href);
                           }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onMouseUp={(e) => e.stopPropagation()}
                           className={cn(
                             "flex items-center gap-3 h-11 rounded-xl transition-all duration-200 group/item",
                             isOpen ? "px-3" : "px-2 justify-center",
@@ -242,52 +226,38 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           {isOpen && onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
             <div className="flex justify-end px-2">
               <button
-                onClick={onNavigationTourStart}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigationTourStart();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors relative z-20"
               >
                 What&apos;s this?
               </button>
             </div>
           )}
+          </div>
         </SidebarContent>
       </ScrollArea>
 
       {/* Footer with Project Selector */}
       <SidebarFooter 
-        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1", "cursor-pointer")}
-        onClick={(e) => {
-          const target = e.target as HTMLElement;
-          
-          // Check if click is on interactive elements
-          const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
-                               target.tagName === 'A' || 
-                               target.tagName === 'BUTTON' ||
-                               target.closest('[data-sidebar="rail"]');
-          
-          // If not on interactive element, toggle sidebar
-          if (!isInteractive) {
-            if (!isOpen) {
-              sidebar.setOpen(true);
-            } else {
-              sidebar.setOpen(false);
-            }
-          }
-        }}
-        onMouseMove={(e) => {
-          const target = e.target as HTMLElement;
-          const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
-                               target.tagName === 'A' || 
-                               target.tagName === 'BUTTON' ||
-                               target.closest('[data-sidebar="rail"]');
-          
-          // Change cursor based on whether hovering over interactive element
-          if (isInteractive) {
-            target.style.cursor = '';
-          } else {
-            (e.currentTarget as HTMLElement).style.cursor = 'pointer';
-          }
-        }}
+        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1")}
       >
+        {/* Invisible button overlay for clicking empty space */}
+        <button
+          onClick={() => {
+            sidebar.toggleSidebar();
+          }}
+          className="absolute inset-0 w-full h-full cursor-pointer z-0"
+          style={{ pointerEvents: 'auto' }}
+          aria-label="Toggle Sidebar"
+        />
+        
+        {/* Footer content with higher z-index */}
+        <div className="relative z-10">
         <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
           <PopoverTrigger asChild>
             <button
@@ -406,6 +376,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             </div>
           </PopoverContent>
         </Popover>
+        </div>
       </SidebarFooter>
 
       <SidebarRail className="bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/50" />

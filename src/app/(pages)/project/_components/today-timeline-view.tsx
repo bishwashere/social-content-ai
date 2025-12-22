@@ -212,9 +212,6 @@ export function TodayTimelineView() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3 text-center">
-                    Strike while the iron is hot — capitalize on this momentum with a new campaign
-                  </p>
                 </CardContent>
               </Card>
             </div>
