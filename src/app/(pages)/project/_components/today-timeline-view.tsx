@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -45,6 +45,41 @@ export function TodayTimelineView() {
   const [showActivity, setShowActivity] = useState(false);
 
   const greeting = getGreeting(session?.user?.name);
+  
+  // Extract trending projects (500+ recent impressions from last 3 days)
+  const trendingProjects = useMemo(() => {
+    const trending: Array<{
+      projectId: string;
+      projectName: string;
+      href: string;
+      recentImpressions: number;
+      totalImpressions: number;
+      campaignCount: number;
+      publishedPostsCount: number;
+    }> = [];
+    
+    // Look through all grouped items for projects with stats
+    groupedItems.action.forEach(item => {
+      if (item.isGrouped && item.projects) {
+        item.projects.forEach(project => {
+          if (project.stats && project.stats.recentImpressions >= 500) {
+            trending.push({
+              projectId: project.projectId,
+              projectName: project.projectName,
+              href: project.href,
+              recentImpressions: project.stats.recentImpressions,
+              totalImpressions: project.stats.totalImpressions,
+              campaignCount: project.stats.campaignCount,
+              publishedPostsCount: project.stats.publishedPostsCount,
+            });
+          }
+        });
+      }
+    });
+    
+    // Sort by recent impressions (highest first)
+    return trending.sort((a, b) => b.recentImpressions - a.recentImpressions);
+  }, [groupedItems.action]);
 
   if (isLoading) {
     return (
@@ -135,6 +170,46 @@ export function TodayTimelineView() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         {/* Left column: primary work */}
         <div className="space-y-6">
+          {/* Trending Projects - Show projects with strong recent performance */}
+          {trendingProjects.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-emerald-500" />
+                Trending Projects
+              </h2>
+              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:border-emerald-900 dark:from-emerald-950/30 dark:to-teal-950/30">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {trendingProjects.map((project) => (
+                      <div
+                        key={project.projectId}
+                        className="flex items-start justify-between gap-4 p-3 rounded-lg bg-white dark:bg-slate-900/50 hover:shadow-sm transition-all cursor-pointer border border-emerald-100 dark:border-emerald-900/50"
+                        onClick={() => router.push(project.href)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">🔥</span>
+                            <h3 className="font-semibold text-base truncate">{project.projectName}</h3>
+                          </div>
+                          <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                            {project.recentImpressions.toLocaleString()} impressions in the last 3 days
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {project.campaignCount} {project.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.publishedPostsCount} published {project.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.totalImpressions.toLocaleString()} total impressions
+                          </p>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3 text-center">
+                    Strike while the iron is hot — capitalize on this momentum with a new campaign
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
           {/* Urgent Items - Always show prominently */}
           {groupedItems.urgent.length > 0 && (
             <div className="space-y-3">
@@ -254,15 +329,17 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
   // Grouped item with multiple projects
   if (item.isGrouped && item.projects && item.projects.length > 0) {
     const isInactiveGroup = item.title?.includes("inactive for 7+ days");
+    const isReadyForNewCampaignGroup = item.title?.includes("Ready for a new campaign");
+    const shouldBeCollapsed = isInactiveGroup || isReadyForNewCampaignGroup;
     const hasMoreThanThree = item.projects.length > 3;
     
-    // For inactive groups: 0 (default) -> 3 (first expand) -> all (second expand)
+    // For inactive groups and "Ready for a new campaign": 0 (default) -> 3 (first expand) -> all (second expand)
     // For other groups: 3 (default) -> all (expand)
     let visibleProjects: typeof item.projects = [];
     let showExpandButton = false;
     let expandButtonText = "";
     
-    if (isInactiveGroup) {
+    if (shouldBeCollapsed) {
       if (expansionLevel === 0) {
         // Default: show 0 projects
         visibleProjects = [];
@@ -292,88 +369,89 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
       }
     }
     
+    const handleToggle = () => {
+      if (shouldBeCollapsed) {
+        if (expansionLevel === 0) {
+          setExpansionLevel(1);
+        } else if (expansionLevel === 1) {
+          setExpansionLevel(2);
+        } else {
+          setExpansionLevel(0);
+        }
+      } else {
+        setIsExpanded(!isExpanded);
+      }
+    };
+
     return (
-      <Card className={cn("transition-all hover:shadow-md", getVariantStyles())}>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
-            <div className="min-w-0 flex-1">
-              <div className={cn(
-                isInactiveGroup && expansionLevel === 0 ? "mb-0" : "mb-3"
-              )}>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 className="font-semibold">{item.title}</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {item.projects.length} {item.projects.length === 1 ? 'project' : 'projects'}
-                  </Badge>
-                  {variant === "urgent" && (
-                    <Badge variant="destructive" className="text-xs">Urgent</Badge>
-                  )}
-                </div>
-                {item.description && (
-                  <p className={cn(
-                    "text-sm text-muted-foreground",
-                    isInactiveGroup && expansionLevel === 0 ? "mb-0" : ""
-                  )}>{item.description}</p>
+      <CardContent 
+        className={cn("p-4 transition-all hover:shadow-md rounded-lg border cursor-pointer", getVariantStyles())}
+        onClick={handleToggle}
+      >
+        <div className="flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
+          <div className="min-w-0 flex-1">
+            <div className={cn(
+              shouldBeCollapsed && expansionLevel === 0 ? "mb-0" : "mb-3"
+            )}>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h3 className="font-semibold">{item.title}</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {item.projects.length} {item.projects.length === 1 ? 'project' : 'projects'}
+                </Badge>
+                {variant === "urgent" && (
+                  <Badge variant="destructive" className="text-xs">Urgent</Badge>
                 )}
               </div>
-              
-              {/* Project list */}
-              {visibleProjects.length > 0 && (
-                <div className="space-y-2">
-                  {visibleProjects.map((project) => (
-                    <ProjectRow 
-                      key={project.projectId} 
-                      project={project} 
-                      variant={variant}
-                    />
-                  ))}
-                </div>
-              )}
-              
-              {/* Show More/Less button */}
-              {showExpandButton && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full text-xs",
-                    isInactiveGroup && expansionLevel === 0 ? "justify-center mt-0" : "mt-2"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isInactiveGroup) {
-                      if (expansionLevel === 0) {
-                        setExpansionLevel(1);
-                      } else if (expansionLevel === 1) {
-                        setExpansionLevel(2);
-                      } else {
-                        setExpansionLevel(0);
-                      }
-                    } else {
-                      setIsExpanded(!isExpanded);
-                    }
-                  }}
-                >
-                  {isInactiveGroup && expansionLevel === 2 ? (
-                    <>
-                      <ChevronUp className="h-4 w-4 mr-1" />
-                      Show less
-                    </>
-                  ) : isInactiveGroup && expansionLevel === 0 ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <>
-                      <ChevronDown className="h-4 w-4 mr-1" />
-                      {expandButtonText}
-                    </>
-                  )}
-                </Button>
+              {item.description && (
+                <p className={cn(
+                  "text-sm text-muted-foreground",
+                  shouldBeCollapsed && expansionLevel === 0 ? "mb-0" : ""
+                )}>{item.description}</p>
               )}
             </div>
+            
+            {/* Project list */}
+            {visibleProjects.length > 0 && (
+              <div className="space-y-2">
+                {visibleProjects.map((project) => (
+                  <ProjectRow 
+                    key={project.projectId} 
+                    project={project} 
+                    variant={variant}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Show More/Less button */}
+            {showExpandButton && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "w-full text-xs pointer-events-none",
+                  shouldBeCollapsed && expansionLevel === 0 ? "justify-center mt-0" : "mt-2"
+                )}
+              >
+                {shouldBeCollapsed && expansionLevel === 2 ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Show less
+                  </>
+                ) : shouldBeCollapsed && expansionLevel === 0 ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    {expandButtonText}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
     );
   }
 
@@ -462,7 +540,8 @@ interface ProjectRowProps {
 function ProjectRow({ project, variant }: ProjectRowProps) {
   const router = useRouter();
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     router.push(project.href);
   };
 
