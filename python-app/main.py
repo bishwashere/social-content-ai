@@ -106,10 +106,9 @@ class Database:
         query = {
             "platform": "webhook",
             "meta.type": "blog-news",
-            "$or": [
-                {"status": "pending"},
-                {"status": "processing"}
-            ],
+            "status": {
+                "$in": ["pending", "processing"]  # Only pending or processing, exclude error/success/posted
+            },
             "$and": [
                 {
                     # Posts that need Step 1 OR Step 2
@@ -164,7 +163,6 @@ class Database:
                     ]
                 }
             ],
-            "status": {"$ne": "error"},  # Skip terminal error states
             "date": {"$lte": now},
         }
         
