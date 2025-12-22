@@ -115,7 +115,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0 bg-transparent overflow-hidden">
+    <Sidebar collapsible="icon" className="border-r-0 bg-transparent overflow-hidden cursor-pointer">
       {/* Glassmorphism background */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50/90 via-white/80 to-slate-50/90 dark:from-slate-950/90 dark:via-slate-900/80 dark:to-slate-950/90 backdrop-blur-xl" />
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200/60 dark:via-slate-700/60 to-transparent" />
@@ -127,22 +127,39 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         </div>
       </SidebarHeader>
 
-      <ScrollArea className="relative h-[calc(100vh-8rem)] overflow-y-auto">
+      <ScrollArea className={cn("relative h-[calc(100vh-8rem)] overflow-y-auto", "cursor-pointer")}>
         <SidebarContent 
-          className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1", !isOpen && "cursor-pointer")}
+          className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1", "cursor-pointer")}
           onClick={(e) => {
-            // Only maximize if sidebar is closed and click is not on an interactive element
-            if (!isOpen) {
-              const target = e.target as HTMLElement;
-              // Check if click is on an interactive element
-              const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
-                                   target.tagName === 'A' || 
-                                   target.tagName === 'BUTTON' ||
-                                   target.closest('[data-sidebar]');
-              
-              if (!isInteractive) {
+            const target = e.target as HTMLElement;
+            
+            // Check if click is on interactive elements
+            const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
+                                 target.tagName === 'A' || 
+                                 target.tagName === 'BUTTON' ||
+                                 target.closest('[data-sidebar="rail"]');
+            
+            // If not on interactive element, toggle sidebar
+            if (!isInteractive) {
+              if (!isOpen) {
                 sidebar.setOpen(true);
+              } else {
+                sidebar.setOpen(false);
               }
+            }
+          }}
+          onMouseMove={(e) => {
+            const target = e.target as HTMLElement;
+            const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
+                                 target.tagName === 'A' || 
+                                 target.tagName === 'BUTTON' ||
+                                 target.closest('[data-sidebar="rail"]');
+            
+            // Change cursor based on whether hovering over interactive element
+            if (isInteractive) {
+              target.style.cursor = '';
+            } else {
+              (e.currentTarget as HTMLElement).style.cursor = 'pointer';
             }
           }}
         >
@@ -237,20 +254,37 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
       {/* Footer with Project Selector */}
       <SidebarFooter 
-        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1", !isOpen && "cursor-pointer")}
+        className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1", "cursor-pointer")}
         onClick={(e) => {
-          // Only maximize if sidebar is closed and click is not on an interactive element
-          if (!isOpen) {
-            const target = e.target as HTMLElement;
-            // Check if click is on an interactive element
-            const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
-                                 target.tagName === 'A' || 
-                                 target.tagName === 'BUTTON' ||
-                                 target.closest('[data-sidebar]');
-            
-            if (!isInteractive) {
+          const target = e.target as HTMLElement;
+          
+          // Check if click is on interactive elements
+          const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
+                               target.tagName === 'A' || 
+                               target.tagName === 'BUTTON' ||
+                               target.closest('[data-sidebar="rail"]');
+          
+          // If not on interactive element, toggle sidebar
+          if (!isInteractive) {
+            if (!isOpen) {
               sidebar.setOpen(true);
+            } else {
+              sidebar.setOpen(false);
             }
+          }
+        }}
+        onMouseMove={(e) => {
+          const target = e.target as HTMLElement;
+          const isInteractive = target.closest('a, button, [role="button"], [role="link"]') || 
+                               target.tagName === 'A' || 
+                               target.tagName === 'BUTTON' ||
+                               target.closest('[data-sidebar="rail"]');
+          
+          // Change cursor based on whether hovering over interactive element
+          if (isInteractive) {
+            target.style.cursor = '';
+          } else {
+            (e.currentTarget as HTMLElement).style.cursor = 'pointer';
           }
         }}
       >

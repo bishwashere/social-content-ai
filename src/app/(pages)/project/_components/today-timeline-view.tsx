@@ -188,7 +188,7 @@ export function TodayTimelineView() {
                 Trending Projects
               </h2>
               <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:border-emerald-900 dark:from-emerald-950/30 dark:to-teal-950/30">
-                <CardContent className="p-4">
+                <CardContent className="px-4">
                   <div className="space-y-2">
                     {trendingProjects.map((project) => (
                       <div

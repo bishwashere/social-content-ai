@@ -100,7 +100,7 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 pl-5">
           <div ref={subscribeRef}>
             <Subscription />
           </div>
