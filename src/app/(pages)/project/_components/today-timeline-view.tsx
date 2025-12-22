@@ -23,26 +23,42 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { useTodayItems, TimelineItem, TimelineProject } from "@/hooks/useTodayItems";
 import { useFocus } from "@/providers/focus-provider";
+import { useSession } from "@/backend-apis/auth/hooks";
+
+function getGreeting(name?: string | null): string {
+  const hour = new Date().getHours();
+  let timeGreeting = "Good morning";
+  if (hour >= 12 && hour < 17) timeGreeting = "Good afternoon";
+  else if (hour >= 17) timeGreeting = "Good evening";
+  
+  const firstName = name?.split(' ')[0];
+  return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
+}
 
 export function TodayTimelineView() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { items, groupedItems, isLoading, isEmpty, hasUrgentItems } = useTodayItems();
   const { focusContext } = useFocus();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
 
+  const greeting = getGreeting(session?.user?.name);
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Today</h1>
-          <span className="text-sm text-muted-foreground">
+      <div className="space-y-6">
+        <header className="mb-2">
+          <p className="text-sm font-medium text-muted-foreground mb-1">
             {format(new Date(), "EEEE, MMMM d")}
-          </span>
-        </div>
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+            {greeting}
+          </h1>
+        </header>
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
       </div>
     );
   }
@@ -51,12 +67,14 @@ export function TodayTimelineView() {
   if (isEmpty) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Today</h1>
-          <span className="text-sm text-muted-foreground">
+        <header className="mb-2">
+          <p className="text-sm font-medium text-muted-foreground mb-1">
             {format(new Date(), "EEEE, MMMM d")}
-          </span>
-        </div>
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+            {greeting}
+          </h1>
+        </header>
         
         <Card className="border-dashed border-2 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -95,93 +113,104 @@ export function TodayTimelineView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Today</h1>
-          {focusContext?.projectName && focusContext.type !== "empty" && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Focused on: <span className="font-medium text-foreground">{focusContext.projectName}</span>
-              {focusContext.campaignName && (
-                <> • {focusContext.campaignName}</>
-              )}
-            </p>
-          )}
-        </div>
-        <span className="text-sm text-muted-foreground">
+      <header className="mb-2">
+        <p className="text-sm font-medium text-muted-foreground mb-1">
           {format(new Date(), "EEEE, MMMM d")}
-        </span>
+        </p>
+        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+          {greeting}
+        </h1>
+        {focusContext?.projectName && focusContext.type !== "empty" && (
+          <p className="mt-2 text-muted-foreground flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Working on <span className="font-medium text-foreground">{focusContext.projectName}</span>
+            {focusContext.campaignName && (
+              <span className="text-muted-foreground">• {focusContext.campaignName}</span>
+            )}
+          </p>
+        )}
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+        {/* Left column: primary work */}
+        <div className="space-y-6">
+          {/* Urgent Items - Always show prominently */}
+          {groupedItems.urgent.length > 0 && (
+            <div className="space-y-3">
+              {groupedItems.urgent.map((item) => (
+                <TimelineCard key={item.id} item={item} variant="urgent" />
+              ))}
+            </div>
+          )}
+
+          {/* Action Items - Primary tasks for today */}
+          {groupedItems.action.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Zap className="w-5 h-5 text-amber-500" />
+                Action Required
+              </h2>
+              {groupedItems.action.slice(0, 5).map((item) => (
+                <TimelineCard key={item.id} item={item} variant="action" />
+              ))}
+              {groupedItems.action.length > 5 && (
+                <Button variant="ghost" size="sm" className="w-full">
+                  Show {groupedItems.action.length - 5} more
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right column: sidebar (collapsed by default) */}
+        {(groupedItems.suggestions.length > 0 || groupedItems.activity.length > 0) && (
+          <aside className="space-y-6 lg:sticky lg:top-6 self-start">
+            {/* Suggestions - Collapsible */}
+            {groupedItems.suggestions.length > 0 && (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
+                >
+                  {showSuggestions ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  <Lightbulb className="w-5 h-5 text-blue-500" />
+                  Stay Ahead
+                  <Badge variant="secondary" className="ml-2">{groupedItems.suggestions.length}</Badge>
+                </button>
+                {showSuggestions && (
+                  <div className="space-y-2 pl-7">
+                    {groupedItems.suggestions.map((item) => (
+                      <TimelineCard key={item.id} item={item} variant="suggestion" compact />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recent Activity - Collapsible */}
+            {groupedItems.activity.length > 0 && (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowActivity(!showActivity)}
+                  className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
+                >
+                  {showActivity ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  <Clock className="w-5 h-5 text-slate-500" />
+                  Recent Activity
+                  <Badge variant="secondary" className="ml-2">{groupedItems.activity.length}</Badge>
+                </button>
+                {showActivity && (
+                  <div className="space-y-2 pl-7">
+                    {groupedItems.activity.map((item) => (
+                      <TimelineCard key={item.id} item={item} variant="activity" compact />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </aside>
+        )}
       </div>
-
-      {/* Urgent Items - Always show prominently */}
-      {groupedItems.urgent.length > 0 && (
-        <div className="space-y-3">
-          {groupedItems.urgent.map((item) => (
-            <TimelineCard key={item.id} item={item} variant="urgent" />
-          ))}
-        </div>
-      )}
-
-      {/* Action Items - Primary tasks for today */}
-      {groupedItems.action.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" />
-            Action Required
-          </h2>
-          {groupedItems.action.slice(0, 5).map((item) => (
-            <TimelineCard key={item.id} item={item} variant="action" />
-          ))}
-          {groupedItems.action.length > 5 && (
-            <Button variant="ghost" size="sm" className="w-full">
-              Show {groupedItems.action.length - 5} more
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Suggestions - Collapsible */}
-      {groupedItems.suggestions.length > 0 && (
-        <div className="space-y-3">
-          <button 
-            onClick={() => setShowSuggestions(!showSuggestions)}
-            className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
-          >
-            {showSuggestions ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-            <Lightbulb className="w-5 h-5 text-blue-500" />
-            Stay Ahead
-            <Badge variant="secondary" className="ml-2">{groupedItems.suggestions.length}</Badge>
-          </button>
-          {showSuggestions && (
-            <div className="space-y-2 pl-7">
-              {groupedItems.suggestions.map((item) => (
-                <TimelineCard key={item.id} item={item} variant="suggestion" compact />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Recent Activity - Collapsible */}
-      {groupedItems.activity.length > 0 && (
-        <div className="space-y-3">
-          <button 
-            onClick={() => setShowActivity(!showActivity)}
-            className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
-          >
-            {showActivity ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-            <Clock className="w-5 h-5 text-slate-500" />
-            Recent Activity
-            <Badge variant="secondary" className="ml-2">{groupedItems.activity.length}</Badge>
-          </button>
-          {showActivity && (
-            <div className="space-y-2 pl-7">
-              {groupedItems.activity.map((item) => (
-                <TimelineCard key={item.id} item={item} variant="activity" compact />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
