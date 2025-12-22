@@ -11,6 +11,7 @@ import { Threads } from "@/lib/3rd-providers/threads";
 import { generateBlogNewsContent, generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
 import { schedulePost } from "@/server-actions/schedule-post";
 import { logger } from "@/utils/logger";
+import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
 
 export const dynamic = "force-dynamic";
 // Increase timeout for blog generation (Vercel Pro allows up to 60s, Hobby is 10s)
@@ -533,7 +534,7 @@ export const GET = applyMiddleware(
           // Post to Twitter
           const tweetResult = await postToTwitter(
             oauthProvider.accessToken,
-            post.content
+            applyPlaceholders(post.content, getProjectPlaceholders(post.project as any))
           );
 
           if (tweetResult.success) {
@@ -561,6 +562,7 @@ export const GET = applyMiddleware(
       facebookPosts.map(async (post) => {
         console.log(`🔄 Processing Facebook post ID: ${post.id}`);
         try {
+          const resolvedContent = applyPlaceholders(post.content, getProjectPlaceholders(post.project as any));
           const oauth = post.project?.projectToOAuthProviders.find(
             (p) => p.oauthProvider?.platform === "facebook"
           )?.oauthProvider;
@@ -581,7 +583,7 @@ export const GET = applyMiddleware(
           });
           // Post to Facebook
           const facebookResult = await fb.postToFacebook(
-            post.content,
+            resolvedContent,
             oauth.pageId || "",
             post.media || ""
           );
@@ -693,7 +695,7 @@ export const GET = applyMiddleware(
             oauthProvider.pageId || "",
             oauthProvider.accessToken,
             oauthProvider.expiresAt || 0,
-            post.content,
+            applyPlaceholders(post.content, getProjectPlaceholders(post.project as any)),
             post.media
           );
 
@@ -749,7 +751,7 @@ export const GET = applyMiddleware(
 
           // Post to Threads
           const threadsResult = await threads.postToThreads(
-            post.content,
+            applyPlaceholders(post.content, getProjectPlaceholders(post.project as any)),
             oauthProvider.pageId || "",
             post.media || ""
           );
@@ -815,7 +817,7 @@ export const GET = applyMiddleware(
 
         const response = await postToSocial({
           oauth: oauthProvider,
-          post,
+          post: { ...(post as any), content: applyPlaceholders(post.content, getProjectPlaceholders(post.project as any)) },
         });
         return response;
       })

@@ -71,7 +71,7 @@ function ProjectPage() {
   const currentTab = useMemo(() => {
     const tab = searchParams.get("tab");
     if (TAB_VALUES.includes(tab as any)) return tab as typeof TAB_VALUES[number];
-    return "generate";
+    return "campaign";
   }, [searchParams]);
 
   // Save tab to localStorage whenever it changes (including via URL)
@@ -91,6 +91,31 @@ function ProjectPage() {
   const { data: projectPulse } = useGetProjectPulse(id as string);
 
   console.log(projectPulse)
+
+  // Default project pulse data when no data is available
+  const defaultProjectPulse = {
+    daysPosted: 0,
+    gapDays: 0,
+    pulse: 0,
+    components: {
+      cadence: 0,
+      onTime: 0,
+      engagement: 0,
+      consistency: 0,
+      successRate: 0,
+      coverage: 0,
+      platformDiversity: 0,
+      planProgress: 0,
+    },
+    thiwWeekPostSummaries: {
+      posts: 0,
+      noPosts: 0,
+      likes: 0,
+      impressions: 0,
+      uniqueImpressions: 0,
+      er: 0,
+    },
+  };
 
   if (projects.isLoading)
     return (
@@ -115,7 +140,7 @@ function ProjectPage() {
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5">
       <ProjectSocialConnectionAlert projectId={id as string} />
-      {projectPulse && <ProjectPulseMetrics projectPulse={projectPulse} />}
+      <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
           <TabsTrigger value="campaign" onClick={() => handleTabChange("campaign")}>

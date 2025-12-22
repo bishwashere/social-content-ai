@@ -18,7 +18,11 @@ import { useCreateProject, useGetWebsiteDescription } from "@/backend-apis/proje
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function AddProjectButton() {
+interface AddProjectButtonProps {
+  variant?: "default" | "ghost";
+}
+
+export function AddProjectButton({ variant = "default" }: AddProjectButtonProps) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -128,15 +132,20 @@ export function AddProjectButton() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors ${
-                  sidebar.open 
-                    ? 'w-full h-10 text-sm px-4' 
-                    : 'h-10 w-10 justify-center p-0'
+                variant={variant === "ghost" ? "ghost" : "default"}
+                className={`flex items-center font-medium transition-colors ${
+                  variant === "ghost" 
+                    ? 'w-full h-10 text-sm px-3 text-slate-600 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400 justify-start'
+                    : `bg-purple-600 hover:bg-purple-700 text-white ${
+                        sidebar.open 
+                          ? 'w-full h-10 text-sm px-4' 
+                          : 'h-10 w-10 justify-center p-0'
+                      }`
                 }`}
                 onClick={() => setOpen(true)}
               >
-                <PlusCircle className={sidebar.open ? "mr-2 h-4 w-4" : "h-4 w-4"} />
-                {sidebar.open && <span>Add Project</span>}
+                <PlusCircle className={(sidebar.open || variant === "ghost") ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+                {(sidebar.open || variant === "ghost") && <span>Add Project</span>}
               </Button>
             </TooltipTrigger>
             {!sidebar.open && (

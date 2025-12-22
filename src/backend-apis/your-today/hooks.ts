@@ -13,6 +13,11 @@ export type YourTodayProject = {
   startDate?: string; // Campaign start date ISO string for calculating actual dates
   userRole?: string; // "admin" | "editor" | "viewer"
   needsAction?: boolean; // true if action button should be shown
+  stats?: {
+    campaignCount: number;
+    publishedPostsCount: number;
+    totalImpressions: number;
+  };
 };
 
 export type YourTodayTask = {

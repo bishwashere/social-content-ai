@@ -4,41 +4,42 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { 
-  ArrowRight, 
-  Calendar, 
-  CheckCircle2, 
+import {
+  ArrowRight,
+  ChevronDown,
   ChevronRight,
-  Clock, 
-  Folder,
-  Lightbulb,
   Sparkles,
-  Video,
   Zap,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
   TrendingUp,
+  Calendar,
+  Video,
+  FileText,
+  Rocket,
+  Target,
   BarChart3,
-  Globe,
   Plus,
-  Play,
-  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/cn";
-import { useTodayItems, TimelineItem, TimelineProject } from "@/hooks/useTodayItems";
+import { useTodayItems, TimelineItem } from "@/hooks/useTodayItems";
 import { useFocus } from "@/providers/focus-provider";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import Loading from "@/components/common/loading";
+import { cn } from "@/lib/cn";
 
 export default function ProjectTrialPage() {
   const router = useRouter();
   const { data: session, isLoading: sessionLoading, isError: sessionError } = useSession();
   const projects = useGetAllProjects();
-  const { items, groupedItems, isLoading, isEmpty } = useTodayItems();
+  const { groupedItems, isLoading, isEmpty } = useTodayItems();
   const { focusContext } = useFocus();
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
 
   if (sessionLoading) {
     return <Loading className="h-screen" />;
@@ -49,49 +50,68 @@ export default function ProjectTrialPage() {
   }
 
   const greeting = getGreeting(session?.user?.name);
+  const projectCount = projects.data?.length ?? 0;
+
+  const getHref = (item: TimelineItem) => {
+    if (item.action?.href) return item.action.href;
+    if (item.projects && item.projects.length > 0) return item.projects[0].href;
+    return null;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      {/* Decorative background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-gradient-to-br from-amber-400/10 to-orange-400/10 rounded-full blur-3xl" />
+    <div className="min-h-screen">
+      {/* Subtle background pattern */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-violet-950/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-100/40 via-transparent to-transparent dark:from-violet-900/20" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-6 py-8 lg:px-12">
-        {/* Hero Header */}
-        <header className="mb-10">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
+      <div className="mx-auto w-full max-w-7xl 2xl:max-w-[90%] px-4 md:px-6 lg:px-8 py-8 space-y-8">
+        {/* Hero Section */}
+        <header className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-violet-600 dark:text-violet-400">
                 {format(new Date(), "EEEE, MMMM d")}
               </p>
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
                 {greeting}
               </h1>
               {focusContext?.projectName && focusContext.type !== "empty" && (
-                <p className="mt-2 text-muted-foreground flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Working on <span className="font-medium text-foreground">{focusContext.projectName}</span>
+                <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Focused on <span className="font-medium text-slate-700 dark:text-slate-200">{focusContext.projectName}</span>
                 </p>
               )}
             </div>
             
             {/* Quick Stats */}
-            <div className="hidden md:flex items-center gap-3">
-              <QuickStatPill icon={<Folder className="w-4 h-4" />} value={projects.data?.length || 0} label="Projects" />
-              <QuickStatPill icon={<Zap className="w-4 h-4" />} value={groupedItems.action.length} label="Actions" />
+            <div className="flex items-center gap-3">
+              <StatPill icon={<FileText className="h-4 w-4" />} value={projectCount} label="Projects" color="violet" />
+              <StatPill icon={<Zap className="h-4 w-4" />} value={groupedItems.action.length} label="Actions" color="amber" />
             </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-2">
+            <QuickAction href="/project/video-maker" icon={<Video className="h-4 w-4" />} label="Create Video" />
+            <QuickAction href="/project/templates" icon={<Sparkles className="h-4 w-4" />} label="Use Template" />
+            <QuickAction href="/project/dashboard" icon={<Calendar className="h-4 w-4" />} label="View Calendar" />
+            <QuickAction href="/project/analytics" icon={<BarChart3 className="h-4 w-4" />} label="Analytics" />
           </div>
         </header>
 
         {/* Loading State */}
         {isLoading && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-2xl" />
-            ))}
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+            <div className="space-y-6">
+              <Skeleton className="h-48 w-full rounded-2xl" />
+              <Skeleton className="h-64 w-full rounded-2xl" />
+            </div>
+            <div className="space-y-6">
+              <Skeleton className="h-40 w-full rounded-2xl" />
+              <Skeleton className="h-40 w-full rounded-2xl" />
+            </div>
           </div>
         )}
 
@@ -100,165 +120,128 @@ export default function ProjectTrialPage() {
 
         {/* Main Content */}
         {!isLoading && !isEmpty && (
-          <div className="space-y-8">
-            {/* Urgent Items - Full Width Alert Style */}
-            {groupedItems.urgent.length > 0 && (
-              <section className="space-y-4">
-                {groupedItems.urgent.map((item) => (
-                  <UrgentCard key={item.id} item={item} />
-                ))}
-              </section>
-            )}
-
-            {/* Bento Grid Layout */}
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
-              {/* Action Items - Featured */}
-              {groupedItems.action.length > 0 && (
-                <section className="md:col-span-2 lg:col-span-2 row-span-2">
-                  <BentoCard 
-                    className="h-full bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200/50 dark:border-amber-800/50"
-                    onMouseEnter={() => setHoveredCard('actions')}
-                    onMouseLeave={() => setHoveredCard(null)}
-                  >
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25">
-                          <Zap className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h2 className="text-lg font-semibold">Action Required</h2>
-                          <p className="text-sm text-muted-foreground">{groupedItems.action.length} items need attention</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {groupedItems.action.slice(0, 4).map((item) => (
-                        <ActionItemRow key={item.id} item={item} />
-                      ))}
-                      {groupedItems.action.length > 4 && (
-                        <button className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
-                          View {groupedItems.action.length - 4} more
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </BentoCard>
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+            {/* Left Column - Main Content */}
+            <div className="space-y-6">
+              {/* Urgent Items */}
+              {groupedItems.urgent.length > 0 && (
+                <section className="space-y-4">
+                  <SectionHeader 
+                    icon={<AlertCircle className="h-5 w-5 text-rose-500" />} 
+                    title="Needs Attention" 
+                    count={groupedItems.urgent.length}
+                    variant="urgent"
+                  />
+                  <div className="space-y-3">
+                    {groupedItems.urgent.map((item) => (
+                      <UrgentCard key={item.id} item={item} onClickHref={getHref(item)} />
+                    ))}
+                  </div>
                 </section>
               )}
 
-              {/* Quick Actions */}
-              <section>
-                <BentoCard className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/40 dark:to-purple-950/40 border-violet-200/50 dark:border-violet-800/50">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 text-white shadow-lg shadow-violet-500/25">
-                      <Plus className="w-5 h-5" />
-                    </div>
-                    <h2 className="text-lg font-semibold">Quick Actions</h2>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <QuickActionButton 
-                      icon={<Video className="w-4 h-4" />}
-                      label="Create Video"
-                      href="/project/video-maker"
-                      gradient="from-pink-500 to-rose-500"
-                    />
-                    <QuickActionButton 
-                      icon={<Sparkles className="w-4 h-4" />}
-                      label="Generate Content"
-                      href={projects.data?.[0] ? `/project/${projects.data[0].id}?tab=generate` : "/project"}
-                      gradient="from-cyan-500 to-blue-500"
-                    />
-                    <QuickActionButton 
-                      icon={<Calendar className="w-4 h-4" />}
-                      label="View Calendar"
-                      href="/project/dashboard"
-                      gradient="from-emerald-500 to-teal-500"
-                    />
-                  </div>
-                </BentoCard>
-              </section>
-
-              {/* Stay Ahead / Suggestions */}
-              {groupedItems.suggestions.length > 0 && (
-                <section>
-                  <BentoCard className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40 border-blue-200/50 dark:border-blue-800/50">
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25">
-                        <Lightbulb className="w-5 h-5" />
+              {/* Action Required */}
+              {groupedItems.action.length > 0 && (
+                <section className="space-y-4">
+                  <SectionHeader 
+                    icon={<CheckCircle2 className="h-5 w-5 text-violet-500" />} 
+                    title="Action Required" 
+                    count={groupedItems.action.length}
+                  />
+                  <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+                    {groupedItems.action.slice(0, 8).map((item, idx) => (
+                      <ActionRow key={item.id} item={item} onClickHref={getHref(item)} isLast={idx === Math.min(7, groupedItems.action.length - 1)} />
+                    ))}
+                    {groupedItems.action.length > 8 && (
+                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/50 text-center">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          +{groupedItems.action.length - 8} more items
+                        </span>
                       </div>
-                      <div>
-                        <h2 className="text-lg font-semibold">Stay Ahead</h2>
-                        <p className="text-sm text-muted-foreground">{groupedItems.suggestions.length} suggestions</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {groupedItems.suggestions.slice(0, 3).map((item) => (
-                        <SuggestionRow key={item.id} item={item} />
-                      ))}
-                    </div>
-                  </BentoCard>
+                    )}
+                  </div>
                 </section>
+              )}
+            </div>
+
+            {/* Right Column - Sidebar */}
+            <aside className="space-y-6 lg:sticky lg:top-24 self-start">
+              {/* Stay Ahead */}
+              {groupedItems.suggestions.length > 0 && (
+                <CollapsibleSection
+                  icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
+                  title="Stay Ahead"
+                  count={groupedItems.suggestions.length}
+                  isOpen={showSuggestions}
+                  onToggle={() => setShowSuggestions(v => !v)}
+                >
+                  <div className="space-y-1 pt-2">
+                    {groupedItems.suggestions.map((item) => (
+                      <CompactRow key={item.id} item={item} onClickHref={getHref(item)} />
+                    ))}
+                  </div>
+                </CollapsibleSection>
               )}
 
               {/* Recent Activity */}
               {groupedItems.activity.length > 0 && (
-                <section>
-                  <BentoCard className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900/60 dark:to-gray-900/60 border-slate-200/50 dark:border-slate-700/50">
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-500 to-gray-500 text-white shadow-lg shadow-slate-500/25">
-                        <Clock className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-semibold">Recent Activity</h2>
-                        <p className="text-sm text-muted-foreground">Latest updates</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {groupedItems.activity.slice(0, 3).map((item) => (
-                        <ActivityRow key={item.id} item={item} />
-                      ))}
-                    </div>
-                  </BentoCard>
-                </section>
+                <CollapsibleSection
+                  icon={<Clock className="h-4 w-4 text-blue-500" />}
+                  title="Recent Activity"
+                  count={groupedItems.activity.length}
+                  isOpen={showActivity}
+                  onToggle={() => setShowActivity(v => !v)}
+                >
+                  <div className="space-y-1 pt-2">
+                    {groupedItems.activity.map((item) => (
+                      <CompactRow key={item.id} item={item} onClickHref={getHref(item)} showTime />
+                    ))}
+                  </div>
+                </CollapsibleSection>
               )}
 
-              {/* Projects Overview */}
+              {/* Projects Quick Access */}
               {projects.data && projects.data.length > 0 && (
-                <section className="md:col-span-2 lg:col-span-1">
-                  <BentoCard className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200/50 dark:border-emerald-800/50">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25">
-                          <Folder className="w-5 h-5" />
+                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                          <Rocket className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                         </div>
-                        <h2 className="text-lg font-semibold">Your Projects</h2>
+                        <span className="font-semibold text-slate-900 dark:text-white">Projects</span>
                       </div>
-                      <Badge variant="secondary">{projects.data.length}</Badge>
+                      <Badge variant="secondary" className="rounded-full text-xs">
+                        {projects.data.length}
+                      </Badge>
                     </div>
-                    
-                    <div className="space-y-2">
-                      {projects.data.slice(0, 4).map((project) => (
-                        <Link 
-                          key={project.id}
-                          href={`/project/${project.id}`}
-                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/5 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-white text-sm font-medium">
-                            {project.name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="flex-1 text-sm font-medium truncate">{project.name}</span>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </Link>
-                      ))}
-                    </div>
-                  </BentoCard>
-                </section>
+                  </div>
+                  <div className="p-2">
+                    {projects.data.slice(0, 5).map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/project/${p.id}`}
+                        className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
+                      >
+                        <span className="font-medium text-slate-700 dark:text-slate-200 truncate">
+                          {p.name}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                      </Link>
+                    ))}
+                    {projects.data.length > 5 && (
+                      <Link
+                        href="/project"
+                        className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors font-medium"
+                      >
+                        View all projects
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
               )}
-            </div>
+            </aside>
           </div>
         )}
       </div>
@@ -266,8 +249,7 @@ export default function ProjectTrialPage() {
   );
 }
 
-// Helper Components
-
+// Helper function
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
   let timeGreeting = "Good morning";
@@ -278,223 +260,252 @@ function getGreeting(name?: string | null): string {
   return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
 }
 
-function QuickStatPill({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
-  return (
-    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="font-semibold">{value}</span>
-      <span className="text-sm text-muted-foreground">{label}</span>
-    </div>
-  );
-}
-
-function BentoCard({ 
-  children, 
-  className,
-  onMouseEnter,
-  onMouseLeave
-}: { 
-  children: React.ReactNode; 
-  className?: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-}) {
-  return (
-    <div 
-      className={cn(
-        "p-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-0.5",
-        className
-      )}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      {children}
-    </div>
-  );
-}
-
-function UrgentCard({ item }: { item: TimelineItem }) {
-  const router = useRouter();
-  
-  const handleClick = () => {
-    if (item.action?.href) {
-      router.push(item.action.href);
-    } else if (item.projects?.[0]) {
-      router.push(item.projects[0].href);
-    }
+// Components
+function StatPill({ icon, value, label, color }: { icon: React.ReactNode; value: number; label: string; color: "violet" | "amber" }) {
+  const colors = {
+    violet: "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400",
+    amber: "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
   };
-
-  return (
-    <div 
-      onClick={handleClick}
-      className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-red-500 to-rose-500 text-white cursor-pointer shadow-xl shadow-red-500/25 hover:shadow-2xl hover:shadow-red-500/30 transition-all hover:-translate-y-0.5"
-    >
-      <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-      
-      <div className="relative flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-            <span className="text-2xl">{item.icon}</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg">{item.title}</h3>
-              <Badge className="bg-white/20 text-white border-0">Urgent</Badge>
-            </div>
-            {item.description && (
-              <p className="text-white/80 text-sm mt-1">{item.description}</p>
-            )}
-          </div>
-        </div>
-        
-        <Button variant="secondary" className="bg-white text-red-600 hover:bg-white/90 shadow-lg">
-          Take Action
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ActionItemRow({ item }: { item: TimelineItem }) {
-  const router = useRouter();
   
-  const handleClick = () => {
-    if (item.action?.href) {
-      router.push(item.action.href);
-    } else if (item.projects?.[0]) {
-      router.push(item.projects[0].href);
-    }
-  };
-
   return (
-    <div 
-      onClick={handleClick}
-      className="flex items-center gap-3 p-3 rounded-xl bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 cursor-pointer transition-all group"
-    >
-      <span className="text-xl">{item.icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{item.title}</p>
-        {item.description && (
-          <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-        )}
-      </div>
-      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className={cn("flex items-center gap-2 px-3 py-2 rounded-xl", colors[color])}>
+      {icon}
+      <span className="font-bold">{value}</span>
+      <span className="text-sm opacity-80">{label}</span>
     </div>
   );
 }
 
-function QuickActionButton({ 
-  icon, 
-  label, 
-  href, 
-  gradient 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  href: string; 
-  gradient: string;
-}) {
+function QuickAction({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link 
+    <Link
       href={href}
-      className="flex items-center gap-3 p-3 rounded-xl bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 transition-all group"
+      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 hover:bg-white dark:hover:bg-slate-800 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-200 group"
     >
-      <div className={cn("p-2 rounded-lg bg-gradient-to-br text-white", gradient)}>
+      <span className="text-slate-500 dark:text-slate-400 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
         {icon}
-      </div>
-      <span className="flex-1 text-sm font-medium">{label}</span>
-      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+      </span>
+      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        {label}
+      </span>
     </Link>
   );
 }
 
-function SuggestionRow({ item }: { item: TimelineItem }) {
-  const router = useRouter();
-  
-  const handleClick = () => {
-    if (item.action?.href) {
-      router.push(item.action.href);
-    }
-  };
-
+function SectionHeader({ icon, title, count, variant }: { icon: React.ReactNode; title: string; count: number; variant?: "urgent" }) {
   return (
-    <div 
-      onClick={handleClick}
-      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/5 cursor-pointer transition-all group"
-    >
-      <span className="text-lg">{item.icon}</span>
-      <p className="flex-1 text-sm truncate">{item.title}</p>
-      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          "p-2 rounded-xl",
+          variant === "urgent" 
+            ? "bg-rose-100 dark:bg-rose-900/30" 
+            : "bg-violet-100 dark:bg-violet-900/30"
+        )}>
+          {icon}
+        </div>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
+      </div>
+      <Badge 
+        variant="secondary" 
+        className={cn(
+          "rounded-full",
+          variant === "urgent" && "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
+        )}
+      >
+        {count}
+      </Badge>
     </div>
   );
 }
 
-function ActivityRow({ item }: { item: TimelineItem }) {
+function UrgentCard({ item, onClickHref }: { item: TimelineItem; onClickHref: string | null }) {
   const router = useRouter();
   
-  const handleClick = () => {
-    if (item.action?.href) {
-      router.push(item.action.href);
-    }
-  };
-
   return (
-    <div 
-      onClick={handleClick}
-      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/5 cursor-pointer transition-all group"
+    <button
+      type="button"
+      onClick={() => onClickHref && router.push(onClickHref)}
+      disabled={!onClickHref}
+      className="w-full text-left group"
     >
-      <span className="text-lg">{item.icon}</span>
+      <div className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 text-white shadow-xl shadow-rose-500/25 hover:shadow-2xl hover:shadow-rose-500/30 hover:-translate-y-0.5 transition-all duration-300">
+        {/* Glow effect */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+        
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm shadow-lg">
+              <span className="text-2xl">{item.icon}</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-lg">{item.title}</h3>
+                <Badge className="bg-white/20 text-white border-0 text-xs">Urgent</Badge>
+              </div>
+              {item.description && (
+                <p className="text-white/80 text-sm">{item.description}</p>
+              )}
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ActionRow({ item, onClickHref, isLast }: { item: TimelineItem; onClickHref: string | null; isLast: boolean }) {
+  const router = useRouter();
+  
+  return (
+    <button
+      type="button"
+      onClick={() => onClickHref && router.push(onClickHref)}
+      disabled={!onClickHref}
+      className={cn(
+        "w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group",
+        !isLast && "border-b border-slate-100 dark:border-slate-700/50"
+      )}
+    >
+      <span className="text-xl flex-shrink-0">{item.icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm truncate">{item.title}</p>
-        {item.timestamp && (
-          <p className="text-xs text-muted-foreground">{format(item.timestamp, "h:mm a")}</p>
+        <p className="font-medium text-slate-900 dark:text-white truncate">
+          {item.title}
+        </p>
+        {item.description && (
+          <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+            {item.description}
+          </p>
         )}
       </div>
+      {onClickHref && (
+        <ArrowRight className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+      )}
+    </button>
+  );
+}
+
+function CollapsibleSection({ 
+  icon, 
+  title, 
+  count, 
+  isOpen, 
+  onToggle, 
+  children 
+}: { 
+  icon: React.ReactNode;
+  title: string; 
+  count: number; 
+  isOpen: boolean; 
+  onToggle: () => void; 
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
+            {icon}
+          </div>
+          <span className="font-semibold text-slate-900 dark:text-white">{title}</span>
+          <Badge variant="secondary" className="rounded-full text-xs">
+            {count}
+          </Badge>
+        </div>
+        <div className={cn(
+          "p-1 rounded-md transition-transform duration-200",
+          isOpen && "rotate-180"
+        )}>
+          <ChevronDown className="h-4 w-4 text-slate-400" />
+        </div>
+      </button>
+      
+      <div className={cn(
+        "overflow-hidden transition-all duration-300 ease-in-out",
+        isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+      )}>
+        <div className="px-3 pb-3">
+          {children}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function CompactRow({ item, onClickHref, showTime }: { item: TimelineItem; onClickHref: string | null; showTime?: boolean }) {
+  const router = useRouter();
+  
+  return (
+    <button
+      type="button"
+      onClick={() => onClickHref && router.push(onClickHref)}
+      disabled={!onClickHref}
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
+    >
+      <span className="text-base flex-shrink-0">{item.icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
+          {item.title}
+        </p>
+        {showTime && item.timestamp && (
+          <p className="text-xs text-slate-400">
+            {format(item.timestamp, "h:mm a")}
+          </p>
+        )}
+      </div>
+      {onClickHref && (
+        <ArrowRight className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+      )}
+    </button>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-20">
-      <div className="relative mb-8">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
-          <CheckCircle2 className="w-12 h-12 text-white" />
-        </div>
-        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shadow-lg">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
-      </div>
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-700/80 bg-gradient-to-br from-white via-white to-violet-50/50 dark:from-slate-800 dark:via-slate-800 dark:to-violet-950/30 p-8 sm:p-12">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-violet-200/30 dark:bg-violet-800/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       
-      <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-        You&apos;re all caught up!
-      </h2>
-      <p className="text-muted-foreground text-center max-w-md mb-8">
-        No pending tasks for today. Great job staying on top of your content!
-      </p>
-      
-      <div className="flex flex-wrap gap-3 justify-center">
-        <Button asChild className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white border-0 shadow-lg shadow-violet-500/25">
-          <Link href="/project/video-maker">
-            <Video className="w-4 h-4 mr-2" />
-            Create Video
-          </Link>
-        </Button>
-        <Button variant="outline" asChild className="backdrop-blur-sm">
-          <Link href="/project/wall">
-            <Eye className="w-4 h-4 mr-2" />
-            Get Inspired
-          </Link>
-        </Button>
-        <Button variant="outline" asChild className="backdrop-blur-sm">
-          <Link href="/project/dashboard">
-            <Calendar className="w-4 h-4 mr-2" />
-            View Calendar
-          </Link>
-        </Button>
+      <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="text-center sm:text-left space-y-3">
+          <div className="inline-flex p-3 rounded-2xl bg-violet-100 dark:bg-violet-900/30">
+            <CheckCircle2 className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            All caught up!
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 max-w-md">
+            You&apos;re on top of everything. Use the sidebar to explore or create something new.
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            asChild
+            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
+          >
+            <Link href="/project/video-maker">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Content
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-xl border-slate-300 dark:border-slate-600"
+          >
+            <Link href="/project/templates">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Browse Templates
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
-

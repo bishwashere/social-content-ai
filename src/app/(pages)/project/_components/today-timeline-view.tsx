@@ -10,6 +10,7 @@ import {
   CheckCircle2, 
   ChevronDown, 
   ChevronRight,
+  ChevronUp,
   Clock, 
   Folder,
   Lightbulb,
@@ -223,6 +224,8 @@ interface TimelineCardProps {
 
 function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
   const router = useRouter();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [expansionLevel, setExpansionLevel] = useState<0 | 1 | 2>(0); // 0 = none, 1 = 3 projects, 2 = all
 
   const getVariantStyles = () => {
     switch (variant) {
@@ -250,32 +253,123 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
 
   // Grouped item with multiple projects
   if (item.isGrouped && item.projects && item.projects.length > 0) {
+    const isInactiveGroup = item.title?.includes("inactive for 7+ days");
+    const hasMoreThanThree = item.projects.length > 3;
+    
+    // For inactive groups: 0 (default) -> 3 (first expand) -> all (second expand)
+    // For other groups: 3 (default) -> all (expand)
+    let visibleProjects: typeof item.projects = [];
+    let showExpandButton = false;
+    let expandButtonText = "";
+    
+    if (isInactiveGroup) {
+      if (expansionLevel === 0) {
+        // Default: show 0 projects
+        visibleProjects = [];
+        showExpandButton = true;
+        expandButtonText = ""; // Just show arrow, no text
+      } else if (expansionLevel === 1) {
+        // First expand: show 3 projects
+        visibleProjects = item.projects.slice(0, 3);
+        showExpandButton = hasMoreThanThree;
+        expandButtonText = `Show ${item.projects.length - 3} more`;
+      } else {
+        // Fully expanded: show all
+        visibleProjects = item.projects;
+        showExpandButton = true;
+        expandButtonText = "Show less";
+      }
+    } else {
+      // For non-inactive groups, use original behavior
+      visibleProjects = hasMoreThanThree && !isExpanded 
+        ? item.projects.slice(0, 3) 
+        : item.projects;
+      showExpandButton = hasMoreThanThree;
+      if (showExpandButton) {
+        expandButtonText = isExpanded 
+          ? "Show less"
+          : `Show ${item.projects.length - 3} more`;
+      }
+    }
+    
     return (
       <Card className={cn("transition-all hover:shadow-md", getVariantStyles())}>
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap mb-3">
-                <h3 className="font-semibold">{item.title}</h3>
-                <Badge variant="secondary" className="text-xs">
-                  {item.projects.length} {item.projects.length === 1 ? 'project' : 'projects'}
-                </Badge>
-                {variant === "urgent" && (
-                  <Badge variant="destructive" className="text-xs">Urgent</Badge>
+              <div className={cn(
+                isInactiveGroup && expansionLevel === 0 ? "mb-0" : "mb-3"
+              )}>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {item.projects.length} {item.projects.length === 1 ? 'project' : 'projects'}
+                  </Badge>
+                  {variant === "urgent" && (
+                    <Badge variant="destructive" className="text-xs">Urgent</Badge>
+                  )}
+                </div>
+                {item.description && (
+                  <p className={cn(
+                    "text-sm text-muted-foreground",
+                    isInactiveGroup && expansionLevel === 0 ? "mb-0" : ""
+                  )}>{item.description}</p>
                 )}
               </div>
               
               {/* Project list */}
-              <div className="space-y-2">
-                {item.projects.map((project) => (
-                  <ProjectRow 
-                    key={project.projectId} 
-                    project={project} 
-                    variant={variant}
-                  />
-                ))}
-              </div>
+              {visibleProjects.length > 0 && (
+                <div className="space-y-2">
+                  {visibleProjects.map((project) => (
+                    <ProjectRow 
+                      key={project.projectId} 
+                      project={project} 
+                      variant={variant}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {/* Show More/Less button */}
+              {showExpandButton && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-full text-xs",
+                    isInactiveGroup && expansionLevel === 0 ? "justify-center mt-0" : "mt-2"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isInactiveGroup) {
+                      if (expansionLevel === 0) {
+                        setExpansionLevel(1);
+                      } else if (expansionLevel === 1) {
+                        setExpansionLevel(2);
+                      } else {
+                        setExpansionLevel(0);
+                      }
+                    } else {
+                      setIsExpanded(!isExpanded);
+                    }
+                  }}
+                >
+                  {isInactiveGroup && expansionLevel === 2 ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Show less
+                    </>
+                  ) : isInactiveGroup && expansionLevel === 0 ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      {expandButtonText}
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -395,6 +489,11 @@ function ProjectRow({ project, variant }: ProjectRowProps) {
             <p className="text-xs text-muted-foreground truncate">
               {project.campaignName}
               {dayDisplay && ` • ${dayDisplay}`}
+            </p>
+          )}
+          {project.stats && (
+            <p className="text-xs text-gray-500 mt-0.5">
+              {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
             </p>
           )}
         </div>

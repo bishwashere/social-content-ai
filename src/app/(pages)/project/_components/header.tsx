@@ -26,7 +26,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectEditModal } from "./project-edit-modal";
 import Image from "next/image";
-import { ConnectAccountsButton } from "@/components/common/connect-accounts-button";
 import { useUserSettings, useUpdateUserSettings } from "@/backend-apis/user-settings/hooks";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -34,11 +33,10 @@ import { useTheme } from "@/providers/theme-provider";
 
 interface HeaderProps {
   onTourStart?: () => void;
-  connectSocialsRef?: React.RefObject<HTMLDivElement>;
   subscribeRef?: React.RefObject<HTMLDivElement>;
 }
 
-export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderProps) {
+export function Header({ onTourStart, subscribeRef }: HeaderProps) {
   const { data } = useSession();
   const logout = useLogout();
   const router = useRouter();
@@ -49,7 +47,7 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
 
   return (
     <div className="w-full px-4 border-b h-fit relative overflow-hidden flex items-center justify-center">
-      <div className="flex h-16 items-center justify-between bg-background w-full md:px-8">
+      <div className="flex h-16 items-center justify-between bg-background w-full max-w-7xl 2xl:max-w-[90%] mx-auto px-2 md:px-4 lg:px-6 xl:px-10 2xl:px-14">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -103,9 +101,6 @@ export function Header({ onTourStart, connectSocialsRef, subscribeRef }: HeaderP
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div ref={connectSocialsRef}>
-            <ConnectAccountsButton />
-          </div>
           <div ref={subscribeRef}>
             <Subscription />
           </div>

@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state";
+const DEFAULT_SIDEBAR_STORAGE_KEY = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
@@ -54,10 +54,12 @@ function useSidebar() {
   return context;
 }
 
-function  SidebarProvider({
+function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  storageKey = DEFAULT_SIDEBAR_STORAGE_KEY,
+  persist = true,
   className,
   style,
   children,
@@ -66,20 +68,25 @@ function  SidebarProvider({
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Storage key used to persist sidebar open state (localStorage + cookie).
+   * Use a distinct key for distinct app shells (e.g. trial vs main) to avoid cross-page bleed.
+   */
+  storageKey?: string;
+  /** When false, does not persist open state (no localStorage + no cookie). */
+  persist?: boolean;
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // Initialize from localStorage or defaultOpen
   const getInitialOpenState = React.useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(SIDEBAR_COOKIE_NAME);
-      if (saved !== null) {
-        return saved === 'true';
-      }
+    if (persist && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved !== null) return saved === "true";
     }
     return defaultOpen;
-  }, [defaultOpen]);
+  }, [defaultOpen, persist, storageKey]);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -95,14 +102,16 @@ function  SidebarProvider({
       }
 
       // Save to localStorage for persistence across page refreshes
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(SIDEBAR_COOKIE_NAME, String(openState));
+      if (persist) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(storageKey, String(openState));
+        }
+
+        // Also set the cookie for backward compatibility
+        document.cookie = `${storageKey}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
       }
-      
-      // Also set the cookie for backward compatibility
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     },
-    [setOpenProp, open],
+    [setOpenProp, open, persist, storageKey],
   );
 
   // Helper to toggle the sidebar.

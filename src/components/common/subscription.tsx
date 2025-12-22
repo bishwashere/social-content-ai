@@ -33,10 +33,10 @@ const Subscription = () => {
         onClick={handleSubscribe}
         variant="outline"
         size="sm"
-        className="bg-yellow-400 capitalize border-yellow-500 hover:text-yellow-800 hover:bg-yellow-300 text-yellow-900 transition-colors"
+        className="bg-yellow-400 capitalize border-yellow-500 hover:text-yellow-800 hover:bg-yellow-300 text-yellow-900 transition-colors gap-2"
         disabled={payment.isPending}
       >
-        <Coins />{" "}
+        <Coins className="h-4 w-4" />
         <span className="max-sm:hidden">
           {data?.subscription?.endsAt
             ? isSubscriptionExpired(data?.subscription?.endsAt?.toString()).isExpired

@@ -137,6 +137,33 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
     }
   }, [tasksToRender]);
 
+  const getActionButtonText = (task: YourTodayTask, project?: typeof task.projects[0]): string => {
+    // Check if this is the user's first time (based on achievements)
+    const hasNoCampaigns = achievements?.projectsWithCampaigns === 0;
+    const hasNoPosts = achievements?.projectsWithScheduledPosts === 0;
+    
+    switch (task.action) {
+      case "view_failed_posts":
+        return "Resume posting";
+      case "manage_campaigns":
+        // If user has never created a campaign, show "Create first post"
+        if (hasNoCampaigns) {
+          return "Create first post";
+        }
+        return "Plan this week";
+      case "schedule_post":
+        // If user has never scheduled, show "Create first post"
+        if (hasNoPosts) {
+          return "Create first post";
+        }
+        return "Plan this week";
+      case "open_project_videos":
+        return "Create video";
+      default:
+        return "Take action";
+    }
+  };
+
   const handleTaskAction = (task: YourTodayTask, project?: typeof task.projects[0]) => {
     const projectId = project?.projectId || task.projects[0]?.projectId;
     
@@ -280,15 +307,29 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          {projectsWithoutCampaigns.map((project, projectIndex) => (
+                          {projectsWithoutCampaigns.map((project, projectIndex) => {
+                            // Debug: Log project data
+                            if (projectIndex === 0) {
+                              console.log("🔍 Project data:", project);
+                              console.log("🔍 Project stats:", project.stats);
+                            }
+                            
+                            return (
                             <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
-                              <div className="flex-1 flex items-center gap-2">
-                                {project.needsAction === false && (
-                                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                                )}
-                                <CardDescription>
-                                  {project.description?.replace(/^Project\s+"/, '"').replace(/\s+•\s+Project:/, '') || (project.projectName ? `"${project.projectName}"` : '')}
-                                </CardDescription>
+                              <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  {project.needsAction === false && (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                  )}
+                                  <CardDescription>
+                                    {project.description?.replace(/^Project\s+"/, '"').replace(/\s+•\s+Project:/, '') || (project.projectName ? `"${project.projectName}"` : '')}
+                                  </CardDescription>
+                                </div>
+                                {project.stats !== undefined ? (
+                                  <div className="text-xs text-gray-500 ml-7">
+                                    {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
+                                  </div>
+                                ) : null}
                               </div>
                               {project.needsAction !== false && (
                                 <Button
@@ -297,12 +338,13 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                                   size="sm"
                                   className="flex-shrink-0"
                                 >
-                                  Take action
+                                  {getActionButtonText(task, project)}
                                   <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                               )}
                             </div>
-                          ))}
+                            );
+                          })}
                           <Button
                             onClick={() => toggleTaskExpansion("campaigns_no_campaigns")}
                             variant="ghost"
@@ -345,7 +387,7 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                               size="sm"
                               className="flex-shrink-0"
                             >
-                              Take action
+                              {getActionButtonText(task, project)}
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           )}
@@ -462,7 +504,7 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                         size="sm"
                         className="flex-shrink-0"
                       >
-                        Take action
+                        {getActionButtonText(task, project)}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     )}

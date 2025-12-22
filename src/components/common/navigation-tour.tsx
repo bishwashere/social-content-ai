@@ -4,10 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   PlusCircle,
-  Newspaper,
+  Compass,
   Calendar,
   TrendingUp,
-  Layers,
   Video,
   PlaySquare,
 } from "lucide-react";
@@ -25,9 +24,9 @@ const NAVIGATION_STEPS = {
     icon: PlusCircle,
   },
   forYou: {
-    name: "Spotlight",
-    description: "Discover curated content and trending posts tailored to your interests. Get personalized recommendations for your content strategy.",
-    icon: Newspaper,
+    name: "Discover",
+    description: "Explore curated content, trending posts, and pre-made templates. Get personalized recommendations for your content strategy and use templates to maintain consistency across your posts.",
+    icon: Compass,
   },
   contentPlanner: {
     name: "Calendar",
@@ -38,11 +37,6 @@ const NAVIGATION_STEPS = {
     name: "Analytics",
     description: "View detailed analytics and insights about your content performance. Track engagement, reach, and growth metrics across all platforms.",
     icon: TrendingUp,
-  },
-  template: {
-    name: "Templates",
-    description: "Browse and use pre-made templates to quickly create content. Templates help you maintain consistency across your posts.",
-    icon: Layers,
   },
   videoMaker: {
     name: "Video Maker",
@@ -56,7 +50,7 @@ const NAVIGATION_STEPS = {
   },
 };
 
-const NAVIGATION_ORDER = ["addProject", "forYou", "contentPlanner", "analytics", "template", "videoMaker", "myVideos"];
+const NAVIGATION_ORDER = ["addProject", "forYou", "contentPlanner", "analytics", "videoMaker", "myVideos"];
 
 export function NavigationTour({
   isOpen,

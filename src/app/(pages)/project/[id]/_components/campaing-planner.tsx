@@ -57,6 +57,7 @@ import { Switch } from "@/components/ui/switch";
 import { TimePickerDialog } from "@/components/common/time-picker";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -524,6 +525,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   const editContent = useEditChatContent();
+  const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
   const handleSave = async (campaignId: string, day: number, platform: string) => {
     // You can handle saving here
     console.log("Saving for:", platform, "with content:", editedContent[platform]);
@@ -1483,7 +1485,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 </CardContent>
                                               </Card>
                                             )}
-                                            {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => (
+                                            {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => {
+                                              const resolvedText = applyPlaceholders(text, projectPlaceholders);
+                                              return (
                                           <Card key={platform} className="rounded-lg border mb-5">
                                             <div className="flex flex-col gap-0">
                                               <CardHeader className="flex justify-between items-center flex-row">
@@ -1497,11 +1501,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                   >
                                                     <Pencil />
                                                   </Button>
-                                                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(text, platform)}>
+                                                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(resolvedText, platform)}>
                                                     <CopyIcon />
                                                   </Button>
                                                   <PostToWall
-                                                    content={text}
+                                                    content={resolvedText}
                                                     platform={platform}
                                                     projectId={project.id}
                                                     prompt=""
@@ -1532,7 +1536,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     projectId={project.id}
                                                     timelineDay={timeline.day}
                                                   />
-                                                  <AutoPost platform={platform} content={text} projectId={project.id} />
+                                                  <AutoPost platform={platform} content={resolvedText} projectId={project.id} />
                                                   <Checkbox
                                                     key={platform}
                                                     checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
@@ -1578,7 +1582,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 </div>
                                               ) : (
                                                 <Markdown>
-                                                  {text
+                                                  {resolvedText
                                                     .split("\n")
                                                     .map(line => line.trim())
                                                     .filter(line => line.length > 0)
@@ -1588,7 +1592,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             </CardContent>
 
                                           </Card>
-                                        ))}
+                                              );
+                                            })}
                                           </>
                                         )}
                                       </DialogContent>

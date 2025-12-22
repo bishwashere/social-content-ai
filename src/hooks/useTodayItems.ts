@@ -22,6 +22,11 @@ export type TimelineProject = {
   dateLabel?: string; // Formatted date label (e.g., "Dec 21")
   href: string;
   userRole?: string;
+  stats?: {
+    campaignCount: number;
+    publishedPostsCount: number;
+    totalImpressions: number;
+  };
 };
 
 // A timeline item that can contain multiple projects with the same action
@@ -52,21 +57,47 @@ export type TimelineItem = {
 
 // Pattern detection for grouping similar actions
 function getGroupKey(description: string | undefined, taskType: string): string | null {
-  if (!description) return null;
+  if (!description) {
+    // If no description, group by task type for general campaign actions
+    if (taskType === "campaigns" || taskType === "schedule_post") {
+      return `${taskType}-general`;
+    }
+    return null;
+  }
+  
+  // Don't group specific day items (they're unique, time-sensitive actions)
+  if (description.includes("Day ") || description.includes("needs content")) {
+    return null;
+  }
+  
+  // Don't group items with specific dates mentioned
+  if (/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+\b/.test(description)) {
+    return null;
+  }
   
   // Group "ready for a new campaign" items
   if (description.includes("ready for a new campaign") || description.includes("kickstart planning")) {
     return `${taskType}-new-campaign`;
   }
   
-  // Group "no campaigns" items  
+  // Group "no campaigns" items (first-time users)
   if (description.includes("has no campaigns")) {
     return `${taskType}-no-campaigns`;
   }
   
-  // Don't group specific day items (they're unique actions)
-  if (description.includes("Day ") || description.includes("needs content")) {
-    return null;
+  // Group "ending soon" items together
+  if (description.includes("ending soon") || description.includes("wrapping up")) {
+    return `campaign_ending_soon-group`;
+  }
+  
+  // Group general campaign planning items (not tied to specific day/date)
+  if (taskType === "campaigns" && !description.includes("Day ")) {
+    return `campaigns-planning`;
+  }
+  
+  // Group general schedule post items
+  if (taskType === "schedule_post") {
+    return `schedule_post-planning`;
   }
   
   return null;
@@ -79,7 +110,55 @@ function getGroupTitle(groupKey: string): string {
   if (groupKey.includes("no-campaigns")) {
     return "No campaigns yet";
   }
+  if (groupKey.includes("ending-soon")) {
+    return "Campaigns ending soon";
+  }
+  if (groupKey.includes("campaigns-planning")) {
+    return "Plan campaigns";
+  }
+  if (groupKey.includes("schedule_post-planning")) {
+    return "Schedule posts";
+  }
+  if (groupKey.includes("general")) {
+    return "Plan this week";
+  }
   return "Campaign actions";
+}
+
+// Helper to get dynamic action button text based on task type and context
+function getActionButtonText(taskType: string, groupKey?: string | null): string {
+  // For failed posts
+  if (taskType === "failed_post") {
+    return "Resume posting";
+  }
+  
+  // For stuck blog news posts
+  if (taskType === "stuck_blog_news") {
+    return "Investigate";
+  }
+  
+  // For campaigns ending soon
+  if (taskType === "campaign_ending_soon") {
+    return "Review";
+  }
+  
+  // For campaign actions
+  if (taskType === "campaigns") {
+    // If it's a "no campaigns" group, it's their first time
+    if (groupKey?.includes("no-campaigns")) {
+      return "Create first post";
+    }
+    // Otherwise, they need to plan
+    return "Plan this week";
+  }
+  
+  // For schedule post actions
+  if (taskType === "schedule_post") {
+    return "Plan this week";
+  }
+  
+  // Default
+  return "Take action";
 }
 
 // Helper to calculate actual date label from campaign start date and day number
@@ -133,6 +212,8 @@ export function useTodayItems() {
         if (groupKey) {
           const dateLabel = getDateLabel(project.startDate, project.day);
           const existingGroup = groupedMap.get(groupKey);
+          const isInactive7PlusDays = project.description?.includes("inactive for 7+ days") || false;
+          
           if (existingGroup) {
             // Add to existing group
             existingGroup.projects?.push({
@@ -145,15 +226,29 @@ export function useTodayItems() {
               dateLabel,
               href,
               userRole: project.userRole,
+              stats: project.stats,
             });
+            
+            // Update title if this is an "inactive 7+ days" group
+            if (isInactive7PlusDays && existingGroup.projects) {
+              const projectCount = existingGroup.projects.length;
+              const projectNames = existingGroup.projects.map(p => p.projectName).join(", ");
+              existingGroup.title = `${projectCount} project${projectCount > 1 ? 's' : ''} inactive for 7+ days → Restart posting`;
+              existingGroup.description = projectNames;
+            }
           } else {
             // Create new group
+            const groupTitle = isInactive7PlusDays 
+              ? `1 project inactive for 7+ days → Restart posting`
+              : getGroupTitle(groupKey);
+            
             groupedMap.set(groupKey, {
               id: `group-${groupKey}`,
               type: itemType,
               priority,
               icon: task.icon,
-              title: getGroupTitle(groupKey),
+              title: groupTitle,
+              description: isInactive7PlusDays ? project.projectName : undefined,
               isGrouped: true,
               projects: [{
                 projectId: project.projectId,
@@ -165,12 +260,10 @@ export function useTodayItems() {
                 dateLabel,
                 href,
                 userRole: project.userRole,
+                stats: project.stats,
               }],
               action: {
-                label: task.type === "failed_post" ? "Fix Now" : 
-                       task.type === "stuck_blog_news" ? "Investigate" :
-                       task.type === "campaign_ending_soon" ? "Review" :
-                       "Take Action",
+                label: getActionButtonText(task.type, groupKey),
               },
             });
           }
@@ -200,10 +293,7 @@ export function useTodayItems() {
             day: project.day,
             userRole: project.userRole,
             action: {
-              label: task.type === "failed_post" ? "Fix Now" : 
-                     task.type === "stuck_blog_news" ? "Investigate" :
-                     task.type === "campaign_ending_soon" ? "Review" :
-                     "Take Action",
+              label: getActionButtonText(task.type),
               href,
             },
           });
@@ -251,7 +341,7 @@ export function useTodayItems() {
               userRole: project.userRole,
             }],
             action: {
-              label: "Plan Ahead",
+              label: getPendingActionButtonText(task.action),
             },
           });
         }
@@ -313,6 +403,22 @@ export function useTodayItems() {
     hasActionItems: groupedItems.action.length > 0,
     isEmpty: timelineItems.length === 0,
   };
+}
+
+// Helper to get action button text for pending tasks
+function getPendingActionButtonText(action: string): string {
+  switch (action) {
+    case "generate_weekly_plan":
+      return "Plan this week";
+    case "manage_campaign":
+      return "Plan this week";
+    case "create_mini_campaign":
+      return "Create first post";
+    case "assign_templates":
+      return "Set up templates";
+    default:
+      return "Plan ahead";
+  }
 }
 
 function getActionHref(action: string, projectId?: string): string {

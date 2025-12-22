@@ -106,11 +106,41 @@ export const PATCH = applyMiddleware(
       });
     }
 
+    // Store placeholders inside `platformUrls._placeholders` to avoid a schema migration.
+    // NOTE: `placeholders` is accepted by the API but is not a Prisma field on Projects.
+    const { placeholders, ...restBody } = body as any;
+
+    const existingPlatformUrls = (project.platformUrls as any) || {};
+    const incomingPlatformUrls = (restBody as any)?.platformUrls || {};
+
+    const mergedPlatformUrls = {
+      ...existingPlatformUrls,
+      ...incomingPlatformUrls,
+    };
+
+    if (placeholders !== undefined && placeholders !== null) {
+      // Normalize keys: allow user to pass "[Address]" or "Address"
+      const normalized: Record<string, string> = {};
+      for (const [rawKey, rawValue] of Object.entries(placeholders as Record<string, unknown>)) {
+        if (typeof rawKey !== "string") continue;
+        const key = rawKey.trim().replace(/^\[|\]$/g, "");
+        if (!key) continue;
+        normalized[key] = typeof rawValue === "string" ? rawValue : String(rawValue ?? "");
+      }
+      mergedPlatformUrls._placeholders = normalized;
+    }
+
     const updatedProject = await prisma.projects.update({
       where: {
         id: projectId,
       },
-      data: body,
+      data: {
+        ...restBody,
+        // Only write platformUrls if we have either incoming platformUrls or placeholders
+        ...((restBody as any)?.platformUrls !== undefined || placeholders !== undefined
+          ? { platformUrls: mergedPlatformUrls }
+          : {}),
+      } as any,
     });
 
     return sendNextResponse({

@@ -7,44 +7,47 @@ import {
   Folder,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Users,
   TrendingUp,
   Video,
   PlaySquare,
   Calendar,
-  Newspaper,
-  Layers,
+  Compass,
   Home,
-  Settings,
+  Plus,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  SidebarFooter,
+  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AddProjectButton } from "./add-project-button";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/backend-apis/auth/hooks";
-import { ProjectWithChats } from "@/backend-apis/projects/types";
 import { Logo } from "@/components/common/logo";
-import { AddProjectToFolder } from "./add-project-to-folder";
-import { AddFolderButton } from "./add-folder-button";
-import { ProjectFolderItem } from "./project-folder-item";
-import { useGetProjectFolders } from "@/backend-apis/project-folders/hooks";
-import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 import { Badge } from "@/components/ui/badge";
-import { useFocus } from "@/providers/focus-provider";
+
+// Navigation items with accent colors
+const navItems = [
+  { href: "/project", label: "Today", icon: Home, accent: "from-violet-500 to-purple-600", exact: true },
+  { href: "/project/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", exact: false, discoverRoutes: ["/project/wall", "/project/templates"] },
+  { href: "/project/dashboard", label: "Calendar", icon: Calendar, accent: "from-blue-500 to-cyan-500", exact: true },
+  { href: "/project/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", exact: false },
+  { href: "/project/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", exact: true },
+  { href: "/project/my-videos", label: "My Videos", icon: PlaySquare, accent: "from-fuchsia-500 to-pink-500", exact: true },
+];
 
 interface ProjectSidebarProps {
   elementRefs?: React.MutableRefObject<Record<string, HTMLElement | null>>;
@@ -58,590 +61,285 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
   const pathname = usePathname();
   const router = useRouter();
   const sidebar = useSidebar();
+  const isOpen = sidebar.open;
   const { data: settings } = useUserSettings();
   const { data: session } = useSession();
-  
-  // Get focus context
-  const { focusContext } = useFocus();
-  
-  // Initialize open sections from localStorage or default values
-  const [openSections, setOpenSections] = React.useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('sidebar-open-sections');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // Fallback to default if parsing fails
-        }
-      }
-    }
-    return [params.id?.toString() || ""]; // Don't auto-expand projects by default
-  });
+  const [projectSelectorOpen, setProjectSelectorOpen] = React.useState(false);
 
-  const handleSectionToggle = (value: string) => {
-    const newOpenSections = openSections.includes(value)
-      ? openSections.filter((item) => item !== value)
-      : [...openSections, value];
-    
-    setOpenSections(newOpenSections);
-    
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebar-open-sections', JSON.stringify(newOpenSections));
-    }
-  };
   const { data: projects, isLoading } = useGetAllProjects();
-  const { data: folders, isLoading: foldersLoading } = useGetProjectFolders();
   const { toggleSidebar } = sidebar;
 
-  // Get the currently focused project details
-  const focusedProject = React.useMemo(() => {
-    if (!focusContext?.projectId || !projects) return null;
-    return projects.find(p => p.id === focusContext.projectId);
-  }, [focusContext?.projectId, projects]);
-
-  const activeProjectId = (path: string) => {
-    const match = path.match(/project\/([^/]+)/);
+  // Get current project from URL
+  const currentProjectId = React.useMemo(() => {
+    const match = pathname.match(/\/project\/([^/?]+)/);
     return match ? match[1] : null;
+  }, [pathname]);
+
+  // Get current project details
+  const currentProject = React.useMemo(() => {
+    if (!currentProjectId || !projects) return null;
+    return projects.find(p => p.id === currentProjectId);
+  }, [currentProjectId, projects]);
+
+  const isNavActive = (item: typeof navItems[0]) => {
+    // Special handling for Discover item (combines Spotlight and Templates)
+    if (item.discoverRoutes) {
+      return item.discoverRoutes.some(route => pathname?.startsWith(route));
+    }
+    if (item.exact) {
+      return pathname === item.href;
+    }
+    return pathname?.startsWith(item.href);
+  };
+
+  // Map refs to nav items
+  const getNavRef = (label: string) => {
+    const refMap: Record<string, string> = {
+      "Today": "today",
+      "Discover": "forYou",
+      "Calendar": "contentPlanner",
+      "Analytics": "analytics",
+      "Video Maker": "videoMaker",
+      "My Videos": "myVideos",
+    };
+    return refMap[label];
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    setProjectSelectorOpen(false);
+    if (window.innerWidth <= 768) {
+      toggleSidebar();
+    }
+    const tab = localStorage.getItem("projectTab");
+    router.push(`/project/${projectId}${tab ? `?tab=${tab}` : ''}`);
   };
 
   return (
-    <Sidebar className="border-r dark:border-gray-700" collapsible="icon">
-      <SidebarHeader className="border-b dark:border-gray-700 p-4 flex justify-center">
-        <Logo iconOnly={!sidebar.open} />
+    <Sidebar collapsible="icon" className="border-r-0 bg-transparent overflow-hidden">
+      {/* Glassmorphism background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-50/90 via-white/80 to-slate-50/90 dark:from-slate-950/90 dark:via-slate-900/80 dark:to-slate-950/90 backdrop-blur-xl" />
+      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200/60 dark:via-slate-700/60 to-transparent" />
+
+      {/* Header with Logo */}
+      <SidebarHeader className={cn("relative py-4 border-b border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-4" : "px-2")}>
+        <div className={cn("transition-all duration-300", !isOpen && "flex justify-center")}>
+          <Logo iconOnly={!isOpen} />
+        </div>
       </SidebarHeader>
-      <ScrollArea className="h-[calc(100vh-5rem)] overflow-y-auto w-full" style={{ width: '100%', maxWidth: '100%' }}>
-        <SidebarContent className="p-2 space-y-3 min-w-0 w-full max-w-full overflow-x-hidden" style={{ width: '100%', maxWidth: '100%' }}>
+
+      <ScrollArea className="relative h-[calc(100vh-8rem)] overflow-y-auto">
+        <SidebarContent className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1")}>
           
-          {/* Quick Actions - Always visible */}
-          {sidebar.open && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 space-y-1 min-w-0 max-w-full overflow-hidden">
-              {/* Home/Today Link */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      onClick={() => {
-                        if (window.innerWidth <= 768) {
-                          toggleSidebar()
-                        }
-                      }}
-                      href="/project"
-                      className={cn(
-                        "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        pathname === "/project" 
-                          ? "bg-gray-200 dark:bg-gray-600" 
-                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+          {/* Navigation Links */}
+          <div className="space-y-1">
+            {navItems.map((item) => {
+              const active = isNavActive(item);
+              const Icon = item.icon;
+              const refKey = getNavRef(item.label);
+              
+              return (
+                <div
+                  key={item.href}
+                  ref={(el) => {
+                    if (elementRefs && el && refKey) {
+                      elementRefs.current[refKey] = el;
+                    }
+                  }}
+                >
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={item.href}
+                          onClick={() => {
+                            if (window.innerWidth <= 768) {
+                              toggleSidebar();
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 h-11 rounded-xl transition-all duration-200 group/item",
+                            isOpen ? "px-3" : "px-2 justify-center",
+                            active
+                              ? "bg-white dark:bg-slate-800 shadow-md shadow-slate-200/50 dark:shadow-slate-900/50"
+                              : "hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
+                          )}
+                        >
+                          <div className={cn(
+                            "flex items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0",
+                            isOpen ? "w-8 h-8" : "w-7 h-7",
+                            active 
+                              ? `bg-gradient-to-br ${item.accent} shadow-sm` 
+                              : "bg-slate-100 dark:bg-slate-800 group-hover/item:scale-105"
+                          )}>
+                            <Icon className={cn(
+                              "transition-colors",
+                              isOpen ? "h-4 w-4" : "h-3.5 w-3.5",
+                              active ? "text-white" : "text-slate-500 dark:text-slate-400"
+                            )} />
+                          </div>
+                          <span className={cn(
+                            "font-medium transition-all duration-300",
+                            active 
+                              ? "text-slate-900 dark:text-white" 
+                              : "text-slate-600 dark:text-slate-300",
+                            !isOpen && "hidden"
+                          )}>
+                            {item.label}
+                          </span>
+                          {active && isOpen && (
+                            <ChevronRight className="h-4 w-4 ml-auto text-slate-400" />
+                          )}
+                        </Link>
+                      </TooltipTrigger>
+                      {!isOpen && (
+                        <TooltipContent side="right" className="font-medium">
+                          {item.label}
+                        </TooltipContent>
                       )}
-                    >
-                      <Home className="h-4 w-4" />
-                      <span className="ml-2">Today</span>
-                    </Link>
-                  </TooltipTrigger>
-                </Tooltip>
-              </TooltipProvider>
-
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.addProject = el;
-                  }
-                }}
-              >
-                <AddProjectButton />
-              </div>
-            </div>
-          )}
-
-          {/* Current Focus - Show when there's an active focus */}
-          {sidebar.open && focusContext && focusContext.type !== "empty" && focusedProject && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 min-w-0 max-w-full overflow-hidden">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-medium text-muted-foreground">Working on</span>
-              </div>
-              <Link
-                onClick={() => {
-                  if (window.innerWidth <= 768) {
-                    toggleSidebar()
-                  }
-                }}
-                href={`/project/${focusContext.projectId}?tab=campaign`}
-                className="block"
-              >
-                <div className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                  <Folder className="h-4 w-4 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{focusContext.projectName}</p>
-                    {focusContext.campaignName && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {focusContext.campaignName}
-                        {focusContext.day && ` • Day ${focusContext.day}`}
-                      </p>
-                    )}
-                  </div>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-              </Link>
-            </div>
-          )}
+              );
+            })}
+          </div>
 
-          {/* Tools Section */}
-          {sidebar.open && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 space-y-1 min-w-0 max-w-full overflow-hidden">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-2 mb-2">Tools</p>
-              
-              {/* Spotlight Link */}
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.forYou = el;
-                  }
-                }}
+          {/* What's this for navigation */}
+          {isOpen && onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
+            <div className="flex justify-end px-2">
+              <button
+                onClick={onNavigationTourStart}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        onClick={() => {
-                          if (window.innerWidth <= 768) {
-                            toggleSidebar()
-                          }
-                        }}
-                        href="/project/wall"
-                        className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                          pathname === "/project/wall" 
-                            ? "bg-gray-200 dark:bg-gray-600" 
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        <Newspaper className="h-4 w-4" />
-                        <span className="ml-2">Spotlight</span>
-                      </Link>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              {/* Calendar Link */}
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.contentPlanner = el;
-                  }
-                }}
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        onClick={() => {
-                          if (window.innerWidth <= 768) {
-                            toggleSidebar()
-                          }
-                        }}
-                        href="/project/dashboard"
-                        className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                          pathname === "/project/dashboard" 
-                            ? "bg-gray-200 dark:bg-gray-600" 
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        <Calendar className="h-4 w-4" />
-                        <span className="ml-2">Calendar</span>
-                      </Link>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              {/* Analytics Link */}
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.analytics = el;
-                  }
-                }}
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        onClick={() => {
-                          if (window.innerWidth <= 768) {
-                            toggleSidebar()
-                          }
-                        }}
-                        href="/project/analytics"
-                        className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                          pathname?.startsWith("/project/analytics") 
-                            ? "bg-gray-200 dark:bg-gray-600" 
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        <TrendingUp className="h-4 w-4" />
-                        <span className="ml-2">Analytics</span>
-                      </Link>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              {/* Templates Link */}
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.template = el;
-                  }
-                }}
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        onClick={() => {
-                          if (window.innerWidth <= 768) {
-                            toggleSidebar()
-                          }
-                        }}
-                        href="/project/templates"
-                        className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                          pathname === '/project/templates' || pathname?.startsWith('/project/templates/') 
-                            ? "bg-gray-200 dark:bg-gray-600" 
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        <Layers className="h-4 w-4" />
-                        <span className="ml-2">Templates</span>
-                      </Link>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              {/* Video Maker Link */}
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.videoMaker = el;
-                  }
-                }}
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        onClick={() => {
-                          if (window.innerWidth <= 768) {
-                            toggleSidebar()
-                          }
-                        }}
-                        href="/project/video-maker"
-                        className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                          pathname === '/project/video-maker' 
-                            ? "bg-gray-200 dark:bg-gray-600" 
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        <Video className="h-4 w-4" />
-                        <span className="ml-2">Video Maker</span>
-                      </Link>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              {/* My Videos Link */}
-              <div
-                ref={(el) => {
-                  if (elementRefs && el) {
-                    elementRefs.current.myVideos = el;
-                  }
-                }}
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        onClick={() => {
-                          if (window.innerWidth <= 768) {
-                            toggleSidebar()
-                          }
-                        }}
-                        href="/project/my-videos"
-                        className={cn(
-                          "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                          pathname === '/project/my-videos' 
-                            ? "bg-gray-200 dark:bg-gray-600" 
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        <PlaySquare className="h-4 w-4" />
-                        <span className="ml-2">My Videos</span>
-                      </Link>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              
-              {/* What's this? button */}
-              {onNavigationTourStart && (settings?.guidedTourEnabled ?? true) && (
-                <div className="flex justify-end mt-2 w-full hidden md:flex">
-                  <button
-                    onClick={onNavigationTourStart}
-                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
-                  >
-                    What&apos;s this?
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Folders Section - Collapsed by default */}
-          {sidebar.open && folders && folders.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-folders-section>
-              <Collapsible open={openSections.includes("folders")} onOpenChange={() => handleSectionToggle("folders")}>
-                <CollapsibleTrigger asChild>
-                  <div className="cursor-pointer">
-                    <div className="flex items-center justify-between px-2 mb-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Folders</p>
-                      {openSections.includes("folders") ? (
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 opacity-50" />
-                      )}
-                    </div>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <AddFolderButton />
-                  {foldersLoading
-                    ? Array.from({ length: 2 }).map((_, i) => (
-                      <Skeleton key={i} className="h-8 mt-2" />
-                    ))
-                    : folders.map((folder: any) => (
-                        <div key={folder.id} data-folder-item>
-                          <ProjectFolderItem
-                            folder={folder}
-                            isOpen={openSections.includes(folder.id)}
-                            onToggle={() => handleSectionToggle(folder.id)}
-                            currentPath={pathname}
-                          />
-                        </div>
-                      ))}
-                </CollapsibleContent>
-              </Collapsible>
-              
-              {/* What's this? button */}
-              {onFoldersTourStart && (settings?.guidedTourEnabled ?? true) && openSections.includes("folders") && (
-                <div className="flex justify-end mt-2 w-full">
-                  <button
-                    onClick={onFoldersTourStart}
-                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
-                  >
-                    What&apos;s this?
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Projects Section - Collapsed by default */}
-          {sidebar.open && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 min-w-0 max-w-full overflow-hidden" data-projects-section-card>
-              <Collapsible open={openSections.includes("projects")} onOpenChange={() => handleSectionToggle("projects")}>
-                <CollapsibleTrigger asChild>
-                  <div 
-                    ref={(el) => {
-                      if (elementRefs && el) {
-                        elementRefs.current.projects = el;
-                      }
-                    }}
-                    className="cursor-pointer"
-                    data-collapsible-trigger
-                  >
-                    <div className="flex items-center justify-between px-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All Projects</p>
-                        {projects && (
-                          <Badge variant="secondary" className="text-xs">{projects.length}</Badge>
-                        )}
-                      </div>
-                      {openSections.includes("projects") ? (
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 opacity-50" />
-                      )}
-                    </div>
-                  </div>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent data-projects-section>
-                  {isLoading
-                    ? Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-8 mb-1" />
-                    ))
-                    : projects?.map((project) => (
-                      <div key={project.id} data-project-item>
-                        <ProjectItem
-                          project={project}
-                          isOpen={false}
-                          onToggle={() => {}}
-                          currentPath={pathname}
-                          isFocused={focusContext?.projectId === project.id}
-                        />
-                      </div>
-                    ))}
-                </CollapsibleContent>
-              </Collapsible>
-              
-              {/* What's this? button */}
-              {onProjectsTourStart && (settings?.guidedTourEnabled ?? true) && openSections.includes("projects") && (
-                <div className="flex justify-end mt-2 w-full">
-                  <button
-                    onClick={onProjectsTourStart}
-                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
-                  >
-                    What&apos;s this?
-                  </button>
-                </div>
-              )}
+                What&apos;s this?
+              </button>
             </div>
           )}
         </SidebarContent>
       </ScrollArea>
+
+      {/* Footer with Project Selector */}
+      <SidebarFooter className={cn("relative py-4 border-t border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-1")}>
+        <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
+          <PopoverTrigger asChild>
+            <button
+              ref={(el) => {
+                if (elementRefs && el) {
+                  elementRefs.current.projects = el;
+                }
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 group",
+                !isOpen && "justify-center p-2"
+              )}
+            >
+              <div className={cn(
+                "rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 flex-shrink-0 flex items-center justify-center",
+                isOpen ? "p-2" : "p-1.5"
+              )}>
+                <Folder className={cn("text-white", isOpen ? "h-4 w-4" : "h-3.5 w-3.5")} />
+              </div>
+              {isOpen && (
+                <>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                      {currentProject?.name || "Select Project"}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {projects?.length || 0} projects
+                    </p>
+                  </div>
+                  <ChevronsUpDown className="h-4 w-4 text-slate-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                </>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent 
+            side="top" 
+            align="start" 
+            className="w-72 p-0 rounded-xl border-slate-200/80 dark:border-slate-700/80 shadow-xl overflow-hidden"
+            sideOffset={8}
+          >
+            <div className="p-2 pb-0">
+              <div className="px-2 py-1.5 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Switch Project
+                </span>
+                <Badge variant="secondary" className="text-xs rounded-full">
+                  {projects?.length || 0}
+                </Badge>
+              </div>
+            </div>
+              
+            <ScrollArea className="h-[min(256px,_calc(50vh-100px))] px-2">
+                <div className="space-y-1">
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-10 rounded-lg" />
+                    ))
+                  ) : projects?.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+                      No projects yet
+                    </p>
+                  ) : (
+                    projects?.map((project) => {
+                      const isActive = currentProjectId === project.id;
+                      
+                      return (
+                        <button
+                          key={project.id}
+                          onClick={() => handleProjectSelect(project.id)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",
+                            isActive
+                              ? "bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800"
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <div className={cn(
+                            "p-1.5 rounded-lg flex-shrink-0",
+                            isActive 
+                              ? "bg-violet-100 dark:bg-violet-800/50" 
+                              : "bg-slate-100 dark:bg-slate-700"
+                          )}>
+                            <Folder className={cn(
+                              "h-3.5 w-3.5",
+                              isActive 
+                                ? "text-violet-600 dark:text-violet-400" 
+                                : "text-slate-500 dark:text-slate-400"
+                            )} />
+                          </div>
+                          <p className={cn(
+                            "flex-1 min-w-0 text-sm font-medium truncate",
+                            isActive 
+                              ? "text-violet-900 dark:text-violet-100" 
+                              : "text-slate-700 dark:text-slate-200"
+                          )}>
+                            {project.name}
+                          </p>
+                          {isActive && (
+                            <Check className="h-4 w-4 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+                          )}
+                          {session?.user?.id !== project.userId && (
+                            <Users className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+            </ScrollArea>
+              
+            {/* Quick Add Project */}
+            <div className="p-2 pt-0">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <AddProjectButton variant="ghost" />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </SidebarFooter>
+
+      <SidebarRail className="bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/50" />
     </Sidebar>
-  );
-}
-
-interface ProjectItemProps {
-  project: ProjectWithChats;
-  isOpen: boolean;
-  onToggle: () => void;
-  currentPath: string;
-  isFocused?: boolean;
-}
-
-function ProjectItem({
-  project,
-  isOpen,
-  onToggle,
-  currentPath,
-  isFocused = false,
-}: ProjectItemProps) {
-  const router = useRouter();
-  const { data } = useSession();
-
-  const activeProjectId = (path: string) => {
-    const match = path.match(/project\/([^/]+)/);
-    return match ? match[1] : null;
-  };
-
-  // Function to determine if project is active (same formula as dashboard)
-  const isProjectActive = (project: ProjectWithChats) => {
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday end
-    
-    return (project.projectTrackings || []).some(tracking => {
-      const postDate = new Date(tracking.date);
-      return isWithinInterval(postDate, { start: weekStart, end: weekEnd });
-    });
-  };
-
-  // Function to calculate project progress (simplified version)
-  const calculateProjectProgress = (project: ProjectWithChats): number => {
-    if (!project.campaignPlanners || project.campaignPlanners.length === 0) {
-      return 0;
-    }
-
-    let totalProgress = 0;
-    let totalCampaigns = 0;
-
-    project.campaignPlanners.forEach(planner => {
-      if (planner.chats && planner.chats.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const baseDate = planner.startDate ? new Date(planner.startDate) : new Date(planner.createdAt);
-        baseDate.setHours(0, 0, 0, 0);
-        
-        const totalDays = planner.chats.length;
-        const passedDays = planner.chats.filter(chat => {
-          const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
-          chatDate.setHours(0, 0, 0, 0);
-          return chatDate < today;
-        }).length;
-
-        const campaignProgress = totalDays > 0 ? (passedDays / totalDays) * 100 : 0;
-        totalProgress += campaignProgress;
-        totalCampaigns++;
-      }
-    });
-
-    return totalCampaigns > 0 ? Math.round(totalProgress / totalCampaigns) : 0;
-  };
-
-  // Function to determine progress bar color
-  const getProgressBarColor = (project: ProjectWithChats) => {
-    if (isFocused) {
-      return "bg-primary"; // Primary color for focused project
-    }
-    if (isProjectActive(project)) {
-      return "bg-green-500 dark:bg-green-600"; // Green for active projects
-    } else if (project.campaignPlanners && project.campaignPlanners.length > 0) {
-      return "bg-gray-400 dark:bg-gray-500"; // Grey for inactive projects with campaigns
-    } else {
-      return "bg-blue-500 dark:bg-blue-600"; // Default blue for projects without campaigns
-    }
-  };
-
-  const { toggleSidebar } = useSidebar()
-
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer min-w-0",
-        activeProjectId(currentPath) === project.id && "bg-gray-200 dark:bg-gray-700",
-        isFocused && "ring-1 ring-primary/50"
-      )}
-      onClick={() => {
-        if (window.innerWidth <= 768) {
-          toggleSidebar()
-        }
-        const tab = localStorage.getItem("projectTab");
-        router.push(`/project/${project.id}${tab ? `?tab=${tab}` : ''}`)
-      }}
-    >
-      <div className="flex items-center justify-between min-w-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Folder className="h-4 w-4 shrink-0" />
-          <span className="font-medium truncate min-w-0">{project.name}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <AddProjectToFolder projectId={project.id} projectName={project.name} />
-          {data?.user?.id !== project.userId && (
-            <Users className="h-4 w-4 shrink-0 opacity-50" />
-          )}
-        </div>
-      </div>
-
-      {/* Progress Bar with Dynamic Fill Color */}
-      <div className="px-1">
-        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
-          <div 
-            className={`h-1.5 rounded-full transition-all duration-300 ${getProgressBarColor(project)}`}
-            style={{ width: `${calculateProjectProgress(project)}%` }}
-          />
-        </div>
-      </div>
-    </div>
   );
 }

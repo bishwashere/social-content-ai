@@ -444,8 +444,17 @@ export async function GET(request: NextRequest) {
             startDate?: string;
             userRole?: string;
             needsAction?: boolean;
+            stats?: {
+              campaignCount: number;
+              publishedPostsCount: number;
+              totalImpressions: number;
+            };
           }>;
         }> = {};
+
+        // Track projects that have campaign-related alerts (content needed or ending soon)
+        // These projects should not show "Schedule Post" alerts
+        const projectsWithCampaignAlerts = new Set<string>();
 
         // Check each project individually
         for (const project of uniqueProjects) {
@@ -621,6 +630,9 @@ export async function GET(request: NextRequest) {
               dateLabel = actualDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             }
             
+            // Mark this project as having a campaign alert (should not show Schedule Post)
+            projectsWithCampaignAlerts.add(projectId);
+            
             tasksByType["campaigns"].projects.push({
               projectId: projectId,
               projectName: projectName,
@@ -769,13 +781,86 @@ export async function GET(request: NextRequest) {
             }
             
             if (isReadyForNewCampaign && userRole === "admin") {
-              tasksByType["campaigns"].projects.push({
+              // Calculate stats: total campaigns and published posts
+              const totalCampaigns = projectCampaigns.length;
+              let publishedPostsCount = 0;
+              let totalImpressions = 0;
+              
+              try {
+                // Count platform posts (published posts) and impressions - look back 30 days
+                const thirtyDaysAgo = new Date(today);
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                
+                // Get OAuth provider IDs linked to this project
+                const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
+                  where: { projectId },
+                  select: {
+                    oauthProviderId: true
+                  }
+                });
+                
+                const oauthProviderIds = projectOAuthProviders.map(p => p.oauthProviderId);
+                
+                if (oauthProviderIds.length > 0) {
+                  // Query PlatformPost directly for better performance and accuracy
+                  const allPosts = await prisma.platformPost.findMany({
+                    where: {
+                      oauthProviderId: {
+                        in: oauthProviderIds
+                      },
+                      date: {
+                        gte: thirtyDaysAgo,
+                        lte: today
+                      }
+                    },
+                    select: {
+                      id: true,
+                      impressions: true
+                    }
+                  });
+                  
+                  publishedPostsCount = allPosts.length;
+                  
+                  // Calculate total impressions from last 30 days
+                  // Only count posts that have impressions data (not null/undefined)
+                  totalImpressions = allPosts.reduce((sum, post) => {
+                    return sum + (post.impressions || 0);
+                  }, 0);
+                }
+              } catch (error) {
+                console.error(`Error calculating stats for project ${projectId}:`, error);
+                // Continue with default values
+              }
+              
+              console.log(`📊 Stats for project "${projectName}": ${totalCampaigns} campaigns, ${publishedPostsCount} published posts, ${totalImpressions.toLocaleString()} total impressions`);
+              
+              const projectData: {
+                projectId: string;
+                projectName: string;
+                description: string;
+                userRole: string;
+                needsAction: boolean;
+                stats: {
+                  campaignCount: number;
+                  publishedPostsCount: number;
+                  totalImpressions: number;
+                };
+              } = {
                 projectId: projectId,
                 projectName: projectName,
                 description: `"${projectName}" is ready for a new campaign — ${readinessReason}`,
                 userRole: userRole,
-                needsAction: true
-              });
+                needsAction: true,
+                stats: {
+                  campaignCount: totalCampaigns,
+                  publishedPostsCount: publishedPostsCount,
+                  totalImpressions: totalImpressions
+                }
+              };
+              
+              console.log(`📊 Project data being added:`, JSON.stringify(projectData, null, 2));
+              
+              tasksByType["campaigns"].projects.push(projectData);
             } else if (hasAnyCampaign && !hasActiveCampaign) {
               // Project has campaigns but none are active and doesn't meet readiness criteria
               tasksByType["campaigns"].projects.push({
@@ -841,6 +926,9 @@ export async function GET(request: NextRequest) {
               );
               
               if (!existingProject) {
+                // Mark this project as having a campaign alert (should not show Schedule Post)
+                projectsWithCampaignAlerts.add(projectId);
+                
                 tasksByType["campaign_ending_soon"].projects.push({
                   projectId: projectId,
                   projectName: projectName,
@@ -855,8 +943,9 @@ export async function GET(request: NextRequest) {
           });
 
           // 4. Check scheduled posts for today for this project with historical analysis
+          // Skip if project already has campaign-related alerts (content needed or ending soon)
           const projectScheduledPosts = scheduledPostsByProject.get(projectId) || [];
-          if (projectScheduledPosts.length === 0) {
+          if (projectScheduledPosts.length === 0 && !projectsWithCampaignAlerts.has(projectId)) {
             // No scheduled posts - analyze historical data and show action if user is admin
             if (userRole === "admin") {
               // Analyze historical consistency and impression correlation
@@ -894,7 +983,12 @@ export async function GET(request: NextRequest) {
         }
 
         // Add summary for projects inactive 7+ days
-        if (inactiveProjects7PlusDays.length > 0) {
+        // Filter out projects that already have campaign alerts
+        const inactiveProjectsWithoutCampaignAlerts = inactiveProjects7PlusDays.filter(
+          project => !projectsWithCampaignAlerts.has(project.projectId)
+        );
+        
+        if (inactiveProjectsWithoutCampaignAlerts.length > 0) {
           if (!tasksByType["schedule_post"]) {
             tasksByType["schedule_post"] = {
               type: "schedule_post",
@@ -905,19 +999,17 @@ export async function GET(request: NextRequest) {
             };
           }
           
-          // Create a single summary entry for all inactive projects
-          const inactiveCount = inactiveProjects7PlusDays.length;
-          const avgDaysInactive = Math.round(
-            inactiveProjects7PlusDays.reduce((sum, p) => sum + p.daysSinceLastPost, 0) / inactiveCount
-          );
-          
-          // Use first project ID for navigation (user can navigate to that project)
-          tasksByType["schedule_post"].projects.push({
-            projectId: inactiveProjects7PlusDays[0].projectId,
-            projectName: inactiveProjects7PlusDays.map(p => p.projectName).join(", "),
-            description: `${inactiveCount} project${inactiveCount > 1 ? 's' : ''} inactive for 7+ days → Restart posting`,
-            userRole: "admin",
-            needsAction: true
+          // Create individual project entries with consistent description for grouping
+          // The frontend will group them and show project names
+          const inactiveCount = inactiveProjectsWithoutCampaignAlerts.length;
+          inactiveProjectsWithoutCampaignAlerts.forEach(project => {
+            tasksByType["schedule_post"].projects.push({
+              projectId: project.projectId,
+              projectName: project.projectName,
+              description: `${inactiveCount} project${inactiveCount > 1 ? 's' : ''} inactive for 7+ days → Restart posting`,
+              userRole: project.userRole,
+              needsAction: true
+            });
           });
         }
 
@@ -939,6 +1031,18 @@ export async function GET(request: NextRequest) {
 
         // Return all task types
         console.log("✅ Your Today API - Returning", tasks.length, "task types");
+        
+        // Debug: Log projects with stats
+        tasks.forEach(task => {
+          if (task.type === "campaigns") {
+            task.projects.forEach(project => {
+              if (project.description?.includes("ready for a new campaign")) {
+                console.log(`📊 Project "${project.projectName}" stats:`, JSON.stringify(project.stats));
+              }
+            });
+          }
+        });
+        
         return NextResponse.json(tasks);
       } catch (error) {
         console.error("❌ Your Today API - Error:", error);

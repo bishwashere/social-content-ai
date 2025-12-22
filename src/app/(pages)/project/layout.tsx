@@ -45,11 +45,9 @@ const Main = ({ children }: { children: React.ReactNode }) => {
     template: null,
     videoMaker: null,
     myVideos: null,
-    connectSocials: null,
     subscribe: null,
   });
 
-  const connectSocialsRef = useRef<HTMLDivElement>(null);
   const subscribeRef = useRef<HTMLDivElement>(null);
   const sidebar = useSidebar();
 
@@ -60,9 +58,6 @@ const Main = ({ children }: { children: React.ReactNode }) => {
     // Small delay to ensure sidebar is open and elements are rendered
     setTimeout(() => {
       // Update refs from header elements
-      if (connectSocialsRef.current) {
-        elementRefs.current.connectSocials = connectSocialsRef.current;
-      }
       if (subscribeRef.current) {
         elementRefs.current.subscribe = subscribeRef.current;
       }
@@ -112,7 +107,6 @@ const Main = ({ children }: { children: React.ReactNode }) => {
         <div className="w-full overflow-hidden mb-5">
           <Header 
             onTourStart={handleTourStart}
-            connectSocialsRef={connectSocialsRef}
             subscribeRef={subscribeRef}
           />
         </div>

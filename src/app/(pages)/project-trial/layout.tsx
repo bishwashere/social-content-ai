@@ -1,11 +1,11 @@
 "use client";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { ProjectSidebar } from "../project/_components/project-sidebar";
-import { Header } from "../project/_components/header";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipManagerProvider } from "@/providers/first-view-tooltip-manager";
 import { PricingModalProvider } from "@/providers/pricing-modal-provider";
 import { FocusProvider } from "@/providers/focus-provider";
+import { TrialSidebar } from "./_components/trial-sidebar";
+import { TrialHeader } from "./_components/trial-header";
 
 export default function ProjectTrialLayout({
   children,
@@ -14,17 +14,17 @@ export default function ProjectTrialLayout({
 }) {
   return (
     <TooltipManagerProvider>
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider defaultOpen={true} storageKey="trial_sidebar_state">
         <PricingModalProvider>
           <FocusProvider>
-            <ProjectSidebar />
-            <div className="w-full">
-              <div className="w-full overflow-hidden mb-5">
-                <Header />
-              </div>
-              <main className="">
-                {children}
-              </main>
+            <div className="flex min-h-screen w-full">
+              <TrialSidebar />
+              <SidebarInset className="flex flex-col flex-1 min-w-0">
+                <TrialHeader />
+                <main className="flex-1 min-h-0">
+                  {children}
+                </main>
+              </SidebarInset>
             </div>
           </FocusProvider>
         </PricingModalProvider>
@@ -32,4 +32,3 @@ export default function ProjectTrialLayout({
     </TooltipManagerProvider>
   );
 }
-
