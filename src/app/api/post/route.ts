@@ -125,22 +125,7 @@ export const GET = applyMiddleware(
         
         logger.log(`[Stuck Recovery] Post ${post.id} stuck at step: ${lastStepCompleted}`);
         
-        // If stuck for more than 30 minutes, mark as failed
-        const updatedAt = new Date(post.updatedAt);
-        const stuckDuration = now.getTime() - updatedAt.getTime();
-        const thirtyMinutes = 30 * 60 * 1000;
-        
-        if (stuckDuration > thirtyMinutes) {
-          logger.error(`[Stuck Recovery] Post ${post.id} stuck for ${Math.round(stuckDuration / 60000)} minutes, marking as failed`);
-          await updatePostStatus(
-            post.id,
-            "failed",
-            `Stuck in processing for more than 30 minutes. Last completed step: ${lastStepCompleted}`
-          );
-          return { id: post.id, action: "marked_failed", reason: "stuck_too_long" };
-        }
-        
-        // Otherwise, try to retry the next step
+        // First, try to retry the next step (if there is one)
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
         
@@ -155,8 +140,13 @@ export const GET = applyMiddleware(
           retryUrl = `${baseUrl}/api/blog/step-1-fetch-article`;
         }
         
+        // If there's a next step to retry, always retry it (don't mark as failed)
         if (retryUrl) {
-          logger.log(`[Stuck Recovery] Retrying ${retryUrl} for post ${post.id}`);
+          const updatedAt = new Date(post.updatedAt);
+          const stuckDuration = now.getTime() - updatedAt.getTime();
+          const stuckMinutes = Math.round(stuckDuration / 60000);
+          
+          logger.log(`[Stuck Recovery] Post ${post.id} stuck for ${stuckMinutes} minutes, retrying next step: ${retryUrl}`);
           fetch(retryUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -165,6 +155,22 @@ export const GET = applyMiddleware(
             logger.error(`[Stuck Recovery] Failed to retry for post ${post.id}`, error);
           });
           return { id: post.id, action: "retried", step: lastStepCompleted };
+        }
+        
+        // Only mark as failed if there's no next step to retry AND stuck for >30 minutes
+        // This handles cases where all steps are done but status is still processing (shouldn't happen)
+        const updatedAt = new Date(post.updatedAt);
+        const stuckDuration = now.getTime() - updatedAt.getTime();
+        const thirtyMinutes = 30 * 60 * 1000;
+        
+        if (stuckDuration > thirtyMinutes) {
+          logger.error(`[Stuck Recovery] Post ${post.id} stuck for ${Math.round(stuckDuration / 60000)} minutes with no next step to retry, marking as failed`);
+          await updatePostStatus(
+            post.id,
+            "failed",
+            `Stuck in processing for more than 30 minutes. Last completed step: ${lastStepCompleted}. No next step to retry.`
+          );
+          return { id: post.id, action: "marked_failed", reason: "stuck_too_long_no_retry" };
         }
         
         return { id: post.id, action: "no_action", reason: "unknown_state" };
