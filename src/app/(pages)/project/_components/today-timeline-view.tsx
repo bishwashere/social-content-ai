@@ -189,11 +189,11 @@ export function TodayTimelineView() {
               </h2>
               <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:border-emerald-900 dark:from-emerald-950/30 dark:to-teal-950/30">
                 <CardContent className="p-4">
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {trendingProjects.map((project) => (
                       <div
                         key={project.projectId}
-                        className="flex items-start justify-between gap-4 p-3 rounded-lg bg-white dark:bg-slate-900/50 hover:shadow-sm transition-all cursor-pointer border border-emerald-100 dark:border-emerald-900/50"
+                        className="flex items-start justify-between gap-4 p-2 rounded-md hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer"
                         onClick={() => router.push(project.href)}
                       >
                         <div className="flex-1 min-w-0">
@@ -208,7 +208,7 @@ export function TodayTimelineView() {
                             {project.campaignCount} {project.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.publishedPostsCount} published {project.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.totalImpressions.toLocaleString()} total impressions
                           </p>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
+                        <ArrowRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
                       </div>
                     ))}
                   </div>
