@@ -86,12 +86,17 @@ export async function GET(request: NextRequest) {
               ? "1 hour ago" 
               : `${hoursAgo} hours ago`;
 
-            const platformName = post.oauthProvider.platform.charAt(0).toUpperCase() + post.oauthProvider.platform.slice(1);
+            // Get platform abbreviation
+            const platformAbbr = post.oauthProvider.platform === "facebook" ? "FB" 
+              : post.oauthProvider.platform === "instagram" ? "IG"
+              : post.oauthProvider.platform === "twitter" ? "X"
+              : post.oauthProvider.platform === "linkedin" ? "LI"
+              : post.oauthProvider.platform.charAt(0).toUpperCase() + post.oauthProvider.platform.slice(1);
 
             activities.push({
               type: "posted",
               icon: "✔️",
-              message: `Posted to ${platformName} ${timeAgo} (Project: ${projectProvider.project.name})`,
+              message: `Posted for ${projectProvider.project.name} on ${platformAbbr} ${timeAgo}`,
               projectName: projectProvider.project.name,
               projectId: projectProvider.project.id,
               timestamp: post.date.toISOString(),
