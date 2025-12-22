@@ -353,6 +353,14 @@ export async function GET(request: NextRequest) {
           scheduledPostsByProject.set(post.projectId, existing);
         });
 
+        // Track projects inactive for 7+ days for summary grouping
+        const inactiveProjects7PlusDays: Array<{
+          projectId: string;
+          projectName: string;
+          daysSinceLastPost: number;
+          userRole: string;
+        }> = [];
+
         // Filter and identify stuck Blog News posts (partial step completion)
         const stuckBlogNewsPostsByProject = new Map<string, Array<{
           postId: string;
@@ -633,24 +641,151 @@ export async function GET(request: NextRequest) {
               userRole: userRole,
               needsAction: false
             });
-          } else if (hasAnyCampaign) {
-            // Project has campaigns but none have active chats in the next 3 days
-            tasksByType["campaigns"].projects.push({
-              projectId: projectId,
-              projectName: projectName,
-              description: `"${projectName}" has campaigns — no active chats in the next 3 days`,
-              userRole: userRole,
-              needsAction: false
-            });
-          } else if (userRole === "admin") {
-            // Project has no campaigns at all (only show for admins)
-            tasksByType["campaigns"].projects.push({
-              projectId: projectId,
-              projectName: projectName,
-              description: `"${projectName}" is ready for a new campaign — kickstart planning`,
-              userRole: userRole,
-              needsAction: true
-            });
+          } else if (hasAnyCampaign || userRole === "admin") {
+            // Check if project is ready for a new campaign based on reason-based criteria
+            // Only show if at least one condition is true:
+            // 1. Last campaign ended recently (≤14 days)
+            // 2. Posting activity exists without a campaign
+            // 3. Previous campaign performed well (posts published)
+            
+            let isReadyForNewCampaign = false;
+            let readinessReason = "";
+            
+            if (hasAnyCampaign) {
+              // Find the most recent campaign and calculate when it ended
+              const campaignsWithDates = projectCampaigns
+                .filter(c => c.startDate && c.chats.length > 0)
+                .map(c => {
+                  const startDate = new Date(c.startDate!);
+                  const lastChatDay = Math.max(...c.chats.map(chat => chat.day));
+                  const endDate = new Date(startDate);
+                  endDate.setDate(endDate.getDate() + (lastChatDay - 1));
+                  return {
+                    campaign: c,
+                    endDate,
+                    lastChatDay
+                  };
+                })
+                .sort((a, b) => b.endDate.getTime() - a.endDate.getTime());
+              
+              if (campaignsWithDates.length > 0) {
+                const lastCampaign = campaignsWithDates[0];
+                const daysSinceEnd = Math.floor((today.getTime() - lastCampaign.endDate.getTime()) / (1000 * 60 * 60 * 24));
+                
+                // Condition 1: Last campaign ended recently (≤14 days)
+                if (daysSinceEnd >= 0 && daysSinceEnd <= 14) {
+                  isReadyForNewCampaign = true;
+                  readinessReason = `Last campaign ended ${daysSinceEnd === 0 ? 'today' : daysSinceEnd === 1 ? 'yesterday' : `${daysSinceEnd} days ago`} — ready for next`;
+                }
+                
+                // Condition 3: Previous campaign performed well (check if posts were published)
+                if (!isReadyForNewCampaign) {
+                  // Check if campaign had successful posts (via PlatformPost or ScheduledPost)
+                  const campaignId = lastCampaign.campaign.id;
+                  
+                  // Check ScheduledPosts with success status for this campaign
+                  // MongoDB Prisma doesn't support path queries, so fetch and filter
+                  const allScheduledPosts = await prisma.scheduledPost.findMany({
+                    where: {
+                      projectId: projectId,
+                      status: { in: ["success", "posted"] }
+                    },
+                    select: {
+                      id: true,
+                      meta: true
+                    }
+                  });
+                  
+                  const successfulScheduledPosts = allScheduledPosts.filter(post => {
+                    const meta = post.meta as any;
+                    return meta?.campaignId === campaignId;
+                  }).length;
+                  
+                  // Check PlatformPosts in the last 30 days (proxy for campaign performance)
+                  const thirtyDaysAgo = new Date(today);
+                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                  
+                  const oauthProviders = await prisma.projectToOAuthProvider.findMany({
+                    where: { projectId },
+                    select: {
+                      oauthProvider: {
+                        select: {
+                          pagePosts: {
+                            where: {
+                              date: {
+                                gte: thirtyDaysAgo,
+                                lte: today
+                              }
+                            },
+                            select: { id: true }
+                          }
+                        }
+                      }
+                    }
+                  });
+                  
+                  const recentPosts = oauthProviders.flatMap(p => p.oauthProvider?.pagePosts || []);
+                  
+                  if (successfulScheduledPosts > 0 || recentPosts.length > 0) {
+                    isReadyForNewCampaign = true;
+                    const postCount = successfulScheduledPosts + recentPosts.length;
+                    readinessReason = `Previous campaign had ${postCount} published post${postCount > 1 ? 's' : ''} — build on success`;
+                  }
+                }
+              }
+            }
+            
+            // Condition 2: Posting activity exists without a campaign (only if no campaigns or all ended)
+            if (!isReadyForNewCampaign && !hasActiveCampaign) {
+              const thirtyDaysAgo = new Date(today);
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              
+              // Check for PlatformPosts in last 30 days
+              const oauthProviders = await prisma.projectToOAuthProvider.findMany({
+                where: { projectId },
+                select: {
+                  oauthProvider: {
+                    select: {
+                      pagePosts: {
+                        where: {
+                          date: {
+                            gte: thirtyDaysAgo,
+                            lte: today
+                          }
+                        },
+                        select: { id: true }
+                      }
+                    }
+                  }
+                }
+              });
+              
+              const recentPosts = oauthProviders.flatMap(p => p.oauthProvider?.pagePosts || []);
+              
+              if (recentPosts.length > 0) {
+                isReadyForNewCampaign = true;
+                readinessReason = `${recentPosts.length} post${recentPosts.length > 1 ? 's' : ''} in last 30 days without a campaign — organize with a campaign`;
+              }
+            }
+            
+            if (isReadyForNewCampaign && userRole === "admin") {
+              tasksByType["campaigns"].projects.push({
+                projectId: projectId,
+                projectName: projectName,
+                description: `"${projectName}" is ready for a new campaign — ${readinessReason}`,
+                userRole: userRole,
+                needsAction: true
+              });
+            } else if (hasAnyCampaign && !hasActiveCampaign) {
+              // Project has campaigns but none are active and doesn't meet readiness criteria
+              tasksByType["campaigns"].projects.push({
+                projectId: projectId,
+                projectName: projectName,
+                description: `"${projectName}" has campaigns — no active chats in the next 3 days`,
+                userRole: userRole,
+                needsAction: false
+              });
+            }
           }
 
           // 3. Check for campaigns ending soon (3 posts or less remaining)
@@ -727,24 +862,63 @@ export async function GET(request: NextRequest) {
               // Analyze historical consistency and impression correlation
               const consistencyAnalysis = await analyzeProjectConsistency(projectId);
               
-              if (!tasksByType["schedule_post"]) {
-                tasksByType["schedule_post"] = {
-                  type: "schedule_post",
-                  icon: "🚀",
-                  title: "Schedule posts for today",
-                  action: "schedule_post",
-                  projects: []
-                };
+              // Track projects inactive for 7+ days for summary grouping
+              if (consistencyAnalysis.daysSinceLastPost >= 7) {
+                inactiveProjects7PlusDays.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  daysSinceLastPost: consistencyAnalysis.daysSinceLastPost,
+                  userRole: userRole
+                });
+              } else {
+              // Show individual items for projects inactive less than 7 days
+                if (!tasksByType["schedule_post"]) {
+                  tasksByType["schedule_post"] = {
+                    type: "schedule_post",
+                    icon: "🚀",
+                    title: "Schedule posts for today",
+                    action: "schedule_post",
+                    projects: []
+                  };
+                }
+                tasksByType["schedule_post"].projects.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  description: `"${projectName}": ${consistencyAnalysis.message}`,
+                  userRole: userRole,
+                  needsAction: consistencyAnalysis.needsAction
+                });
               }
-              tasksByType["schedule_post"].projects.push({
-                projectId: projectId,
-                projectName: projectName,
-                description: `"${projectName}": ${consistencyAnalysis.message}`,
-                userRole: userRole,
-                needsAction: consistencyAnalysis.needsAction
-              });
             }
           }
+        }
+
+        // Add summary for projects inactive 7+ days
+        if (inactiveProjects7PlusDays.length > 0) {
+          if (!tasksByType["schedule_post"]) {
+            tasksByType["schedule_post"] = {
+              type: "schedule_post",
+              icon: "🚀",
+              title: "Schedule posts for today",
+              action: "schedule_post",
+              projects: []
+            };
+          }
+          
+          // Create a single summary entry for all inactive projects
+          const inactiveCount = inactiveProjects7PlusDays.length;
+          const avgDaysInactive = Math.round(
+            inactiveProjects7PlusDays.reduce((sum, p) => sum + p.daysSinceLastPost, 0) / inactiveCount
+          );
+          
+          // Use first project ID for navigation (user can navigate to that project)
+          tasksByType["schedule_post"].projects.push({
+            projectId: inactiveProjects7PlusDays[0].projectId,
+            projectName: inactiveProjects7PlusDays.map(p => p.projectName).join(", "),
+            description: `${inactiveCount} project${inactiveCount > 1 ? 's' : ''} inactive for 7+ days → Restart posting`,
+            userRole: "admin",
+            needsAction: true
+          });
         }
 
         // Convert grouped tasks to array

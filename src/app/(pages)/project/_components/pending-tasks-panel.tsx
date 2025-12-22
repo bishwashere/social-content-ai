@@ -14,6 +14,21 @@ export function PendingTasksPanel() {
   const { data: tasks = [], isLoading, error } = useGetPendingTasks();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
+  const getActionButtonText = (action: string): string => {
+    switch (action) {
+      case "generate_weekly_plan":
+        return "Plan this week";
+      case "manage_campaign":
+        return "Plan this week";
+      case "create_mini_campaign":
+        return "Create first post";
+      case "assign_templates":
+        return "Set up templates";
+      default:
+        return "Take action";
+    }
+  };
+
   const handleTaskAction = (task: typeof tasks[0], project?: typeof task.projects[0]) => {
     const projectId = project?.projectId || task.projects[0]?.projectId;
     const userRole = project?.userRole || task.projects[0]?.userRole;
@@ -138,7 +153,7 @@ export function PendingTasksPanel() {
                       size="sm"
                       className="flex-shrink-0"
                     >
-                      Take action
+                      {getActionButtonText(task.action)}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
