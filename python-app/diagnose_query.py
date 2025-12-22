@@ -50,7 +50,8 @@ if len(processing_posts) == 0:
     print("   Showing all posts with their status:")
     for post in all_posts[:5]:  # Show first 5
         meta = post.get("meta", {})
-        print(f"   - ID: {post['_id'][:20]}... | Status: {post.get('status')} | Step1: {meta.get('step1Completed')} | Step2: {meta.get('step2Completed')}")
+        post_id_str = str(post['_id'])
+        print(f"   - ID: {post_id_str[:20]}... | Status: {post.get('status')} | Step1: {meta.get('step1Completed')} | Step2: {meta.get('step2Completed')}")
 
 # Step 4: Check step completion for processing posts
 print("\n🔍 Step 4: Checking step completion for processing posts...")
@@ -62,7 +63,8 @@ for i, post in enumerate(processing_posts, 1):
     step1_progress = meta.get("step1InProgress", False)
     step2_progress = meta.get("step2InProgress", False)
     
-    print(f"\n  Post {i}: {post['_id'][:20]}...")
+    post_id_str = str(post['_id'])
+    print(f"\n  Post {i}: {post_id_str[:20]}...")
     print(f"    Status: {post.get('status')}")
     print(f"    Date: {post_date} (passed: {post_date <= now if post_date else 'N/A'})")
     print(f"    Step 1 completed: {step1}")
@@ -171,7 +173,8 @@ if len(found) > 0:
     print("\nPosts found by query:")
     for i, post in enumerate(found, 1):
         meta = post.get("meta", {})
-        print(f"  {i}. ID: {post['_id'][:20]}... | Step1: {meta.get('step1Completed')} | Step2: {meta.get('step2Completed')}")
+        post_id_str = str(post['_id'])
+        print(f"  {i}. ID: {post_id_str[:20]}... | Step1: {meta.get('step1Completed')} | Step2: {meta.get('step2Completed')}")
 else:
     print("\n❌ Query found 0 posts!")
     print("\nLet's test simpler queries to see where it breaks...")
@@ -219,7 +222,8 @@ else:
         for post in test4:
             meta = post.get("meta", {})
             step2_progress = meta.get("step2InProgress", False)
-            print(f"    - ID: {post['_id'][:20]}... | Step2 in progress: {step2_progress}")
+            post_id_str = str(post['_id'])
+            print(f"    - ID: {post_id_str[:20]}... | Step2 in progress: {step2_progress}")
             if step2_progress:
                 print(f"      ⚠️  This post has step2InProgress=true, so it's excluded by query")
 
