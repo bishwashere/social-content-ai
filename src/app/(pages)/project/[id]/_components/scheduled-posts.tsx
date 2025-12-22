@@ -44,6 +44,7 @@ import ThreadsPost from "@/components/social/threads-post-view";
 import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronsUpDown } from "lucide-react";
 interface Props {
   project: Project;
 }
@@ -254,6 +255,7 @@ const formatDate = (date: Date | string, timezone?: string, localTime?: string, 
 export function ScheduledPosts({ project }: Props) {
   const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
   const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set());
+  const [showPastPosts, setShowPastPosts] = useState<Set<string>>(new Set());
 
   const queryClient = useQueryClient();
   const {
@@ -305,6 +307,18 @@ export function ScheduledPosts({ project }: Props) {
 
   const toggleCampaign = (campaignId: string) => {
     setExpandedCampaigns((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(campaignId)) {
+        newSet.delete(campaignId);
+      } else {
+        newSet.add(campaignId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleShowPastPosts = (campaignId: string) => {
+    setShowPastPosts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(campaignId)) {
         newSet.delete(campaignId);
@@ -548,6 +562,21 @@ export function ScheduledPosts({ project }: Props) {
             const successCount = statuses.filter(s => s === "success" || s === "published").length;
             const failedCount = statuses.filter(s => s === "failed" || s === "error").length;
 
+            // Separate posts into past and future/today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const futureAndTodayPosts = sortedPosts.filter((post) => {
+              const postDate = new Date(post.date);
+              postDate.setHours(0, 0, 0, 0);
+              return postDate >= today;
+            });
+            const pastPosts = sortedPosts.filter((post) => {
+              const postDate = new Date(post.date);
+              postDate.setHours(0, 0, 0, 0);
+              return postDate < today;
+            });
+            const shouldShowPast = showPastPosts.has(campaignId);
+
             return (
               <Card key={campaignId} className="w-full">
                 <CardHeader className="pb-3">
@@ -603,7 +632,49 @@ export function ScheduledPosts({ project }: Props) {
                 </CardHeader>
                 {isExpanded && (
                   <CardContent className="pt-0 space-y-4">
-                    {sortedPosts.map((post) => renderPostCard(post))}
+                    {/* Show Past Posts Button */}
+                    {pastPosts.length > 0 && (
+                      <div className="flex justify-center mb-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleShowPastPosts(campaignId)}
+                          className="w-full rounded-lg border"
+                        >
+                          {shouldShowPast ? "Hide Past Posts" : "Show Past Posts"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Past Posts (collapsible) */}
+                    {shouldShowPast && pastPosts.length > 0 && (
+                      <div className="space-y-4 pb-4 border-b border-dashed">
+                        <div className="text-sm text-muted-foreground font-medium mb-2">
+                          Past Posts ({pastPosts.length})
+                        </div>
+                        {pastPosts.map((post) => renderPostCard(post))}
+                      </div>
+                    )}
+
+                    {/* Today and Future Posts */}
+                    <div className="space-y-4">
+                      {futureAndTodayPosts.length > 0 && (
+                        <>
+                          {pastPosts.length > 0 && (
+                            <div className="text-sm text-muted-foreground font-medium mb-2">
+                              Upcoming & Today ({futureAndTodayPosts.length})
+                            </div>
+                          )}
+                          {futureAndTodayPosts.map((post) => renderPostCard(post))}
+                        </>
+                      )}
+                      {futureAndTodayPosts.length === 0 && pastPosts.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No posts found
+                        </p>
+                      )}
+                    </div>
                   </CardContent>
                 )}
               </Card>
