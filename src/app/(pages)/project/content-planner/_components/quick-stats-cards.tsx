@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGetAllProjects, useGetAllScheduledPosts } from "@/backend-apis/projects/hooks";
 import { useMemo } from "react";
 import { format, startOfWeek, endOfWeek, isWithinInterval, isToday } from "date-fns";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/cn";
 import { 
   TrendingUp, 
   Calendar, 
@@ -18,6 +20,7 @@ import {
 export function QuickStatsCards() {
   const projects = useGetAllProjects();
   const scheduledPosts = useGetAllScheduledPosts();
+  const router = useRouter();
 
   const stats = useMemo(() => {
     if (!projects.data) return null;
@@ -146,7 +149,8 @@ export function QuickStatsCards() {
       icon: Calendar,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
-      description: "Total posts scheduled"
+      description: "Total posts scheduled",
+      href: "/project/content-planner"
     },
     {
       title: "Upcoming (7 days)",
@@ -177,7 +181,14 @@ export function QuickStatsCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       {statCards.map((card, index) => (
-        <Card key={index} className="hover:shadow-md transition-shadow">
+        <Card 
+          key={index} 
+          className={cn(
+            "hover:shadow-md transition-shadow",
+            card.href && "cursor-pointer"
+          )}
+          onClick={card.href ? () => router.push(card.href!) : undefined}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               {card.title}

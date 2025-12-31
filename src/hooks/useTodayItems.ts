@@ -54,6 +54,13 @@ export type TimelineItem = {
   // Multiple projects (for grouped items like "ready for new campaign")
   projects?: TimelineProject[];
   isGrouped?: boolean;
+  // Optional stats for trending items
+  stats?: {
+    recentImpressions?: number;
+    totalImpressions?: number;
+    campaignCount?: number;
+    publishedPostsCount?: number;
+  };
 };
 
 // Pattern detection for grouping similar actions
@@ -91,6 +98,11 @@ function getGroupKey(description: string | undefined, taskType: string): string 
     return `campaign_ending_soon-group`;
   }
   
+  // Group "is doing well" items together (for trending projects)
+  if (description.includes("is doing well")) {
+    return `${taskType}-doing-well`;
+  }
+  
   // Group general campaign planning items (not tied to specific day/date)
   if (taskType === "campaigns" && !description.includes("Day ")) {
     return `campaigns-planning`;
@@ -113,6 +125,9 @@ function getGroupTitle(groupKey: string): string {
   }
   if (groupKey.includes("ending-soon")) {
     return "Campaigns ending soon";
+  }
+  if (groupKey.includes("doing-well")) {
+    return "Projects doing well";
   }
   if (groupKey.includes("campaigns-planning")) {
     return "Plan campaigns";
@@ -188,8 +203,9 @@ export function useTodayItems() {
     // Process YourToday tasks (urgent items and campaigns)
     yourTodayTasks.forEach((task) => {
       task.projects.forEach((project, index) => {
-        // Only include projects that need action
-        if (!project.needsAction && task.type !== "failed_post") {
+        // Include projects that need action OR have stats (for trending projects)
+        // Stats indicate the project is active and may be trending
+        if (!project.needsAction && task.type !== "failed_post" && !project.stats) {
           return;
         }
 
@@ -280,24 +296,75 @@ export function useTodayItems() {
             ? `${project.projectName} • ${project.campaignName}${dayDisplay ? ` • ${dayDisplay}` : ''}`
             : project.projectName;
 
-          items.push({
-            id: `today-${task.type}-${project.projectId}-${index}`,
-            type: itemType,
-            priority,
-            icon: task.icon,
-            title: itemTitle,
-            description: itemDescription,
-            projectId: project.projectId,
-            projectName: project.projectName,
-            campaignId: project.campaignId,
-            campaignName: project.campaignName,
-            day: project.day,
-            userRole: project.userRole,
-            action: {
-              label: getActionButtonText(task.type),
-              href,
-            },
-          });
+          // For individual items, if they have stats, we should group them so they can appear in trending
+          // Check if this project has stats and should be grouped for trending
+          if (project.stats && project.stats.recentImpressions >= 50) {
+            // Group projects with stats together so they can be found in trending
+            const statsGroupKey = `${task.type}-trending`;
+            const existingStatsGroup = groupedMap.get(statsGroupKey);
+            
+            if (existingStatsGroup) {
+              // Add to existing stats group
+              existingStatsGroup.projects?.push({
+                projectId: project.projectId,
+                projectName: project.projectName,
+                campaignId: project.campaignId,
+                campaignName: project.campaignName,
+                day: project.day,
+                startDate: project.startDate,
+                dateLabel,
+                href,
+                userRole: project.userRole,
+                stats: project.stats,
+              });
+            } else {
+              // Create new stats group
+              groupedMap.set(statsGroupKey, {
+                id: `group-${statsGroupKey}`,
+                type: itemType,
+                priority,
+                icon: task.icon,
+                title: task.title,
+                description: undefined,
+                isGrouped: true,
+                projects: [{
+                  projectId: project.projectId,
+                  projectName: project.projectName,
+                  campaignId: project.campaignId,
+                  campaignName: project.campaignName,
+                  day: project.day,
+                  startDate: project.startDate,
+                  dateLabel,
+                  href,
+                  userRole: project.userRole,
+                  stats: project.stats,
+                }],
+                action: {
+                  label: getActionButtonText(task.type),
+                },
+              });
+            }
+          } else {
+            // No stats or below threshold, add as individual item
+            items.push({
+              id: `today-${task.type}-${project.projectId}-${index}`,
+              type: itemType,
+              priority,
+              icon: task.icon,
+              title: itemTitle,
+              description: itemDescription,
+              projectId: project.projectId,
+              projectName: project.projectName,
+              campaignId: project.campaignId,
+              campaignName: project.campaignName,
+              day: project.day,
+              userRole: project.userRole,
+              action: {
+                label: getActionButtonText(task.type),
+                href,
+              },
+            });
+          }
         }
       });
     });

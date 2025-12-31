@@ -23,6 +23,110 @@ type ConsistencyAnalysis = {
  * Analyze historical posting consistency and its correlation with impressions
  * Returns data-driven insights about whether consistency boosted performance
  */
+// Helper function to calculate project stats (impressions, posts, etc.)
+async function calculateProjectStats(projectId: string): Promise<{
+  campaignCount: number;
+  publishedPostsCount: number;
+  totalImpressions: number;
+  recentImpressions: number;
+}> {
+  const today = startOfDay(new Date());
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const threeDaysAgo = new Date(today);
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  let publishedPostsCount = 0;
+  let totalImpressions = 0;
+  let recentImpressions = 0;
+
+  try {
+    // Get total campaigns for this project
+    const projectCampaigns = await prisma.campaignPlanner.findMany({
+      where: { projectId },
+      select: { id: true }
+    });
+    const totalCampaigns = projectCampaigns.length;
+
+    // Get OAuth provider IDs linked to this project
+    const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
+      where: { projectId },
+      select: {
+        oauthProviderId: true
+      }
+    });
+
+    const oauthProviderIds = projectOAuthProviders.map(p => p.oauthProviderId);
+
+    if (oauthProviderIds.length > 0) {
+      // Query PlatformPost directly for better performance and accuracy
+      const allPosts = await prisma.platformPost.findMany({
+        where: {
+          oauthProviderId: {
+            in: oauthProviderIds
+          },
+          date: {
+            gte: thirtyDaysAgo,
+            lte: today
+          }
+        },
+        select: {
+          id: true,
+          impressions: true,
+          date: true
+        }
+      });
+
+      publishedPostsCount = allPosts.length;
+
+      // Calculate total impressions from last 30 days
+      // Only count posts that have impressions data (not null/undefined)
+      totalImpressions = allPosts.reduce((sum, post) => {
+        return sum + (post.impressions || 0);
+      }, 0);
+
+      // Calculate recent impressions (last 3 days)
+      const recentPosts = allPosts.filter(post => new Date(post.date) >= threeDaysAgo);
+      recentImpressions = recentPosts.reduce((sum, post) => {
+        return sum + (post.impressions || 0);
+      }, 0);
+
+      // Debug logging for project stats calculation
+      if (totalImpressions > 0) {
+        console.log(`📊 Project Stats for ${projectId}:`, {
+          totalImpressions,
+          recentImpressions,
+          publishedPostsCount,
+          totalPosts: allPosts.length,
+          recentPostsCount: recentPosts.length,
+          threeDaysAgo: threeDaysAgo.toISOString(),
+          today: today.toISOString(),
+          recentPostsDates: recentPosts.map(p => ({
+            date: p.date.toISOString(),
+            impressions: p.impressions
+          }))
+        });
+      }
+    }
+
+    return {
+      campaignCount: totalCampaigns,
+      publishedPostsCount: publishedPostsCount,
+      totalImpressions: totalImpressions,
+      recentImpressions: recentImpressions
+    };
+  } catch (error) {
+    console.error(`Error calculating stats for project ${projectId}:`, error);
+    // Return default values on error
+    return {
+      campaignCount: 0,
+      publishedPostsCount: 0,
+      totalImpressions: 0,
+      recentImpressions: 0
+    };
+  }
+}
+
 async function analyzeProjectConsistency(projectId: string): Promise<ConsistencyAnalysis> {
   const today = startOfDay(new Date());
   const thirtyDaysAgo = startOfDay(subDays(today, 30));
@@ -456,6 +560,9 @@ export async function GET(request: NextRequest) {
         // Track projects that have campaign-related alerts (content needed or ending soon)
         // These projects should not show "Schedule Post" alerts
         const projectsWithCampaignAlerts = new Set<string>();
+        
+        // Track all projects that have been processed (to avoid duplicates)
+        const processedProjects = new Set<string>();
 
         // Check each project individually
         for (const project of uniqueProjects) {
@@ -634,26 +741,88 @@ export async function GET(request: NextRequest) {
             // Mark this project as having a campaign alert (should not show Schedule Post)
             projectsWithCampaignAlerts.add(projectId);
             
-            tasksByType["campaigns"].projects.push({
-              projectId: projectId,
-              projectName: projectName,
-              description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
-              campaignId: campaign.campaignId,
-              campaignName: campaign.campaignName,
-              day: campaign.day,
-              startDate: startDate?.toISOString(),
-              userRole: userRole,
-              needsAction: true
-            });
+            // Calculate stats for projects needing content so they can appear in trending if doing well
+            if (userRole === "admin") {
+              const stats = await calculateProjectStats(projectId);
+              
+              // Only add stats if project has meaningful activity (recent impressions or posts)
+              if (stats.recentImpressions > 0 || stats.publishedPostsCount > 0) {
+                tasksByType["campaigns"].projects.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
+                  campaignId: campaign.campaignId,
+                  campaignName: campaign.campaignName,
+                  day: campaign.day,
+                  startDate: startDate?.toISOString(),
+                  userRole: userRole,
+                  needsAction: true,
+                  stats: stats
+                });
+              } else {
+                // No stats, add without stats
+                tasksByType["campaigns"].projects.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
+                  campaignId: campaign.campaignId,
+                  campaignName: campaign.campaignName,
+                  day: campaign.day,
+                  startDate: startDate?.toISOString(),
+                  userRole: userRole,
+                  needsAction: true
+                });
+              }
+            } else {
+              // Non-admin users don't get stats
+              tasksByType["campaigns"].projects.push({
+                projectId: projectId,
+                projectName: projectName,
+                description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
+                campaignId: campaign.campaignId,
+                campaignName: campaign.campaignName,
+                day: campaign.day,
+                startDate: startDate?.toISOString(),
+                userRole: userRole,
+                needsAction: true
+              });
+            }
           } else if (hasActiveCampaign) {
             // Project has active campaigns but all are up to date
-            tasksByType["campaigns"].projects.push({
-              projectId: projectId,
-              projectName: projectName,
-              description: `"${projectName}" has active campaigns — all up to date`,
-              userRole: userRole,
-              needsAction: false
-            });
+            // Calculate stats for projects with active campaigns so they can appear in trending
+            if (userRole === "admin") {
+              const stats = await calculateProjectStats(projectId);
+              
+              // Only add stats if project has meaningful activity (recent impressions or posts)
+              if (stats.recentImpressions > 0 || stats.publishedPostsCount > 0) {
+                tasksByType["campaigns"].projects.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  description: `"${projectName}" has active campaigns — all up to date`,
+                  userRole: userRole,
+                  needsAction: false,
+                  stats: stats
+                });
+              } else {
+                // No stats, add without stats
+                tasksByType["campaigns"].projects.push({
+                  projectId: projectId,
+                  projectName: projectName,
+                  description: `"${projectName}" has active campaigns — all up to date`,
+                  userRole: userRole,
+                  needsAction: false
+                });
+              }
+            } else {
+              // Non-admin users don't get stats
+              tasksByType["campaigns"].projects.push({
+                projectId: projectId,
+                projectName: projectName,
+                description: `"${projectName}" has active campaigns — all up to date`,
+                userRole: userRole,
+                needsAction: false
+              });
+            }
           } else if (hasAnyCampaign || userRole === "admin") {
             // Check if project is ready for a new campaign based on reason-based criteria
             // Only show if at least one condition is true:
@@ -782,71 +951,10 @@ export async function GET(request: NextRequest) {
             }
             
             if (isReadyForNewCampaign && userRole === "admin") {
-              // Calculate stats: total campaigns and published posts
-              const totalCampaigns = projectCampaigns.length;
-              let publishedPostsCount = 0;
-              let totalImpressions = 0;
-              let recentImpressions = 0; // Last 3 days
+              // Calculate stats using helper function
+              const stats = await calculateProjectStats(projectId);
               
-              try {
-                // Count platform posts (published posts) and impressions - look back 30 days
-                const thirtyDaysAgo = new Date(today);
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                
-                // Get impressions from last 3 days for recent performance highlight
-                const threeDaysAgo = new Date(today);
-                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-                
-                // Get OAuth provider IDs linked to this project
-                const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
-                  where: { projectId },
-                  select: {
-                    oauthProviderId: true
-                  }
-                });
-                
-                const oauthProviderIds = projectOAuthProviders.map(p => p.oauthProviderId);
-                
-                if (oauthProviderIds.length > 0) {
-                  // Query PlatformPost directly for better performance and accuracy
-                  const allPosts = await prisma.platformPost.findMany({
-                    where: {
-                      oauthProviderId: {
-                        in: oauthProviderIds
-                      },
-                      date: {
-                        gte: thirtyDaysAgo,
-                        lte: today
-                      }
-                    },
-                    select: {
-                      id: true,
-                      impressions: true,
-                      date: true
-                    }
-                  });
-                  
-                  publishedPostsCount = allPosts.length;
-                  
-                  // Calculate total impressions from last 30 days
-                  // Only count posts that have impressions data (not null/undefined)
-                  totalImpressions = allPosts.reduce((sum, post) => {
-                    return sum + (post.impressions || 0);
-                  }, 0);
-                  
-                  // Calculate recent impressions (last 3 days)
-                  recentImpressions = allPosts
-                    .filter(post => new Date(post.date) >= threeDaysAgo)
-                    .reduce((sum, post) => {
-                      return sum + (post.impressions || 0);
-                    }, 0);
-                }
-              } catch (error) {
-                console.error(`Error calculating stats for project ${projectId}:`, error);
-                // Continue with default values
-              }
-              
-              console.log(`📊 Stats for project "${projectName}": ${totalCampaigns} campaigns, ${publishedPostsCount} published posts, ${totalImpressions.toLocaleString()} total impressions, ${recentImpressions.toLocaleString()} recent (3d)`);
+              console.log(`📊 Stats for project "${projectName}": ${stats.campaignCount} campaigns, ${stats.publishedPostsCount} published posts, ${stats.totalImpressions.toLocaleString()} total impressions, ${stats.recentImpressions.toLocaleString()} recent (3d)`);
               
               const projectData: {
                 projectId: string;
@@ -866,12 +974,7 @@ export async function GET(request: NextRequest) {
                 description: `"${projectName}" is ready for a new campaign — ${readinessReason}`,
                 userRole: userRole,
                 needsAction: true,
-                stats: {
-                  campaignCount: totalCampaigns,
-                  publishedPostsCount: publishedPostsCount,
-                  totalImpressions: totalImpressions,
-                  recentImpressions: recentImpressions
-                }
+                stats: stats
               };
               
               console.log(`📊 Project data being added:`, JSON.stringify(projectData, null, 2));
@@ -958,6 +1061,9 @@ export async function GET(request: NextRequest) {
             }
           });
 
+          // Mark this project as processed
+          processedProjects.add(projectId);
+          
           // 4. Check scheduled posts for today for this project with historical analysis
           // Skip if project already has campaign-related alerts (content needed or ending soon)
           const projectScheduledPosts = scheduledPostsByProject.get(projectId) || [];
@@ -1027,6 +1133,68 @@ export async function GET(request: NextRequest) {
               needsAction: true
             });
           });
+        }
+
+        // Add stats for all remaining projects (for trending projects feature)
+        // This ensures projects doing well appear in trending even if they don't need action
+        if (!tasksByType["campaigns"]) {
+          tasksByType["campaigns"] = {
+            type: "campaigns",
+            icon: "📅",
+            title: "Campaigns",
+            action: "manage_campaigns",
+            projects: []
+          };
+        }
+        
+        // Calculate stats for all projects that haven't been processed yet
+        // This allows them to appear in trending if they're doing well
+        for (const project of uniqueProjects) {
+          const projectId = project.id;
+          const projectName = project.name;
+          const userRole = projectRoleMap.get(projectId) || "viewer";
+          
+          // Skip if already processed or not admin
+          if (processedProjects.has(projectId) || userRole !== "admin") {
+            continue;
+          }
+          
+          // Calculate stats for this project
+          const stats = await calculateProjectStats(projectId);
+          
+          // Debug logging for specific project
+          if (projectName.toLowerCase().includes('natives') || projectName.toLowerCase().includes('plug')) {
+            console.log(`🔍 Checking project "${projectName}" (${projectId}):`, {
+              recentImpressions: stats.recentImpressions,
+              totalImpressions: stats.totalImpressions,
+              publishedPostsCount: stats.publishedPostsCount,
+              campaignCount: stats.campaignCount,
+              meetsCriteria: stats.recentImpressions > 0 || stats.publishedPostsCount > 0 || stats.totalImpressions >= 50,
+              userRole: userRole,
+              alreadyProcessed: processedProjects.has(projectId)
+            });
+          }
+          
+          // Only include if project has meaningful activity (recent impressions, posts, or significant total impressions)
+          // This ensures trending projects can appear even if they don't need action
+          // Also include projects with 50+ total impressions even if recent activity is low
+          if (stats.recentImpressions > 0 || stats.publishedPostsCount > 0 || stats.totalImpressions >= 50) {
+            // Check if project already exists in campaigns (shouldn't happen, but be safe)
+            const existingProject = tasksByType["campaigns"].projects.find(
+              p => p.projectId === projectId
+            );
+            
+            if (!existingProject) {
+              tasksByType["campaigns"].projects.push({
+                projectId: projectId,
+                projectName: projectName,
+                description: `"${projectName}" is doing well`,
+                userRole: userRole,
+                needsAction: false,
+                stats: stats
+              });
+            }
+          }
         }
 
         // Convert grouped tasks to array

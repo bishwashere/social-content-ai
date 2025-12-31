@@ -90,7 +90,7 @@ export const useGenerateVideo = () => {
       toast.success("Video added to queue for render!");
       
       // If video has project context (from campaign planner), go back
-      // Otherwise (from Quick Video Maker), redirect to My Videos
+      // Otherwise (from Create a Viral Video), redirect to My Videos
       if (result.hasProjectContext) {
         router.back();
       } else {

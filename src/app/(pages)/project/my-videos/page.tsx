@@ -110,7 +110,7 @@ const MyVideosPage = () => {
             <div>
               <h3 className="text-xl font-semibold mb-2">No videos yet</h3>
               <p className="text-muted-foreground mb-4">
-                Create your first video using the Quick Video Maker!
+                Create your first video using Create a Viral Video!
               </p>
               <Button
                 onClick={() => window.location.href = '/project/video-maker'}

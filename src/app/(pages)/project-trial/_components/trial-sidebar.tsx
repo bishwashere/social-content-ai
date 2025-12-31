@@ -29,7 +29,7 @@ import {
 const nav = [
   { href: "/project-trial", label: "Today", icon: Home, accent: "from-violet-500 to-purple-600", discoverRoutes: undefined },
   { href: "/project/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", discoverRoutes: ["/project/wall", "/project/templates"] },
-  { href: "/project/dashboard", label: "Calendar", icon: Calendar, accent: "from-blue-500 to-cyan-500", discoverRoutes: undefined },
+  { href: "/project/content-planner", label: "Content Planner", icon: Calendar, accent: "from-blue-500 to-cyan-500", discoverRoutes: undefined },
   { href: "/project/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", discoverRoutes: undefined },
   { href: "/project/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", discoverRoutes: undefined },
 ];

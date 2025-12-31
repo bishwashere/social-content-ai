@@ -27,9 +27,9 @@ import {
 
 const DEFAULT_SIDEBAR_STORAGE_KEY = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "14rem"; // Reduced from 16rem to fit content better
 const SIDEBAR_WIDTH_MOBILE = "18rem";
-const SIDEBAR_WIDTH_ICON = "3.3rem";
+const SIDEBAR_WIDTH_ICON = "4.356rem"; // 30% wider than 3.3rem
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 type SidebarContext = {

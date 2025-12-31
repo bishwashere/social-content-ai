@@ -97,7 +97,7 @@ export default function VideoSelectionPage() {
         <div className="lg:col-span-2 space-y-8">
           <section className="@container">
             <h2 className="text-2xl font-bold mb-4">
-              Step 1 of 3 : Select a Template
+              Step 1 of 3 : Pick a Style
             </h2>
             <Carousel className="w-full ">
               <CarouselContent className="-ml-4 p-6">
@@ -147,7 +147,7 @@ export default function VideoSelectionPage() {
           </section>
 
           <section className="bg-muted p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Step 2 of 3 : Enter a Hook</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 2 of 3 : What&apos;s the hook?</h2>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="hook-text">Enter a compelling hook for your video</Label>

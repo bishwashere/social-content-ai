@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, isToday, isTomorrow, addDays } from "date-fns";
 import { 
   ArrowRight, 
   Calendar, 
@@ -25,6 +25,7 @@ import { cn } from "@/lib/cn";
 import { useTodayItems, TimelineItem, TimelineProject } from "@/hooks/useTodayItems";
 import { useFocus } from "@/providers/focus-provider";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { useGetAllScheduledPosts, useGetAllProjects } from "@/backend-apis/projects/hooks";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -43,10 +44,143 @@ export function TodayTimelineView() {
   const { focusContext } = useFocus();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const scheduledPosts = useGetAllScheduledPosts();
+  const projects = useGetAllProjects();
 
   const greeting = getGreeting(session?.user?.name);
   
-  // Extract trending projects (500+ recent impressions from last 3 days)
+  // Calculate scheduled posts and campaigns for today and tomorrow
+  const calendarDetails = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = addDays(today, 1);
+    
+    // Get scheduled posts for today with details (exclude webhook posts - they're internal triggers)
+    const todayPosts = scheduledPosts.data?.filter((post: any) => {
+      const postDate = new Date(post.date);
+      postDate.setHours(0, 0, 0, 0);
+      // Exclude webhook posts - they're internal triggers, not standalone events
+      return postDate.getTime() === today.getTime() && post.platform !== "webhook";
+    }).map((post: any) => ({
+      type: 'scheduled',
+      projectName: post.project?.name || 'Unknown Project',
+      campaignName: post.meta?.campaignName || null,
+      day: post.meta?.day || null,
+      platform: post.platform,
+      // Create a unique key for deduplication
+      key: `scheduled-${post.id}`,
+    })) || [];
+    
+    // Get scheduled posts for tomorrow with details (exclude webhook posts - they're internal triggers)
+    const tomorrowPosts = scheduledPosts.data?.filter((post: any) => {
+      const postDate = new Date(post.date);
+      postDate.setHours(0, 0, 0, 0);
+      // Exclude webhook posts - they're internal triggers, not standalone events
+      return postDate.getTime() === tomorrow.getTime() && post.platform !== "webhook";
+    }).map((post: any) => ({
+      type: 'scheduled',
+      projectName: post.project?.name || 'Unknown Project',
+      campaignName: post.meta?.campaignName || null,
+      day: post.meta?.day || null,
+      platform: post.platform,
+      // Create a unique key for deduplication
+      key: `scheduled-${post.id}`,
+    })) || [];
+    
+    // Get campaign planner content for today (only if not already scheduled)
+    const todayCampaignItems: Array<{
+      type: string;
+      projectName: string;
+      campaignName: string;
+      day: number;
+      key: string;
+    }> = [];
+    
+    // Create a set of scheduled campaign keys to avoid duplicates
+    const todayScheduledCampaignKeys = new Set(
+      todayPosts
+        .filter(p => p.campaignName && p.day)
+        .map(p => `campaign-${p.projectName}-${p.campaignName}-${p.day}`)
+    );
+    
+    projects.data?.forEach((project) => {
+      (project.campaignPlanners || []).forEach((planner) => {
+        if (!planner.startDate) return;
+        const startDate = new Date(planner.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+        const todayChat = (planner.chats || []).find(chat => chat.day === daysSinceStart + 1);
+        if (todayChat) {
+          const campaignKey = `campaign-${project.name}-${planner.name || 'Campaign'}-${todayChat.day}`;
+          // Only add if not already scheduled as a post
+          if (!todayScheduledCampaignKeys.has(campaignKey)) {
+            todayCampaignItems.push({
+              type: 'campaign',
+              projectName: project.name,
+              campaignName: planner.name || 'Campaign',
+              day: todayChat.day,
+              key: campaignKey,
+            });
+          }
+        }
+      });
+    });
+    
+    // Get campaign planner content for tomorrow (only if not already scheduled)
+    const tomorrowCampaignItems: Array<{
+      type: string;
+      projectName: string;
+      campaignName: string;
+      day: number;
+      key: string;
+    }> = [];
+    
+    // Create a set of scheduled campaign keys to avoid duplicates
+    const tomorrowScheduledCampaignKeys = new Set(
+      tomorrowPosts
+        .filter(p => p.campaignName && p.day)
+        .map(p => `campaign-${p.projectName}-${p.campaignName}-${p.day}`)
+    );
+    
+    projects.data?.forEach((project) => {
+      (project.campaignPlanners || []).forEach((planner) => {
+        if (!planner.startDate) return;
+        const startDate = new Date(planner.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+        const tomorrowChat = (planner.chats || []).find(chat => chat.day === daysSinceStart + 2);
+        if (tomorrowChat) {
+          const campaignKey = `campaign-${project.name}-${planner.name || 'Campaign'}-${tomorrowChat.day}`;
+          // Only add if not already scheduled as a post
+          if (!tomorrowScheduledCampaignKeys.has(campaignKey)) {
+            tomorrowCampaignItems.push({
+              type: 'campaign',
+              projectName: project.name,
+              campaignName: planner.name || 'Campaign',
+              day: tomorrowChat.day,
+              key: campaignKey,
+            });
+          }
+        }
+      });
+    });
+    
+    // Deduplicate items by key (in case same post appears multiple times)
+    const deduplicatedToday = Array.from(
+      new Map([...todayPosts, ...todayCampaignItems].map(item => [item.key, item])).values()
+    );
+    
+    const deduplicatedTomorrow = Array.from(
+      new Map([...tomorrowPosts, ...tomorrowCampaignItems].map(item => [item.key, item])).values()
+    );
+    
+    return { 
+      todayItems: deduplicatedToday,
+      tomorrowItems: deduplicatedTomorrow
+    };
+  }, [scheduledPosts.data, projects.data]);
+  
+  // Extract trending projects (50+ recent impressions from last 3 days)
   const trendingProjects = useMemo(() => {
     const trending: Array<{
       projectId: string;
@@ -57,12 +191,19 @@ export function TodayTimelineView() {
       campaignCount: number;
       publishedPostsCount: number;
     }> = [];
+    const seenProjectIds = new Set<string>();
     
-    // Look through all grouped items for projects with stats
+    // Look through all action items (both grouped and individual) for projects with stats
     groupedItems.action.forEach(item => {
+      // Check grouped items
       if (item.isGrouped && item.projects) {
         item.projects.forEach(project => {
-          console.log(`🔍 Checking project: ${project.projectName}`, {
+          // Skip if we've already seen this project
+          if (seenProjectIds.has(project.projectId)) {
+            return;
+          }
+          
+          console.log(`🔍 Checking grouped project: ${project.projectName}`, {
             hasStats: !!project.stats,
             recentImpressions: project.stats?.recentImpressions,
             totalImpressions: project.stats?.totalImpressions,
@@ -71,6 +212,7 @@ export function TodayTimelineView() {
           
           if (project.stats && project.stats.recentImpressions >= 50) {
             console.log(`✅ Adding to trending: ${project.projectName} with ${project.stats.recentImpressions} recent impressions`);
+            seenProjectIds.add(project.projectId);
             trending.push({
               projectId: project.projectId,
               projectName: project.projectName,
@@ -82,6 +224,23 @@ export function TodayTimelineView() {
             });
           }
         });
+      } else if (!item.isGrouped && item.projectId) {
+        // Check individual items - they might have stats if they were added with stats
+        // Individual items don't have a projects array, but we can check the item itself
+        // Note: Individual items currently don't carry stats, but we check in case they do in the future
+        if (item.stats && item.stats.recentImpressions !== undefined && item.stats.recentImpressions >= 50 && !seenProjectIds.has(item.projectId)) {
+          console.log(`✅ Adding individual item to trending: ${item.projectName} with ${item.stats.recentImpressions} recent impressions`);
+          seenProjectIds.add(item.projectId);
+          trending.push({
+            projectId: item.projectId,
+            projectName: item.projectName || "Unknown",
+            href: item.action?.href || `/project/${item.projectId}?tab=campaign`,
+            recentImpressions: item.stats.recentImpressions,
+            totalImpressions: item.stats.totalImpressions || 0,
+            campaignCount: item.stats.campaignCount || 0,
+            publishedPostsCount: item.stats.publishedPostsCount || 0,
+          });
+        }
       }
     });
     
@@ -144,9 +303,9 @@ export function TodayTimelineView() {
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/project/dashboard">
+                <Link href="/project/content-planner">
                   <Calendar className="w-4 h-4 mr-2" />
-                  View Calendar
+                  View Content Planner
                 </Link>
               </Button>
             </div>
@@ -291,6 +450,106 @@ export function TodayTimelineView() {
                 )}
               </div>
             )}
+
+            {/* Calendar - Today and Tomorrow */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-lg font-semibold">
+                <Calendar className="w-5 h-5 text-slate-500" />
+                Calendar
+              </div>
+              <Card className="border-slate-200 dark:border-slate-700">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Today */}
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">
+                            {format(new Date(), "d")}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">Today</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {format(new Date(), "EEEE, MMMM d")}
+                          </p>
+                        </div>
+                      </div>
+                      {calendarDetails.todayItems.length > 0 ? (
+                        <div className="space-y-2 mt-3">
+                          {calendarDetails.todayItems.map((item, index) => (
+                            <div key={index} className="text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                              <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+                                <p className="font-medium text-slate-900 dark:text-slate-100 flex-shrink-0 truncate lg:max-w-none">{item.projectName}</p>
+                                {item.type === 'campaign' && (
+                                  <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                                    📋 Campaign
+                                  </Badge>
+                                )}
+                                {item.campaignName && (
+                                  <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap truncate lg:max-w-none">
+                                    {item.campaignName}
+                                    {item.day && ` • Day ${item.day}`}
+                                  </span>
+                                )}
+                                {'platform' in item && item.platform && (
+                                  <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">No scheduled items</p>
+                      )}
+                    </div>
+                    {/* Tomorrow */}
+                    <div className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                            {format(addDays(new Date(), 1), "d")}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">Tomorrow</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {format(addDays(new Date(), 1), "EEEE, MMMM d")}
+                          </p>
+                        </div>
+                      </div>
+                      {calendarDetails.tomorrowItems.length > 0 ? (
+                        <div className="space-y-2 mt-3">
+                          {calendarDetails.tomorrowItems.map((item, index) => (
+                            <div key={index} className="text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                              <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+                                <p className="font-medium text-slate-900 dark:text-slate-100 flex-shrink-0 truncate lg:max-w-none">{item.projectName}</p>
+                                {item.type === 'campaign' && (
+                                  <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                                    📋 Campaign
+                                  </Badge>
+                                )}
+                                {item.campaignName && (
+                                  <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap truncate lg:max-w-none">
+                                    {item.campaignName}
+                                    {item.day && ` • Day ${item.day}`}
+                                  </span>
+                                )}
+                                {'platform' in item && item.platform && (
+                                  <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">No scheduled items</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </aside>
         )}
       </div>

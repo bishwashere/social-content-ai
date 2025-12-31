@@ -96,7 +96,7 @@ export default function ProjectTrialPage() {
           <div className="flex flex-wrap gap-2">
             <QuickAction href="/project/video-maker" icon={<Video className="h-4 w-4" />} label="Create Video" />
             <QuickAction href="/project/templates" icon={<Sparkles className="h-4 w-4" />} label="Use Template" />
-            <QuickAction href="/project/dashboard" icon={<Calendar className="h-4 w-4" />} label="View Calendar" />
+            <QuickAction href="/project/content-planner" icon={<Calendar className="h-4 w-4" />} label="Content Planner" />
             <QuickAction href="/project/analytics" icon={<BarChart3 className="h-4 w-4" />} label="Analytics" />
           </div>
         </header>

@@ -43,7 +43,7 @@ import { Badge } from "@/components/ui/badge";
 const navItems = [
   { href: "/project", label: "Today", icon: Home, accent: "from-violet-500 to-purple-600", exact: true },
   { href: "/project/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", exact: false, discoverRoutes: ["/project/wall", "/project/templates"] },
-  { href: "/project/dashboard", label: "Calendar", icon: Calendar, accent: "from-blue-500 to-cyan-500", exact: true },
+  { href: "/project/content-planner", label: "Content Planner", icon: Calendar, accent: "from-blue-500 to-cyan-500", exact: true },
   { href: "/project/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", exact: false },
   { href: "/project/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", exact: true },
   { href: "/project/my-videos", label: "My Videos", icon: PlaySquare, accent: "from-fuchsia-500 to-pink-500", exact: true },
@@ -97,7 +97,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
     const refMap: Record<string, string> = {
       "Today": "today",
       "Discover": "forYou",
-      "Calendar": "contentPlanner",
+      "Content Planner": "contentPlanner",
       "Analytics": "analytics",
       "Video Maker": "videoMaker",
       "My Videos": "myVideos",
@@ -121,7 +121,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       <div className="absolute top-16 bottom-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200/60 dark:via-slate-700/60 to-transparent" />
 
       {/* Header with Logo */}
-      <SidebarHeader className={cn("relative py-4 border-b border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-4" : "px-2")}>
+      <SidebarHeader className={cn("relative py-3 border-b border-slate-200/50 dark:border-slate-700/50", isOpen ? "px-3" : "px-2")}>
         <div className={cn("transition-all duration-300", !isOpen && "flex justify-center")}>
           <Logo iconOnly={!isOpen} />
         </div>
@@ -147,10 +147,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         }}
       >
         <SidebarContent 
-          className={cn("py-4 space-y-4", isOpen ? "px-3" : "px-1")}
+          className={cn("py-3 space-y-3", isOpen ? "px-2.5" : "px-1 overflow-visible")}
         >
           {/* Navigation Links */}
-          <div className="space-y-1">
+          <div className={cn("space-y-1", !isOpen && "overflow-visible")}>
             {navItems.map((item) => {
               const active = isNavActive(item);
               const Icon = item.icon;
@@ -165,59 +165,89 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                     }
                   }}
                 >
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href={item.href}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.innerWidth <= 768) {
-                              toggleSidebar();
-                            }
-                          }}
-                          className={cn(
-                            "flex items-center gap-3 h-11 rounded-xl transition-all duration-200 group/item",
-                            isOpen ? "px-2" : "px-1.5 justify-center",
-                            active
-                              ? "bg-white dark:bg-slate-800 shadow-md shadow-slate-200/50 dark:shadow-slate-900/50"
-                              : "hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
-                          )}
-                        >
-                          <div className={cn(
-                            "flex items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0",
-                            isOpen ? "w-9 h-9" : "w-9 h-9",
-                            active 
-                              ? `bg-gradient-to-br ${item.accent} shadow-sm` 
-                              : "bg-slate-100 dark:bg-slate-800 group-hover/item:scale-105"
-                          )}>
-                            <Icon className={cn(
-                              "transition-colors",
-                              isOpen ? "h-5 w-5" : "h-5 w-5",
-                              active ? "text-white" : "text-slate-500 dark:text-slate-400"
-                            )} />
-                          </div>
-                          <span className={cn(
-                            "font-medium transition-all duration-300",
-                            active 
-                              ? "text-slate-900 dark:text-white" 
-                              : "text-slate-600 dark:text-slate-300",
-                            !isOpen && "hidden"
-                          )}>
-                            {item.label}
-                          </span>
-                          {active && isOpen && (
-                            <ChevronRight className="h-4 w-4 ml-auto text-slate-400" />
-                          )}
-                        </Link>
-                      </TooltipTrigger>
-                      {!isOpen && (
+                  {isOpen ? (
+                    <Link
+                      href={item.href}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.innerWidth <= 768) {
+                          toggleSidebar();
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center gap-2.5 h-10 px-2 rounded-xl transition-all duration-200 group/item",
+                        active
+                          ? "bg-white dark:bg-slate-800 shadow-md shadow-slate-200/50 dark:shadow-slate-900/50"
+                          : "hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
+                      )}
+                    >
+                      <div className={cn(
+                        "flex items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0 w-9 h-9",
+                        active 
+                          ? `bg-gradient-to-br ${item.accent} shadow-sm` 
+                          : "bg-slate-100 dark:bg-slate-800 group-hover/item:scale-105"
+                      )}>
+                        <Icon className={cn(
+                          "h-5 w-5 transition-colors",
+                          active ? "text-white" : "text-slate-500 dark:text-slate-400"
+                        )} />
+                      </div>
+                      <span className={cn(
+                        "font-medium text-sm transition-all duration-300 whitespace-nowrap",
+                        active 
+                          ? "text-slate-900 dark:text-white" 
+                          : "text-slate-600 dark:text-slate-300"
+                      )}>
+                        {item.label}
+                      </span>
+                      {active && (
+                        <ChevronRight className="h-4 w-4 ml-auto text-slate-400" />
+                      )}
+                    </Link>
+                  ) : (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href={item.href}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.innerWidth <= 768) {
+                                toggleSidebar();
+                              }
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center gap-1 py-1.5 px-1 w-full rounded-xl transition-all duration-200 group/item",
+                              "hover:bg-slate-100 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <div className={cn(
+                              "flex items-center justify-center transition-all duration-200 flex-shrink-0 w-9 h-9",
+                              active 
+                                ? `bg-gradient-to-br ${item.accent} shadow-sm rounded-lg` 
+                                : "group-hover/item:scale-105"
+                            )}>
+                              <Icon className={cn(
+                                "h-5 w-5 transition-colors",
+                                active ? "text-white" : "text-slate-500 dark:text-slate-400"
+                              )} />
+                            </div>
+                            <span className={cn(
+                              "font-medium text-[11px] leading-tight text-center transition-all duration-300 w-full px-0 break-words overflow-visible whitespace-normal",
+                              active 
+                                ? "text-slate-900 dark:text-white" 
+                                : "text-slate-600 dark:text-slate-300"
+                            )} style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                              {item.label}
+                            </span>
+                          </Link>
+                        </TooltipTrigger>
                         <TooltipContent side="right" className="font-medium">
                           {item.label}
                         </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
               );
             })}
@@ -243,8 +273,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
       {/* Footer with Project Selector */}
       <SidebarFooter 
         className={cn(
-          "relative py-4 border-t border-slate-200/50 dark:border-slate-700/50",
-          isOpen ? "px-3 cursor-w-resize" : "px-1 cursor-e-resize"
+          "relative py-3 border-t border-slate-200/50 dark:border-slate-700/50",
+          isOpen ? "px-2.5 cursor-w-resize" : "px-1 cursor-e-resize"
         )}
         onClick={(e) => {
           const target = e.target as HTMLElement;
@@ -271,7 +301,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                 }
               }}
               className={cn(
-                "w-full flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 group",
+                "w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 group",
                 !isOpen && "justify-center p-2"
               )}
             >

@@ -83,7 +83,7 @@ export const GET = applyMiddleware(
                 name: user.name,
                 dashboardUrl:
                   (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL as string) +
-                  "/project/dashboard",
+                  "/project/content-planner",
                 inactiveProjectsDetails,
               },
               {
