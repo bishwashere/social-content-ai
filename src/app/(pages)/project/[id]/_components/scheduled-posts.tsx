@@ -216,32 +216,13 @@ const getStepBadges = (meta: any) => {
   );
 };
 
-const formatDate = (date: Date | string, timezone?: string, localTime?: string, meta?: any) => {
-  // If we have the original local time stored, use it directly instead of converting from UTC
-  if (localTime && timezone) {
-    const dateObj = new Date(date);
-    const [hours, minutes] = localTime.split(":").map(Number);
-    
-    // Format the date part from the UTC date, but use the original local time
-    const datePart = dateObj.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: timezone,
-    });
-    
-    // Format the time using the original local time
-    const timePart = new Date(2000, 0, 1, hours, minutes).toLocaleString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-    
-    return `${datePart}, ${timePart}`;
-  }
-  
-  // Fallback to conversion from UTC if no local time stored
+const formatDate = (date: Date | string, timezone?: string, localTime?: string, meta?: any, viewerTimezone?: string) => {
   const dateObj = new Date(date);
-  const timezoneToUse = timezone || "America/New_York";
+  
+  // Use viewer's timezone if provided, otherwise fall back to stored timezone
+  const timezoneToUse = viewerTimezone || timezone || "America/New_York";
+  
+  // Always convert from UTC to the target timezone (viewer's or stored)
   return dateObj.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -256,6 +237,11 @@ export function ScheduledPosts({ project }: Props) {
   const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
   const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set());
   const [showPastPosts, setShowPastPosts] = useState<Set<string>>(new Set());
+  
+  // Get viewer's timezone
+  const viewerTimezone = typeof window !== 'undefined' 
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone 
+    : undefined;
 
   const queryClient = useQueryClient();
   const {
@@ -350,7 +336,7 @@ export function ScheduledPosts({ project }: Props) {
               </CardTitle>
               <CardDescription className="flex items-center gap-2">
                 <Calendar className="h-3 w-3" />
-                Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone, (post.meta as any)?.localTime, post.meta)}
+                Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone, (post.meta as any)?.localTime, post.meta, viewerTimezone)}
               </CardDescription>
               {getStepBadges(post.meta as any)}
             </div>
@@ -398,7 +384,7 @@ export function ScheduledPosts({ project }: Props) {
                 </p>
                 {post.processedAt && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Failed at: {formatDate(post.processedAt, (post.meta as any)?.timezone, undefined, post.meta)}
+                    Failed at: {formatDate(post.processedAt, (post.meta as any)?.timezone, undefined, post.meta, viewerTimezone)}
                   </p>
                 )}
               </div>
@@ -605,7 +591,7 @@ export function ScheduledPosts({ project }: Props) {
                           </span>
                           {earliestDate && latestDate && (
                             <span className="text-xs">
-                              {formatDate(earliestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta)} - {formatDate(latestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta)}
+                              {formatDate(earliestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta, viewerTimezone)} - {formatDate(latestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta, viewerTimezone)}
                             </span>
                           )}
                           <div className="flex items-center gap-2">
