@@ -298,7 +298,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [isTimePickerOpen, setIsTimePickerOpen] = useState<Record<string, boolean>>({});
   const [isPlatformSelectorOpen, setIsPlatformSelectorOpen] = useState<Record<string, boolean>>({});
   const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
-  const [campaignTimezones, setCampaignTimezones] = useState<Record<string, string>>({});
+  // const [campaignTimezones, setCampaignTimezones] = useState<Record<string, string>>({});
   const [showOldCampaigns, setShowOldCampaigns] = useState(false);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
   const scheduleCampaignTasks = useScheduleCampaignTasks();
@@ -1141,22 +1141,22 @@ export default function CampaignPlannerPage({ project }: Props) {
                               </Dialog>
                               <TimePickerDialog
                                 value={campaign.autoPostTime || undefined}
-                                timezone={(campaign.blogNewsMetadata as any)?.timezone || campaignTimezones[campaign.id] || "America/New_York"}
+                                // timezone={(campaign.blogNewsMetadata as any)?.timezone || campaignTimezones[campaign.id] || "America/New_York"}
                                 open={isTimePickerOpen[campaign.id] || false}
                                 onOpenChange={(open) => {
                                   setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: open });
                                 }}
-                                onTimezoneChange={(tz) => {
-                                  setCampaignTimezones({ ...campaignTimezones, [campaign.id]: tz });
-                                }}
-                                onConfirm={async (time, timezone) => {
+                                // onTimezoneChange={(tz) => {
+                                //   setCampaignTimezones({ ...campaignTimezones, [campaign.id]: tz });
+                                // }}
+                                onConfirm={async (time) => {
                                   if (!time) return;
                                   if (!campaign.startDate) {
                                     toast.error("Please set a start date first");
                                     return;
                                   }
                                   
-                                  const selectedTimezone = timezone || campaignTimezones[campaign.id] || "America/New_York";
+                                  // const selectedTimezone = timezone || campaignTimezones[campaign.id] || "America/New_York";
                                   
                                   // Handle Blog News campaigns differently
                                   if (campaign.goal === "Blog News") {
@@ -1166,7 +1166,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       angles?: string[]; 
                                       webhook?: string; 
                                       platforms?: string[]; 
-                                      timezone?: string;
+                                      // timezone?: string;
                                       targetAudience?: string;
                                       productRelated?: boolean;
                                     } | null;
@@ -1195,7 +1195,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         angles: blogNewsMetadata?.angles || [],
                                         webhook: blogNewsMetadata?.webhook || "", // Use existing webhook from metadata
                                         platforms: platformsToUse,
-                                        timezone: selectedTimezone,
+                                        // timezone: selectedTimezone,
                                       },
                                     });
                                     // Schedule tasks instead of posts
@@ -1203,7 +1203,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       campaignId: campaign.id,
                                       projectId: campaign.projectId,
                                       autoPostTime: time,
-                                      timezone: selectedTimezone,
+                                      // timezone: selectedTimezone,
                                       platforms: platformsToUse,
                                     });
                                   } else {
@@ -1228,7 +1228,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                       campaignId: campaign.id,
                                       projectId: campaign.projectId,
                                       autoPostTime: time,
-                                      timezone: selectedTimezone,
+                                      // timezone: selectedTimezone,
                                       platforms: platformsToUse,
                                     });
                                   }

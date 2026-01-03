@@ -32,7 +32,7 @@ export const GET = applyMiddleware(
     // Use a slightly more lenient date range to account for potential timezone issues
     // Check for posts scheduled up to 1 hour in the future (to catch edge cases)
     const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-    console.log(`⏰ Query range: up to ${oneHourFromNow.toISOString()}`);
+    console.log(`⏰ Query range: up to ${oneHourFromNow}`);
     
     const pending = await prisma.scheduledPost.findMany({
       where: {
@@ -251,7 +251,7 @@ export const GET = applyMiddleware(
             const meta = post.meta as any;
             const postDate = new Date(post.date);
             const timeDiff = Math.round((now.getTime() - postDate.getTime()) / 1000 / 60);
-            console.log(`      ${idx + 1}. Date: ${postDate.toISOString()} (${timeDiff} min ago), Platform: ${post.platform}, Campaign: ${meta?.campaignId || 'N/A'}`);
+            console.log(`      ${idx + 1}. Date: ${postDate} (${timeDiff} min ago), Platform: ${post.platform}, Campaign: ${meta?.campaignId || 'N/A'}`);
           });
         }
       }
@@ -431,7 +431,7 @@ export const GET = applyMiddleware(
             postId: post.id,
             campaignId: meta?.campaignId || "N/A",
             day: meta?.day || "N/A",
-            timestamp: new Date().toISOString(),
+            timestamp: new Date(),
           };
           const errorMessage = `Unexpected error: ${errorDetails.message}. Post ID: ${post.id}, Campaign: ${errorDetails.campaignId}, Day: ${errorDetails.day}`;
           console.error(`❌ Error processing Blog News post ID: ${post.id}:`, errorDetails);

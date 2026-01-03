@@ -147,7 +147,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
       content,
       platform: platformName,
       projectId,
-      date: date.toISOString()
+      date: date
     })
 
     if (!res) {

@@ -91,7 +91,7 @@ class Threads {
 
       return { success: true };
     } catch (error) {
-      console.error("❌ Error posting to Threads:", error);
+      console.error("❌ Error posting to Threads:", (error as any).response.data);
       return {
         success: false,
         error:

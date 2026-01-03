@@ -696,93 +696,93 @@ export const scheduleCampaignPosts = async ({
     let scheduledCount = 0;
 
     // Use timezone from parameter or default to UTC
-    const timezoneToUse = timezone || "UTC";
+    // const timezoneToUse = timezone || "UTC";
     
     // Helper to convert local time in timezone to UTC
     // This function finds the UTC time that, when displayed in the target timezone, equals the desired local time
-    const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
-      if (tz === "UTC") {
-        return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
-      }
+    // const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
+    //   if (tz === "UTC") {
+    //     return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+    //   }
       
-      // Use a more reliable approach: create a date in the local timezone, then get its UTC equivalent
-      // We'll create a date string in ISO format and use the timezone to convert
+    //   // Use a more reliable approach: create a date in the local timezone, then get its UTC equivalent
+    //   // We'll create a date string in ISO format and use the timezone to convert
       
-      // Create a date object representing the local time (as if it were in the target timezone)
-      // Then find what UTC time that corresponds to
+    //   // Create a date object representing the local time (as if it were in the target timezone)
+    //   // Then find what UTC time that corresponds to
       
-      // Strategy: Start with the local time as UTC, then adjust based on the actual timezone offset
-      // We need to find: what UTC time, when displayed in timezone tz, shows as year/month/day hour:minute
+    //   // Strategy: Start with the local time as UTC, then adjust based on the actual timezone offset
+    //   // We need to find: what UTC time, when displayed in timezone tz, shows as year/month/day hour:minute
       
-      // Get the timezone offset at the target date/time
-      // We'll use a test date to determine the offset
-      const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0)); // Use noon UTC as test
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        timeZoneName: 'longOffset',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
+    //   // Get the timezone offset at the target date/time
+    //   // We'll use a test date to determine the offset
+    //   const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0)); // Use noon UTC as test
+    //   const formatter = new Intl.DateTimeFormat('en-US', {
+    //     timeZone: tz,
+    //     timeZoneName: 'longOffset',
+    //     year: 'numeric',
+    //     month: '2-digit',
+    //     day: '2-digit',
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     hour12: false,
+    //   });
       
-      // Get the offset by comparing UTC time with local time
-      // Create a date at the target local time and see what UTC time it represents
-      // We'll iterate to find the correct UTC time
+    //   // Get the offset by comparing UTC time with local time
+    //   // Create a date at the target local time and see what UTC time it represents
+    //   // We'll iterate to find the correct UTC time
       
-      // Start with a reasonable initial guess
-      // Most timezones are within ±12 hours of UTC
-      // For EST (UTC-5), if we want 18:00 EST, we need 23:00 UTC
-      // So we start with hour + a reasonable offset
-      let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+    //   // Start with a reasonable initial guess
+    //   // Most timezones are within ±12 hours of UTC
+    //   // For EST (UTC-5), if we want 18:00 EST, we need 23:00 UTC
+    //   // So we start with hour + a reasonable offset
+    //   let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
       
-      // Adjust based on timezone - we'll iterate to find the right UTC time
-      for (let i = 0; i < 50; i++) {
-        const formatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: tz,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        });
+    //   // Adjust based on timezone - we'll iterate to find the right UTC time
+    //   for (let i = 0; i < 50; i++) {
+    //     const formatter = new Intl.DateTimeFormat('en-US', {
+    //       timeZone: tz,
+    //       year: 'numeric',
+    //       month: '2-digit',
+    //       day: '2-digit',
+    //       hour: '2-digit',
+    //       minute: '2-digit',
+    //       hour12: false,
+    //     });
         
-        const parts = formatter.formatToParts(candidateUTC);
-        const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-        const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
-        const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-        const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-        const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    //     const parts = formatter.formatToParts(candidateUTC);
+    //     const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    //     const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
+    //     const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    //     const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+    //     const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
         
-        // Check if we found the correct local time
-        if (tzYear === year && tzMonth === month && tzDay === day && 
-            tzHour === hour && tzMin === minute) {
-          return candidateUTC;
-        }
+    //     // Check if we found the correct local time
+    //     if (tzYear === year && tzMonth === month && tzDay === day && 
+    //         tzHour === hour && tzMin === minute) {
+    //       return candidateUTC;
+    //     }
         
-        // Calculate the difference and adjust
-        // If the displayed hour is less than desired, we need to add time to UTC
-        // If the displayed hour is more than desired, we need to subtract time from UTC
-        const hourDiff = hour - tzHour;
-        const minDiff = minute - tzMin;
-        const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
-        candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
+    //     // Calculate the difference and adjust
+    //     // If the displayed hour is less than desired, we need to add time to UTC
+    //     // If the displayed hour is more than desired, we need to subtract time from UTC
+    //     const hourDiff = hour - tzHour;
+    //     const minDiff = minute - tzMin;
+    //     const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
+    //     candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
         
-        // Safety check to avoid infinite loops
-        if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
-          // If adjustment is too large, try a different starting point
-          // For timezones west of UTC (like EST), we need to add hours
-          // For timezones east of UTC, we subtract hours
-          candidateUTC = new Date(Date.UTC(year, month, day, hour + 12, minute, 0, 0));
-          break;
-        }
-      }
+    //     // Safety check to avoid infinite loops
+    //     if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
+    //       // If adjustment is too large, try a different starting point
+    //       // For timezones west of UTC (like EST), we need to add hours
+    //       // For timezones east of UTC, we subtract hours
+    //       candidateUTC = new Date(Date.UTC(year, month, day, hour + 12, minute, 0, 0));
+    //       break;
+    //     }
+    //   }
       
-      return candidateUTC;
-    };
+    //   return candidateUTC;
+    // };
 
     // Parse time
     const [hours, minutes] = autoPostTime.split(":").map(Number);
@@ -792,19 +792,19 @@ export const scheduleCampaignPosts = async ({
       // Calculate the date for this chat: startDate + (day - 1) days
       // Use proper date arithmetic to handle month/year boundaries correctly
       const startDate = new Date(campaign.startDate);
-      startDate.setHours(0, 0, 0, 0); // Reset to midnight to avoid timezone issues
+      startDate.setHours(hours, minutes, 0, 0);
       
       // Add (chat.day - 1) days to the start date
-      const chatDateLocal = new Date(startDate);
-      chatDateLocal.setDate(chatDateLocal.getDate() + (chat.day - 1));
+      const chatDate = new Date(startDate);
+      chatDate.setDate(chatDate.getDate() + (chat.day - 1));
       
       // Extract date components from the calculated date
-      const year = chatDateLocal.getFullYear();
-      const month = chatDateLocal.getMonth();
-      const day = chatDateLocal.getDate();
+      // const year = chatDateLocal.getFullYear();
+      // const month = chatDateLocal.getMonth();
+      // const day = chatDateLocal.getDate();
       
       // Convert local time in user's timezone to UTC
-      const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
+      // const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
 
       // Get contents
       const contents = (chat.contents as Record<string, string>) || {};
@@ -825,14 +825,14 @@ export const scheduleCampaignPosts = async ({
             projectId: projectId,
             platform: platformName,
             content: content,
-            date: chatDate.toISOString(),
+            date: chatDate,
             meta: {
               campaignId: campaignId,
               campaignName: campaign.name || "",
               day: chat.day,
               source: "campaign",
-              timezone: timezoneToUse, // Store timezone for display
-              localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
+              // timezone: timezoneToUse, // Store timezone for display
+              // localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
             },
           });
 
@@ -889,13 +889,13 @@ export const scheduleCampaignTasks = async ({
   campaignId,
   projectId,
   autoPostTime,
-  timezone,
+  // timezone,
   platforms,
 }: {
   campaignId: string;
   projectId: string;
   autoPostTime: string; // Format: "HH:mm"
-  timezone?: string; // IANA timezone string (e.g., "America/New_York")
+  // timezone?: string; // IANA timezone string (e.g., "America/New_York")
   platforms: string[]; // Platforms to post to after blog is generated
 }): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
   try {
@@ -944,7 +944,7 @@ export const scheduleCampaignTasks = async ({
     } | null;
     
     // Use timezone from parameter, metadata, or default to UTC
-    const timezoneToUse = timezone || metadata?.timezone || "UTC";
+    // const timezoneToUse = timezone || metadata?.timezone || "UTC";
 
     if (!metadata) {
       return {
@@ -970,89 +970,89 @@ export const scheduleCampaignTasks = async ({
 
     // Helper to convert local time in timezone to UTC
     // This function finds the UTC time that, when displayed in the target timezone, equals the desired local time
-    const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
-      if (tz === "UTC") {
-        return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
-      }
+    // const convertLocalTimeToUTC = (year: number, month: number, day: number, hour: number, minute: number, tz: string): Date => {
+    //   if (tz === "UTC") {
+    //     return new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+    //   }
       
-      // Use a more reliable approach: create a date in the local timezone, then get its UTC equivalent
-      // We'll create a date string in ISO format and use the timezone to convert
+    //   // Use a more reliable approach: create a date in the local timezone, then get its UTC equivalent
+    //   // We'll create a date string in ISO format and use the timezone to convert
       
-      // Create a date object representing the local time (as if it were in the target timezone)
-      // Then find what UTC time that corresponds to
+    //   // Create a date object representing the local time (as if it were in the target timezone)
+    //   // Then find what UTC time that corresponds to
       
-      // Strategy: Start with the local time as UTC, then adjust based on the actual timezone offset
-      // We need to find: what UTC time, when displayed in timezone tz, shows as year/month/day hour:minute
+    //   // Strategy: Start with the local time as UTC, then adjust based on the actual timezone offset
+    //   // We need to find: what UTC time, when displayed in timezone tz, shows as year/month/day hour:minute
       
-      // Get the timezone offset at the target date/time
-      // We'll use a test date to determine the offset
-      const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0)); // Use noon UTC as test
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        timeZoneName: 'longOffset',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
+    //   // Get the timezone offset at the target date/time
+    //   // We'll use a test date to determine the offset
+    //   const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0)); // Use noon UTC as test
+    //   const formatter = new Intl.DateTimeFormat('en-US', {
+    //     timeZone: tz,
+    //     timeZoneName: 'longOffset',
+    //     year: 'numeric',
+    //     month: '2-digit',
+    //     day: '2-digit',
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     hour12: false,
+    //   });
       
-      // Get the offset by comparing UTC time with local time
-      // Create a date at the target local time and see what UTC time it represents
-      // We'll iterate to find the correct UTC time
+    //   // Get the offset by comparing UTC time with local time
+    //   // Create a date at the target local time and see what UTC time it represents
+    //   // We'll iterate to find the correct UTC time
       
-      // Start with a reasonable initial guess
-      // Most timezones are within ±12 hours of UTC
-      // For EST (UTC-5), if we want 18:00 EST, we need 23:00 UTC
-      // So we start with hour + a reasonable offset
-      let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+    //   // Start with a reasonable initial guess
+    //   // Most timezones are within ±12 hours of UTC
+    //   // For EST (UTC-5), if we want 18:00 EST, we need 23:00 UTC
+    //   // So we start with hour + a reasonable offset
+    //   let candidateUTC = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
       
-      // Adjust based on timezone - we'll iterate to find the right UTC time
-      for (let i = 0; i < 50; i++) {
-        const formatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: tz,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        });
+    //   // Adjust based on timezone - we'll iterate to find the right UTC time
+    //   for (let i = 0; i < 50; i++) {
+    //     const formatter = new Intl.DateTimeFormat('en-US', {
+    //       timeZone: tz,
+    //       year: 'numeric',
+    //       month: '2-digit',
+    //       day: '2-digit',
+    //       hour: '2-digit',
+    //       minute: '2-digit',
+    //       hour12: false,
+    //     });
         
-        const parts = formatter.formatToParts(candidateUTC);
-        const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-        const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
-        const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-        const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-        const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    //     const parts = formatter.formatToParts(candidateUTC);
+    //     const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    //     const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
+    //     const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    //     const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+    //     const tzMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
         
-        // Check if we found the correct local time
-        if (tzYear === year && tzMonth === month && tzDay === day && 
-            tzHour === hour && tzMin === minute) {
-          return candidateUTC;
-        }
+    //     // Check if we found the correct local time
+    //     if (tzYear === year && tzMonth === month && tzDay === day && 
+    //         tzHour === hour && tzMin === minute) {
+    //       return candidateUTC;
+    //     }
         
-        // Calculate the difference and adjust
-        // If the displayed hour is less than desired, we need to add time to UTC
-        // If the displayed hour is more than desired, we need to subtract time from UTC
-        const hourDiff = hour - tzHour;
-        const minDiff = minute - tzMin;
-        const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
-        candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
+    //     // Calculate the difference and adjust
+    //     // If the displayed hour is less than desired, we need to add time to UTC
+    //     // If the displayed hour is more than desired, we need to subtract time from UTC
+    //     const hourDiff = hour - tzHour;
+    //     const minDiff = minute - tzMin;
+    //     const totalDiffMs = (hourDiff * 60 + minDiff) * 60 * 1000;
+    //     candidateUTC = new Date(candidateUTC.getTime() - totalDiffMs);
         
-        // Safety check to avoid infinite loops
-        if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
-          // If adjustment is too large, try a different starting point
-          // For timezones west of UTC (like EST), we need to add hours
-          // For timezones east of UTC, we subtract hours
-          candidateUTC = new Date(Date.UTC(year, month, day, hour + 12, minute, 0, 0));
-          break;
-        }
-      }
+    //     // Safety check to avoid infinite loops
+    //     if (Math.abs(totalDiffMs) > 24 * 60 * 60 * 1000) {
+    //       // If adjustment is too large, try a different starting point
+    //       // For timezones west of UTC (like EST), we need to add hours
+    //       // For timezones east of UTC, we subtract hours
+    //       candidateUTC = new Date(Date.UTC(year, month, day, hour + 12, minute, 0, 0));
+    //       break;
+    //     }
+    //   }
       
-      return candidateUTC;
-    };
+    //   return candidateUTC;
+    // };
 
     // Parse time
     const [hours, minutes] = autoPostTime.split(":").map(Number);
@@ -1062,21 +1062,21 @@ export const scheduleCampaignTasks = async ({
       // Calculate the date for this chat: startDate + (day - 1) days
       // Use proper date arithmetic to handle month/year boundaries correctly
       const startDate = new Date(campaign.startDate);
-      startDate.setHours(0, 0, 0, 0); // Reset to midnight to avoid timezone issues
+      startDate.setHours(hours, minutes, 0, 0); // Reset to midnight to avoid timezone issues
       
       // Add (chat.day - 1) days to the start date
       const chatDateLocal = new Date(startDate);
       chatDateLocal.setDate(chatDateLocal.getDate() + (chat.day - 1));
       
       // Extract date components from the calculated date
-      const year = chatDateLocal.getFullYear();
-      const month = chatDateLocal.getMonth();
-      const day = chatDateLocal.getDate();
+      // const year = chatDateLocal.getFullYear();
+      // const month = chatDateLocal.getMonth();
+      // const day = chatDateLocal.getDate();
       
       // Convert user's local time in their timezone to UTC for storage
       // Example: 16:00 EST -> 21:00 UTC (stored in DB)
       // When displayed, UTC is converted back to EST: 21:00 UTC -> 16:00 EST
-      const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
+      // const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
 
       // Don't skip past dates - allow scheduling even if in the past
       // This ensures all campaign days are visible and can be manually triggered if needed
@@ -1092,7 +1092,7 @@ export const scheduleCampaignTasks = async ({
             projectId,
             platform: "webhook", // Special identifier for Blog News
             content: "", // Empty - will be generated on-the-fly
-            date: chatDate.toISOString(),
+            date: chatDateLocal,
             status: "pending",
             oauthProviderId: null, // Not needed for webhook
             meta: {
@@ -1103,7 +1103,7 @@ export const scheduleCampaignTasks = async ({
               angles: metadata.angles,
               webhook: webhookValue, // Use trimmed value
               platforms: platformsToUse, // Store platforms for later use
-              timezone: timezoneToUse, // Store timezone for display
+              // timezone: timezoneToUse, // Store timezone for display
               localTime: autoPostTime, // Store original local time (e.g., "18:00") for display
             },
           },

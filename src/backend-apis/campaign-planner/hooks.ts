@@ -192,7 +192,7 @@ export const useScheduleCampaignTasks = () => {
       autoPostTime: string;
       timezone?: string;
       platforms: string[];
-    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, timezone, platforms }),
+    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, platforms }),
 
     onSuccess: (result, variables) => {
       if (result.success) {

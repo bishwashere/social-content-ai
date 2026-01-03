@@ -7,7 +7,7 @@ type Props = {
   projectId: string;
   platform: string;
   content: string;
-  date: string;
+  date: Date;
   meta?: Prisma.InputJsonValue;
 };
 

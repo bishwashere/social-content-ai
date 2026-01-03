@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
             projectId: post.projectId,
             platform: platformName,
             content: socialContent,
-            date: scheduledDate.toISOString(),
+            date: scheduledDate,
             meta: {
               campaignId: meta.campaignId,
               campaignName: campaign?.name || "",

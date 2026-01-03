@@ -60,9 +60,9 @@ export function TimePickerDialog({
   const [selectedMinute, setSelectedMinute] = React.useState<string>(
     value ? value.split(":")[1] : "00"
   )
-  const [selectedTimezone, setSelectedTimezone] = React.useState<string>(
-    timezone || "America/New_York"
-  )
+  // const [selectedTimezone, setSelectedTimezone] = React.useState<string>(
+  //   timezone || "America/New_York"
+  // )
 
   // Update internal state when value prop changes
   React.useEffect(() => {
@@ -77,11 +77,11 @@ export function TimePickerDialog({
   }, [value])
 
   // Update timezone when prop changes
-  React.useEffect(() => {
-    if (timezone) {
-      setSelectedTimezone(timezone)
-    }
-  }, [timezone])
+  // React.useEffect(() => {
+  //   if (timezone) {
+  //     setSelectedTimezone(timezone)
+  //   }
+  // }, [timezone])
 
   // Generate hours (00-23)
   const hours = Array.from({ length: 24 }, (_, i) =>
@@ -104,16 +104,16 @@ export function TimePickerDialog({
   }
 
   // Handle timezone change
-  const handleTimezoneChange = (tz: string) => {
-    setSelectedTimezone(tz)
-    onTimezoneChange?.(tz)
-  }
+  // const handleTimezoneChange = (tz: string) => {
+  //   setSelectedTimezone(tz)
+  //   onTimezoneChange?.(tz)
+  // }
 
   // Handle confirm button click
   const handleConfirm = () => {
     const timeString = `${selectedHour}:${selectedMinute}`
     onChange?.(timeString)
-    if (onConfirm) onConfirm(timeString, selectedTimezone)
+    if (onConfirm) onConfirm(timeString)
     onOpenChange?.(false)
   }
 
@@ -179,7 +179,7 @@ export function TimePickerDialog({
                 </Select>
               </div>
             </div>
-            <div className="flex flex-col items-center gap-2 pt-2">
+            {/* <div className="flex flex-col items-center gap-2 pt-2">
               <label className="text-sm font-medium text-muted-foreground">
                 Timezone
               </label>
@@ -195,12 +195,12 @@ export function TimePickerDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="text-center pt-2">
+            </div> */}
+            {/* <div className="text-center pt-2">
               <p className="text-sm text-muted-foreground">
                 Selected: {selectedHour}:{selectedMinute} ({TIMEZONES.find(tz => tz.value === selectedTimezone)?.label.split(" ")[0] || selectedTimezone})
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
         <DialogFooter className="px-6 pb-6">
