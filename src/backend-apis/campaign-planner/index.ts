@@ -760,6 +760,15 @@ export const scheduleCampaignPosts = async ({
       // Convert: user's selected time + timezone -> UTC for database storage
       const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
 
+      // Guardrail: Skip posts scheduled in the past
+      const now = new Date();
+      if (chatDate.getTime() < now.getTime()) {
+        errors.push(
+          `Skipped post for day ${chat.day}: Scheduled date is in the past (${chatDate.toISOString()})`
+        );
+        continue; // Skip this chat day
+      }
+
       // Get contents
       const contents = (chat.contents as Record<string, string>) || {};
 
@@ -986,14 +995,35 @@ export const scheduleCampaignTasks = async ({
       // When displayed, UTC is converted back to EST: 21:00 UTC -> 16:00 EST
       const chatDate = convertLocalTimeToUTC(year, month, day, hours, minutes, timezoneToUse);
 
-      // Don't skip past dates - allow scheduling even if in the past
-      // This ensures all campaign days are visible and can be manually triggered if needed
+      // Guardrail: Skip posts scheduled in the past
+      const now = new Date();
+      if (chatDate.getTime() < now.getTime()) {
+        errors.push(
+          `Skipped task for day ${chat.day}: Scheduled date is in the past (${chatDate.toISOString()})`
+        );
+        continue; // Skip this chat day
+      }
 
       try {
         // Create metadata-only ScheduledPost record
         // Trim webhook URL to ensure consistency (should already be trimmed, but be safe)
         const webhookValue = metadata.webhook ? metadata.webhook.trim() : "";
         console.log(`[scheduleCampaignTasks] Saving webhook URL to ScheduledPost: ${webhookValue}`);
+        
+        // Final database-level guardrail: Check right before saving to database
+        // This is the last validation before the database write operation
+        const finalDateCheck = new Date(chatDate);
+        const nowCheck = new Date();
+        if (finalDateCheck.getTime() < nowCheck.getTime()) {
+          console.error(
+            `❌ DATABASE GUARDRAIL: Blocked attempt to save scheduled post with past date. campaignId: ${campaignId}, day: ${chat.day}, date: ${chatDate.toISOString()}`
+          );
+          errors.push(
+            `Skipped task for day ${chat.day}: Scheduled date is in the past (${chatDate.toISOString()})`
+          );
+          // Skip database write - do not create the scheduled post
+          continue;
+        }
         
         await prisma.scheduledPost.create({
           data: {

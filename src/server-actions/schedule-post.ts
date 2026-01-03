@@ -13,6 +13,17 @@ type Props = {
 
 export const schedulePost = async (props: Props) => {
   try {
+    // Guardrail: Check if the scheduled date is in the past
+    const scheduledDate = new Date(props.date);
+    const now = new Date();
+    
+    if (scheduledDate.getTime() < now.getTime()) {
+      console.log(
+        `❌ Cannot schedule post in the past for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
+      );
+      return false;
+    }
+
     // Verify project has OAuth provider mapped
     const projectProvider = await prisma.projectToOAuthProvider.findFirst({
       where: {
@@ -36,6 +47,16 @@ export const schedulePost = async (props: Props) => {
     console.log(
       `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
     );
+
+    // Final database-level guardrail: Double-check date is not in the past before saving
+    const finalDateCheck = new Date(props.date);
+    const nowCheck = new Date();
+    if (finalDateCheck.getTime() < nowCheck.getTime()) {
+      console.error(
+        `❌ DATABASE GUARDRAIL: Blocked attempt to save post with past date. projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
+      );
+      return false;
+    }
 
     const data = await prisma.scheduledPost.create({
       data: {

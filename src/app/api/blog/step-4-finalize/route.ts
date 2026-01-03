@@ -277,6 +277,19 @@ export async function POST(request: NextRequest) {
           const scheduledDate = new Date(post.date);
           scheduledDate.setMinutes(scheduledDate.getMinutes() + 1);
 
+          // Guardrail: Check if the scheduled date is in the past
+          const now = new Date();
+          if (scheduledDate.getTime() < now.getTime()) {
+            logger.warn(
+              `[Step 4] Cannot schedule post in the past for platform ${platformName}, date: ${scheduledDate.toISOString()}`
+            );
+            return {
+              platform: platformName,
+              success: false,
+              error: "Scheduled date is in the past",
+            };
+          }
+
           // Get timezone from campaign metadata or use EST as default
           const campaignMetadata = campaign?.blogNewsMetadata as { timezone?: string } | null;
           const timezoneToUse = campaignMetadata?.timezone || meta.timezone || "America/New_York";
