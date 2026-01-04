@@ -4,6 +4,8 @@
 
 ### What I've Added
 
+
+
 1. **Debug Endpoint**: `/api/debug-analytics?email=bishwashere@gmail.com`
    - Shows complete database state for the user
    - Lists all projects, OAuth providers, mappings, and posts
