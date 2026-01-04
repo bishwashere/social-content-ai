@@ -8,6 +8,8 @@ import {
   useGenerateCampaignChat,
   useGenerateBlogNewsContent,
   useGetCampaignPlanner,
+  useGetCampaignChats,
+  useGetOldCampaigns,
   useRetryWebhook,
   useScheduleCampaignPosts,
   useScheduleCampaignTasks,
@@ -305,9 +307,94 @@ export default function CampaignPlannerPage({ project }: Props) {
   const generateBlogNews = useGenerateBlogNewsContent();
   const retryWebhook = useRetryWebhook();
 
+  // Load only current campaign metadata initially (without chats) for faster initial load
   const campaignPlannerData = useGetCampaignPlanner({
-    projectId: projectId as string
+    projectId: projectId as string,
+    loadChats: false, // Start with metadata only
+    limit: 3, // Load latest 3 current campaigns metadata
   });
+
+  // Load old campaigns only when "Show older campaigns" button is clicked
+  const oldCampaignsData = useGetOldCampaigns(
+    projectId as string,
+    showOldCampaigns // Only load when showOldCampaigns is true
+  );
+
+  // Track loaded chats for each campaign
+  const [loadedChats, setLoadedChats] = useState<Record<string, any[]>>({});
+  const [loadingChats, setLoadingChats] = useState<Set<string>>(new Set());
+
+  // Load chats when campaigns are opened
+  useEffect(() => {
+    const loadChatsForCampaign = async (campaignId: string) => {
+      // Skip if already loaded or loading
+      if (loadedChats[campaignId] || loadingChats.has(campaignId)) {
+        return;
+      }
+
+      setLoadingChats(prev => new Set(prev).add(campaignId));
+      try {
+        const { getCampaignChats } = await import("@/backend-apis/campaign-planner/index");
+        const result = await getCampaignChats(campaignId);
+        if (result) {
+          setLoadedChats(prev => ({
+            ...prev,
+            [campaignId]: result.chats,
+          }));
+        }
+      } catch (error) {
+        console.error(`Failed to load chats for campaign ${campaignId}:`, error);
+      } finally {
+        setLoadingChats(prev => {
+          const next = new Set(prev);
+          next.delete(campaignId);
+          return next;
+        });
+      }
+    };
+
+    // Load chats for all opened campaigns
+    Object.keys(openCampaigns).forEach(campaignId => {
+      if (openCampaigns[campaignId] && !loadedChats[campaignId]) {
+        loadChatsForCampaign(campaignId);
+      }
+    });
+  }, [openCampaigns, loadedChats, loadingChats]);
+
+  // Merge loaded chats and old campaigns into campaign data
+  const mergedCampaignData = useMemo(() => {
+    const currentCampaigns = campaignPlannerData.data?.chatsGroupedByCampaign || [];
+    const oldCampaigns = showOldCampaigns && oldCampaignsData.data?.chatsGroupedByCampaign 
+      ? oldCampaignsData.data.chatsGroupedByCampaign 
+      : [];
+
+    // Combine current and old campaigns
+    const allCampaigns = [...currentCampaigns, ...oldCampaigns];
+
+    // Remove duplicates (in case a campaign appears in both)
+    const uniqueCampaigns = Array.from(
+      new Map(allCampaigns.map(campaign => [campaign.id, campaign])).values()
+    );
+
+    // Sort by updatedAt descending
+    uniqueCampaigns.sort((a, b) => {
+      return b.updatedAt.getTime() - a.updatedAt.getTime();
+    });
+
+    return {
+      chatsGroupedByCampaign: uniqueCampaigns.map(campaign => {
+        // If chats are loaded for this campaign, use them
+        if (loadedChats[campaign.id]) {
+          return {
+            ...campaign,
+            chats: loadedChats[campaign.id],
+          };
+        }
+        // Otherwise return campaign as-is (may have empty chats array from metadata)
+        return campaign;
+      }),
+    };
+  }, [campaignPlannerData.data, oldCampaignsData.data, showOldCampaigns, loadedChats]);
 
   const onGenerate = async () => {
     if (!name) {
@@ -398,6 +485,8 @@ export default function CampaignPlannerPage({ project }: Props) {
 
       // Refetch campaign data to show the new campaign
       await campaignPlannerData.refetch();
+      // Clear loaded chats cache since campaign data has changed
+      setLoadedChats({});
 
       // Only generate content for non-Blog News campaigns
       if (selectedGoal !== "blog-news" && d?.chats && d?.chats[0]) {
@@ -423,6 +512,14 @@ export default function CampaignPlannerPage({ project }: Props) {
         }
       }
       campaignPlannerData.refetch();
+      // Clear loaded chats cache for this campaign since it was updated
+      if (chatLoading) {
+        setLoadedChats(prev => {
+          const next = { ...prev };
+          delete next[chatLoading.campaignId];
+          return next;
+        });
+      }
     } catch { }
     setChatLoading(null);
   }
@@ -464,9 +561,16 @@ export default function CampaignPlannerPage({ project }: Props) {
     const res = await deleteCampaignFromDb.mutateAsync(campaignId);
     if (res) {
       toast.success("Campaign Deleted !");
+      // Clear loaded chats cache for deleted campaign
+      setLoadedChats(prev => {
+        const next = { ...prev };
+        delete next[campaignId];
+        return next;
+      });
       queryClient.invalidateQueries({
         queryKey: ["campaignPlanner", projectId],
       });
+      await campaignPlannerData.refetch();
     } else {
       toast.error("Error while deleting campaign !")
     }
@@ -552,7 +656,7 @@ export default function CampaignPlannerPage({ project }: Props) {
             "md:static md:w-full md:mt-5 md:right-auto md:bottom-auto",
             // Fixed blue color that doesn't change with dark mode (like Add Project button)
             "bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors",
-            !campaignPlannerData.data?.chatsGroupedByCampaign?.length 
+            !mergedCampaignData?.chatsGroupedByCampaign?.length 
               ? "" 
               : ""
           )} 
@@ -833,7 +937,7 @@ export default function CampaignPlannerPage({ project }: Props) {
           </div>
         ) : (
           <>
-            {!!campaignPlannerData.data?.chatsGroupedByCampaign?.length && (
+            {!!mergedCampaignData?.chatsGroupedByCampaign?.length && (
               <div className="mb-2">
                 <h2 className="text-xl font-bold">Active Campaigns:</h2>
               </div>
@@ -846,7 +950,7 @@ export default function CampaignPlannerPage({ project }: Props) {
               </div>
             )}
             {(() => {
-              const allCampaigns = campaignPlannerData.data?.chatsGroupedByCampaign || [];
+              const allCampaigns = mergedCampaignData?.chatsGroupedByCampaign || [];
               const filteredCampaigns = allCampaigns.filter((campaign) => {
                 // If showing old campaigns, show everything
                 if (showOldCampaigns) return true;
@@ -854,20 +958,29 @@ export default function CampaignPlannerPage({ project }: Props) {
                 // If campaign has no start date, show it (it's not scheduled yet)
                 if (!campaign.startDate) return true;
 
-                // Check if campaign is old (all dates have passed)
+                // Calculate if campaign has any future dates based on startDate and chatCount
                 const baseDate = new Date(campaign.startDate);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                // A campaign is considered "old" if all days have passed (regardless of completion)
-                const allDaysPassed = campaign.chats.every((chat) => {
-                  const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
-                  chatDate.setHours(0, 0, 0, 0);
-                  return chatDate < today;
-                });
+                // Get chatCount from metadata (available even when chats aren't loaded)
+                const chatCount = (campaign as any).chatCount || (campaign.chats?.length || 0);
+                
+                if (chatCount === 0) {
+                  // No chats yet, show it
+                  return true;
+                }
 
-                // Show campaign only if it's not old (has at least one upcoming day)
-                return !allDaysPassed;
+                // Calculate the last day of the campaign
+                const lastDayOfCampaign = new Date(baseDate);
+                lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (chatCount - 1));
+                lastDayOfCampaign.setHours(0, 0, 0, 0);
+
+                // Campaign is "current" if the last day is today or in the future
+                // Campaign is "old" if the last day is in the past
+                const isCurrentCampaign = lastDayOfCampaign >= today;
+
+                return isCurrentCampaign;
               });
 
               // Show message if there are campaigns but all are hidden
@@ -1279,6 +1392,12 @@ export default function CampaignPlannerPage({ project }: Props) {
                                         await generateChat(projectId as string, campaign.id, chat.day, chat.title);
                                         await sleep(2000);
                                         campaignPlannerData.refetch();
+                                        // Clear loaded chats cache for this campaign
+                                        setLoadedChats(prev => {
+                                          const next = { ...prev };
+                                          delete next[campaign.id];
+                                          return next;
+                                        });
                                       }
                                     }
                                   } catch { }
@@ -1705,21 +1824,16 @@ export default function CampaignPlannerPage({ project }: Props) {
                   })}
                   {/* Show/Hide old campaigns button at bottom center */}
                   {(() => {
-                    const allCampaigns = campaignPlannerData.data?.chatsGroupedByCampaign || [];
-                    const hasOldCampaigns = allCampaigns.some((campaign) => {
-                      if (!campaign.startDate) return false;
-                      const baseDate = new Date(campaign.startDate);
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const allDaysPassed = campaign.chats.every((chat) => {
-                        const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
-                        chatDate.setHours(0, 0, 0, 0);
-                        return chatDate < today;
-                      });
-                      return allDaysPassed;
-                    });
+                    // Check if there are old campaigns (either loaded or available to load)
+                    const hasOldCampaigns = showOldCampaigns 
+                      ? (oldCampaignsData.data?.chatsGroupedByCampaign?.length || 0) > 0
+                      : oldCampaignsData.data?.chatsGroupedByCampaign?.length || 
+                        // If not loaded yet, we can't know for sure, but show button anyway
+                        // The backend will return empty if there are no old campaigns
+                        true;
                     
-                    if (hasOldCampaigns) {
+                    // Only show button if we have old campaigns or are loading them
+                    if (hasOldCampaigns || showOldCampaigns) {
                       return (
                         <div className="flex justify-center mt-6">
                           <Button
@@ -1727,8 +1841,16 @@ export default function CampaignPlannerPage({ project }: Props) {
                             size="sm"
                             onClick={() => setShowOldCampaigns(!showOldCampaigns)}
                             className="text-xs text-muted-foreground"
+                            disabled={showOldCampaigns && oldCampaignsData.isLoading}
                           >
-                            {showOldCampaigns ? "Hide older campaigns" : "Show older campaigns"}
+                            {showOldCampaigns && oldCampaignsData.isLoading ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Loading...
+                              </>
+                            ) : (
+                              showOldCampaigns ? "Hide older campaigns" : "Show older campaigns"
+                            )}
                           </Button>
                         </div>
                       );

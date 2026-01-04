@@ -29,8 +29,13 @@ export const useGetPendingTasks = () => {
         return response;
       });
       if (err) {
-        console.error("Error fetching pending tasks:", err);
-        throw new Error(err.response?.data?.message || "Failed to fetch pending tasks");
+        // Only log if it's not a connection error (which might be temporary)
+        const errorCode = (err as any)?.code || (err as any)?.response?.status;
+        if (errorCode !== 'ERR_NETWORK' && errorCode !== 'ECONNREFUSED' && errorCode !== 500) {
+          console.error("Error fetching pending tasks:", err);
+        }
+        // Return empty array instead of throwing to prevent UI errors
+        return [];
       }
       const result = res.data || [];
       return result;
@@ -38,6 +43,8 @@ export const useGetPendingTasks = () => {
     retry: 1,
     refetchOnWindowFocus: true,
     refetchInterval: 60000, // Refetch every minute
+    retryOnMount: false,
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 };
 

@@ -6,6 +6,9 @@ import {
   editChatContent,
   generateCampaignChat,
   getCampaignPlanner,
+  getCampaignPlannerMetadata,
+  getOldCampaigns,
+  getCampaignChats,
   scheduleCampaignPosts,
   scheduleCampaignTasks,
   startCampaignPlanner,
@@ -58,11 +61,39 @@ export const useCampaignPlanner = () => {
   });
 };
 
-export const useGetCampaignPlanner = ({ projectId }: { projectId: string }) => {
+export const useGetCampaignPlanner = ({ 
+  projectId, 
+  loadChats = false,
+  limit 
+}: { 
+  projectId: string;
+  loadChats?: boolean; // If true, loads full data with chats. If false, loads only metadata
+  limit?: number; // Limit number of campaigns to load (for metadata mode)
+}) => {
   return useQuery({
-    queryFn: () => getCampaignPlanner(projectId), // must call with only projectId
+    queryFn: () => loadChats 
+      ? getCampaignPlanner(projectId) 
+      : getCampaignPlannerMetadata(projectId, limit), // Load metadata only by default
     enabled: Boolean(projectId),
-    queryKey: ["campaignPlanner", projectId],
+    queryKey: ["campaignPlanner", projectId, loadChats, limit],
+  });
+};
+
+// Hook to load chats for a specific campaign on demand
+export const useGetCampaignChats = (campaignId: string | undefined) => {
+  return useQuery({
+    queryFn: () => getCampaignChats(campaignId!),
+    enabled: Boolean(campaignId),
+    queryKey: ["campaignChats", campaignId],
+  });
+};
+
+// Hook to load old campaigns on demand
+export const useGetOldCampaigns = (projectId: string | undefined, enabled: boolean = false) => {
+  return useQuery({
+    queryFn: () => getOldCampaigns(projectId!),
+    enabled: Boolean(projectId) && enabled,
+    queryKey: ["oldCampaigns", projectId],
   });
 };
 

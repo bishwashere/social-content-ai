@@ -120,16 +120,16 @@ export function AddProjectButton({ variant = "default" }: AddProjectButtonProps)
   ];
 
   return (
-    <Dialog open={open} onOpenChange={(value) => {
-      setStep(0);
-      setName("");
-      setUrl("");
-      setDescription("");
-      setOpen(value);
-    }}>
-      <DialogTrigger asChild>
-        <TooltipProvider>
-          <Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <Dialog open={open} onOpenChange={(value) => {
+          setStep(0);
+          setName("");
+          setUrl("");
+          setDescription("");
+          setOpen(value);
+        }}>
+          <DialogTrigger asChild>
             <TooltipTrigger asChild>
               <Button
                 variant={variant === "ghost" ? "ghost" : "default"}
@@ -148,16 +148,14 @@ export function AddProjectButton({ variant = "default" }: AddProjectButtonProps)
                 {(sidebar.open || variant === "ghost") && <span>Add Project</span>}
               </Button>
             </TooltipTrigger>
-            {!sidebar.open && (
-              <TooltipContent side="right">
-                Add Project
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-      </DialogTrigger>
+          </DialogTrigger>
+          {!sidebar.open && (
+            <TooltipContent side="right">
+              Add Project
+            </TooltipContent>
+          )}
 
-      <DialogContent>
+          <DialogContent>
         <DialogClose />
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
@@ -202,6 +200,8 @@ export function AddProjectButton({ variant = "default" }: AddProjectButtonProps)
           </div>
         </form>
       </DialogContent>
-    </Dialog>
+        </Dialog>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

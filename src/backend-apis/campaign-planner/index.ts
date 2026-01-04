@@ -175,6 +175,178 @@ export const getCampaignPlanner = async (projectId: string) => {
 
 };
 
+// Lightweight function to get only campaign metadata without chats for faster initial load
+// Only returns current campaigns (campaigns with future dates)
+export const getCampaignPlannerMetadata = async (projectId: string, limit?: number) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const planners = await prisma.campaignPlanner.findMany({
+    where: {
+      projectId: projectId,
+    },
+    select: {
+      id: true,
+      name: true,
+      goal: true,
+      targetAudience: true,
+      updatedAt: true,
+      startDate: true,
+      createdAt: true,
+      projectId: true,
+      platforms: true,
+      autoPostEnabled: true,
+      autoPostTime: true,
+      autoPostPlatforms: true,
+      blogNewsMetadata: true,
+      _count: {
+        select: {
+          chats: true, // Just count, don't load chats
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: 'desc', // Latest first
+    },
+  });
+
+  // Filter to only current campaigns (campaigns with future dates or no start date)
+  const currentCampaigns = planners.filter((p) => {
+    // If no start date, it's current (not scheduled yet)
+    if (!p.startDate) return true;
+    
+    const baseDate = new Date(p.startDate);
+    const chatCount = p._count.chats;
+    
+    // If no chats, show it
+    if (chatCount === 0) return true;
+    
+    // Calculate the last day of the campaign
+    const lastDayOfCampaign = new Date(baseDate);
+    lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (chatCount - 1));
+    lastDayOfCampaign.setHours(0, 0, 0, 0);
+    
+    // Campaign is "current" if the last day is today or in the future
+    return lastDayOfCampaign >= today;
+  });
+
+  // Apply limit to current campaigns only
+  const limitedCampaigns = limit ? currentCampaigns.slice(0, limit) : currentCampaigns;
+
+  return {
+    chatsGroupedByCampaign: limitedCampaigns.map((p) => ({
+      id: p.id,
+      name: p.name,
+      goal: p.goal,
+      targetAudience: p.targetAudience,
+      date: p.updatedAt,
+      startDate: p.startDate ? new Date(p.startDate) : null,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      projectId: p.projectId.toString(),
+      platforms: p.platforms,
+      autoPostEnabled: p.autoPostEnabled,
+      autoPostTime: p.autoPostTime,
+      autoPostPlatforms: p.autoPostPlatforms || [],
+      blogNewsMetadata: (p as any).blogNewsMetadata || null,
+      chatCount: p._count.chats,
+      chats: [], // Empty array - will be loaded on demand
+    })),
+  };
+};
+
+// Function to load old campaigns (campaigns where all dates have passed)
+export const getOldCampaigns = async (projectId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Get all campaigns for the project
+  const allPlanners = await prisma.campaignPlanner.findMany({
+    where: {
+      projectId: projectId,
+    },
+    select: {
+      id: true,
+      name: true,
+      goal: true,
+      targetAudience: true,
+      updatedAt: true,
+      startDate: true,
+      createdAt: true,
+      projectId: true,
+      platforms: true,
+      autoPostEnabled: true,
+      autoPostTime: true,
+      autoPostPlatforms: true,
+      blogNewsMetadata: true,
+      _count: {
+        select: {
+          chats: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: 'desc',
+    },
+  });
+
+  // Filter to only old campaigns (where last day is in the past)
+  const oldCampaigns = allPlanners.filter((p) => {
+    if (!p.startDate) return false; // No start date means not scheduled, not old
+    
+    const baseDate = new Date(p.startDate);
+    const chatCount = p._count.chats;
+    
+    if (chatCount === 0) return false; // No chats, not old
+    
+    // Calculate the last day of the campaign
+    const lastDayOfCampaign = new Date(baseDate);
+    lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (chatCount - 1));
+    lastDayOfCampaign.setHours(0, 0, 0, 0);
+    
+    // Campaign is "old" if the last day is in the past
+    return lastDayOfCampaign < today;
+  });
+
+  return {
+    chatsGroupedByCampaign: oldCampaigns.map((p) => ({
+      id: p.id,
+      name: p.name,
+      goal: p.goal,
+      targetAudience: p.targetAudience,
+      date: p.updatedAt,
+      startDate: p.startDate ? new Date(p.startDate) : null,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      projectId: p.projectId.toString(),
+      platforms: p.platforms,
+      autoPostEnabled: p.autoPostEnabled,
+      autoPostTime: p.autoPostTime,
+      autoPostPlatforms: p.autoPostPlatforms || [],
+      blogNewsMetadata: (p as any).blogNewsMetadata || null,
+      chatCount: p._count.chats,
+      chats: [], // Empty array - will be loaded on demand
+    })),
+  };
+};
+
+// Function to load chats for a specific campaign on demand
+export const getCampaignChats = async (campaignId: string) => {
+  const campaign = await prisma.campaignPlanner.findUnique({
+    where: { id: campaignId },
+    include: { chats: true },
+  });
+
+  if (!campaign) {
+    return null;
+  }
+
+  return {
+    id: campaign.id,
+    chats: campaign.chats.sort((a, b) => a.day - b.day),
+  };
+};
+
 export const generateCampaignChat = async (props: {
   projectId: string;
   id: string;
