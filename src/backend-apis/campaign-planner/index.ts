@@ -787,12 +787,13 @@ export const scheduleCampaignPosts = async ({
     // Parse time
     const [hours, minutes] = autoPostTime.split(":").map(Number);
 
+    console.log("start date", campaign.startDate)
     // For each chat in the campaign
     for (const chat of campaign.chats) {
       // Calculate the date for this chat: startDate + (day - 1) days
       // Use proper date arithmetic to handle month/year boundaries correctly
       const startDate = new Date(campaign.startDate);
-      startDate.setHours(hours, minutes, 0, 0);
+      startDate.setHours(startDate.getHours() + hours, startDate.getMinutes() + minutes);
       
       // Add (chat.day - 1) days to the start date
       const chatDate = new Date(startDate);
@@ -821,6 +822,7 @@ export const scheduleCampaignPosts = async ({
 
         // Schedule the post
         try {
+          console.log("chat date", chatDate)
           const scheduled = await schedulePost({
             projectId: projectId,
             platform: platformName,
@@ -1062,7 +1064,7 @@ export const scheduleCampaignTasks = async ({
       // Calculate the date for this chat: startDate + (day - 1) days
       // Use proper date arithmetic to handle month/year boundaries correctly
       const startDate = new Date(campaign.startDate);
-      startDate.setHours(hours, minutes, 0, 0); // Reset to midnight to avoid timezone issues
+      startDate.setHours(startDate.getHours() + hours, startDate.getMinutes() + minutes); // Reset to midnight to avoid timezone issues
       
       // Add (chat.day - 1) days to the start date
       const chatDateLocal = new Date(startDate);
