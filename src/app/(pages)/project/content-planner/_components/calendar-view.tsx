@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { format, startOfWeek, addDays, subWeeks, endOfWeek, addWeeks, isSameDay, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfWeek, addDays, subWeeks, endOfWeek, addWeeks, isSameDay, startOfMonth, endOfMonth, isToday } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useGetAllProjects, useGetAllScheduledPosts } from "@/backend-apis/projects/hooks";
@@ -252,6 +252,100 @@ function UnifiedCalendarView({
   
   // Format header label based on view type
   const headerLabel = useMemo(() => {
+    const tomorrow = addDays(today, 1);
+    
+    // Get scheduled times for a specific date
+    const getScheduledTimes = (targetDate: Date) => {
+      const targetDateNormalized = new Date(targetDate);
+      targetDateNormalized.setHours(0, 0, 0, 0);
+      
+      const dayEvents = events.filter(event => {
+        if (event.type !== 'scheduled') return false;
+        const eventDate = new Date(event.start);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate.getTime() === targetDateNormalized.getTime();
+      });
+      
+      const times = dayEvents
+        .map(event => {
+          const eventDate = new Date(event.start);
+          return format(eventDate, "h:mm a");
+        })
+        .filter((time, index, arr) => arr.indexOf(time) === index)
+        .sort();
+      
+      return times;
+    };
+    
+    // Normalize dates for comparison
+    const todayNormalized = new Date(today);
+    todayNormalized.setHours(0, 0, 0, 0);
+    const tomorrowNormalized = new Date(tomorrow);
+    tomorrowNormalized.setHours(0, 0, 0, 0);
+    
+    // For week and focus views, check if the week includes today or tomorrow
+    if (viewType === 'week' || viewType === 'focus') {
+      const weekStart = startOfWeek(date, { weekStartsOn: 0 });
+      const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
+      weekStart.setHours(0, 0, 0, 0);
+      weekEnd.setHours(0, 0, 0, 0);
+      
+      const todayDateOnly = new Date(todayNormalized);
+      todayDateOnly.setHours(0, 0, 0, 0);
+      const tomorrowDateOnly = new Date(tomorrowNormalized);
+      tomorrowDateOnly.setHours(0, 0, 0, 0);
+      
+      const weekIncludesToday = todayDateOnly >= weekStart && todayDateOnly <= weekEnd;
+      const weekIncludesTomorrow = tomorrowDateOnly >= weekStart && tomorrowDateOnly <= weekEnd;
+      
+      // Show today's times if week includes today
+      if (weekIncludesToday) {
+        const todayTimes = getScheduledTimes(today);
+        return todayTimes.length > 0 
+          ? `Today • ${todayTimes.join(", ")}`
+          : "Today";
+      }
+      
+      // Show tomorrow's times if week includes tomorrow but not today
+      if (weekIncludesTomorrow && !weekIncludesToday) {
+        const tomorrowTimes = getScheduledTimes(tomorrow);
+        return tomorrowTimes.length > 0 
+          ? `Tomorrow • ${tomorrowTimes.join(", ")}`
+          : "Tomorrow";
+      }
+    }
+    
+    // For month view, check if today or tomorrow is in the current month
+    if (viewType === 'month') {
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      monthStart.setHours(0, 0, 0, 0);
+      monthEnd.setHours(0, 0, 0, 0);
+      
+      const todayDateOnly = new Date(todayNormalized);
+      todayDateOnly.setHours(0, 0, 0, 0);
+      const tomorrowDateOnly = new Date(tomorrowNormalized);
+      tomorrowDateOnly.setHours(0, 0, 0, 0);
+      
+      const todayInMonth = todayDateOnly >= monthStart && todayDateOnly <= monthEnd;
+      const tomorrowInMonth = tomorrowDateOnly >= monthStart && tomorrowDateOnly <= monthEnd;
+      
+      if (todayInMonth) {
+        const todayTimes = getScheduledTimes(today);
+        return todayTimes.length > 0 
+          ? `Today • ${todayTimes.join(", ")}`
+          : "Today";
+      }
+      
+      if (tomorrowInMonth && !todayInMonth) {
+        const tomorrowTimes = getScheduledTimes(tomorrow);
+        return tomorrowTimes.length > 0 
+          ? `Tomorrow • ${tomorrowTimes.join(", ")}`
+          : "Tomorrow";
+      }
+    }
+    
+    // Default behavior for other dates
     if (viewType === 'focus') {
       const currentWeekStart = startOfWeek(date, { weekStartsOn: 0 });
       const startRange = subWeeks(currentWeekStart, 1);
@@ -264,7 +358,7 @@ function UnifiedCalendarView({
     } else {
       return format(date, "MMMM yyyy");
     }
-  }, [date, viewType]);
+  }, [date, viewType, events, today]);
   
   // Check if a date is in the current month (for month view)
   const isInCurrentMonth = (checkDate: Date) => {

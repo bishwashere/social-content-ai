@@ -4,6 +4,111 @@ import { validateUserAuth } from "@/middlewares/validate-auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 
+// Helper function to get days since last post for all projects at once (batch query)
+async function getDaysSinceLastPostMap(projectIds: string[]): Promise<Map<string, number | null>> {
+  const resultMap = new Map<string, number | null>();
+  
+  if (projectIds.length === 0) {
+    return resultMap;
+  }
+
+  try {
+    // Initialize all projects with null
+    projectIds.forEach(id => resultMap.set(id, null));
+
+    // Get all OAuth providers for all projects
+    const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { 
+        projectId: true,
+        oauthProviderId: true 
+      }
+    });
+
+    // Group OAuth provider IDs by project
+    const projectToOAuthProviders = new Map<string, string[]>();
+    projectOAuthProviders.forEach(provider => {
+      const existing = projectToOAuthProviders.get(provider.projectId) || [];
+      existing.push(provider.oauthProviderId);
+      projectToOAuthProviders.set(provider.projectId, existing);
+    });
+
+    // Get all OAuth provider IDs
+    const allOAuthProviderIds = Array.from(new Set(
+      projectOAuthProviders.map(p => p.oauthProviderId)
+    ));
+
+    if (allOAuthProviderIds.length === 0) {
+      return resultMap;
+    }
+
+    // Get the most recent post for each OAuth provider
+    const lastPosts = await prisma.platformPost.findMany({
+      where: {
+        oauthProviderId: { in: allOAuthProviderIds }
+      },
+      select: {
+        oauthProviderId: true,
+        date: true
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    });
+
+    // Group posts by OAuth provider and get the most recent for each
+    const oauthProviderToLastPost = new Map<string, Date>();
+    lastPosts.forEach(post => {
+      const existing = oauthProviderToLastPost.get(post.oauthProviderId);
+      if (!existing || post.date > existing) {
+        oauthProviderToLastPost.set(post.oauthProviderId, post.date);
+      }
+    });
+
+    // Calculate days since last post for each project
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    projectIds.forEach(projectId => {
+      const oauthProviderIds = projectToOAuthProviders.get(projectId) || [];
+      if (oauthProviderIds.length === 0) {
+        resultMap.set(projectId, null);
+        return;
+      }
+
+      // Find the most recent post across all OAuth providers for this project
+      let mostRecentPost: Date | null = null;
+      oauthProviderIds.forEach(oauthProviderId => {
+        const lastPost = oauthProviderToLastPost.get(oauthProviderId);
+        if (lastPost && (!mostRecentPost || lastPost > mostRecentPost)) {
+          mostRecentPost = lastPost;
+        }
+      });
+
+      if (!mostRecentPost) {
+        resultMap.set(projectId, null);
+        return;
+      }
+
+      // Calculate days since last post
+      const lastPostDate = new Date(mostRecentPost);
+      lastPostDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = today.getTime() - lastPostDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      resultMap.set(projectId, diffDays);
+    });
+
+    return resultMap;
+  } catch (error) {
+    console.error("Error calculating days since last post for projects:", error);
+    // Return map with all nulls on error
+    projectIds.forEach(id => resultMap.set(id, null));
+    return resultMap;
+  }
+}
+
 export async function GET(request: NextRequest) {
   return applyMiddleware(
     validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -61,6 +166,7 @@ export async function GET(request: NextRequest) {
             campaignId?: string;
             campaignName?: string;
             userRole?: string;
+            daysSinceLastPost?: number | null;
           }>;
         }> = {};
 
@@ -70,6 +176,9 @@ export async function GET(request: NextRequest) {
         nextWeek.setDate(nextWeek.getDate() + 7);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Batch fetch days since last post for all projects
+        const daysSinceLastPostMap = await getDaysSinceLastPostMap(projectIds);
 
         // 1. Check projects with no content for next week
         for (const project of uniqueProjects) {
@@ -133,11 +242,13 @@ export async function GET(request: NextRequest) {
               };
             }
             const userRole = projectRoleMap.get(project.id) || "viewer";
+            const daysSinceLastPost = daysSinceLastPostMap.get(project.id) ?? null;
             tasksByType["no_content_next_week"].projects.push({
               projectId: project.id,
               projectName: project.name,
               description: `"${project.name}" is ready for next week's plan`,
-              userRole: userRole
+              userRole: userRole,
+              daysSinceLastPost: daysSinceLastPost
             });
           }
         }
@@ -181,13 +292,15 @@ export async function GET(request: NextRequest) {
               };
             }
             const userRole = projectRoleMap.get(campaign.projectId) || "viewer";
+            const daysSinceLastPost = daysSinceLastPostMap.get(campaign.projectId) ?? null;
             tasksByType["campaign_expiring"].projects.push({
               projectId: campaign.projectId,
               projectName: campaign.project?.name || "Unknown Project",
               description: `Campaign "${campaign.name || 'Untitled'}" in "${campaign.project?.name || 'Unknown Project'}" is expiring tomorrow`,
               campaignId: campaign.id,
               campaignName: campaign.name || "Untitled Campaign",
-              userRole: userRole
+              userRole: userRole,
+              daysSinceLastPost: daysSinceLastPost
             });
           }
         }

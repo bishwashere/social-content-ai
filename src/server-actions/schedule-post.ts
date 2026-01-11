@@ -14,14 +14,18 @@ type Props = {
 export const schedulePost = async (props: Props) => {
   try {
     // Guardrail: Check if the scheduled date is in the past
-    const scheduledDate = new Date(props.date);
+    let scheduledDate = new Date(props.date);
     const now = new Date();
     
+    // If date is in the past, reschedule for 1 minute from now
     if (scheduledDate.getTime() < now.getTime()) {
       console.log(
-        `❌ Cannot schedule post in the past for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
+        `⚠️ Scheduled date is in the past for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}. Rescheduling for now + 1 minute.`
       );
-      return false;
+      scheduledDate = new Date(now.getTime() + 60 * 1000); // 1 minute from now
+      console.log(
+        `✅ Rescheduled to: ${scheduledDate.toISOString()}`
+      );
     }
 
     // Verify project has OAuth provider mapped
@@ -45,17 +49,17 @@ export const schedulePost = async (props: Props) => {
     }
 
     console.log(
-      `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
+      `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${scheduledDate.toISOString()}`
     );
 
     // Final database-level guardrail: Double-check date is not in the past before saving
-    const finalDateCheck = new Date(props.date);
     const nowCheck = new Date();
-    if (finalDateCheck.getTime() < nowCheck.getTime()) {
-      console.error(
-        `❌ DATABASE GUARDRAIL: Blocked attempt to save post with past date. projectId: ${props.projectId}, platform: ${props.platform}, date: ${props.date}`
+    if (scheduledDate.getTime() < nowCheck.getTime()) {
+      // One more reschedule attempt if still in the past
+      scheduledDate = new Date(nowCheck.getTime() + 60 * 1000);
+      console.log(
+        `⚠️ Final guardrail: Rescheduled again to: ${scheduledDate.toISOString()}`
       );
-      return false;
     }
 
     const data = await prisma.scheduledPost.create({
@@ -63,7 +67,7 @@ export const schedulePost = async (props: Props) => {
         projectId: props.projectId,
         platform: props.platform,
         content: props.content,
-        date: props.date,
+        date: scheduledDate.toISOString(),
         status: "pending",
         oauthProviderId: projectProvider.oauthProviderId,
         ...(props.meta && { meta: props.meta })

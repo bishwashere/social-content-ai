@@ -28,6 +28,7 @@ export type TimelineProject = {
     totalImpressions: number;
     recentImpressions: number;
   };
+  daysSinceLastPost?: number | null;
 };
 
 // A timeline item that can contain multiple projects with the same action
@@ -104,7 +105,8 @@ function getGroupKey(description: string | undefined, taskType: string): string 
   }
   
   // Group general campaign planning items (not tied to specific day/date)
-  if (taskType === "campaigns" && !description.includes("Day ")) {
+  // But exclude projects with active campaigns (they don't need planning)
+  if (taskType === "campaigns" && !description.includes("Day ") && !description.includes("all up to date")) {
     return `campaigns-planning`;
   }
   
@@ -244,6 +246,7 @@ export function useTodayItems() {
               href,
               userRole: project.userRole,
               stats: project.stats,
+              daysSinceLastPost: project.daysSinceLastPost,
             });
             
             // Update title if this is an "inactive 7+ days" group
@@ -278,6 +281,7 @@ export function useTodayItems() {
                 href,
                 userRole: project.userRole,
                 stats: project.stats,
+                daysSinceLastPost: project.daysSinceLastPost,
               }],
               action: {
                 label: getActionButtonText(task.type, groupKey),
@@ -316,6 +320,7 @@ export function useTodayItems() {
                 href,
                 userRole: project.userRole,
                 stats: project.stats,
+                daysSinceLastPost: project.daysSinceLastPost,
               });
             } else {
               // Create new stats group
@@ -338,6 +343,7 @@ export function useTodayItems() {
                   href,
                   userRole: project.userRole,
                   stats: project.stats,
+                  daysSinceLastPost: project.daysSinceLastPost,
                 }],
                 action: {
                   label: getActionButtonText(task.type),
@@ -391,6 +397,7 @@ export function useTodayItems() {
             campaignName: project.campaignName,
             href,
             userRole: project.userRole,
+            daysSinceLastPost: project.daysSinceLastPost,
           });
         } else {
           pendingGroupMap.set(groupKey, {
@@ -407,6 +414,7 @@ export function useTodayItems() {
               campaignName: project.campaignName,
               href,
               userRole: project.userRole,
+              daysSinceLastPost: project.daysSinceLastPost,
             }],
             action: {
               label: getPendingActionButtonText(task.action),

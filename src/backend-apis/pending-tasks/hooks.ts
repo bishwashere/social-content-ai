@@ -10,6 +10,7 @@ export type PendingTaskProject = {
   campaignId?: string;
   campaignName?: string;
   userRole?: string; // "admin" | "editor" | "viewer"
+  daysSinceLastPost?: number | null;
 };
 
 export type PendingTask = {

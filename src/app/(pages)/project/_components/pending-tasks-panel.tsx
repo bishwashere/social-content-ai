@@ -140,24 +140,42 @@ export function PendingTasksPanel() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {visibleProjects.map((project, projectIndex) => (
-                  <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
-                    <div className="flex-1">
-                      <CardDescription>
-                        {project.description?.replace(/\s+•\s+Project:.*$/, '') || (project.projectName ? `"${project.projectName}"` : '')}
-                      </CardDescription>
+                {visibleProjects.map((project, projectIndex) => {
+                  const daysSinceLastPost = project.daysSinceLastPost;
+                  const daysText = daysSinceLastPost !== null && daysSinceLastPost !== undefined
+                    ? daysSinceLastPost === 0
+                      ? "Last post today"
+                      : daysSinceLastPost === 1
+                      ? "Last post yesterday"
+                      : `${daysSinceLastPost} days since last post`
+                    : null;
+
+                  return (
+                    <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
+                      <div className="flex-1">
+                        <CardDescription>
+                          {project.description?.replace(/\s+•\s+Project:.*$/, '') || (project.projectName ? `"${project.projectName}"` : '')}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {daysText && (
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {daysText}
+                          </span>
+                        )}
+                        <Button
+                          onClick={() => handleTaskAction(task, project)}
+                          variant="outline"
+                          size="sm"
+                          className="flex-shrink-0"
+                        >
+                          {getActionButtonText(task.action)}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      onClick={() => handleTaskAction(task, project)}
-                      variant="outline"
-                      size="sm"
-                      className="flex-shrink-0"
-                    >
-                      {getActionButtonText(task.action)}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
                 {hasMoreThanTwo && (
                   <Button
                     onClick={() => toggleTaskExpansion(task.type)}

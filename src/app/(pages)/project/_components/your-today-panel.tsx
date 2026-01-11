@@ -266,78 +266,75 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
             const projectsWithoutCampaigns = task.projects.filter(
               project => project.description?.includes("ready for a new campaign") || project.description?.includes("has no campaigns")
             );
-            // Only show projects with campaigns that need action (exclude "all up to date" and "no active chats")
+            // Show projects with campaigns that need action OR have stats (for trending/active projects)
             const projectsWithCampaigns = task.projects.filter(
               project => 
                 !project.description?.includes("ready for a new campaign") &&
                 !project.description?.includes("has no campaigns") &&
-                project.needsAction === true &&
+                (project.needsAction === true || project.stats !== undefined) &&
                 !project.description?.includes("all up to date") &&
                 !project.description?.includes("no active chats")
             );
             
             const isNoCampaignsExpanded = expandedTasks.has("campaigns_no_campaigns");
+            const hasMoreThanThree = projectsWithoutCampaigns.length > 3;
+            // Always show at least 3 projects by default, expand to show all if more than 3
+            const visibleProjectsWithoutCampaigns = hasMoreThanThree && !isNoCampaignsExpanded 
+              ? projectsWithoutCampaigns.slice(0, 3) 
+              : projectsWithoutCampaigns;
             
             return (
               <div key={index} className="space-y-4">
-                {/* Projects without campaigns - collapsed card */}
+                {/* Projects without campaigns - show 3 by default */}
                 {projectsWithoutCampaigns.length > 0 && (
-                  <>
-                    {!isNoCampaignsExpanded ? (
-                      <div
-                        onClick={() => toggleTaskExpansion("campaigns_no_campaigns")}
-                        className="cursor-pointer rounded-lg border border-gray-200 p-4 hover:bg-gray-50 hover:border-gray-300 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{task.icon}</span>
-                            <span className="text-base font-medium">
-                              {projectsWithoutCampaigns.length} {projectsWithoutCampaigns.length === 1 ? 'project is' : 'projects are'} ready for a new campaign — kickstart planning
-                            </span>
-                          </div>
-                          <ChevronDown className="h-4 w-4 text-gray-500" />
-                        </div>
-                      </div>
-                    ) : (
-                      <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-lg">
-                            <span className="text-2xl">{task.icon}</span>
-                            Campaigns ready to start
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          {projectsWithoutCampaigns.map((project, projectIndex) => {
-                            // Debug: Log project data
-                            if (projectIndex === 0) {
-                              console.log("🔍 Project data:", project);
-                              console.log("🔍 Project stats:", project.stats);
-                            }
-                            
-                            return (
-                            <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
-                              <div className="flex-1 flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  {project.needsAction === false && (
-                                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                                  )}
-                                  <CardDescription>
-                                    {project.description?.replace(/^Project\s+"/, '"').replace(/\s+•\s+Project:/, '') || (project.projectName ? `"${project.projectName}"` : '')}
-                                  </CardDescription>
-                                </div>
-                                {project.stats !== undefined ? (
-                                  <>
-                                    <div className="text-xs text-gray-500 ml-7">
-                                      {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
-                                    </div>
-                                    {project.stats.recentImpressions >= 50 && (
-                                      <div className="text-xs text-emerald-600 dark:text-emerald-400 ml-7 mt-1 font-medium">
-                                        🔥 {project.projectName} got {project.stats.recentImpressions.toLocaleString()} impressions in the last 3 days
-                                      </div>
-                                    )}
-                                  </>
-                                ) : null}
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <span className="text-2xl">{task.icon}</span>
+                        {task.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {visibleProjectsWithoutCampaigns.map((project, projectIndex) => {
+                        const daysSinceLastPost = project.daysSinceLastPost;
+                        const daysText = daysSinceLastPost !== null && daysSinceLastPost !== undefined
+                          ? daysSinceLastPost === 0
+                            ? "Last post today"
+                            : daysSinceLastPost === 1
+                            ? "Last post yesterday"
+                            : `${daysSinceLastPost} days since last post`
+                          : null;
+                        
+                        return (
+                          <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
+                            <div className="flex-1 flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                {project.needsAction === false && (
+                                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                )}
+                                <CardDescription>
+                                  {project.description?.replace(/^Project\s+"/, '"').replace(/\s+•\s+Project:/, '') || (project.projectName ? `"${project.projectName}"` : '')}
+                                </CardDescription>
                               </div>
+                              {project.stats !== undefined ? (
+                                <>
+                                  <div className="text-xs text-gray-500 ml-7">
+                                    {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
+                                  </div>
+                                  {project.stats.recentImpressions >= 50 && (
+                                    <div className="text-xs text-emerald-600 dark:text-emerald-400 ml-7 mt-1 font-medium">
+                                      🔥 {project.projectName} got {project.stats.recentImpressions.toLocaleString()} impressions in the last 3 days
+                                    </div>
+                                  )}
+                                </>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {daysText && (
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {daysText}
+                                </span>
+                              )}
                               {project.needsAction !== false && (
                                 <Button
                                   onClick={() => handleTaskAction(task, project)}
@@ -350,21 +347,31 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                                 </Button>
                               )}
                             </div>
-                            );
-                          })}
-                          <Button
-                            onClick={() => toggleTaskExpansion("campaigns_no_campaigns")}
-                            variant="ghost"
-                            size="sm"
-                            className="w-full mt-2"
-                          >
-                            <ChevronUp className="h-4 w-4 mr-2" />
-                            Show Less
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </>
+                          </div>
+                        );
+                      })}
+                      {hasMoreThanThree && (
+                        <Button
+                          onClick={() => toggleTaskExpansion("campaigns_no_campaigns")}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full mt-2"
+                        >
+                          {isNoCampaignsExpanded ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-2" />
+                              Show Less
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-2" />
+                              Show {projectsWithoutCampaigns.length - 3} More
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
                 
                 {/* Projects with campaigns - regular card */}
@@ -377,29 +384,65 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {projectsWithCampaigns.map((project, projectIndex) => (
-                        <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
-                          <div className="flex-1 flex items-center gap-2">
-                            {project.needsAction === false && (
-                              <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                            )}
-                            <CardDescription>
-                              {project.description?.replace(/^Project\s+"/, '"').replace(/\s+•\s+Project:/, '') || (project.projectName ? `"${project.projectName}"` : '')}
-                            </CardDescription>
+                      {projectsWithCampaigns.map((project, projectIndex) => {
+                        const daysSinceLastPost = project.daysSinceLastPost;
+                        const daysText = daysSinceLastPost !== null && daysSinceLastPost !== undefined
+                          ? daysSinceLastPost === 0
+                            ? "Last post today"
+                            : daysSinceLastPost === 1
+                            ? "Last post yesterday"
+                            : `${daysSinceLastPost} days since last post`
+                          : null;
+
+                        // Debug logging for projects with stats
+                        if (project.stats) {
+                          console.log(`🔍 Project "${project.projectName}":`, {
+                            daysSinceLastPost: project.daysSinceLastPost,
+                            daysText,
+                            stats: project.stats,
+                            needsAction: project.needsAction,
+                            description: project.description
+                          });
+                        }
+
+                        return (
+                          <div key={projectIndex} className="flex items-center justify-between gap-4 pb-3 border-b last:border-0 last:pb-0">
+                            <div className="flex-1 flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                {project.needsAction === false && (
+                                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                )}
+                                <CardDescription>
+                                  {project.description?.replace(/^Project\s+"/, '"').replace(/\s+•\s+Project:/, '') || (project.projectName ? `"${project.projectName}"` : '')}
+                                </CardDescription>
+                              </div>
+                              {project.stats !== undefined ? (
+                                <div className="text-xs text-gray-500 ml-7">
+                                  {project.stats.campaignCount} {project.stats.campaignCount === 1 ? 'campaign' : 'campaigns'} • {project.stats.publishedPostsCount} published {project.stats.publishedPostsCount === 1 ? 'post' : 'posts'} • {project.stats.totalImpressions.toLocaleString()} impressions
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {daysText && (
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {daysText}
+                                </span>
+                              )}
+                              {project.needsAction !== false && (
+                                <Button
+                                  onClick={() => handleTaskAction(task, project)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-shrink-0"
+                                >
+                                  {getActionButtonText(task, project)}
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          {project.needsAction !== false && (
-                            <Button
-                              onClick={() => handleTaskAction(task, project)}
-                              variant="outline"
-                              size="sm"
-                              className="flex-shrink-0"
-                            >
-                              {getActionButtonText(task, project)}
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </CardContent>
                   </Card>
                 )}

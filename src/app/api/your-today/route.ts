@@ -5,6 +5,124 @@ import { applyMiddleware } from "@/middlewares/apply-middleware";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { startOfDay, subDays, subMinutes } from "date-fns";
 
+// Helper function to get days since last post for all projects at once (batch query)
+async function getDaysSinceLastPostMap(projectIds: string[]): Promise<Map<string, number | null>> {
+  const resultMap = new Map<string, number | null>();
+  
+  if (projectIds.length === 0) {
+    return resultMap;
+  }
+
+  try {
+    // Initialize all projects with null
+    projectIds.forEach(id => resultMap.set(id, null));
+
+    // Get all OAuth providers for all projects
+    const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { 
+        projectId: true,
+        oauthProviderId: true 
+      }
+    });
+
+    // Group OAuth provider IDs by project
+    const projectToOAuthProviders = new Map<string, string[]>();
+    projectOAuthProviders.forEach(provider => {
+      const existing = projectToOAuthProviders.get(provider.projectId) || [];
+      existing.push(provider.oauthProviderId);
+      projectToOAuthProviders.set(provider.projectId, existing);
+    });
+
+    // Get all OAuth provider IDs
+    const allOAuthProviderIds = Array.from(new Set(
+      projectOAuthProviders.map(p => p.oauthProviderId)
+    ));
+
+    if (allOAuthProviderIds.length === 0) {
+      return resultMap;
+    }
+
+    // Get the most recent post for each OAuth provider
+    const lastPosts = await prisma.platformPost.findMany({
+      where: {
+        oauthProviderId: { in: allOAuthProviderIds }
+      },
+      select: {
+        oauthProviderId: true,
+        date: true
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    });
+
+    // Group posts by OAuth provider and get the most recent for each
+    const oauthProviderToLastPost = new Map<string, Date>();
+    lastPosts.forEach(post => {
+      const existing = oauthProviderToLastPost.get(post.oauthProviderId);
+      if (!existing || post.date > existing) {
+        oauthProviderToLastPost.set(post.oauthProviderId, post.date);
+      }
+    });
+
+    // Calculate days since last post for each project
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Debug: Log some sample data
+    const sampleProjectIds = ["689f7167d1b9b746c5c73eec", "688a0cafc2ad92060a298653", "688d0a4451cf105b4c13d0c8"]; // New York Laws, PNW Gardening, NextPostAI
+    console.log("📅 getDaysSinceLastPostMap - Sample projects:", {
+      totalProjects: projectIds.length,
+      totalOAuthProviders: allOAuthProviderIds.length,
+      totalPosts: lastPosts.length,
+      sampleProjectMappings: sampleProjectIds.map(id => ({
+        projectId: id,
+        oauthProviderIds: projectToOAuthProviders.get(id) || [],
+        hasPosts: (projectToOAuthProviders.get(id) || []).some(providerId => oauthProviderToLastPost.has(providerId))
+      }))
+    });
+
+    projectIds.forEach(projectId => {
+      const oauthProviderIds = projectToOAuthProviders.get(projectId) || [];
+      if (oauthProviderIds.length === 0) {
+        resultMap.set(projectId, null);
+        return;
+      }
+
+      // Find the most recent post across all OAuth providers for this project
+      let mostRecentPost: Date | null = null;
+      oauthProviderIds.forEach(oauthProviderId => {
+        const lastPost = oauthProviderToLastPost.get(oauthProviderId);
+        if (lastPost && (!mostRecentPost || lastPost > mostRecentPost)) {
+          mostRecentPost = lastPost;
+        }
+      });
+
+      if (!mostRecentPost) {
+        resultMap.set(projectId, null);
+        return;
+      }
+
+      // Calculate days since last post
+      const lastPostDate = new Date(mostRecentPost);
+      lastPostDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = today.getTime() - lastPostDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      resultMap.set(projectId, diffDays);
+    });
+
+    return resultMap;
+  } catch (error) {
+    console.error("Error calculating days since last post for projects:", error);
+    // Return map with all nulls on error
+    projectIds.forEach(id => resultMap.set(id, null));
+    return resultMap;
+  }
+}
+
 type ConsistencyAnalysis = {
   hasHistoricalData: boolean;
   streak: number;
@@ -354,6 +472,10 @@ export async function GET(request: NextRequest) {
           return NextResponse.json([]);
         }
 
+        // Batch fetch days since last post for all projects
+        const daysSinceLastPostMap = await getDaysSinceLastPostMap(projectIds);
+        console.log("📅 Days since last post map:", Array.from(daysSinceLastPostMap.entries()).slice(0, 5));
+
         // Get all data grouped by project
         const [failedPosts, campaigns, todayScheduledPosts, stuckBlogNewsPosts] = await Promise.all([
           // 1. Failed posts from yesterday
@@ -554,6 +676,7 @@ export async function GET(request: NextRequest) {
               totalImpressions: number;
               recentImpressions: number;
             };
+            daysSinceLastPost?: number | null;
           }>;
         }> = {};
 
@@ -757,7 +880,8 @@ export async function GET(request: NextRequest) {
                   startDate: startDate?.toISOString(),
                   userRole: userRole,
                   needsAction: true,
-                  stats: stats
+                  stats: stats,
+                  daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null
                 });
               } else {
                 // No stats, add without stats
@@ -770,7 +894,8 @@ export async function GET(request: NextRequest) {
                   day: campaign.day,
                   startDate: startDate?.toISOString(),
                   userRole: userRole,
-                  needsAction: true
+                  needsAction: true,
+                  daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null
                 });
               }
             } else {
@@ -784,45 +909,14 @@ export async function GET(request: NextRequest) {
                 day: campaign.day,
                 startDate: startDate?.toISOString(),
                 userRole: userRole,
-                needsAction: true
+                needsAction: true,
+                daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null
               });
             }
           } else if (hasActiveCampaign) {
             // Project has active campaigns but all are up to date
-            // Calculate stats for projects with active campaigns so they can appear in trending
-            if (userRole === "admin") {
-              const stats = await calculateProjectStats(projectId);
-              
-              // Only add stats if project has meaningful activity (recent impressions or posts)
-              if (stats.recentImpressions > 0 || stats.publishedPostsCount > 0) {
-                tasksByType["campaigns"].projects.push({
-                  projectId: projectId,
-                  projectName: projectName,
-                  description: `"${projectName}" has active campaigns — all up to date`,
-                  userRole: userRole,
-                  needsAction: false,
-                  stats: stats
-                });
-              } else {
-                // No stats, add without stats
-                tasksByType["campaigns"].projects.push({
-                  projectId: projectId,
-                  projectName: projectName,
-                  description: `"${projectName}" has active campaigns — all up to date`,
-                  userRole: userRole,
-                  needsAction: false
-                });
-              }
-            } else {
-              // Non-admin users don't get stats
-              tasksByType["campaigns"].projects.push({
-                projectId: projectId,
-                projectName: projectName,
-                description: `"${projectName}" has active campaigns — all up to date`,
-                userRole: userRole,
-                needsAction: false
-              });
-            }
+            // Don't add to campaigns task type - they don't need planning since they have active campaigns
+            // They can still appear in trending if they have stats (handled separately)
           } else if (hasAnyCampaign || userRole === "admin") {
             // Check if project is ready for a new campaign based on reason-based criteria
             // Only show if at least one condition is true:
@@ -968,13 +1062,15 @@ export async function GET(request: NextRequest) {
                   totalImpressions: number;
                   recentImpressions: number;
                 };
+                daysSinceLastPost?: number | null;
               } = {
                 projectId: projectId,
                 projectName: projectName,
                 description: `"${projectName}" is ready for a new campaign — ${readinessReason}`,
                 userRole: userRole,
                 needsAction: true,
-                stats: stats
+                stats: stats,
+                daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null
               };
               
               console.log(`📊 Project data being added:`, JSON.stringify(projectData, null, 2));
@@ -987,7 +1083,8 @@ export async function GET(request: NextRequest) {
                 projectName: projectName,
                 description: `"${projectName}" has campaigns — no active chats in the next 3 days`,
                 userRole: userRole,
-                needsAction: false
+                needsAction: false,
+                daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null
               });
             }
           }
@@ -1191,7 +1288,8 @@ export async function GET(request: NextRequest) {
                 description: `"${projectName}" is doing well`,
                 userRole: userRole,
                 needsAction: false,
-                stats: stats
+                stats: stats,
+                daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null
               });
             }
           }

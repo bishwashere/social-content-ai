@@ -19,6 +19,7 @@ export type YourTodayProject = {
     totalImpressions: number;
     recentImpressions: number;
   };
+  daysSinceLastPost?: number | null;
 };
 
 export type YourTodayTask = {

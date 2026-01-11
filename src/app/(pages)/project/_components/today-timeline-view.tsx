@@ -924,12 +924,12 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
   // Grouped item with multiple projects
   if (item.isGrouped && item.projects && item.projects.length > 0) {
     const isInactiveGroup = item.title?.includes("inactive for 7+ days");
-    const isReadyForNewCampaignGroup = item.title?.includes("Ready for a new campaign");
-    const shouldBeCollapsed = isInactiveGroup || isReadyForNewCampaignGroup;
+    // "Ready for a new campaign" should show 3 by default like other groups, not be collapsed
+    const shouldBeCollapsed = isInactiveGroup;
     const hasMoreThanThree = item.projects.length > 3;
     
-    // For inactive groups and "Ready for a new campaign": 0 (default) -> 3 (first expand) -> all (second expand)
-    // For other groups: 3 (default) -> all (expand)
+    // For inactive groups: 0 (default) -> 3 (first expand) -> all (second expand)
+    // For other groups (including "Ready for a new campaign"): 3 (default) -> all (expand)
     let visibleProjects: typeof item.projects = [];
     let showExpandButton = false;
     let expandButtonText = "";
@@ -952,7 +952,7 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
         expandButtonText = "Show less";
       }
     } else {
-      // For non-inactive groups, use original behavior
+      // For non-inactive groups (including "Ready for a new campaign"), show 3 by default
       visibleProjects = hasMoreThanThree && !isExpanded 
         ? item.projects.slice(0, 3) 
         : item.projects;
@@ -1179,7 +1179,18 @@ function ProjectRow({ project, variant }: ProjectRowProps) {
           )}
         </div>
       </div>
-      <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {project.daysSinceLastPost !== null && project.daysSinceLastPost !== undefined && (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {project.daysSinceLastPost === 0
+              ? "Last post today"
+              : project.daysSinceLastPost === 1
+              ? "Last post yesterday"
+              : `${project.daysSinceLastPost} days since last post`}
+          </span>
+        )}
+        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+      </div>
     </div>
   );
 }

@@ -858,12 +858,16 @@ export default function CampaignPlannerPage({ project }: Props) {
 {`{
   "status": 201,
   "data": {
-    "articleUrl": "https://yoursite.com/ideas/article-slug"
+    "id": "...",
+    "slug": "...",
+    "title": "...",
+    "articleUrl": "https://yoursite.com/ideas/article-slug",
+    ...
   },
-  "message": "Idea created successfully"
+  "message": "Idea created and published successfully"
 }`}
                             </pre>
-                            <p className="text-xs mt-2">The articleUrl from your response will be saved and displayed in the campaign.</p>
+                            <p className="text-xs mt-2">The articleUrl from data.articleUrl in your response will be saved and displayed in the campaign.</p>
                           </div>
                         </div>
                       </TooltipContent>

@@ -31,6 +31,7 @@ import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import Loading from "@/components/common/loading";
 import { cn } from "@/lib/cn";
+import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
 
 export default function ProjectTrialPage() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function ProjectTrialPage() {
   const { focusContext } = useFocus();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [hasUnlinkedPages, setHasUnlinkedPages] = useState(false);
 
   if (sessionLoading) {
     return <Loading className="h-screen" />;
@@ -141,23 +143,34 @@ export default function ProjectTrialPage() {
               )}
 
               {/* Action Required */}
-              {groupedItems.action.length > 0 && (
+              {(groupedItems.action.length > 0 || hasUnlinkedPages) && (
                 <section className="space-y-4">
                   <SectionHeader 
                     icon={<CheckCircle2 className="h-5 w-5 text-violet-500" />} 
                     title="Action Required" 
-                    count={groupedItems.action.length}
+                    count={groupedItems.action.length + (hasUnlinkedPages ? 1 : 0)}
                   />
                   <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
-                    {groupedItems.action.slice(0, 8).map((item, idx) => (
-                      <ActionRow key={item.id} item={item} onClickHref={getHref(item)} isLast={idx === Math.min(7, groupedItems.action.length - 1)} />
-                    ))}
-                    {groupedItems.action.length > 8 && (
-                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/50 text-center">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">
-                          +{groupedItems.action.length - 8} more items
-                        </span>
-                      </div>
+                    {/* Project Creation Suggestions */}
+                    <ProjectCreationSuggestions onHasPagesChange={setHasUnlinkedPages} />
+                    
+                    {/* Existing Action Items */}
+                    {groupedItems.action.length > 0 && (
+                      <>
+                        {hasUnlinkedPages && (
+                          <div className="border-t border-slate-100 dark:border-slate-700/50" />
+                        )}
+                        {groupedItems.action.slice(0, 8).map((item, idx) => (
+                          <ActionRow key={item.id} item={item} onClickHref={getHref(item)} isLast={idx === Math.min(7, groupedItems.action.length - 1)} />
+                        ))}
+                        {groupedItems.action.length > 8 && (
+                          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/50 text-center">
+                            <span className="text-sm text-slate-500 dark:text-slate-400">
+                              +{groupedItems.action.length - 8} more items
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </section>
