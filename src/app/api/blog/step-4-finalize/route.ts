@@ -54,15 +54,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. IDEMPOTENCY CHECK: If already completed, return success
+    // 2. IDEMPOTENCY CHECK: If already completed, check if retry is needed
     const meta = post.meta as any;
     if (meta?.step4Completed) {
-      logger.log(`[Step 4] Already completed for postId: ${postId}`);
-      return NextResponse.json({
-        success: true,
-        message: "Step 4 already completed",
-        postId,
-      });
+      // Check if this is a retry request (cron detected missing platform posts)
+      if (meta?.step4Retried) {
+        logger.log(`[Step 4] Retry requested for postId: ${postId} - checking if platform posts exist`);
+        
+        // Check if platform posts actually exist
+        const existingPlatformPosts = await prisma.scheduledPost.findMany({
+          where: {
+            projectId: post.projectId,
+            platform: { not: "webhook" },
+          },
+          select: {
+            id: true,
+            meta: true,
+          },
+        });
+        
+        const matchingPlatformPosts = existingPlatformPosts.filter((p) => {
+          const postMeta = p.meta as any;
+          return postMeta?.blogNewsPostId === postId;
+        });
+        
+        // If platform posts exist, don't retry
+        if (matchingPlatformPosts.length > 0) {
+          logger.log(`[Step 4] Platform posts exist (${matchingPlatformPosts.length}), skipping retry`);
+          return NextResponse.json({
+            success: true,
+            message: "Step 4 already completed, platform posts exist",
+            postId,
+          });
+        }
+        
+        // Platform posts don't exist, allow retry by resetting step4Completed
+        logger.log(`[Step 4] No platform posts found, allowing retry for postId: ${postId}`);
+        
+        // Reset step4Completed so Step 4 can run again
+        await prisma.scheduledPost.update({
+          where: { id: postId },
+          data: {
+            meta: {
+              ...meta,
+              step4Completed: false,
+              step4InProgress: false, // Clear inProgress flag too
+            },
+          },
+        });
+        
+        // Re-fetch post to get updated meta
+        const updatedPost = await prisma.scheduledPost.findUnique({
+          where: { id: postId },
+          select: {
+            id: true,
+            status: true,
+            meta: true,
+            projectId: true,
+            date: true,
+          },
+        });
+        
+        if (updatedPost) {
+          // Update local meta reference
+          Object.assign(meta, updatedPost.meta as any);
+        }
+        
+        // Continue to process (don't return early)
+      } else {
+        // Normal case: already completed and not a retry
+        logger.log(`[Step 4] Already completed for postId: ${postId}`);
+        return NextResponse.json({
+          success: true,
+          message: "Step 4 already completed",
+          postId,
+        });
+      }
     }
 
     // 3. PRECONDITION CHECK: Verify Step 3 completed
@@ -277,17 +344,17 @@ export async function POST(request: NextRequest) {
           const scheduledDate = new Date(post.date);
           scheduledDate.setMinutes(scheduledDate.getMinutes() + 1);
 
-          // Guardrail: Check if the scheduled date is in the past
+          // Guardrail: If the scheduled date is in the past, schedule for now + 1 minute instead
           const now = new Date();
           if (scheduledDate.getTime() < now.getTime()) {
             logger.warn(
-              `[Step 4] Cannot schedule post in the past for platform ${platformName}, date: ${scheduledDate.toISOString()}`
+              `[Step 4] Original scheduled date is in the past for platform ${platformName} (${scheduledDate.toISOString()}), scheduling for now + 1 minute instead`
             );
-            return {
-              platform: platformName,
-              success: false,
-              error: "Scheduled date is in the past",
-            };
+            // Schedule for 1 minute from now to give a small buffer
+            scheduledDate.setTime(now.getTime() + 60 * 1000);
+            logger.log(
+              `[Step 4] Rescheduled to: ${scheduledDate.toISOString()}`
+            );
           }
 
           // Get timezone from campaign metadata or use EST as default

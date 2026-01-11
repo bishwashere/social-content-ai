@@ -15,7 +15,9 @@ import {
   Folder,
   Lightbulb,
   Sparkles,
-  Zap
+  Zap,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +28,7 @@ import { useTodayItems, TimelineItem, TimelineProject } from "@/hooks/useTodayIt
 import { useFocus } from "@/providers/focus-provider";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllScheduledPosts, useGetAllProjects } from "@/backend-apis/projects/hooks";
+import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -44,15 +47,21 @@ export function TodayTimelineView() {
   const { focusContext } = useFocus();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [hasUnlinkedPages, setHasUnlinkedPages] = useState(false);
   const scheduledPosts = useGetAllScheduledPosts();
   const projects = useGetAllProjects();
 
   const greeting = getGreeting(session?.user?.name);
   
+  // Define today at component level so it's accessible in JSX
+  const today = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+  
   // Calculate scheduled posts and campaigns for today and tomorrow
   const calendarDetails = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const tomorrow = addDays(today, 1);
     
     // Get scheduled posts for today with details (exclude webhook posts - they're internal triggers)
@@ -67,6 +76,9 @@ export function TodayTimelineView() {
       campaignName: post.meta?.campaignName || null,
       day: post.meta?.day || null,
       platform: post.platform,
+      scheduledTime: post.date ? new Date(post.date) : null,
+      status: post.status || 'pending',
+      postId: post.id,
       // Create a unique key for deduplication
       key: `scheduled-${post.id}`,
     })) || [];
@@ -83,6 +95,7 @@ export function TodayTimelineView() {
       campaignName: post.meta?.campaignName || null,
       day: post.meta?.day || null,
       platform: post.platform,
+      scheduledTime: post.date ? new Date(post.date) : null,
       // Create a unique key for deduplication
       key: `scheduled-${post.id}`,
     })) || [];
@@ -94,6 +107,8 @@ export function TodayTimelineView() {
       campaignName: string;
       day: number;
       key: string;
+      scheduledTime: Date | null;
+      platforms: string[];
     }> = [];
     
     // Create a set of scheduled campaign keys to avoid duplicates
@@ -104,22 +119,42 @@ export function TodayTimelineView() {
     );
     
     projects.data?.forEach((project) => {
-      (project.campaignPlanners || []).forEach((planner) => {
+      (project.campaignPlanners || []).forEach((planner: any) => {
         if (!planner.startDate) return;
         const startDate = new Date(planner.startDate);
         startDate.setHours(0, 0, 0, 0);
         const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-        const todayChat = (planner.chats || []).find(chat => chat.day === daysSinceStart + 1);
+        const todayChat = (planner.chats || []).find((chat: any) => chat.day === daysSinceStart + 1);
         if (todayChat) {
           const campaignKey = `campaign-${project.name}-${planner.name || 'Campaign'}-${todayChat.day}`;
           // Only add if not already scheduled as a post
           if (!todayScheduledCampaignKeys.has(campaignKey)) {
+            // Calculate scheduled time from autoPostTime if available
+            let scheduledTime: Date | null = null;
+            if (planner.autoPostTime && planner.autoPostEnabled) {
+              try {
+                const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
+                const targetDate = new Date(today);
+                targetDate.setHours(hours, minutes, 0, 0);
+                scheduledTime = targetDate;
+              } catch (e) {
+                // Invalid time format
+              }
+            }
+            
+            // Get platforms from autoPostPlatforms or fallback to platforms
+            const platforms = planner.autoPostPlatforms && planner.autoPostPlatforms.length > 0
+              ? planner.autoPostPlatforms
+              : (planner.platforms || []);
+            
             todayCampaignItems.push({
               type: 'campaign',
               projectName: project.name,
               campaignName: planner.name || 'Campaign',
               day: todayChat.day,
               key: campaignKey,
+              scheduledTime,
+              platforms,
             });
           }
         }
@@ -133,6 +168,8 @@ export function TodayTimelineView() {
       campaignName: string;
       day: number;
       key: string;
+      scheduledTime: Date | null;
+      platforms: string[];
     }> = [];
     
     // Create a set of scheduled campaign keys to avoid duplicates
@@ -143,22 +180,42 @@ export function TodayTimelineView() {
     );
     
     projects.data?.forEach((project) => {
-      (project.campaignPlanners || []).forEach((planner) => {
+      (project.campaignPlanners || []).forEach((planner: any) => {
         if (!planner.startDate) return;
         const startDate = new Date(planner.startDate);
         startDate.setHours(0, 0, 0, 0);
         const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-        const tomorrowChat = (planner.chats || []).find(chat => chat.day === daysSinceStart + 2);
+        const tomorrowChat = (planner.chats || []).find((chat: any) => chat.day === daysSinceStart + 2);
         if (tomorrowChat) {
           const campaignKey = `campaign-${project.name}-${planner.name || 'Campaign'}-${tomorrowChat.day}`;
           // Only add if not already scheduled as a post
           if (!tomorrowScheduledCampaignKeys.has(campaignKey)) {
+            // Calculate scheduled time from autoPostTime if available
+            let scheduledTime: Date | null = null;
+            if (planner.autoPostTime && planner.autoPostEnabled) {
+              try {
+                const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
+                const targetDate = new Date(tomorrow);
+                targetDate.setHours(hours, minutes, 0, 0);
+                scheduledTime = targetDate;
+              } catch (e) {
+                // Invalid time format
+              }
+            }
+            
+            // Get platforms from autoPostPlatforms or fallback to platforms
+            const platforms = planner.autoPostPlatforms && planner.autoPostPlatforms.length > 0
+              ? planner.autoPostPlatforms
+              : (planner.platforms || []);
+            
             tomorrowCampaignItems.push({
               type: 'campaign',
               projectName: project.name,
               campaignName: planner.name || 'Campaign',
               day: tomorrowChat.day,
               key: campaignKey,
+              scheduledTime,
+              platforms,
             });
           }
         }
@@ -174,11 +231,69 @@ export function TodayTimelineView() {
       new Map([...tomorrowPosts, ...tomorrowCampaignItems].map(item => [item.key, item])).values()
     );
     
+    // Get scheduled times for today - extract from the already filtered todayPosts
+    const todayScheduledTimes: string[] = [];
+    if (scheduledPosts.data) {
+      scheduledPosts.data.forEach((post: any) => {
+        if (!post.date || post.platform === "webhook") return;
+        try {
+          const postDate = new Date(post.date);
+          // Compare dates by year, month, and day only (ignore time)
+          const postYear = postDate.getFullYear();
+          const postMonth = postDate.getMonth();
+          const postDay = postDate.getDate();
+          const todayYear = today.getFullYear();
+          const todayMonth = today.getMonth();
+          const todayDay = today.getDate();
+          
+          if (postYear === todayYear && postMonth === todayMonth && postDay === todayDay) {
+            const timeStr = format(postDate, "h:mm a");
+            if (!todayScheduledTimes.includes(timeStr)) {
+              todayScheduledTimes.push(timeStr);
+            }
+          }
+        } catch (e) {
+          // Skip invalid dates
+        }
+      });
+      todayScheduledTimes.sort();
+    }
+    
+    // Get scheduled times for tomorrow
+    const tomorrowScheduledTimes: string[] = [];
+    if (scheduledPosts.data) {
+      scheduledPosts.data.forEach((post: any) => {
+        if (!post.date || post.platform === "webhook") return;
+        try {
+          const postDate = new Date(post.date);
+          // Compare dates by year, month, and day only (ignore time)
+          const postYear = postDate.getFullYear();
+          const postMonth = postDate.getMonth();
+          const postDay = postDate.getDate();
+          const tomorrowYear = tomorrow.getFullYear();
+          const tomorrowMonth = tomorrow.getMonth();
+          const tomorrowDay = tomorrow.getDate();
+          
+          if (postYear === tomorrowYear && postMonth === tomorrowMonth && postDay === tomorrowDay) {
+            const timeStr = format(postDate, "h:mm a");
+            if (!tomorrowScheduledTimes.includes(timeStr)) {
+              tomorrowScheduledTimes.push(timeStr);
+            }
+          }
+        } catch (e) {
+          // Skip invalid dates
+        }
+      });
+      tomorrowScheduledTimes.sort();
+    }
+    
     return { 
       todayItems: deduplicatedToday,
-      tomorrowItems: deduplicatedTomorrow
+      tomorrowItems: deduplicatedTomorrow,
+      todayScheduledTimes,
+      tomorrowScheduledTimes
     };
-  }, [scheduledPosts.data, projects.data]);
+  }, [scheduledPosts.data, projects.data, today]);
   
   // Extract trending projects (50+ recent impressions from last 3 days)
   const trendingProjects = useMemo(() => {
@@ -386,19 +501,31 @@ export function TodayTimelineView() {
           )}
 
           {/* Action Items - Primary tasks for today */}
-          {groupedItems.action.length > 0 && (
+          {(groupedItems.action.length > 0 || hasUnlinkedPages) && (
             <div className="space-y-3">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-500" />
                 Action Required
               </h2>
-              {groupedItems.action.slice(0, 5).map((item) => (
-                <TimelineCard key={item.id} item={item} variant="action" />
-              ))}
-              {groupedItems.action.length > 5 && (
-                <Button variant="ghost" size="sm" className="w-full">
-                  Show {groupedItems.action.length - 5} more
-                </Button>
+              {/* Project Creation Suggestions */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+                <ProjectCreationSuggestions onHasPagesChange={setHasUnlinkedPages} />
+              </div>
+              {/* Existing Action Items */}
+              {groupedItems.action.length > 0 && (
+                <>
+                  {hasUnlinkedPages && groupedItems.action.length > 0 && (
+                    <div className="border-t border-slate-200 dark:border-slate-700 my-3" />
+                  )}
+                  {groupedItems.action.slice(0, 5).map((item) => (
+                    <TimelineCard key={item.id} item={item} variant="action" />
+                  ))}
+                  {groupedItems.action.length > 5 && (
+                    <Button variant="ghost" size="sm" className="w-full">
+                      Show {groupedItems.action.length - 5} more
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -480,21 +607,168 @@ export function TodayTimelineView() {
                           {calendarDetails.todayItems.map((item, index) => (
                             <div key={index} className="text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
                               <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+                                {(() => {
+                                  // Check if time has passed and get status for indicator
+                                  const now = new Date();
+                                  let itemTimeDate: Date | null = null;
+                                  let postStatus: string | null = null;
+                                  
+                                  if ('scheduledTime' in item && item.scheduledTime) {
+                                    itemTimeDate = new Date(item.scheduledTime);
+                                    // Check if status is already in the item
+                                    if ('status' in item && item.status) {
+                                      postStatus = item.status as string;
+                                    }
+                                  } else if (item.type === 'scheduled' && scheduledPosts.data) {
+                                    const matchingPost = scheduledPosts.data.find((post: any) => {
+                                      const postDate = new Date(post.date);
+                                      const postYear = postDate.getFullYear();
+                                      const postMonth = postDate.getMonth();
+                                      const postDay = postDate.getDate();
+                                      const todayYear = today.getFullYear();
+                                      const todayMonth = today.getMonth();
+                                      const todayDay = today.getDate();
+                                      return post.project?.name === item.projectName &&
+                                        post.platform === ('platform' in item ? item.platform : null) &&
+                                        postYear === todayYear && postMonth === todayMonth && postDay === todayDay &&
+                                        post.platform !== "webhook";
+                                    });
+                                    if (matchingPost) {
+                                      itemTimeDate = new Date(matchingPost.date);
+                                      postStatus = matchingPost.status || 'pending';
+                                    }
+                                  } else if (item.type === 'campaign' && scheduledPosts.data) {
+                                    // For campaign items, find scheduled posts for this campaign
+                                    const campaignPosts = scheduledPosts.data.filter((post: any) => {
+                                      const postDate = new Date(post.date);
+                                      const postYear = postDate.getFullYear();
+                                      const postMonth = postDate.getMonth();
+                                      const postDay = postDate.getDate();
+                                      const todayYear = today.getFullYear();
+                                      const todayMonth = today.getMonth();
+                                      const todayDay = today.getDate();
+                                      const meta = post.meta as any;
+                                      return post.project?.name === item.projectName &&
+                                        meta?.campaignName === item.campaignName &&
+                                        meta?.day === item.day &&
+                                        postYear === todayYear && postMonth === todayMonth && postDay === todayDay &&
+                                        post.platform !== "webhook";
+                                    });
+                                    if (campaignPosts.length > 0) {
+                                      itemTimeDate = new Date(campaignPosts[0].date);
+                                      const hasFailed = campaignPosts.some((p: any) => p.status === 'failed');
+                                      const allSuccess = campaignPosts.every((p: any) => p.status === 'success');
+                                      postStatus = hasFailed ? 'failed' : (allSuccess ? 'success' : 'pending');
+                                    } else if (projects.data) {
+                                      // No scheduled posts yet, check if auto-post is enabled
+                                      const project = projects.data.find(p => p.name === item.projectName);
+                                      if (project) {
+                                        const planner = (project.campaignPlanners || []).find(
+                                          (p: any) => (p.name || 'Campaign') === item.campaignName
+                                        ) as any;
+                                        if (planner?.autoPostTime && planner?.autoPostEnabled) {
+                                          try {
+                                            const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
+                                            const targetDate = new Date(today);
+                                            targetDate.setHours(hours, minutes, 0, 0);
+                                            itemTimeDate = targetDate;
+                                            postStatus = 'pending';
+                                          } catch (e) {
+                                            // Invalid time format
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                  
+                                  // Show indicator if time has passed
+                                  if (itemTimeDate && itemTimeDate.getTime() < now.getTime()) {
+                                    if (postStatus === 'success') {
+                                      return (
+                                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                      );
+                                    } else if (postStatus === 'failed') {
+                                      return (
+                                        <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                      );
+                                    } else {
+                                      // Time passed but still pending/processing
+                                      return (
+                                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                      );
+                                    }
+                                  }
+                                  return null;
+                                })()}
                                 <p className="font-medium text-slate-900 dark:text-slate-100 flex-shrink-0 truncate lg:max-w-none">{item.projectName}</p>
-                                {item.type === 'campaign' && (
-                                  <Badge variant="outline" className="text-[10px] flex-shrink-0">
-                                    📋 Campaign
-                                  </Badge>
-                                )}
-                                {item.campaignName && (
+                                {(() => {
+                                  // Get scheduled time for this specific item
+                                  let itemTime: string | null = null;
+                                  if ('scheduledTime' in item && item.scheduledTime) {
+                                    itemTime = format(new Date(item.scheduledTime), "h:mm a");
+                                  } else if (item.type === 'scheduled' && scheduledPosts.data) {
+                                    // Find the scheduled post for this project/platform
+                                    const matchingPost = scheduledPosts.data.find((post: any) => {
+                                      const postDate = new Date(post.date);
+                                      const postYear = postDate.getFullYear();
+                                      const postMonth = postDate.getMonth();
+                                      const postDay = postDate.getDate();
+                                      const todayYear = today.getFullYear();
+                                      const todayMonth = today.getMonth();
+                                      const todayDay = today.getDate();
+                                      return post.project?.name === item.projectName &&
+                                        post.platform === ('platform' in item ? item.platform : null) &&
+                                        postYear === todayYear && postMonth === todayMonth && postDay === todayDay &&
+                                        post.platform !== "webhook";
+                                    });
+                                    if (matchingPost) {
+                                      itemTime = format(new Date(matchingPost.date), "h:mm a");
+                                    }
+                                  } else if (item.type === 'campaign' && projects.data) {
+                                    // For campaign items, look up the campaign planner's autoPostTime
+                                    const project = projects.data.find(p => p.name === item.projectName);
+                                    if (project) {
+                                      const planner = (project.campaignPlanners || []).find(
+                                        (p: any) => (p.name || 'Campaign') === item.campaignName
+                                      ) as any;
+                                      if (planner?.autoPostTime && planner?.autoPostEnabled) {
+                                        try {
+                                          const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
+                                          const targetDate = new Date(today);
+                                          targetDate.setHours(hours, minutes, 0, 0);
+                                          itemTime = format(targetDate, "h:mm a");
+                                        } catch (e) {
+                                          // Invalid time format
+                                        }
+                                      }
+                                    }
+                                  }
+                                  return itemTime ? (
+                                    <span className="text-violet-600 dark:text-violet-400 font-medium whitespace-nowrap flex-shrink-0">
+                                      {itemTime}
+                                    </span>
+                                  ) : null;
+                                })()}
+                                {item.day && (
                                   <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap truncate lg:max-w-none">
-                                    {item.campaignName}
-                                    {item.day && ` • Day ${item.day}`}
+                                    Day {item.day}
                                   </span>
                                 )}
-                                {'platform' in item && item.platform && (
-                                  <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
-                                )}
+                                {(() => {
+                                  // Show platform(s) - for scheduled posts it's a single platform, for campaigns it's an array
+                                  if ('platform' in item && item.platform) {
+                                    return (
+                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
+                                    );
+                                  } else if ('platforms' in item && Array.isArray(item.platforms) && item.platforms.length > 0) {
+                                    return (
+                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">
+                                        • {item.platforms.join(", ")}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             </div>
                           ))}
@@ -524,20 +798,75 @@ export function TodayTimelineView() {
                             <div key={index} className="text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
                               <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
                                 <p className="font-medium text-slate-900 dark:text-slate-100 flex-shrink-0 truncate lg:max-w-none">{item.projectName}</p>
-                                {item.type === 'campaign' && (
-                                  <Badge variant="outline" className="text-[10px] flex-shrink-0">
-                                    📋 Campaign
-                                  </Badge>
-                                )}
-                                {item.campaignName && (
+                                {(() => {
+                                  // Get scheduled time for this specific item
+                                  let itemTime: string | null = null;
+                                  const tomorrow = addDays(today, 1);
+                                  if ('scheduledTime' in item && item.scheduledTime) {
+                                    itemTime = format(new Date(item.scheduledTime), "h:mm a");
+                                  } else if (item.type === 'scheduled' && scheduledPosts.data) {
+                                    // Find the scheduled post for this project/platform
+                                    const matchingPost = scheduledPosts.data.find((post: any) => {
+                                      const postDate = new Date(post.date);
+                                      const postYear = postDate.getFullYear();
+                                      const postMonth = postDate.getMonth();
+                                      const postDay = postDate.getDate();
+                                      const tomorrowYear = tomorrow.getFullYear();
+                                      const tomorrowMonth = tomorrow.getMonth();
+                                      const tomorrowDay = tomorrow.getDate();
+                                      return post.project?.name === item.projectName &&
+                                        post.platform === ('platform' in item ? item.platform : null) &&
+                                        postYear === tomorrowYear && postMonth === tomorrowMonth && postDay === tomorrowDay &&
+                                        post.platform !== "webhook";
+                                    });
+                                    if (matchingPost) {
+                                      itemTime = format(new Date(matchingPost.date), "h:mm a");
+                                    }
+                                  } else if (item.type === 'campaign' && projects.data) {
+                                    // For campaign items, look up the campaign planner's autoPostTime
+                                    const project = projects.data.find(p => p.name === item.projectName);
+                                    if (project) {
+                                      const planner = (project.campaignPlanners || []).find(
+                                        (p: any) => (p.name || 'Campaign') === item.campaignName
+                                      ) as any;
+                                      if (planner?.autoPostTime && planner?.autoPostEnabled) {
+                                        try {
+                                          const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
+                                          const targetDate = new Date(tomorrow);
+                                          targetDate.setHours(hours, minutes, 0, 0);
+                                          itemTime = format(targetDate, "h:mm a");
+                                        } catch (e) {
+                                          // Invalid time format
+                                        }
+                                      }
+                                    }
+                                  }
+                                  return itemTime ? (
+                                    <span className="text-violet-600 dark:text-violet-400 font-medium whitespace-nowrap flex-shrink-0">
+                                      {itemTime}
+                                    </span>
+                                  ) : null;
+                                })()}
+                                {item.day && (
                                   <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap truncate lg:max-w-none">
-                                    {item.campaignName}
-                                    {item.day && ` • Day ${item.day}`}
+                                    Day {item.day}
                                   </span>
                                 )}
-                                {'platform' in item && item.platform && (
-                                  <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
-                                )}
+                                {(() => {
+                                  // Show platform(s) - for scheduled posts it's a single platform, for campaigns it's an array
+                                  if ('platform' in item && item.platform) {
+                                    return (
+                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
+                                    );
+                                  } else if ('platforms' in item && Array.isArray(item.platforms) && item.platforms.length > 0) {
+                                    return (
+                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">
+                                        • {item.platforms.join(", ")}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             </div>
                           ))}

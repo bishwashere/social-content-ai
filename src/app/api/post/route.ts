@@ -415,6 +415,121 @@ export const GET = applyMiddleware(
             }
           }
 
+          // All steps completed - but check if platform posts were actually created
+          // Only check posts from the last week to avoid checking old posts
+          const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const isRecentPost = new Date(post.date) >= oneWeekAgo;
+          
+          if (meta?.step4Completed && isRecentPost) {
+            // Check if ANY platform posts exist for this webhook post (regardless of status)
+            const platformPosts = await prisma.scheduledPost.findMany({
+              where: {
+                projectId: post.projectId,
+                platform: { not: "webhook" },
+              },
+              select: {
+                id: true,
+                status: true,
+                meta: true,
+              },
+            });
+
+            const matchingPlatformPosts = platformPosts.filter((p) => {
+              const postMeta = p.meta as any;
+              return postMeta?.blogNewsPostId === post.id;
+            });
+
+            // Only retry if:
+            // 1. No platform posts exist at all (not even failed ones)
+            // 2. We haven't retried yet
+            if (matchingPlatformPosts.length === 0 && !meta?.step4Retried) {
+              console.log(
+                `⚠️  Step 4 completed for post ${post.id} but no platform posts found. Retrying Step 4 once...`
+              );
+              
+              // Mark that we're retrying
+              await prisma.scheduledPost.update({
+                where: { id: post.id },
+                data: {
+                  meta: {
+                    ...meta,
+                    step4Retried: true,
+                    step4RetryAttemptedAt: new Date().toISOString(),
+                  },
+                },
+              });
+
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                              (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+              const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
+              
+              try {
+                // Trigger Step 4 again
+                fetch(step4Url, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ postId: post.id }),
+                }).catch((error) => {
+                  console.error(`❌ Failed to retry Step 4 for post ${post.id}:`, error);
+                });
+
+                return {
+                  id: post.id,
+                  success: true,
+                  message: "Step 4 retry triggered - no platform posts found",
+                  retrying: true,
+                };
+              } catch (error) {
+                console.error(`❌ Error retrying Step 4 for post ${post.id}:`, error);
+                return {
+                  id: post.id,
+                  success: false,
+                  error: `Failed to retry Step 4: ${error instanceof Error ? error.message : "Unknown error"}`,
+                };
+              }
+            }
+
+            // If platform posts exist (success or failed), don't retry
+            if (matchingPlatformPosts.length > 0) {
+              const statusCounts = matchingPlatformPosts.reduce((acc, p) => {
+                acc[p.status] = (acc[p.status] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              
+              console.log(
+                `⏭️ Skipping Blog News post ID: ${post.id} - all steps completed, ${matchingPlatformPosts.length} platform posts exist (${JSON.stringify(statusCounts)})`
+              );
+              return {
+                id: post.id,
+                success: true,
+                message: "All steps completed, platform posts exist",
+                skipped: true,
+              };
+            }
+
+            // If we already retried, don't retry again
+            if (meta?.step4Retried) {
+              console.log(`⏭️ Skipping Blog News post ID: ${post.id} - Step 4 already retried, no platform posts created`);
+              return {
+                id: post.id,
+                success: false,
+                message: "Step 4 completed but no platform posts created after retry",
+                skipped: true,
+              };
+            }
+          }
+          
+          // If post is older than 1 week, skip retry check
+          if (meta?.step4Completed && !isRecentPost) {
+            console.log(`⏭️ Skipping Blog News post ID: ${post.id} - older than 1 week, skipping retry check`);
+            return {
+              id: post.id,
+              success: true,
+              message: "All steps completed (old post, retry check skipped)",
+              skipped: true,
+            };
+          }
+
           // All steps completed
           console.log(`⏭️ Skipping Blog News post ID: ${post.id} - all steps completed`);
           return {
@@ -703,6 +818,30 @@ export const GET = applyMiddleware(
             console.log(
               `✅ Successfully posted to Linkedin for post ID: ${post.id}`
             );
+            
+            // Create tracking record if we have a post URL
+            if (linkedinResult.postUrl) {
+              try {
+                await prisma.projectTracking.create({
+                  data: {
+                    projectId: post.projectId,
+                    platform: "linkedin",
+                    url: linkedinResult.postUrl,
+                    date: new Date(),
+                  },
+                });
+                console.log(
+                  `✅ Created tracking record for Linkedin post: ${linkedinResult.postUrl}`
+                );
+              } catch (trackingError) {
+                console.error(
+                  `⚠️  Failed to create tracking record for post ${post.id}:`,
+                  trackingError
+                );
+                // Don't fail the post if tracking fails
+              }
+            }
+            
             await updatePostStatus(post.id, "success");
             return { id: post.id, success: true };
           } else {
@@ -1041,7 +1180,7 @@ async function postToLinkedin(
   expiresAt: number,
   content: string,
   media: string | null,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; postUrl?: string; postId?: string }> {
   try {
     console.log("📘 Posting to Linkedin page : ", pageId);
 
@@ -1050,7 +1189,21 @@ async function postToLinkedin(
     const data = await l.postToPage(pageId, content, media);
     console.log("✅ Successfully posted to Linkedin:", data);
 
-    return { success: true };
+    // Extract post ID from response (LinkedIn returns urn:li:ugcPost:...)
+    const postId = data?.id || data?.value || undefined;
+    let postUrl: string | undefined = undefined;
+    
+    if (postId) {
+      // Convert LinkedIn URN to URL format
+      // Format: urn:li:ugcPost:1234567890 -> https://www.linkedin.com/feed/update/urn:li:ugcPost:1234567890
+      if (typeof postId === "string" && postId.startsWith("urn:li:")) {
+        postUrl = `https://www.linkedin.com/feed/update/${postId}`;
+      } else if (typeof postId === "string") {
+        postUrl = `https://www.linkedin.com/feed/update/${postId}`;
+      }
+    }
+
+    return { success: true, postUrl, postId };
   } catch (error) {
     console.error("❌ Error posting to Linkedin:", error);
     return {
