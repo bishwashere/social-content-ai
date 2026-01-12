@@ -10,8 +10,18 @@ import { logger } from "@/utils/logger";
  * Generate a 1-2 line social media excerpt from blog content
  */
 export async function generateSocialExcerpt(blogTitle: string, blogContent: string, maxLength: number = 200): Promise<string> {
+  // Extract shortened title (first part before colon if exists, or truncate if too long)
+  let shortTitle = blogTitle;
+  if (shortTitle.includes(":")) {
+    shortTitle = shortTitle.split(":")[0].trim();
+  }
+  // Truncate title if still too long (max 50 chars for title part)
+  if (shortTitle.length > 50) {
+    shortTitle = shortTitle.substring(0, 47) + "...";
+  }
+
   // Remove markdown formatting
-  const plainText = blogContent
+  let plainText = blogContent
     .replace(/#{1,6}\s+/g, "") // Remove headers
     .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold
     .replace(/\*(.*?)\*/g, "$1") // Remove italic
@@ -21,21 +31,31 @@ export async function generateSocialExcerpt(blogTitle: string, blogContent: stri
     .replace(/\n+/g, " ") // Replace newlines with spaces
     .trim();
 
+  // More aggressively remove "Quick Take:" text (case insensitive, with or without markdown)
+  plainText = plainText
+    .replace(/\*\*Quick Take:\*\*/gi, "")
+    .replace(/Quick Take:\s*/gi, "")
+    .replace(/quick take:\s*/gi, "")
+    .trim();
+
   // Try to find the first meaningful sentence/paragraph
   const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 20);
   
   if (sentences.length > 0) {
     // Use first 1-2 sentences
     let excerpt = sentences.slice(0, 2).join(". ").trim();
-    if (excerpt.length > maxLength) {
-      excerpt = excerpt.substring(0, maxLength - 3) + "...";
+    // Calculate available length (account for title + ". " + "...")
+    const availableLength = maxLength - shortTitle.length - 3; // -3 for ". " and potential "..."
+    if (excerpt.length > availableLength) {
+      excerpt = excerpt.substring(0, availableLength - 3) + "...";
     }
-    return `${blogTitle}\n\n${excerpt}`;
+    return `${shortTitle}. ${excerpt}`;
   }
 
   // Fallback: use title + first part of content
-  const contentPreview = plainText.substring(0, maxLength - blogTitle.length - 10);
-  return `${blogTitle}\n\n${contentPreview}${contentPreview.length < plainText.length ? "..." : ""}`;
+  const availableLength = maxLength - shortTitle.length - 3; // -3 for ". " and potential "..."
+  const contentPreview = plainText.substring(0, availableLength);
+  return `${shortTitle}. ${contentPreview}${contentPreview.length < plainText.length ? "..." : ""}`;
 }
 
 export type BlogNewsMetadata = {
