@@ -156,11 +156,11 @@ export const useGetWebsiteDescription = () => {
   });
 };
 
-export const useGetProjectPulse = (projectId: string) => {
+export const useGetProjectPulse = (projectId: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ["project-pulse", projectId],
     queryFn: () => getProjectPulse(projectId),
-    enabled: !!projectId,
+    enabled: !!projectId && enabled, // Only enable when projectId exists AND enabled flag is true
   });
 };
 

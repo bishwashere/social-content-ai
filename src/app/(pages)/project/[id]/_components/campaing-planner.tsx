@@ -324,11 +324,52 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [loadedChats, setLoadedChats] = useState<Record<string, any[]>>({});
   const [loadingChats, setLoadingChats] = useState<Set<string>>(new Set());
 
+  // Clear state and cancel queries when project changes (like a refresh)
+  // This ensures we start fresh when switching projects
+  useEffect(() => {
+    // Cancel all pending campaign planner queries for the previous project
+    queryClient.cancelQueries({
+      queryKey: ["campaignPlanner"],
+      exact: false,
+    });
+    
+    // Clear all campaign planner queries from cache
+    queryClient.removeQueries({
+      queryKey: ["campaignPlanner"],
+      exact: false,
+    });
+    
+    // Clear component state
+    setLoadedChats({});
+    setLoadingChats(new Set());
+    setOpenCampaigns({});
+    setShowOldCampaigns(false);
+    
+    console.log(`[CampaignPlannerPage] Cleared all queries and state for project switch to: ${projectId}`);
+  }, [projectId, queryClient]);
+
   // Load chats when campaigns are opened
   useEffect(() => {
+    // Don't try to load chats if campaign data hasn't loaded yet
+    if (!campaignPlannerData.data) return;
+
     const loadChatsForCampaign = async (campaignId: string) => {
       // Skip if already loaded or loading
       if (loadedChats[campaignId] || loadingChats.has(campaignId)) {
+        return;
+      }
+
+      // Verify campaign exists in current project before loading chats
+      const allCampaignIds = new Set(
+        (campaignPlannerData.data.chatsGroupedByCampaign || []).map(c => c.id)
+      );
+      if (!allCampaignIds.has(campaignId)) {
+        // Campaign doesn't exist in current project, remove from openCampaigns
+        setOpenCampaigns(prev => {
+          const next = { ...prev };
+          delete next[campaignId];
+          return next;
+        });
         return;
       }
 
@@ -359,7 +400,7 @@ export default function CampaignPlannerPage({ project }: Props) {
         loadChatsForCampaign(campaignId);
       }
     });
-  }, [openCampaigns, loadedChats, loadingChats]);
+  }, [openCampaigns, loadedChats, loadingChats, campaignPlannerData.data]);
 
   // Merge loaded chats and old campaigns into campaign data
   const mergedCampaignData = useMemo(() => {
@@ -377,8 +418,11 @@ export default function CampaignPlannerPage({ project }: Props) {
     );
 
     // Sort by updatedAt descending
+    // Handle dates that might be strings (from API) or Date objects
     uniqueCampaigns.sort((a, b) => {
-      return b.updatedAt.getTime() - a.updatedAt.getTime();
+      const aTime = a.updatedAt instanceof Date ? a.updatedAt.getTime() : new Date(a.updatedAt).getTime();
+      const bTime = b.updatedAt instanceof Date ? b.updatedAt.getTime() : new Date(b.updatedAt).getTime();
+      return bTime - aTime;
     });
 
     return {
@@ -597,14 +641,29 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   // const [isInProgress, setIsInProgress] = useState<string | null>(null);
 
-  //Open all campaigns that are saved in memory
+  //Open all campaigns that are saved in memory, but only for campaigns in the current project
   useEffect(() => {
+    // Wait for campaign data to load before trying to restore opened campaigns
+    if (!campaignPlannerData.data) return;
+    
     const openedCampaigns = localStorage.getItem("openedCampaigns");
     if (openedCampaigns) {
       const openedCampaignsArray = JSON.parse(openedCampaigns) as Record<string, boolean>;
-      setOpenCampaigns(openedCampaignsArray);
+      // Filter to only include campaigns that exist in the current project
+      const currentCampaignIds = new Set(
+        campaignPlannerData.data.chatsGroupedByCampaign?.map(c => c.id) || []
+      );
+      const filteredOpenedCampaigns: Record<string, boolean> = {};
+      Object.keys(openedCampaignsArray).forEach(campaignId => {
+        if (currentCampaignIds.has(campaignId) && openedCampaignsArray[campaignId]) {
+          filteredOpenedCampaigns[campaignId] = true;
+        }
+      });
+      if (Object.keys(filteredOpenedCampaigns).length > 0) {
+        setOpenCampaigns(filteredOpenedCampaigns);
+      }
     }
-  }, [])
+  }, [campaignPlannerData.data])
   //Save opened campaings when toggled
   useEffect(() => {
   }, [openCampaigns])
@@ -943,7 +1002,7 @@ export default function CampaignPlannerPage({ project }: Props) {
           <>
             {!!mergedCampaignData?.chatsGroupedByCampaign?.length && (
               <div className="mb-2">
-                <h2 className="text-xl font-bold">Active Campaigns:</h2>
+                <h2 className="text-base font-bold">Active Campaigns:</h2>
               </div>
             )}
             {/* Show loading below Active Campaigns when generating campaign */}
@@ -987,18 +1046,15 @@ export default function CampaignPlannerPage({ project }: Props) {
                 return isCurrentCampaign;
               });
 
-              // Show message if there are campaigns but all are hidden
+              // Show button if there are campaigns but all are hidden (old campaigns)
               if (allCampaigns.length > 0 && filteredCampaigns.length === 0 && !showOldCampaigns) {
                 return (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <p className="text-lg font-medium text-muted-foreground">
-                      All campaigns completed
-                    </p>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowOldCampaigns(true)}
-                      className="mt-2 text-xs text-muted-foreground"
+                      className="text-xs text-muted-foreground"
                     >
                       Show older campaigns
                     </Button>
@@ -1828,16 +1884,33 @@ export default function CampaignPlannerPage({ project }: Props) {
                   })}
                   {/* Show/Hide old campaigns button at bottom center */}
                   {(() => {
-                    // Check if there are old campaigns (either loaded or available to load)
-                    const hasOldCampaigns = showOldCampaigns 
-                      ? (oldCampaignsData.data?.chatsGroupedByCampaign?.length || 0) > 0
-                      : oldCampaignsData.data?.chatsGroupedByCampaign?.length || 
-                        // If not loaded yet, we can't know for sure, but show button anyway
-                        // The backend will return empty if there are no old campaigns
-                        true;
+                    // Check if old campaigns exist from metadata or loaded data
+                    const hasOldCampaignsFromMetadata = (campaignPlannerData.data as any)?.hasOldCampaigns ?? false;
+                    const oldCampaignsCount = oldCampaignsData.data?.chatsGroupedByCampaign?.length || 0;
+                    const hasOldCampaignsFromData = oldCampaignsCount > 0;
                     
-                    // Only show button if we have old campaigns or are loading them
-                    if (hasOldCampaigns || showOldCampaigns) {
+                    // Only show button when old campaigns actually exist
+                    // Check metadata first (from getCampaignPlannerMetadata), then loaded data
+                    const hasOldCampaigns = hasOldCampaignsFromMetadata || hasOldCampaignsFromData;
+                    
+                    // Debug logging (remove in production if needed)
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log('[CampaignPlanner] Show older campaigns button check:', {
+                        hasOldCampaignsFromMetadata,
+                        hasOldCampaignsFromData,
+                        hasOldCampaigns,
+                        showOldCampaigns,
+                        oldCampaignsCount,
+                        campaignPlannerDataExists: !!campaignPlannerData.data,
+                        campaignPlannerDataHasOldCampaigns: (campaignPlannerData.data as any)?.hasOldCampaigns,
+                      });
+                    }
+                    
+                    // Only show button when:
+                    // 1. Older campaigns are currently shown (so user can hide them), OR
+                    // 2. Old campaigns exist (confirmed from metadata or loaded data)
+                    // Do NOT show by default - only show when old campaigns are confirmed to exist
+                    if (showOldCampaigns || hasOldCampaigns) {
                       return (
                         <div className="flex justify-center mt-6">
                           <Button
@@ -1852,8 +1925,10 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                                 Loading...
                               </>
+                            ) : showOldCampaigns ? (
+                              "Hide older campaigns"
                             ) : (
-                              showOldCampaigns ? "Hide older campaigns" : "Show older campaigns"
+                              "Show older campaigns"
                             )}
                           </Button>
                         </div>

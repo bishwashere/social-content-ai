@@ -1,5 +1,6 @@
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   changeCampaignData,
   deleteCampaign,
@@ -70,12 +71,94 @@ export const useGetCampaignPlanner = ({
   loadChats?: boolean; // If true, loads full data with chats. If false, loads only metadata
   limit?: number; // Limit number of campaigns to load (for metadata mode)
 }) => {
+  const queryClient = useQueryClient();
+  
+  // Ensure projectId is a valid non-empty string before enabling query
+  const isValidProjectId = Boolean(projectId && typeof projectId === 'string' && projectId.trim().length > 0);
+  
+  // Clear all campaign planner queries when projectId changes (like a refresh)
+  // This ensures we start fresh when switching projects
+  useEffect(() => {
+    if (isValidProjectId) {
+      // Cancel all pending campaign planner queries
+      queryClient.cancelQueries({
+        queryKey: ["campaignPlanner"],
+        exact: false, // Cancel all queries that start with "campaignPlanner"
+      });
+      
+      // Remove all campaign planner queries from cache
+      queryClient.removeQueries({
+        queryKey: ["campaignPlanner"],
+        exact: false,
+      });
+      
+      console.log(`[useGetCampaignPlanner] Cleared all campaign planner queries for new project: ${projectId}`);
+    }
+  }, [projectId, queryClient, isValidProjectId]);
+  
   return useQuery({
-    queryFn: () => loadChats 
-      ? getCampaignPlanner(projectId) 
-      : getCampaignPlannerMetadata(projectId, limit), // Load metadata only by default
-    enabled: Boolean(projectId),
+    queryFn: async ({ signal }) => {
+      console.log(`[useGetCampaignPlanner] Query function START - projectId: ${projectId}, loadChats: ${loadChats}, limit: ${limit}`);
+      
+      // Check if query was cancelled
+      if (signal?.aborted) {
+        console.log(`[useGetCampaignPlanner] Query cancelled before execution`);
+        throw new Error("Query cancelled");
+      }
+      
+      try {
+        console.log(`[useGetCampaignPlanner] About to call server function...`);
+        const startTime = Date.now();
+        
+        let result;
+        if (loadChats) {
+          result = await getCampaignPlanner(projectId);
+        } else {
+          // Use API route instead of server action for better reliability
+          const response = await fetch(`/api/campaign-planner/metadata?projectId=${encodeURIComponent(projectId)}${limit ? `&limit=${limit}` : ''}`);
+          if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          }
+          result = await response.json();
+        }
+        
+        // Check again if cancelled during execution
+        if (signal?.aborted) {
+          console.log(`[useGetCampaignPlanner] Query cancelled during execution`);
+          throw new Error("Query cancelled");
+        }
+        
+        const duration = Date.now() - startTime;
+        console.log(`[useGetCampaignPlanner] Server function completed in ${duration}ms`);
+        console.log(`[useGetCampaignPlanner] Query function SUCCESS - projectId: ${projectId}, result:`, {
+          hasData: !!result,
+          campaignsCount: result?.chatsGroupedByCampaign?.length || 0,
+        });
+        return result;
+      } catch (error) {
+        // Don't log cancellation errors as errors
+        if (error instanceof Error && error.message === "Query cancelled") {
+          console.log(`[useGetCampaignPlanner] Query was cancelled for projectId: ${projectId}`);
+          throw error;
+        }
+        
+        console.error(`[useGetCampaignPlanner] Query function ERROR - projectId: ${projectId}:`, error);
+        console.error(`[useGetCampaignPlanner] Error details:`, {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+    enabled: isValidProjectId, // Only enable when we have a valid projectId
     queryKey: ["campaignPlanner", projectId, loadChats, limit],
+    staleTime: 0, // Always consider data stale - fetch fresh on project switch
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    gcTime: 0, // Don't cache old project data
+    retry: 1, // Retry once on failure
+    retryDelay: 1000, // Wait 1 second before retry
+    // Add retry condition to not retry cancelled queries
+    retryOnMount: true,
   });
 };
 
@@ -266,8 +349,9 @@ export const useGenerateBlogNewsContent = () => {
     onSuccess: (result, variables) => {
       if (result.success) {
         toast.success(result.message);
+        // Only invalidate the specific blog query instead of all campaign planner queries
         queryClient.invalidateQueries({
-          queryKey: ["campaignPlanner"],
+          queryKey: ["blogFromScheduledPost", variables.campaignId, variables.day],
         });
         queryClient.invalidateQueries({
           queryKey: ["session"],
@@ -314,14 +398,12 @@ export const useRetryWebhook = () => {
       return result;
     },
 
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.success) {
         toast.success(result.message);
+        // Only invalidate the specific blog query instead of all campaign planner queries
         queryClient.invalidateQueries({
-          queryKey: ["campaignPlanner"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["blogFromScheduledPost"],
+          queryKey: ["blogFromScheduledPost", variables.campaignId, variables.day],
         });
       } else {
         toast.error(result.message);
@@ -346,7 +428,13 @@ export const useBlogFromScheduledPost = (campaignId: string | undefined, day: nu
       return getBlogFromScheduledPost(campaignId, day);
     },
     enabled: !!campaignId && !!day,
-    refetchInterval: 5000, // Refetch every 5 seconds to check for updates from Python
+    // Only refetch when blog is not complete (allStepsComplete is false)
+    // This prevents infinite calls once the blog generation is complete
+    refetchInterval: (query) => {
+      const data = query.state.data as { allStepsComplete?: boolean } | null;
+      // Stop polling once all steps are complete
+      return data?.allStepsComplete === true ? false : 5000;
+    },
   });
 };
 

@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetAllProjects, useGetProjectPulse } from "@/backend-apis/projects/hooks";
 import { Projects as Project } from "@prisma/client";
+import { useGetCampaignPlanner } from "@/backend-apis/campaign-planner/hooks";
 import QuickGenerate from "./_components/quick-generate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CampaignPlannerPage from "./_components/campaing-planner";
@@ -36,6 +37,20 @@ function ProjectPage() {
     () => projects?.data?.find((p: Project) => p.id === id) || null,
     [projects?.data, id]
   );
+
+  // Call campaign planner query here to track its status (React Query will deduplicate)
+  // This allows us to check when it completes before loading project pulse
+  // React Query automatically refetches when projectId changes (via query key dependency)
+  const campaignPlannerQuery = useGetCampaignPlanner({
+    projectId: id as string,
+    loadChats: false,
+    limit: 3,
+  });
+  
+  // Only enable project pulse after campaign planner has completed
+  const campaignPlannerCompleted = 
+    campaignPlannerQuery.status === "success" || 
+    campaignPlannerQuery.status === "error";
 
   // Handle "history" and "analytics" tab redirects (history is now part of generate tab, analytics removed)
   useEffect(() => {
@@ -88,7 +103,11 @@ function ProjectPage() {
     localStorage.setItem(STORAGE_KEY, tab);
   };
 
-  const { data: projectPulse } = useGetProjectPulse(id as string);
+  // Only load project pulse after campaign planner has completed
+  const { data: projectPulse } = useGetProjectPulse(
+    id as string,
+    campaignPlannerCompleted
+  );
 
   console.log(projectPulse)
 
