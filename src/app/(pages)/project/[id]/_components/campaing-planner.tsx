@@ -651,7 +651,7 @@ export default function CampaignPlannerPage({ project }: Props) {
       const openedCampaignsArray = JSON.parse(openedCampaigns) as Record<string, boolean>;
       // Filter to only include campaigns that exist in the current project
       const currentCampaignIds = new Set(
-        campaignPlannerData.data.chatsGroupedByCampaign?.map(c => c.id) || []
+        campaignPlannerData.data.chatsGroupedByCampaign?.map((c: { id: string }) => c.id) || []
       );
       const filteredOpenedCampaigns: Record<string, boolean> = {};
       Object.keys(openedCampaignsArray).forEach(campaignId => {
@@ -1098,7 +1098,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                 const baseDate = campaign.startDate ? new Date(campaign.startDate) : new Date();
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const firstUpcomingTimeline = campaign.chats.find((timeline) => {
+                const firstUpcomingTimeline = campaign.chats.find((timeline: { day: number }) => {
                   const date = new Date(baseDate.getTime() + (timeline.day - 1) * 86400000);
                   date.setHours(0, 0, 0, 0);
                   return date >= today;
@@ -1111,7 +1111,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                 //   chat.contents && Object.keys(chat.contents).length > 0
                 // ).length;
                 // const completedChats = campaign.chats.filter(chat => chat.completed).length;
-                const passedDays = campaign.chats.filter(chat => {
+                const passedDays = campaign.chats.filter((chat: { day: number }) => {
                   const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
                   chatDate.setHours(0, 0, 0, 0);
                   return chatDate < today;
@@ -1248,7 +1248,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                     </DialogDescription>
                                   </DialogHeader>
                                     <div className="py-4 space-y-3">
-                                      {campaign.platforms.map((platform) => {
+                                      {campaign.platforms.map((platform: string) => {
                                       const platformKey = platform as keyof typeof ICONS;
                                       const isSelected = (selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms).includes(platform);
                                       return (
@@ -1490,7 +1490,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                             {/* Vertical Line */}
                             <div className="absolute hidden md:block left-5 top-0 bottom-0 w-1 bg-gray-300 z-0" />
 
-                            {campaign.chats.map((timeline, id) => {
+                            {campaign.chats.map((timeline: any, id: number) => {
                               const futureDate = new Date(baseDate.getTime() + (timeline.day - 1) * 86400000);
                               futureDate.setHours(0, 0, 0, 0);
 
