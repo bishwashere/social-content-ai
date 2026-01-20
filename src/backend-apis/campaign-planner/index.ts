@@ -37,6 +37,11 @@ export const startCampaignPlanner = async (
     tickMark: {}, // JSON
   }));
 
+  // Calculate totalDays from the maximum day number in plan.data
+  const totalDays = plan.data.length > 0 
+    ? Math.max(...plan.data.map((d) => d.day))
+    : 0;
+
   // Fetch user
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -77,6 +82,7 @@ export const startCampaignPlanner = async (
         targetAudience: plan.targetAudience,
         name: campaignName,
         platforms: platforms,
+        totalDays: totalDays, // Update totalDays when updating campaign
       },
       include: {
         chats: true,
@@ -113,6 +119,7 @@ export const startCampaignPlanner = async (
       targetAudience: plan.targetAudience,
       name: campaignName,
       platforms: platforms,
+      totalDays: totalDays, // Save totalDays when creating campaign
       // Store Blog News metadata at campaign level
       ...(plan.goal === "Blog News" && blogNewsMetadata ? {
         blogNewsMetadata: {
@@ -207,6 +214,7 @@ export const getCampaignPlannerMetadata = async (projectId: string, limit?: numb
         autoPostTime: true,
         autoPostPlatforms: true,
         blogNewsMetadata: true,
+        totalDays: true, // Include totalDays from campaign table
       },
       orderBy: {
         updatedAt: 'desc', // Latest first
@@ -216,65 +224,21 @@ export const getCampaignPlannerMetadata = async (projectId: string, limit?: numb
     const queryDuration = Date.now() - startTime;
     console.log(`[getCampaignPlannerMetadata] [${requestId}] Database query completed in ${queryDuration}ms, found ${planners.length} campaigns`);
 
-    // Get max day for each campaign to identify old campaigns
-    const campaignIds = planners.map(p => p.id);
-    const maxDaysMap = new Map<string, number>();
-    
-    if (campaignIds.length > 0) {
-      try {
-        console.log(`[getCampaignPlannerMetadata] [${requestId}] Getting max days for campaigns...`);
-        const maxDaysResult = await prisma.$runCommandRaw({
-          aggregate: "campaign-chats",
-          pipeline: [
-            {
-              $match: {
-                plannerId: { $in: campaignIds }
-              }
-            },
-            {
-              $group: {
-                _id: "$plannerId",
-                maxDay: { $max: "$day" }
-              }
-            }
-          ],
-          cursor: {},
-        }) as any;
-
-        const maxDays = maxDaysResult.cursor?.firstBatch || [];
-        maxDays.forEach((item: any) => {
-          let plannerId: string;
-          if (item._id?.$oid) {
-            plannerId = item._id.$oid;
-          } else if (typeof item._id === 'string') {
-            plannerId = item._id;
-          } else {
-            plannerId = item._id?.toString() || String(item._id);
-          }
-          maxDaysMap.set(plannerId, item.maxDay || 0);
-        });
-        console.log(`[getCampaignPlannerMetadata] [${requestId}] Max days retrieved for ${maxDaysMap.size} campaigns`);
-      } catch (error) {
-        console.error(`[getCampaignPlannerMetadata] [${requestId}] Error getting max days (continuing without filtering):`, error);
-        // Continue without max days - will show all campaigns as current
-      }
-    }
-
     // Filter to only current campaigns (hide old campaigns)
-    // Old campaign = campaign whose last chat day is older than today
+    // Old campaign = campaign whose last day is older than today
+    // Use totalDays directly from campaign table instead of querying chats
     const currentCampaigns = planners.filter((p) => {
       // If no start date, it's current (not scheduled yet)
       if (!p.startDate) return true;
       
+      // If no totalDays, show it (not old - might be a new campaign)
+      if (!p.totalDays || p.totalDays === 0) return true;
+      
       const baseDate = new Date(p.startDate);
-      const maxDay = maxDaysMap.get(p.id) || 0;
       
-      // If no chats, show it (not old)
-      if (maxDay === 0) return true;
-      
-      // Calculate the last day of the campaign: startDate + (maxDay - 1) days
+      // Calculate the last day of the campaign: startDate + (totalDays - 1) days
       const lastDayOfCampaign = new Date(baseDate);
-      lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (maxDay - 1));
+      lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (p.totalDays - 1));
       lastDayOfCampaign.setHours(0, 0, 0, 0);
       
       // Campaign is "current" if the last day is today or in the future
@@ -311,7 +275,7 @@ export const getCampaignPlannerMetadata = async (projectId: string, limit?: numb
         autoPostTime: p.autoPostTime,
         autoPostPlatforms: p.autoPostPlatforms || [],
         blogNewsMetadata: (p as any).blogNewsMetadata || null,
-        chatCount: maxDaysMap.get(p.id) || 0, // Use max day as count
+        chatCount: p.totalDays || 0, // Use totalDays from campaign table
         chats: [], // Empty - will be loaded on demand
       })),
       hasOldCampaigns: oldCampaignsCount > 0, // Inform UI if old campaigns exist
@@ -339,7 +303,7 @@ export const getOldCampaigns = async (projectId: string) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Get all campaigns for the project (without counting chats - much faster)
+  // Get all campaigns for the project (using totalDays from campaign table - much faster)
   const allPlanners = await prisma.campaignPlanner.findMany({
     where: {
       projectId: projectId,
@@ -358,69 +322,26 @@ export const getOldCampaigns = async (projectId: string) => {
       autoPostTime: true,
       autoPostPlatforms: true,
       blogNewsMetadata: true,
+      totalDays: true, // Include totalDays from campaign table
     },
     orderBy: {
       updatedAt: 'desc',
     },
   });
 
-  // Get max day for each campaign using MongoDB aggregation (much faster than counting)
-  const campaignIds = allPlanners.map(p => p.id);
-  const maxDaysMap = new Map<string, number>();
-  
-  if (campaignIds.length > 0) {
-    try {
-      // Use MongoDB aggregation to get max day per campaign in one query
-      // MongoDB will automatically handle ObjectId conversion from strings
-      const maxDaysResult = await prisma.$runCommandRaw({
-        aggregate: "campaign-chats",
-        pipeline: [
-          {
-            $match: {
-              plannerId: { $in: campaignIds }
-            }
-          },
-          {
-            $group: {
-              _id: "$plannerId",
-              maxDay: { $max: "$day" }
-            }
-          }
-        ],
-        cursor: {},
-      }) as any;
-
-      const maxDays = maxDaysResult.cursor?.firstBatch || [];
-      maxDays.forEach((item: any) => {
-        // Handle both ObjectId format and string format
-        let plannerId: string;
-        if (item._id?.$oid) {
-          plannerId = item._id.$oid;
-        } else if (typeof item._id === 'string') {
-          plannerId = item._id;
-        } else {
-          plannerId = item._id?.toString() || String(item._id);
-        }
-        maxDaysMap.set(plannerId, item.maxDay || 0);
-      });
-    } catch (error) {
-      console.error("Error getting max days for campaigns:", error);
-      // If aggregation fails, fall back to 0 (will show no campaigns as old)
-    }
-  }
-
   // Filter to only old campaigns (where last day is in the past)
+  // Use totalDays directly from campaign table instead of querying chats
   const oldCampaigns = allPlanners.filter((p) => {
     if (!p.startDate) return false; // No start date means not scheduled, not old
     
+    // If no totalDays, it's not old (might be a new campaign)
+    if (!p.totalDays || p.totalDays === 0) return false;
+    
     const baseDate = new Date(p.startDate);
-    const maxDay = maxDaysMap.get(p.id) || 0; // Use max day instead of count
     
-    if (maxDay === 0) return false; // No chats, not old
-    
-    // Calculate the last day of the campaign: startDate + (maxDay - 1) days
+    // Calculate the last day of the campaign: startDate + (totalDays - 1) days
     const lastDayOfCampaign = new Date(baseDate);
-    lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (maxDay - 1));
+    lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (p.totalDays - 1));
     lastDayOfCampaign.setHours(0, 0, 0, 0);
     
     // Campaign is "old" if the last day is in the past
@@ -443,7 +364,7 @@ export const getOldCampaigns = async (projectId: string) => {
       autoPostTime: p.autoPostTime,
       autoPostPlatforms: p.autoPostPlatforms || [],
       blogNewsMetadata: (p as any).blogNewsMetadata || null,
-      chatCount: maxDaysMap.get(p.id) || 0, // Use max day as count (since day numbers are sequential)
+      chatCount: p.totalDays || 0, // Use totalDays from campaign table
       chats: [], // Empty array - will be loaded on demand
     })),
   };

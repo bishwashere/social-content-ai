@@ -1021,22 +1021,23 @@ export default function CampaignPlannerPage({ project }: Props) {
                 // If campaign has no start date, show it (it's not scheduled yet)
                 if (!campaign.startDate) return true;
 
-                // Calculate if campaign has any future dates based on startDate and chatCount
+                // Calculate if campaign has any future dates based on startDate and totalDays
                 const baseDate = new Date(campaign.startDate);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                // Get chatCount from metadata (available even when chats aren't loaded)
-                const chatCount = (campaign as any).chatCount || (campaign.chats?.length || 0);
+                // Get totalDays from campaign (available from campaign table, no need to query chats)
+                // Fallback to chatCount for backward compatibility, then to chats length
+                const totalDays = (campaign as any).totalDays || (campaign as any).chatCount || (campaign.chats?.length || 0);
                 
-                if (chatCount === 0) {
-                  // No chats yet, show it
+                if (totalDays === 0) {
+                  // No days yet, show it
                   return true;
                 }
 
                 // Calculate the last day of the campaign
                 const lastDayOfCampaign = new Date(baseDate);
-                lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (chatCount - 1));
+                lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (totalDays - 1));
                 lastDayOfCampaign.setHours(0, 0, 0, 0);
 
                 // Campaign is "current" if the last day is today or in the future

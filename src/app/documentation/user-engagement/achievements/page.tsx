@@ -27,10 +27,10 @@ export default function AchievementsPage() {
               NextPostAI tracks your progress across four areas, each with 5 achievement levels:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
-              <li><strong>Campaigns</strong> — Your use of multi-day content campaigns</li>
-              <li><strong>Scheduled posts</strong> — Your consistency in planning ahead</li>
-              <li><strong>Videos</strong> — Your video content creation</li>
-              <li><strong>Tracking</strong> — Your use of analytics and insights</li>
+              <li><strong>Campaigns</strong> - Your use of multi-day content campaigns</li>
+              <li><strong>Scheduled posts</strong> - Your consistency in planning ahead</li>
+              <li><strong>Videos</strong> - Your video content creation</li>
+              <li><strong>Tracking</strong> - Your use of analytics and insights</li>
             </ul>
           </CardContent>
         </Card>

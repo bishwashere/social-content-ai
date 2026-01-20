@@ -26,3 +26,19 @@
         background: url(https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_https://assets.cdn.filesafe.space/FqtOpHiHDZoX8PKbx2C9/media/684be60a2809a948f00642e0.jpeg);
     }
 }
+
+/* Green pulsing dot animation for live stats indicator */
+@keyframes pulse-green {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.pulse-dot {
+    animation: pulse-green 2s ease-in-out infinite;
+}

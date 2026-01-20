@@ -115,6 +115,7 @@ model CampaignPlanner {
   autoPostTime      String?
   autoPostPlatforms String[]
   blogNewsMetadata  Json? // Store Blog News metadata (topics, angles, webhook) at campaign level
+  totalDays         Int? // Total number of days in the campaign (calculated from chats)
   chats             CampaignChat[] @relation("PlannerChats")
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt

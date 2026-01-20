@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Script from "next/script";
 // Dynamic import for non-critical components
 import dynamic from "next/dynamic";
@@ -33,8 +33,52 @@ const LoaderIcon = () => (
   </svg>
 );
 
+interface LandingStats {
+  totalContentCreated: number;
+  totalCampaigns: number;
+  totalUsers: number;
+}
+
 export default function HomeV3() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [stats, setStats] = useState<LandingStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/landing/stats");
+        if (!response.ok) {
+          console.error("Failed to fetch stats:", response.status, response.statusText);
+          return;
+        }
+        const data = await response.json();
+        console.log("Landing stats response:", data);
+        if (data.data) {
+          console.log("Setting stats:", data.data);
+          setStats(data.data);
+        } else {
+          console.error("No data in response:", data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch landing stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + "M+";
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + "K+";
+    }
+    return num.toString() + "+";
+  };
 
   const faqs = [
     {
@@ -71,7 +115,7 @@ export default function HomeV3() {
 
       <div className="homepage">
         {/* Section 1 */}
-        <div className="bg-[#000321] relative flex items-center justify-center py-20">
+        <div className="bg-[#000321] relative flex items-center justify-center pt-20 pb-10">
           <div className="absolute top-0 left-0 w-full h-full bg-top-section z-10 object-fill" />
           <div className="relative flex flex-col items-center justify-center z-20 w-[90%] md:w-[80%] gap-5">
             <div className="flex flex-col items-center md:items-start">
@@ -85,143 +129,127 @@ export default function HomeV3() {
             </p>
             {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
             <hr className="my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]" />
-            <div className="flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5">
-              <div className="flex flex-col gap-2 lg:gap-8 items-center lg:items-start p-3 lg:p-0">
-                <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mb-4 lg:mb-0" />
-                <p className="text-white text-2xl lg:text-5xl text-center lg:text-left font-semibold">
-                  Plan Smarter. Post Faster. Grow Consistently.
-                </p>
-                <p className="text-white text-sm lg:text-xl text-center lg:text-left font-light tracking-wider">
-                  Building something amazing but not sure how to market it?
-                  NextPostAI helps you plan your launch, create engaging
-                  content, and stay consistent — so your product gets the
-                  attention it deserves.
-                </p>
+            <div className="flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5 w-full">
+              {/* Left Column: Button and Stats stacked on large screens */}
+              <div className="flex flex-col gap-5 w-full lg:w-auto items-center lg:items-start">
+                {/* Dashboard Button - Above stats on large screens */}
+                <div className="flex flex-col gap-2 lg:gap-8 items-center lg:items-start w-full lg:w-auto">
+                  <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mb-4 lg:mb-0" />
+                </div>
+                {/* Statistics Section - Below button on large screens */}
+                <div className="w-full lg:w-auto mt-4 lg:mt-0">
+                  {/* Mobile Layout - Alternating, full width */}
+                  <div className="flex flex-col gap-6 md:hidden w-full">
+                    {/* Stat 1: Tile left (number + title), explanation right */}
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="relative flex-shrink-0 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 flex flex-col items-center">
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
+                        <div className="text-2xl font-bold text-[#FAA41B]">
+                          {loadingStats
+                            ? "1.2K+"
+                            : formatNumber(stats?.totalContentCreated || 1200)}
+                        </div>
+                        <p className="text-white text-[14px] font-light mt-1">
+                          Total Content
+                        </p>
+                      </div>
+                      <p className="text-white text-[15.4px] font-light flex-1 leading-relaxed">
+                        Projects, campaigns, and chats across all platforms. Track your content creation journey from start to finish.
+                      </p>
+                    </div>
+
+                    {/* Stat 2: Explanation left, tile right (number + title) */}
+                    <div className="flex items-center gap-3 w-full">
+                      <p className="text-white text-[14px] font-light flex-1 text-right leading-relaxed">
+                        Marketing campaigns planned and executed by users. Strategic content planning for product launches.
+                      </p>
+                      <div className="relative flex-shrink-0 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 flex flex-col items-center">
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
+                        <div className="text-2xl font-bold text-[#FAA41B]">
+                          {loadingStats
+                            ? "46+"
+                            : formatNumber(stats?.totalCampaigns || 46)}
+                        </div>
+                        <p className="text-white text-[12.8px] font-light mt-1">
+                          Campaigns
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Stat 3: Tile left (number + title), explanation right */}
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="relative flex-shrink-0 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 flex flex-col items-center">
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
+                        <div className="text-2xl font-bold text-[#FAA41B]">
+                          {loadingStats
+                            ? "145+"
+                            : formatNumber(stats?.totalUsers || 145)}
+                        </div>
+                        <p className="text-white text-[12.8px] font-light mt-1">
+                          Active Users
+                        </p>
+                      </div>
+                      <p className="text-white text-[14px] font-light flex-1 leading-relaxed">
+                        Growing community of marketers and creators. Join thousands of users building their brand presence.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout - 3 Column Grid */}
+                  <div className="hidden md:grid grid-cols-3 gap-6 lg:gap-8">
+                    {/* Column 1: Total Content */}
+                    <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20">
+                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
+                      <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
+                        {loadingStats
+                          ? "1.2K+"
+                          : formatNumber(stats?.totalContentCreated || 1200)}
+                      </div>
+                      <p className="text-white text-[11.4px] lg:text-[12.3px] font-light leading-tight mb-2">
+                        Total Content
+                      </p>
+                    </div>
+
+                    {/* Column 2: Total Campaigns */}
+                    <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20">
+                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
+                      <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
+                        {loadingStats
+                          ? "46+"
+                          : formatNumber(stats?.totalCampaigns || 46)}
+                      </div>
+                      <p className="text-white text-[10.4px] lg:text-[11.2px] font-light leading-tight mb-2">
+                        Campaigns
+                      </p>
+                    </div>
+
+                    {/* Column 3: Total Users */}
+                    <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20">
+                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
+                      <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
+                        {loadingStats
+                          ? "145+"
+                          : formatNumber(stats?.totalUsers || 145)}
+                      </div>
+                      <p className="text-white text-[10.4px] lg:text-[11.2px] font-light leading-tight mb-2">
+                        Active Users
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
               <Image
                 src="/tmpu3cg1514.webp"
                 width={600}
                 height={600}
                 alt="image"
-                className="max-w-96"
+                className="hidden lg:block max-w-96"
               />
             </div>
           </div>
         </div>
 
-        {/* Section 2 */}
-        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-20 gap-5">
-          <div className="flex w-full flex-col sm:flex-row gap-5 items-center justify-between">
-            <div className="flex flex-col justify-center">
-              <p className="text-5xl">Why Choose</p>
-              <p className="text-5xl font-medium mt-2">
-                <span className="text-[#FAA41B] mr-[2px] font-bold">
-                  NextPostAI
-                </span>
-                ?
-              </p>
-              <hr className="bg-[#FAA41B] w-24 h-[6px] mt-5" />
-            </div>
-            <Image
-              src="/tmp0u5_noks.webp"
-              width={500}
-              height={500}
-              alt="image"
-              className="max-w-72 -mt-5"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[
-              {
-                title: "Marketing Strategy Assistant",
-                content:
-                  "Go beyond posts — map out your entire promotional journey with timelines and goals tailored to your product.",
-              },
-              {
-                title: "Smart Calendar",
-                content:
-                  "Schedule content and get timely reminders to stay visible and consistent across platforms.",
-              },
-              {
-                title: "AI-Driven Post & Campaign Generator",
-                content:
-                  "Generate posts, announcements, and promotional ideas that align with your marketing milestones.",
-              },
-              {
-                title: "Community Inspiration",
-                content:
-                  "Explore real-world campaigns, see what others are doing, and gather fresh ideas from fellow builders.",
-              },
-            ].map((data, idx) => (
-              <div className="flex flex-row gap-1" key={idx}>
-                <p>
-                  <LoaderIcon />
-                </p>
-                <div className="flex flex-col gap-2">
-                  <p className="text-xl font-medium">{data.title}</p>
-                  <p className="text-sm font-light">{data.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Section 3 */}
-        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5">
-          <div className="w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16">
-            <p className="font-bold text-5xl md:text-5xl">How It Works</p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-5 px-5 md:px-0">
-              {[
-                {
-                  title: "Input Your Goals",
-                  content:
-                    "Start with your product, launch stage, or marketing objective.",
-                  image: "/tmp_jjomf91.webp",
-                },
-                {
-                  title: "Generate Campaign Content",
-                  content:
-                    "Let our AI create posts, content ideas, and timelines tailored to your audience.",
-                  image: "/tmpj30ux4pp.webp",
-                },
-                {
-                  title: "Plan & Schedule",
-                  content:
-                    "Organize content with our visual planner — track launch dates, feature drops, and seasonal themes.",
-                  image: "/tmpq7ttjaop.webp",
-                },
-                {
-                  title: "Engage & Grow",
-                  content:
-                    "Put your strategy into action, post with consistency, and watch engagement grow.",
-                  image: "/tmppzfdqeak.webp",
-                },
-              ].map((data, idx) => (
-                <div
-                  className="flex flex-col items-center justify-center"
-                  key={idx}
-                >
-                  <Image
-                    src={data.image}
-                    width={400}
-                    height={400}
-                    className="max-w-28 mb-5"
-                    alt="image"
-                  />
-                  <p className="text-lg font-semibold text-center">
-                    {data.title}
-                  </p>
-                  <p className="text-sm text-white text-center">
-                    {data.content}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {/* <button className='px-12 py-2 bg-white text-lg w-fit rounded-3xl mt-6 lg:mt-0'>Get Started Now</button> */}
-            <GoogleLoginButton triggerClassName="px-12 py-2 bg-white text-black text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
-          </div>
-        </section>
-
+        {/* Section 2 - The NextPostAI Advantage */}
         <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-5xl font-light">
@@ -284,6 +312,119 @@ export default function HomeV3() {
                 </li>
               </ul>
             </div>
+          </div>
+        </section>
+
+        {/* Section 4 - How It Works */}
+        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5">
+          <div className="w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16">
+            <p className="font-bold text-5xl md:text-5xl">How It Works</p>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-5 px-5 md:px-0">
+              {[
+                {
+                  title: "Input Your Goals",
+                  content:
+                    "Start with your product, launch stage, or marketing objective.",
+                  image: "/tmp_jjomf91.webp",
+                },
+                {
+                  title: "Generate Campaign Content",
+                  content:
+                    "Let our AI create posts, content ideas, and timelines tailored to your audience.",
+                  image: "/tmpj30ux4pp.webp",
+                },
+                {
+                  title: "Plan & Schedule",
+                  content:
+                    "Organize content with our visual planner - track launch dates, feature drops, and seasonal themes.",
+                  image: "/tmpq7ttjaop.webp",
+                },
+                {
+                  title: "Engage & Grow",
+                  content:
+                    "Put your strategy into action, post with consistency, and watch engagement grow.",
+                  image: "/tmppzfdqeak.webp",
+                },
+              ].map((data, idx) => (
+                <div
+                  className="flex flex-col items-center justify-center"
+                  key={idx}
+                >
+                  <Image
+                    src={data.image}
+                    width={400}
+                    height={400}
+                    className="max-w-28 mb-5"
+                    alt="image"
+                  />
+                  <p className="text-lg font-semibold text-center">
+                    {data.title}
+                  </p>
+                  <p className="text-sm text-white text-center">
+                    {data.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {/* <button className='px-12 py-2 bg-white text-lg w-fit rounded-3xl mt-6 lg:mt-0'>Get Started Now</button> */}
+            <GoogleLoginButton triggerClassName="px-12 py-2 bg-white text-black text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
+          </div>
+        </section>
+
+        {/* Section 3 - Why Choose NextPostAI */}
+        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-20 gap-5">
+          <div className="flex w-full flex-col sm:flex-row gap-5 items-center justify-between">
+            <div className="flex flex-col justify-center">
+              <p className="text-5xl">Why Choose</p>
+              <p className="text-5xl font-medium mt-2">
+                <span className="text-[#FAA41B] mr-[2px] font-bold">
+                  NextPostAI
+                </span>
+                ?
+              </p>
+              <hr className="bg-[#FAA41B] w-24 h-[6px] mt-5" />
+            </div>
+            <Image
+              src="/tmp0u5_noks.webp"
+              width={500}
+              height={500}
+              alt="image"
+              className="max-w-72 -mt-5"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {[
+              {
+                title: "Marketing Strategy Assistant",
+                content:
+                  "Go beyond posts - map out your entire promotional journey with timelines and goals tailored to your product.",
+              },
+              {
+                title: "Smart Calendar",
+                content:
+                  "Schedule content and get timely reminders to stay visible and consistent across platforms.",
+              },
+              {
+                title: "AI-Driven Post & Campaign Generator",
+                content:
+                  "Generate posts, announcements, and promotional ideas that align with your marketing milestones.",
+              },
+              {
+                title: "Community Inspiration",
+                content:
+                  "Explore real-world campaigns, see what others are doing, and gather fresh ideas from fellow builders.",
+              },
+            ].map((data, idx) => (
+              <div className="flex flex-row gap-1" key={idx}>
+                <p>
+                  <LoaderIcon />
+                </p>
+                <div className="flex flex-col gap-2">
+                  <p className="text-xl font-medium">{data.title}</p>
+                  <p className="text-sm font-light">{data.content}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -454,7 +595,7 @@ export default function HomeV3() {
           </div>
         </section>
 
-        <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
+        <section className="w-full px-5 md:px-20 lg:px-36 mt-24 mb-12">
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-4xl text-[#0F1124] dark:text-white font-light">
               Frequently
@@ -479,7 +620,7 @@ export default function HomeV3() {
                   </span>
                 </button>
                 {openIndex === idx && (
-                  <div className="bg-white dark:bg-transparent text-[#222639] dark:text-white px-6 py-4 text-sm">
+                  <div className="bg-white dark:bg-transparent text-[#222639] dark:text-white px-6 pt-6 pb-4 text-sm">
                     {faq.answer}
                   </div>
                 )}
@@ -488,72 +629,6 @@ export default function HomeV3() {
           </div>
         </section>
 
-        <section className="w-full mt-20 flex items-center justify-center px-5 md:px-20 lg:px-36">
-          <div
-            className="relative rounded-[30px] overflow-hidden text-white text-center w-full px-6 py-10 md:py-16 md:px-16"
-            style={{
-              backgroundImage: "url('/tmp9wo0ngod.webp')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-10">
-              <p className="text-xl md:text-2xl">
-                Ready to revolutionize your product marketing?
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold">
-                Join the{" "}
-                <span className="font-bold text-[#0F1124] bg-white px-1 rounded">
-                  NextPostAI
-                </span>{" "}
-                community today.
-              </h2>
-              <GoogleLoginButton triggerClassName="bg-white text-[#0F1124] font-semibold px-6 py-3 rounded-full shadow-md hover:scale-105 transition-all" />
-            </div>
-          </div>
-        </section>
-
-        <footer className="w-full bg-[#0F1124] text-white -mt-40 px-5 md:px-20 lg:px-36 pt-52 pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-            {/* Left - Stay Up to Date Form */}
-            <div>
-              <p className="uppercase text-sm mb-4 tracking-widest">
-                Stay Up To Date
-              </p>
-              <form className="flex flex-col gap-4 max-w-sm">
-                <div>
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email *
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="Email"
-                    className="mt-1 w-full px-4 py-2 rounded border border-gray-300 text-black focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition-all"
-                >
-                  SUBMIT
-                </button>
-              </form>
-            </div>
-
-            {/* Right - Contact Info */}
-            <div>
-              <p className="uppercase text-sm mb-4 tracking-widest">
-                Stay In Touch
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li>📧 bishwas@unclesamstech.com</li>
-                <li>📞 +1 (223) 279-9248</li>
-                <li>📍Mechanicsburg, PA, USA</li>
-              </ul>
-            </div>
-          </div>
-        </footer>
           <Footer />
       </div>
     </>
