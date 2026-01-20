@@ -361,7 +361,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
       // Verify campaign exists in current project before loading chats
       const allCampaignIds = new Set(
-        (campaignPlannerData.data.chatsGroupedByCampaign || []).map(c => c.id)
+        (campaignPlannerData.data.chatsGroupedByCampaign || []).map((c: { id: string }) => c.id)
       );
       if (!allCampaignIds.has(campaignId)) {
         // Campaign doesn't exist in current project, remove from openCampaigns
