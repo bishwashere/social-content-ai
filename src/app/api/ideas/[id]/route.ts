@@ -22,8 +22,8 @@ function isValidObjectId(id: string): boolean {
  */
 export const GET = applyMiddleware(
   validateIdeasAdminAuth({ errorIfNotAuthenticated: false }),
-  catchApiAsyncError(async (req: NextRequest, { params }) => {
-    const { id } = params as { id: string };
+  catchApiAsyncError(async (req: NextRequest, params) => {
+    const { id } = (params?.params || {}) as { id: string };
 
     // Check if ideas admin is authenticated
     // @ts-expect-error: parsed is not defined in Request type
@@ -83,8 +83,8 @@ export const GET = applyMiddleware(
  */
 export const PUT = applyMiddleware(
   validateIdeasAdminAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req: NextRequest, { params }) => {
-    const { id } = params as { id: string };
+  catchApiAsyncError(async (req: NextRequest, params) => {
+    const { id } = (params?.params || {}) as { id: string };
     const body = await req.json();
     const { title, summary, content, tags, thumbnail, status, publishedAt, authorId } = body;
 
@@ -211,8 +211,8 @@ export const PUT = applyMiddleware(
  */
 export const DELETE = applyMiddleware(
   validateIdeasAdminAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req: NextRequest, { params }) => {
-    const { id } = params as { id: string };
+  catchApiAsyncError(async (req: NextRequest, params) => {
+    const { id } = (params?.params || {}) as { id: string };
 
     // Find the idea - only check by id if it's a valid ObjectID, otherwise check by slug
     const existingIdea = await prisma.idea.findFirst({

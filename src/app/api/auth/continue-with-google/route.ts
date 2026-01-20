@@ -56,10 +56,10 @@ export const POST = applyMiddleware(
 
     if (!savedUser) {
       console.error("❌ Error saving user to DB:");
-      return {
+      return sendNextResponse({
         status: 400,
         message: "Failed to save user",
-      };
+      });
     }
 
     if (isNewUser) {

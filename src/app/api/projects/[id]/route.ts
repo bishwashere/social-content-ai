@@ -13,8 +13,8 @@ import { projectValidator, ProjectValidatorType } from "@/validators/projects";
  */
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req, { params }) => {
-    const { id: projectId } = params as { id: string };
+  catchApiAsyncError(async (req, params) => {
+    const { id: projectId } = (params?.params || {}) as { id: string };
 
     //@ts-expect-error - user is not defined in Request type
     const user = req.parsed.user;
@@ -66,8 +66,8 @@ export const GET = applyMiddleware(
 export const PATCH = applyMiddleware(
   requestValidator.validateBody(projectValidator.updateProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req, { params }) => {
-    const { id: projectId } = params as { id: string };
+  catchApiAsyncError(async (req, params) => {
+    const { id: projectId } = (params?.params || {}) as { id: string };
 
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["updateProject"];
@@ -156,8 +156,8 @@ export const PATCH = applyMiddleware(
  */
 export const DELETE = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req, { params }) => {
-    const { id: projectId } = params as { id: string };
+  catchApiAsyncError(async (req, params) => {
+    const { id: projectId } = (params?.params || {}) as { id: string };
 
     //@ts-expect-error - user is not defined in Request type
     const user = req.parsed.user;

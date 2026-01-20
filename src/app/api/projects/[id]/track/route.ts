@@ -14,8 +14,8 @@ import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 export const POST = applyMiddleware(
   requestValidator.validateBody(projectValidator.trackProject),
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req, { params }) => {
-    const { id: projectId } = params as { id: string };
+  catchApiAsyncError(async (req, params) => {
+    const { id: projectId } = (params?.params || {}) as { id: string };
 
     //@ts-expect-error - body is not defined in Request type
     const body = req.parsed.body as ProjectValidatorType["trackProject"];
@@ -80,8 +80,8 @@ export const POST = applyMiddleware(
  */
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (_req, { params }) => {
-    const { id: projectId } = params as { id: string };
+  catchApiAsyncError(async (_req, params) => {
+    const { id: projectId } = (params?.params || {}) as { id: string };
 
     const activity = await prisma.projectTracking.findMany({
       where: {

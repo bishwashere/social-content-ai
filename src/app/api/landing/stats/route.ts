@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
+import { NextRequest } from "next/server";
+import { Params } from "@/types/api";
 
 /**
  * Public API endpoint to get landing page statistics
  * No authentication required
  */
-export const GET = catchApiAsyncError(async () => {
+export const GET = catchApiAsyncError(async (_req: NextRequest, _params?: Params) => {
   try {
     // Get all statistics in parallel for better performance
     const [

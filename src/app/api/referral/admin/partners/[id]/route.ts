@@ -13,8 +13,8 @@ import { hashPassword } from "@/lib/referral";
 export const PUT = applyMiddleware(
   validateReferralAuth({ allowedRoles: ["super_admin"], errorIfNotAuthenticated: true }),
   requestValidator.validateBody(referralValidator.updatePartner),
-  catchApiAsyncError(async (req, { params }) => {
-    const { id } = params as { id: string };
+  catchApiAsyncError(async (req, params) => {
+    const { id } = (params?.params || {}) as { id: string };
     //@ts-expect-error: parsed is not defined in Request type
     const updateData = req.parsed.body as ReferralValidatorType["updatePartner"];
 
@@ -82,8 +82,8 @@ export const PUT = applyMiddleware(
  */
 export const DELETE = applyMiddleware(
   validateReferralAuth({ allowedRoles: ["super_admin"], errorIfNotAuthenticated: true }),
-  catchApiAsyncError(async (req, { params }) => {
-    const { id } = params as { id: string };
+  catchApiAsyncError(async (req, params) => {
+    const { id } = (params?.params || {}) as { id: string };
 
     if (!id) {
       return sendNextResponse({

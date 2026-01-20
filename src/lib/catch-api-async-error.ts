@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { sendNextResponse } from "./send-next-response";
 import { Params } from "@/types/api";
 
@@ -7,9 +7,9 @@ import { Params } from "@/types/api";
  *  @param fn - The API route handler function
  */
 const catchApiAsyncError = (
-  fn: (req: NextRequest, params: Params) => unknown,
+  fn: (req: NextRequest, params?: Params) => Promise<NextResponse> | NextResponse,
 ) => {
-  return async (req: NextRequest, params: Params) => {
+  return async (req: NextRequest, params?: Params): Promise<NextResponse> => {
     try {
       return await fn(req, params);
     } catch (e) {
