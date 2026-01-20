@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Calendar, FileText, Webhook, Clock, Link2 } from "lucide-react";
+import { Zap, Calendar, FileText, Clock, Link2, Video, BarChart3, LayoutTemplate, Zap as AutoIcon, Compass } from "lucide-react";
 
 export default function FeaturesPage() {
   const features = [
@@ -21,18 +21,46 @@ export default function FeaturesPage() {
       color: "text-blue-600"
     },
     { 
+      name: "Video Features", 
+      href: "/documentation/features/video-features", 
+      description: "Create engaging videos with Quick Video Maker and templates",
+      icon: Video,
+      color: "text-pink-600"
+    },
+    { 
+      name: "Analytics & Insights", 
+      href: "/documentation/features/analytics-insights", 
+      description: "Track performance with Project Pulse and platform analytics",
+      icon: BarChart3,
+      color: "text-indigo-600"
+    },
+    { 
+      name: "Templates Library", 
+      href: "/documentation/features/templates-library", 
+      description: "Browse and use pre-built content templates",
+      icon: LayoutTemplate,
+      color: "text-purple-600"
+    },
+    { 
+      name: "Automation", 
+      href: "/documentation/features/automation", 
+      description: "Auto-posting, scheduled campaigns, and automated workflows",
+      icon: AutoIcon,
+      color: "text-orange-600"
+    },
+    { 
+      name: "Content Discovery", 
+      href: "/documentation/features/content-discovery", 
+      description: "Browse social feed, discover content, and explore posts",
+      icon: Compass,
+      color: "text-cyan-600"
+    },
+    { 
       name: "Blog News", 
       href: "/documentation/features/blog-news", 
       description: "Automated blog generation from trending news and articles",
       icon: FileText,
       color: "text-green-600"
-    },
-    { 
-      name: "Webhooks", 
-      href: "/documentation/features/webhooks", 
-      description: "Receive blog posts via webhooks for external publishing",
-      icon: Webhook,
-      color: "text-purple-600"
     },
     { 
       name: "Scheduled Posts", 

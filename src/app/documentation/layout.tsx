@@ -7,20 +7,45 @@ import { cn } from "@/lib/cn";
 import { ChevronRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentationHeader } from "./_components/documentation-header";
+import { DocumentationNavigation } from "./_components/documentation-navigation";
 import Footer from "@/components/footer";
 
 const documentationLinks = [
+  {
+    title: "Getting Started",
+    href: "/documentation/getting-started",
+  },
   {
     title: "Features",
     href: "/documentation/features",
     children: [
       { title: "Quick Generate", href: "/documentation/features/quick-generate" },
       { title: "Campaign Planner", href: "/documentation/features/campaign-planner" },
+      { title: "Video Features", href: "/documentation/features/video-features" },
+      { title: "Analytics & Insights", href: "/documentation/features/analytics-insights" },
+      { title: "Templates Library", href: "/documentation/features/templates-library" },
+      { title: "Automation", href: "/documentation/features/automation" },
+      { title: "Content Discovery", href: "/documentation/features/content-discovery" },
       { title: "Blog News", href: "/documentation/features/blog-news" },
-      { title: "Webhooks", href: "/documentation/features/webhooks" },
       { title: "Scheduled Posts", href: "/documentation/features/scheduled-posts" },
       { title: "Advanced Customization", href: "/documentation/features/advanced-customization" },
-      { title: "Achievement Levels", href: "/documentation/features/achievement-levels" },
+    ],
+  },
+  {
+    title: "User Engagement",
+    href: "/documentation/user-engagement",
+    children: [
+      { title: "Achievements", href: "/documentation/user-engagement/achievements" },
+      { title: "Achievement Levels", href: "/documentation/user-engagement/achievement-levels" },
+      { title: "Your Today", href: "/documentation/user-engagement/your-today" },
+    ],
+  },
+  {
+    title: "Project Management",
+    href: "/documentation/project-management",
+    children: [
+      { title: "Project Folders", href: "/documentation/project-management/folders" },
+      { title: "Team Collaboration", href: "/documentation/project-management/collaboration" },
     ],
   },
   {
@@ -35,6 +60,17 @@ const documentationLinks = [
       { title: "Threads", href: "/documentation/platforms/threads" },
       { title: "Reddit", href: "/documentation/platforms/reddit" },
     ],
+  },
+  {
+    title: "Integrations",
+    href: "/documentation/integrations",
+    children: [
+      { title: "Webhooks", href: "/documentation/integrations/webhooks" },
+    ],
+  },
+  {
+    title: "Pricing & Billing",
+    href: "/documentation/pricing-billing",
   },
   {
     title: "Security Overview",
@@ -52,6 +88,9 @@ export default function DocumentationLayout({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     platforms: true,
     features: true,
+    "user engagement": true,
+    "project management": true,
+    integrations: true,
   });
 
   const toggleSection = (section: string) => {
@@ -150,7 +189,9 @@ export default function DocumentationLayout({
         {/* Main Content */}
         <main className="flex-1 min-h-screen w-full overflow-x-hidden">
           <div className="w-full px-6 py-8 lg:px-12">
+            <DocumentationNavigation variant="top" />
             {children}
+            <DocumentationNavigation variant="bottom" />
           </div>
         </main>
       </div>
