@@ -66,7 +66,7 @@ export default function CollaborationPage() {
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-4">
               <li>Open a project</li>
-              <li>Click "Invite" or go to project settings</li>
+              <li>Click &quot;Invite&quot; or go to project settings</li>
               <li>Enter team member email and select role</li>
               <li>Team member receives invitation</li>
             </ol>

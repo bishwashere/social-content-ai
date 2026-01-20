@@ -48,7 +48,7 @@ export default function ProjectFoldersPage() {
           </CardHeader>
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-4">
-              <li>Click "Create Folder" in the project sidebar</li>
+              <li>Click &quot;Create Folder&quot; in the project sidebar</li>
               <li>Enter folder name, description, and choose a color</li>
               <li>Add existing projects to folders using the folder icon</li>
               <li>Access projects from both main list and folders</li>
