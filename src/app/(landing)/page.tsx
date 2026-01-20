@@ -11,6 +11,10 @@ import "../home.css";
 
 import Image from "next/image";
 import Footer from "@/components/footer";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 const LoaderIcon = () => (
   <svg
@@ -43,6 +47,7 @@ export default function HomeV3() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [stats, setStats] = useState<LandingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [selectedStatIndex, setSelectedStatIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -79,6 +84,35 @@ export default function HomeV3() {
     }
     return num.toString() + "+";
   };
+
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const statData = [
+    {
+      title: "Total Content",
+      value: loadingStats ? "1.2K+" : formatNumber(stats?.totalContentCreated || 1200),
+      description: "Projects, campaigns, and chats across all platforms. Track your content creation journey from start to finish.",
+      date: new Date(),
+    },
+    {
+      title: "Campaigns",
+      value: loadingStats ? "46+" : formatNumber(stats?.totalCampaigns || 46),
+      description: "Marketing campaigns planned and executed by users. Strategic content planning for product launches.",
+      date: new Date(),
+    },
+    {
+      title: "Active Users",
+      value: loadingStats ? "145+" : formatNumber(stats?.totalUsers || 145),
+      description: "Growing community of marketers and creators. Join thousands of users building their brand presence.",
+      date: new Date(),
+    },
+  ];
 
   const faqs = [
     {
@@ -138,105 +172,69 @@ export default function HomeV3() {
                 </div>
                 {/* Statistics Section - Below button on large screens */}
                 <div className="w-full lg:w-auto mt-4 lg:mt-0">
-                  {/* Mobile Layout - Alternating, full width */}
-                  <div className="flex flex-col gap-6 md:hidden w-full">
-                    {/* Stat 1: Tile left (number + title), explanation right */}
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="relative flex-shrink-0 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 flex flex-col items-center">
+                  {/* Mobile Layout - 3 tiles in one line without descriptions */}
+                  <div className="grid grid-cols-3 gap-3 md:hidden w-full">
+                    {statData.map((stat, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedStatIndex(index)}
+                        className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
+                      >
                         <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
                         <div className="text-2xl font-bold text-[#FAA41B]">
-                          {loadingStats
-                            ? "1.2K+"
-                            : formatNumber(stats?.totalContentCreated || 1200)}
+                          {stat.value}
                         </div>
-                        <p className="text-white text-[14px] font-light mt-1">
-                          Total Content
+                        <p className={`text-white ${index === 0 ? 'text-[14px]' : 'text-[12.8px]'} font-light mt-1`}>
+                          {stat.title}
                         </p>
-                      </div>
-                      <p className="text-white text-[15.4px] font-light flex-1 leading-relaxed">
-                        Projects, campaigns, and chats across all platforms. Track your content creation journey from start to finish.
-                      </p>
-                    </div>
-
-                    {/* Stat 2: Explanation left, tile right (number + title) */}
-                    <div className="flex items-center gap-3 w-full">
-                      <p className="text-white text-[14px] font-light flex-1 text-right leading-relaxed">
-                        Marketing campaigns planned and executed by users. Strategic content planning for product launches.
-                      </p>
-                      <div className="relative flex-shrink-0 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 flex flex-col items-center">
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
-                        <div className="text-2xl font-bold text-[#FAA41B]">
-                          {loadingStats
-                            ? "46+"
-                            : formatNumber(stats?.totalCampaigns || 46)}
-                        </div>
-                        <p className="text-white text-[12.8px] font-light mt-1">
-                          Campaigns
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Stat 3: Tile left (number + title), explanation right */}
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="relative flex-shrink-0 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 flex flex-col items-center">
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
-                        <div className="text-2xl font-bold text-[#FAA41B]">
-                          {loadingStats
-                            ? "145+"
-                            : formatNumber(stats?.totalUsers || 145)}
-                        </div>
-                        <p className="text-white text-[12.8px] font-light mt-1">
-                          Active Users
-                        </p>
-                      </div>
-                      <p className="text-white text-[14px] font-light flex-1 leading-relaxed">
-                        Growing community of marketers and creators. Join thousands of users building their brand presence.
-                      </p>
-                    </div>
+                      </button>
+                    ))}
                   </div>
 
                   {/* Desktop Layout - 3 Column Grid */}
                   <div className="hidden md:grid grid-cols-3 gap-6 lg:gap-8">
-                    {/* Column 1: Total Content */}
-                    <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20">
-                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
-                      <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
-                        {loadingStats
-                          ? "1.2K+"
-                          : formatNumber(stats?.totalContentCreated || 1200)}
-                      </div>
-                      <p className="text-white text-[11.4px] lg:text-[12.3px] font-light leading-tight mb-2">
-                        Total Content
-                      </p>
-                    </div>
-
-                    {/* Column 2: Total Campaigns */}
-                    <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20">
-                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
-                      <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
-                        {loadingStats
-                          ? "46+"
-                          : formatNumber(stats?.totalCampaigns || 46)}
-                      </div>
-                      <p className="text-white text-[10.4px] lg:text-[11.2px] font-light leading-tight mb-2">
-                        Campaigns
-                      </p>
-                    </div>
-
-                    {/* Column 3: Total Users */}
-                    <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20">
-                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
-                      <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
-                        {loadingStats
-                          ? "145+"
-                          : formatNumber(stats?.totalUsers || 145)}
-                      </div>
-                      <p className="text-white text-[10.4px] lg:text-[11.2px] font-light leading-tight mb-2">
-                        Active Users
-                      </p>
-                    </div>
+                    {statData.map((stat, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedStatIndex(index)}
+                        className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
+                      >
+                        <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
+                        <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
+                          {stat.value}
+                        </div>
+                        <p className={`text-white ${index === 0 ? 'text-[11.4px] lg:text-[12.3px]' : 'text-[10.4px] lg:text-[11.2px]'} font-light leading-tight mb-2`}>
+                          {stat.title}
+                        </p>
+                      </button>
+                    ))}
                   </div>
                 </div>
+
+                {/* Dialog for stat details - all screens */}
+                <Dialog open={selectedStatIndex !== null} onOpenChange={(open) => !open && setSelectedStatIndex(null)}>
+                  <DialogContent className="bg-[#000321] border-white/20 text-white max-w-[90%] md:max-w-lg">
+                    {selectedStatIndex !== null && (
+                      <div className="flex flex-col gap-4">
+                        <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-xl px-6 py-6 border border-white/20 w-full">
+                          <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
+                          <div className="text-4xl font-bold text-[#FAA41B] mb-2">
+                            {statData[selectedStatIndex].value}
+                          </div>
+                          <p className="text-white text-lg font-light">
+                            {statData[selectedStatIndex].title}
+                          </p>
+                        </div>
+                        <p className="text-white text-[15.4px] font-light leading-relaxed text-center">
+                          {statData[selectedStatIndex].description}
+                        </p>
+                        <p className="text-white text-sm font-light text-center text-[#FAA41B] mt-2">
+                          Last updated: {formatDate(statData[selectedStatIndex].date)}
+                        </p>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
               </div>
               <Image
                 src="/tmpu3cg1514.webp"
