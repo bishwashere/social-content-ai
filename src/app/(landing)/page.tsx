@@ -43,11 +43,24 @@ interface LandingStats {
   totalUsers: number;
 }
 
+interface PlatformBreakdown {
+  platform: string;
+  displayName: string;
+  count: number;
+}
+
+interface CampaignPlatformData {
+  platformBreakdown: PlatformBreakdown[];
+  totalCampaigns: number;
+}
+
 export default function HomeV3() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [stats, setStats] = useState<LandingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [selectedStatIndex, setSelectedStatIndex] = useState<number | null>(null);
+  const [campaignPlatforms, setCampaignPlatforms] = useState<CampaignPlatformData | null>(null);
+  const [loadingPlatforms, setLoadingPlatforms] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -74,6 +87,33 @@ export default function HomeV3() {
 
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    const fetchCampaignPlatforms = async () => {
+      if (selectedStatIndex === 1) { // Campaigns is index 1
+        setLoadingPlatforms(true);
+        try {
+          const response = await fetch("/api/landing/campaign-platforms");
+          if (!response.ok) {
+            console.error("Failed to fetch campaign platforms:", response.status, response.statusText);
+            return;
+          }
+          const data = await response.json();
+          if (data.data) {
+            setCampaignPlatforms(data.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch campaign platforms:", error);
+        } finally {
+          setLoadingPlatforms(false);
+        }
+      } else {
+        setCampaignPlatforms(null);
+      }
+    };
+
+    fetchCampaignPlatforms();
+  }, [selectedStatIndex]);
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
@@ -228,6 +268,51 @@ export default function HomeV3() {
                         <p className="text-white text-[15.4px] font-light leading-relaxed text-center">
                           {statData[selectedStatIndex].description}
                         </p>
+                        
+                        {/* Platform Breakdown for Campaigns */}
+                        {selectedStatIndex === 1 && (
+                          <div className="mt-4">
+                            <h3 className="text-white text-lg font-semibold mb-3 text-center">
+                              Platform Breakdown
+                            </h3>
+                            {loadingPlatforms ? (
+                              <div className="text-center text-white/60 py-4">
+                                Loading platform data...
+                              </div>
+                            ) : campaignPlatforms && campaignPlatforms.platformBreakdown.length > 0 ? (
+                              <div className="space-y-2">
+                                {campaignPlatforms.platformBreakdown.map((platform) => {
+                                  const percentage = campaignPlatforms.totalCampaigns > 0
+                                    ? ((platform.count / campaignPlatforms.totalCampaigns) * 100).toFixed(0)
+                                    : 0;
+                                  return (
+                                    <div key={platform.platform} className="flex flex-col gap-1">
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-white font-medium">
+                                          {platform.displayName}
+                                        </span>
+                                        <span className="text-[#FAA41B] font-semibold">
+                                          {platform.count} ({percentage}%)
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-white/10 rounded-full h-2">
+                                        <div
+                                          className="bg-[#FAA41B] h-2 rounded-full transition-all"
+                                          style={{ width: `${percentage}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="text-center text-white/60 py-4">
+                                No platform data available
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
                         <p className="text-white text-sm font-light text-center text-[#FAA41B] mt-2">
                           Last updated: {formatDate(statData[selectedStatIndex].date)}
                         </p>
