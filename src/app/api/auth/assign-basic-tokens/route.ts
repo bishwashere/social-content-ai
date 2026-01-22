@@ -4,7 +4,7 @@ import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 
-const BASIC_TOKENS = 10; // Basic tokens for new users who skip payment
+const BASIC_TOKENS = 100; // Basic tokens for new users who skip payment
 
 /**
  * Assign basic tokens to a user who skips the payment modal
