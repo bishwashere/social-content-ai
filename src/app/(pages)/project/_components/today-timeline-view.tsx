@@ -70,13 +70,9 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
 
   // Check if user has scheduled or published posts
   const hasScheduledOrPublished = useMemo(() => {
-    if (!projects.data) return false;
-    return projects.data.some((project) => {
-      const hasScheduled = (project.scheduledPosts || []).length > 0;
-      const hasPublished = (project.publishedPosts || []).length > 0;
-      return hasScheduled || hasPublished;
-    });
-  }, [projects.data]);
+    // Check if there are any scheduled posts (covers both scheduled and published posts)
+    return (scheduledPosts.data || []).length > 0;
+  }, [scheduledPosts.data]);
 
   // Check if user has campaigns
   const hasCampaigns = useMemo(() => {

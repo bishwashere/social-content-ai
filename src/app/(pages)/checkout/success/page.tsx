@@ -89,17 +89,14 @@ export default function PaymentSuccess() {
     return () => clearInterval(interval);
   }, []);
 
-  // Invalidate session query when checkout success page loads (after delay to allow webhook to process)
+  // Invalidate session query immediately when checkout success page loads
+  // Since we're on the success page, we know payment was successful
   // Must be before early returns to follow React hooks rules
   useEffect(() => {
     if (session.isSuccess && !isCoinsPayment) {
-      // Wait a bit for Stripe webhook to process, then invalidate session
-      const timeout = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["session"] });
-        console.log('[Checkout Success] Invalidated session query');
-      }, 2000); // 2 second delay
-
-      return () => clearTimeout(timeout);
+      // Immediately invalidate session since we know payment succeeded
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      console.log('[Checkout Success] Invalidated session query - payment successful');
     }
   }, [session.isSuccess, isCoinsPayment, queryClient]);
 
