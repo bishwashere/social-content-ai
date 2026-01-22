@@ -1,9 +1,8 @@
 import { prisma } from "../src/lib/prisma";
 
 const EMAILS = [
+  "b.bishwas@gmail.com",
   "bishwas.work@gmail.com",
-  "unclesamstechllc@gmail.com",
-  "bishwasmishra007@gmail.com",
 ];
 
 async function deleteUserAndAllData(email: string) {
@@ -149,7 +148,17 @@ async function deleteUserAndAllData(email: string) {
       where: { userId: user.id },
     });
 
-    console.log("20. Deleting user...");
+    console.log("20. Deleting news preferences...");
+    await prisma.userNewsPreferences.deleteMany({
+      where: { userId: user.id },
+    });
+
+    console.log("21. Deleting ideas...");
+    await prisma.idea.deleteMany({
+      where: { authorId: user.id },
+    });
+
+    console.log("22. Deleting user...");
     await prisma.user.delete({
       where: { id: user.id },
     });

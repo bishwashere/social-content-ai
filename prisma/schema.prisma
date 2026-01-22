@@ -31,6 +31,7 @@ model User {
   projectFolders    ProjectFolder[]
   referralSignup    ReferralSignup?
   ideas             Idea[]
+  newsPreferences   UserNewsPreferences?
 
   @@map("users")
 }
@@ -517,4 +518,16 @@ model GeminiApiKeyState {
   updatedAt       DateTime @updatedAt
 
   @@map("gemini-api-key-states")
+}
+
+model UserNewsPreferences {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  topics    String[] @default(["AI", "Technology", "Investing", "Crypto", "Stocks"]) // Selected topic names
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user-news-preferences")
 }

@@ -32,6 +32,7 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import Loading from "@/components/common/loading";
 import { cn } from "@/lib/cn";
 import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
+import { NewsTrendingSection } from "@/app/(pages)/project/_components/news-trending";
 
 export default function ProjectTrialPage() {
   const router = useRouter();
@@ -175,6 +176,11 @@ export default function ProjectTrialPage() {
                   </div>
                 </section>
               )}
+
+              {/* Check out the news on */}
+              <section className="space-y-4">
+                <NewsTrendingSection />
+              </section>
             </div>
 
             {/* Right Column - Sidebar */}

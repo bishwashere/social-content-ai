@@ -1164,7 +1164,38 @@ export async function GET(request: NextRequest) {
           // 4. Check scheduled posts for today for this project with historical analysis
           // Skip if project already has campaign-related alerts (content needed or ending soon)
           const projectScheduledPosts = scheduledPostsByProject.get(projectId) || [];
-          if (projectScheduledPosts.length === 0 && !projectsWithCampaignAlerts.has(projectId)) {
+          
+          // Check if project has campaign posts scheduled for today or in the future
+          // Reuse projectCampaigns that was already defined earlier in this scope
+          let hasCampaignPostsScheduled = false;
+          const checkTodayDate = new Date(today);
+          checkTodayDate.setHours(0, 0, 0, 0);
+          
+          for (const campaign of projectCampaigns) {
+            if (!campaign.startDate) continue;
+            
+            const startDate = new Date(campaign.startDate);
+            startDate.setHours(0, 0, 0, 0);
+            
+            // Check if campaign has any chats scheduled for today or future
+            const hasFuturePosts = (campaign.chats || []).some(chat => {
+              // Calculate the actual date for this chat: startDate + (chat.day - 1) days
+              const chatDate = new Date(startDate);
+              chatDate.setDate(chatDate.getDate() + (chat.day - 1));
+              chatDate.setHours(0, 0, 0, 0);
+              
+              // Check if this chat is scheduled for today or in the future
+              return chatDate >= checkTodayDate;
+            });
+            
+            if (hasFuturePosts) {
+              hasCampaignPostsScheduled = true;
+              break;
+            }
+          }
+          
+          // Only mark as inactive if there are no scheduled posts AND no campaign posts scheduled
+          if (projectScheduledPosts.length === 0 && !hasCampaignPostsScheduled && !projectsWithCampaignAlerts.has(projectId)) {
             // No scheduled posts - analyze historical data and show action if user is admin
             if (userRole === "admin") {
               // Analyze historical consistency and impression correlation

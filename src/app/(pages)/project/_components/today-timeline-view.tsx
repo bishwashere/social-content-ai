@@ -17,7 +17,8 @@ import {
   Sparkles,
   Zap,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import { useFocus } from "@/providers/focus-provider";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllScheduledPosts, useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
+import { NewsTrendingSection } from "./news-trending";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -529,6 +531,9 @@ export function TodayTimelineView() {
               )}
             </div>
           )}
+
+          {/* Check out the news on */}
+          <NewsTrendingSection />
         </div>
 
         {/* Right column: sidebar (collapsed by default) */}
