@@ -125,7 +125,7 @@ export default function PricingModal({ open, setOpen }: Props) {
       await assignBasicTokens.mutateAsync();
       localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
       setOpen(false);
-      toast.success("You've been assigned 10 free tokens to get started!");
+      toast.success("You've been assigned 100 free tokens to get started!");
     } catch (error) {
       // If assignment fails, just close the modal
       setOpen(false);

@@ -22,7 +22,7 @@ export const POST = applyMiddleware(
 
     // Check if the user has remaining chat generations (tokens)
     // If user has tokens, allow generation regardless of subscription status
-    // This allows users with basic tokens (10 tokens) to use the service without subscription
+    // This allows users with basic tokens (100 tokens) to use the service without subscription
     if (user.remainingChatGenerations <= 0) {
       // User has no tokens - check subscription status
       const subs = await prisma.subscription.findFirst({

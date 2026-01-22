@@ -71,7 +71,7 @@ const GoogleLoginButton = ({
             className={triggerClassName}
             onClick={() => router.push("/project")}
           >
-            Go to Dashboard
+            Start with 100 free credits
             <MoveRight className="scale-125" />
           </Button>
         )
