@@ -2,13 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Card,
   CardContent,
@@ -16,7 +14,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, FolderKanban, CheckCircle2 } from "lucide-react";
+import { Users, FolderKanban, CheckCircle2, XIcon, Lock } from "lucide-react";
 import {
   useCreateCheckoutSession,
   useManageSubscription,
@@ -38,62 +36,63 @@ export default function PricingModal({ open, setOpen }: Props) {
   const payment = useCreateCheckoutSession();
   const manage = useManageSubscription();
   const router = useRouter();
-  const { data } = useSession();
+  const { data, isLoading: sessionLoading } = useSession();
   // const [isLoading, setIsLoading] = useState(false); // COMMENTED OUT: No longer needed for custom trial claims
   const queryClient = useQueryClient();
   const projects = useGetAllProjects();
   const userDismissedRef = useRef(false); // Track if user explicitly closed the modal
+  const lastUserIdRef = useRef<string | undefined>(undefined); // Track last user ID to reset dismissal on login
 
-  // only open the modal if the user doesn't have an active subscription or has no tokens
-  // Payment wall shows FIRST, before onboarding
-  // Also show every time user logs in if they have zero projects (haven't onboarded)
+  // Reset dismissal flag when user logs in (user ID changes)
   useEffect(() => {
-    // Wait for projects to load
-    if (projects.isLoading) {
+    if (data?.user?.id && data.user.id !== lastUserIdRef.current) {
+      // User has logged in (new user ID detected or first time seeing this user)
+      lastUserIdRef.current = data.user.id;
+      userDismissedRef.current = false; // Reset dismissal flag on login
+    }
+  }, [data?.user?.id]);
+
+  // Show paywall if: user has 1 project AND user has not paid (no subscription)
+  useEffect(() => {
+    // Wait for projects and session to load
+    if (projects.isLoading || sessionLoading) {
       return;
     }
 
-    // Don't auto-open if user has explicitly dismissed the modal
+    // Don't show if user has explicitly dismissed the modal in this session
     if (userDismissedRef.current && !open) {
       return;
     }
 
-    const hasNoTokens = (data?.user?.remainingChatGenerations || 0) <= 0;
     const hasNoSubscription = !data?.subscription || 
       (data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired);
-    const hasNoProjects = !projects.data || projects.data.length === 0;
+    const projectsCount = projects.data?.length || 0;
+    const hasOneProject = projectsCount === 1;
 
-    // Show payment wall if:
-    // 1. User has zero projects (hasn't onboarded) - show EVERY TIME they login, regardless of tokens
-    // 2. OR no subscription/subscription expired AND no tokens (for users who have projects)
-    if (hasNoProjects) {
-      // Always show payment wall if they haven't onboarded (zero projects)
-      // This ensures they see it every time they login until they complete onboarding
-      // But only if user hasn't dismissed it
-      if (!userDismissedRef.current) {
-        setOpen(true);
-      }
-    } else if (hasNoSubscription && hasNoTokens) {
-      // Show if no subscription and no tokens (for users who have projects)
-      if (!userDismissedRef.current) {
-        setOpen(true);
-      }
-    } else if (hasNoTokens && data?.subscription) {
-      // User has subscription but no tokens - show coins modal instead
-      setOpen(false);
-      userDismissedRef.current = false; // Reset when conditions change
+    // Debug: Log the actual values
+    console.log('[PricingModal] Check:', {
+      projectsCount,
+      hasOneProject,
+      hasSubscription: !!data?.subscription,
+      hasNoSubscription,
+      subscriptionEndsAt: data?.subscription?.endsAt,
+      subscriptionExpired: data?.subscription ? isSubscriptionExpired(data.subscription.endsAt).isExpired : 'N/A'
+    });
+
+    // Simple check: Show paywall if user has 1 project and has not paid
+    if (hasOneProject && hasNoSubscription) {
+      console.log('[PricingModal] ✅ Showing paywall - user has 1 project and no subscription');
+      setOpen(true);
     } else {
+      console.log('[PricingModal] ❌ Not showing:', {
+        reason: !hasOneProject ? 'not exactly 1 project' : 'has active subscription'
+      });
       setOpen(false);
-      userDismissedRef.current = false; // Reset when conditions change
     }
-  }, [data?.subscription, data?.user?.remainingChatGenerations, data?.user?.id, setOpen, projects.isLoading, projects.data, open]);
+  }, [data?.subscription, data?.user?.id, setOpen, projects.isLoading, projects.data, open, sessionLoading]);
 
-  // Reset dismissal flag when user gets projects (they've onboarded)
-  useEffect(() => {
-    if (projects.data && projects.data.length > 0) {
-      userDismissedRef.current = false;
-    }
-  }, [projects.data]);
+  // Don't reset dismissal flag when user gets projects - we want to show on next login instead
+  // This ensures modal shows on second login, not immediately after project creation
 
   // COMMENTED OUT: Custom trial claim logic - now handled by Stripe
   // const claimTrial = async () => {
@@ -134,80 +133,84 @@ export default function PricingModal({ open, setOpen }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) {
-        // User is closing the modal (via ESC, outside click, or close button)
-        handleClose();
-      }
-    }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogClose
+    <Sheet 
+      open={open} 
+      onOpenChange={setOpen}
+    >
+      <SheetContent 
+        side="bottom" 
+        className="sm:max-w-md mx-auto rounded-t-2xl max-h-[90vh] overflow-y-auto [&>button:last-child]:hidden"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking outside
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Prevent closing on ESC key
+          e.preventDefault();
+        }}
+      >
+        {/* Custom close button that actually closes the drawer */}
+        <button
           onClick={handleClose}
-        />
-        <DialogHeader>
-          <DialogTitle>Start 7 day FREE Trial</DialogTitle>
-          {/* <DialogDescription>Go Pro!</DialogDescription> */}
-        </DialogHeader>
-        <Card className="border-0 shadow-none">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <div className="text-2xl font-bold">
-                $10
-                <span className="text-sm font-normal text-muted-foreground">
-                  /month
-                </span>
-              </div>
-              {!data?.user?.hasClaimedFreeTrial && (
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 px-3">
-                  7-day free trial
-                </Badge>
-              )}
+          className="absolute top-4 right-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none p-2 bg-background"
+          aria-label="Close"
+        >
+          <XIcon className="h-5 w-5" />
+        </button>
+        
+        <div className="space-y-6 pb-6 px-6">
+          {/* Header */}
+          <SheetHeader className="text-left">
+            <SheetTitle className="text-2xl font-bold leading-tight">
+              Turn ideas into ready-to-post content
+            </SheetTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              7-day free trial · Cancel anytime
+            </p>
+          </SheetHeader>
+
+          {/* Price - Quiet */}
+          <div className="text-center">
+            <div className="text-2xl text-muted-foreground">
+              $10 <span className="text-base font-normal">/ month after trial</span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <FolderKanban className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Unlimited projects</p>
-                  <p className="text-sm text-muted-foreground">
-                    Create as many projects as you need
-                  </p>
-                </div>
-              </div>
+          </div>
 
-              <div className="flex items-start gap-2">
-                <Users className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Unlimited user management</p>
-                  <p className="text-sm text-muted-foreground">
-                    Invite unlimited users to manage projects
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <Users className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Unlimited viewers</p>
-                  <p className="text-sm text-muted-foreground">
-                    Invite unlimited users to view projects
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Unlimited completions</p>
-                  <p className="text-sm text-muted-foreground">
-                    Ample capacity for your workflow
-                  </p>
-                </div>
+          {/* Value - 3 bullets only */}
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">🚀</span>
+              <div>
+                <p className="font-semibold">Create faster</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Generate posts, campaigns, blogs, and videos
+                </p>
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col">
+
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">🧠</span>
+              <div>
+                <p className="font-semibold">Stay consistent</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Plan and schedule content in one place
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">🔁</span>
+              <div>
+                <p className="font-semibold">Reuse across platforms</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  One idea → multiple formats
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="space-y-2">
             <Button
               loading={payment.isPending || manage.isPending}
               onClick={async () => {
@@ -222,37 +225,31 @@ export default function PricingModal({ open, setOpen }: Props) {
                   console.error("Error creating checkout session:", error);
                 }
               }}
-              className="w-full"
+              className="w-full text-base font-semibold py-6"
+              size="lg"
             >
-              {
-                payment.isSuccess || manage.isSuccess
-                  ? "Redirecting..."
-                  : (data?.subscription?.status === "trial" )
+              {payment.isSuccess || manage.isSuccess
+                ? "Redirecting..."
+                : (data?.subscription?.status === "trial")
+                  ? "Upgrade Plan"
+                  : data?.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
                     ? "Upgrade Plan"
-                    : data?.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired
-                      ? "Upgrade Plan"
-                      : "Start Trial"}
+                    : "Start 7-Day Free Trial"}
             </Button>
-            {/* COMMENTED OUT: Custom trial claim button - trials now handled by Stripe during checkout */}
-            {/*
-              !data?.user?.hasClaimedFreeTrial && (
-                <Button
-                  loading={isLoading}
-                  onClick={async () => {
-                    await claimTrial();
-                    localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
-                    setOpen(false);
-                  }}
-                  variant={"ghost"}
-                  className="w-full text-muted-foreground"
-                >
-                  Claim Free Trial
-                </Button>
-              )
-            */}
-          </CardFooter>
-        </Card>
-      </DialogContent>
-    </Dialog>
+            <p className="text-center text-sm text-muted-foreground">
+              Start creating today
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-4 border-t">
+            <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
+              <Lock className="h-3 w-3" />
+              No posting on your behalf · Content stays private
+            </p>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

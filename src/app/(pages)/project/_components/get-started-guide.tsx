@@ -5,9 +5,20 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link2, FileText, Calendar, Target, Shield, Lock } from "lucide-react";
+import { Link2, FileText, Calendar, Target, Shield, Lock, Folder } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useRef } from "react";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateProject, useGetWebsiteDescription } from "@/backend-apis/projects/hooks";
 
 export function GetStartedGuide() {
   const { data: session } = useSession();
@@ -16,9 +27,19 @@ export function GetStartedGuide() {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [showSecurityInfo, setShowSecurityInfo] = useState(false);
   const [showCreatePostInfo, setShowCreatePostInfo] = useState(false);
+  const [showAddProjectInfo, setShowAddProjectInfo] = useState(false);
   const [hasWaved, setHasWaved] = useState(false);
   const [waveKey, setWaveKey] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
+  const [projectStep, setProjectStep] = useState(0);
+  const [projectName, setProjectName] = useState("");
+  const [projectUrl, setProjectUrl] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [textareaHeight, setTextareaHeight] = useState(96);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const createProject = useCreateProject();
+  const desc = useGetWebsiteDescription();
 
   // Check if user has connected social accounts
   const { data: accountsData, isLoading: accountsLoading } = useQuery({
@@ -83,6 +104,11 @@ export function GetStartedGuide() {
   const hasScheduledOrPublished = statusData?.hasScheduledOrPublished || false;
   const _hasPosts = statusData?.hasPosts || false;
 
+  // Check if user has projects
+  const hasProjects = useMemo(() => {
+    return projects.data && projects.data.length > 0;
+  }, [projects.data]);
+
   // Check if conditions are met to show the guide
   const shouldShow = useMemo(() => {
     if (projects.isLoading || accountsLoading || statusLoading) return false;
@@ -90,21 +116,23 @@ export function GetStartedGuide() {
 
     // Show guide if:
     // 1. User has not connected any socials, OR
-    // 2. User has no posts, OR
-    // 3. User has no campaigns, OR
-    // 4. User has no scheduled/published posts
+    // 2. User has no projects, OR
+    // 3. User has no posts, OR
+    // 4. User has no campaigns, OR
+    // 5. User has no scheduled/published posts
     
     const hasNoSocials = !accountsData?.hasProviders;
+    const hasNoProjects = !hasProjects;
     const hasNoPosts = !hasScheduledOrPublished;
     const hasNoCampaigns = !hasCampaigns;
 
-    return hasNoSocials || hasNoPosts || hasNoCampaigns;
-  }, [projects.data, projects.isLoading, accountsData, accountsLoading, statusLoading, hasScheduledOrPublished, hasCampaigns]);
+    return hasNoSocials || hasNoProjects || hasNoPosts || hasNoCampaigns;
+  }, [projects.data, projects.isLoading, accountsData, accountsLoading, statusLoading, hasScheduledOrPublished, hasCampaigns, hasProjects]);
 
-  // Check if first 2 tasks are completed
+  // Check if first 2 tasks are completed (connect socials and add project)
   const firstTwoTasksCompleted = useMemo(() => {
-    return accountsData?.hasProviders && hasScheduledOrPublished;
-  }, [accountsData?.hasProviders, hasScheduledOrPublished]);
+    return accountsData?.hasProviders && hasProjects;
+  }, [accountsData?.hasProviders, hasProjects]);
 
   // Calculate visible steps and their numbers
   const visibleSteps = useMemo(() => {
@@ -114,6 +142,9 @@ export function GetStartedGuide() {
     // Always show first 2 tasks if pending
     if (!accountsData?.hasProviders) {
       steps.push({ type: 'connect', number: stepNumber++ });
+    }
+    if (!hasProjects) {
+      steps.push({ type: 'add_project', number: stepNumber++ });
     }
     if (!hasScheduledOrPublished) {
       steps.push({ type: 'create_post', number: stepNumber++ });
@@ -130,7 +161,7 @@ export function GetStartedGuide() {
     }
     
     return steps;
-  }, [accountsData?.hasProviders, hasScheduledOrPublished, hasCampaigns, firstTwoTasksCompleted]);
+  }, [accountsData?.hasProviders, hasProjects, hasScheduledOrPublished, hasCampaigns, firstTwoTasksCompleted]);
 
   const handleConnectSocials = () => {
     // Navigate to settings page to connect social accounts
@@ -152,6 +183,57 @@ export function GetStartedGuide() {
       router.push("/project");
     }
   };
+
+  const handleAddProject = () => {
+    setAddProjectDialogOpen(true);
+  };
+
+  const handleProjectNext = async () => {
+    if (projectStep === 1 && projectUrl) {
+      try {
+        let urlToFetch = projectUrl.trim();
+        urlToFetch = urlToFetch.replace(/\/+$/, '');
+        if (!urlToFetch.match(/^https?:\/\//i)) {
+          urlToFetch = `https://${urlToFetch}`;
+        }
+        const description = await desc.mutateAsync(urlToFetch);
+        setProjectDescription(description || "");
+      } catch (err) {
+        console.error("Error fetching description:", err);
+        setProjectDescription("");
+      }
+    }
+    setProjectStep((prev) => prev + 1);
+  };
+
+  const handleProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createProject.mutateAsync({ name: projectName, url: projectUrl, description: projectDescription });
+      setAddProjectDialogOpen(false);
+      setProjectStep(0);
+      setProjectName("");
+      setProjectUrl("");
+      setProjectDescription("");
+      // Invalidate projects query to refresh the list
+      projects.refetch();
+    } catch (err) {
+      console.error("Error creating project:", err);
+    }
+  };
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current && projectDescription) {
+      textareaRef.current.style.height = 'auto';
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 96), 300);
+      textareaRef.current.style.height = `${newHeight}px`;
+      setTextareaHeight(newHeight);
+    } else if (textareaRef.current && !projectDescription) {
+      textareaRef.current.style.height = '96px';
+      setTextareaHeight(96);
+    }
+  }, [projectDescription]);
 
   // Trigger waving animation once when card is fully loaded, then wait 0.5s
   useEffect(() => {
@@ -197,7 +279,7 @@ export function GetStartedGuide() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mb-6" ref={cardRef}>
+    <div className="w-full mb-6" ref={cardRef}>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
@@ -297,11 +379,43 @@ export function GetStartedGuide() {
               </>
             )}
 
-            {/* Step 2: Create Your First Post */}
+            {/* Step 2: Add Project */}
+            {!hasProjects && (
+              <>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                  {visibleSteps.find(s => s.type === 'add_project')?.number || 2}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Folder className="h-5 w-5" />
+                    Add Project
+                  </h3>
+                  <button
+                    onClick={() => setShowAddProjectInfo(!showAddProjectInfo)}
+                    className="text-muted-foreground text-sm hover:underline cursor-pointer mb-3 block"
+                  >
+                    More info
+                  </button>
+                  {showAddProjectInfo && (
+                    <p className="text-muted-foreground mb-3">
+                      Create a project to organize your content and campaigns. 
+                      Projects help you manage multiple brands, campaigns, or content strategies in one place.
+                    </p>
+                  )}
+                </div>
+                <div className="flex-shrink-0">
+                  <Button onClick={handleAddProject} variant="outline" size="sm" className="min-w-[140px]">
+                    Add Project
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Create Your First Post */}
             {!hasScheduledOrPublished && (
               <>
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
-                  {visibleSteps.find(s => s.type === 'create_post')?.number || 2}
+                  {visibleSteps.find(s => s.type === 'create_post')?.number || 3}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
@@ -377,6 +491,85 @@ export function GetStartedGuide() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Project Dialog */}
+      <Dialog open={addProjectDialogOpen} onOpenChange={(value) => {
+        setProjectStep(0);
+        setProjectName("");
+        setProjectUrl("");
+        setProjectDescription("");
+        setAddProjectDialogOpen(value);
+      }}>
+        <DialogContent>
+          <DialogClose />
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleProjectSubmit} className="space-y-4">
+            {projectStep === 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="project-name">Project Name</Label>
+                <Input
+                  id="project-name"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="Spring Campaign 2025"
+                  required
+                />
+              </div>
+            )}
+            {projectStep === 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="project-url">Url</Label>
+                <Input
+                  id="project-url"
+                  value={projectUrl}
+                  onChange={(e) => setProjectUrl(e.target.value)}
+                  placeholder="https://springcampaign2025.com"
+                />
+              </div>
+            )}
+            {projectStep === 2 && (
+              <div className="space-y-2">
+                <Label htmlFor="project-description">Description</Label>
+                <Textarea
+                  ref={textareaRef}
+                  id="project-description"
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                  placeholder="A campaign to promote eco-friendly products through creative storytelling"
+                  className="min-h-24 resize-none overflow-y-auto"
+                  style={{ height: `${textareaHeight}px` }}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4">
+              {projectStep < 2 ? (
+                <Button
+                  className="w-full"
+                  type="button"
+                  onClick={handleProjectNext}
+                  loading={desc.isPending}
+                  disabled={projectStep === 0 && !projectName}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  loading={createProject.isPending}
+                  disabled={!projectName || !projectDescription}
+                  type="submit"
+                >
+                  Create Project
+                </Button>
+              )}
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

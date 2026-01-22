@@ -1,54 +1,103 @@
 import { Button } from "@/components/ui/button";
-import { Coins, ArrowUp } from "lucide-react";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { isSubscriptionExpired } from "@/lib/sub";
-import { useCreateCheckoutSession } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 const Subscription = () => {
   const { data } = useSession();
-  const payment = useCreateCheckoutSession();
   const router = useRouter();
+  const { setOpen: setPricingModalOpen } = usePricingModal();
   
-  const hasNoSubscription = !data?.subscription || 
-    (data?.subscription && isSubscriptionExpired(data?.subscription?.endsAt?.toString()).isExpired);
-  
-  const handleSubscribe = async () => {
-    if (hasNoSubscription) {
-      try {
-        // Use existing purchase flow - same as pricing modal
-        const res = await payment.mutateAsync("subscription");
-        if (res?.data?.redirectUrl) {
-          router.push(res.data.redirectUrl);
-        }
-      } catch (error) {
-        console.error("Error creating checkout session:", error);
-      }
-    }
+  const handleClick = () => {
+    // Navigate to billing page or open pricing modal
+    router.push("/project/billing");
   };
 
+  // Calculate subscription status
+  const subscription = data?.subscription;
+  const subscriptionExpired = subscription?.endsAt ? isSubscriptionExpired(subscription.endsAt).isExpired : true;
+  const hasSubscription = !!subscription && !subscriptionExpired;
+  
+  // Check trial status - also check if subscription exists and isn't expired (might be trial)
+  const isTrial = hasSubscription && (subscription?.status === "trial" || subscription?.status === "trialing");
+  const isActive = subscription?.status === "active";
+  const isPaymentIssue = subscription?.status === "incomplete" || subscription?.status === "incomplete_expired" || subscription?.status === "past_due";
+  const credits = data?.user?.remainingChatGenerations || 0;
+
+  // Debug logging - use JSON.stringify to show actual values
+  console.log('[Subscription Pill] Status check:', JSON.stringify({
+    hasSubscription,
+    subscriptionStatus: subscription?.status,
+    isTrial,
+    isActive,
+    subscriptionExists: !!subscription,
+    subscriptionEndsAt: subscription?.endsAt,
+    subscriptionExpired,
+    credits,
+    fullSubscription: subscription
+  }, null, 2));
+
+  // Calculate trial day number (Day X of 7)
+  const getTrialDayNumber = () => {
+    if (!subscription?.startedAt || !isTrial) return 0;
+    const now = new Date();
+    const startedAt = new Date(subscription.startedAt);
+    const daysSinceStart = Math.floor(
+      (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    // Day 1 is the first day, so add 1
+    return Math.min(7, Math.max(1, daysSinceStart + 1));
+  };
+
+  const trialDayNumber = getTrialDayNumber();
+
+  // Hide pill if user is paid (active subscription, not trial)
+  if (isActive && !isTrial) {
+    return null;
+  }
+
+  // Determine status and styling
+  let statusText = "";
+  let statusColor = "";
+  let bgColor = "";
+  let textColor = "";
+  let borderColor = "";
+
+  // Determine status
+  if (isTrial) {
+    // Trial mode
+    statusText = `Trial · Day ${trialDayNumber} of 7`;
+    statusColor = "🟣";
+    bgColor = "bg-purple-50 dark:bg-purple-950/20";
+    textColor = "text-purple-700 dark:text-purple-400";
+    borderColor = "border-purple-200 dark:border-purple-800";
+  } else if (isPaymentIssue) {
+    // Payment issue
+    statusText = "Payment issue";
+    statusColor = "🟡";
+    bgColor = "bg-yellow-50 dark:bg-yellow-950/20";
+    textColor = "text-yellow-700 dark:text-yellow-400";
+    borderColor = "border-yellow-200 dark:border-yellow-800";
+  } else {
+    // Free mode (no trial started or expired subscription)
+    statusText = `Free · ${credits} credits left`;
+    statusColor = "🟢";
+    bgColor = "bg-green-50 dark:bg-green-950/20";
+    textColor = "text-green-700 dark:text-green-400";
+    borderColor = "border-green-200 dark:border-green-800";
+  }
+
   return (
-    <div className="flex gap-2">
-      <Button
-        onClick={handleSubscribe}
-        variant="outline"
-        size="sm"
-        className="bg-yellow-400 capitalize border-yellow-500 hover:text-yellow-800 hover:bg-yellow-300 text-yellow-900 transition-colors gap-2"
-        disabled={payment.isPending}
-      >
-        <Coins className="h-4 w-4" />
-        <span className="max-sm:hidden">
-          {data?.subscription?.endsAt
-            ? isSubscriptionExpired(data?.subscription?.endsAt?.toString()).isExpired
-              ? "Expired"
-              : (data?.subscription?.status === "trial" || data?.subscription?.status === "trialing")
-                ? "Trial"
-                : "Pro"
-            : "Subscribe"}
-          {" "}{data?.user?.remainingChatGenerations || 0}
-        </span>
-      </Button>
-    </div>
+    <Button
+      onClick={handleClick}
+      variant="outline"
+      size="sm"
+      className={`${bgColor} ${textColor} ${borderColor} hover:opacity-80 transition-colors gap-1.5 capitalize font-medium`}
+    >
+      <span>{statusColor}</span>
+      <span className="max-sm:hidden">{statusText}</span>
+    </Button>
   );
 };
 

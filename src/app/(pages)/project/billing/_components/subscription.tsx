@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import StatusBadge from "@/components/common/status-badge";
 import { formatDate } from "@/lib/format-date";
-import { Calendar1Icon, CreditCardIcon, ShieldCheckIcon, ArrowUpIcon } from "lucide-react";
+import { Calendar1Icon, CreditCardIcon, ShieldCheckIcon, ArrowUpIcon, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import Loading from "@/components/common/loading";
@@ -40,40 +40,98 @@ const Subscription = () => {
 
   if (isLoading) return <Loading className="h-[70vh]" />;
 
-  // If no subscription, show subscribe button
+  // If no subscription, show subscribe section with same content as payment drawer
   if (!activeSubscription) {
+    const credits = data?.user?.remainingChatGenerations || 0;
+    
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>
-            Subscribe to unlock premium features
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Get unlimited projects, users, and completions with our Pro plan.
-          </p>
+        <CardContent className="pt-6">
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-left">
+              <CardTitle className="text-2xl font-bold leading-tight">
+                Turn ideas into ready-to-post content
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                7-day free trial · Cancel anytime
+              </p>
+            </div>
+
+            {/* Price - Quiet */}
+            <div className="text-center">
+              <div className="text-2xl text-muted-foreground">
+                $10 <span className="text-base font-normal">/ month after trial</span>
+              </div>
+            </div>
+
+            {/* Value - 3 bullets only */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🚀</span>
+                <div>
+                  <p className="font-semibold">Create faster</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Generate posts, campaigns, blogs, and videos
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🧠</span>
+                <div>
+                  <p className="font-semibold">Stay consistent</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Plan and schedule content in one place
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🔁</span>
+                <div>
+                  <p className="font-semibold">Reuse across platforms</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    One idea → multiple formats
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="space-y-2">
+              <Button
+                loading={payment.isPending}
+                onClick={async () => {
+                  try {
+                    // Use existing purchase flow - same as pricing modal
+                    const res = await payment.mutateAsync("subscription");
+                    if (res?.data?.redirectUrl) {
+                      router.push(res.data.redirectUrl);
+                    }
+                  } catch (error) {
+                    console.error("Error creating checkout session:", error);
+                  }
+                }}
+                className="w-full text-base font-semibold py-6"
+                size="lg"
+              >
+                {payment.isSuccess ? "Redirecting..." : "Start 7-Day Free Trial"}
+              </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                Start creating today
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
+                <Lock className="h-3 w-3" />
+                No posting on your behalf · Content stays private
+              </p>
+            </div>
+          </div>
         </CardContent>
-        <CardFooter>
-          <Button
-            loading={payment.isPending}
-            onClick={async () => {
-              try {
-                // Use existing purchase flow - same as pricing modal
-                const res = await payment.mutateAsync("subscription");
-                if (res?.data?.redirectUrl) {
-                  router.push(res.data.redirectUrl);
-                }
-              } catch (error) {
-                console.error("Error creating checkout session:", error);
-              }
-            }}
-            className="w-full sm:w-auto"
-          >
-            {payment.isSuccess ? "Redirecting..." : "Start Trial"}
-          </Button>
-        </CardFooter>
       </Card>
     );
   }

@@ -10,6 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { viewWall } from "@/server-actions/view-wall";
 import Image from "next/image";
 import { Facebook, Twitter, Linkedin } from "lucide-react";
+import { NewsTrendingSection } from "@/app/(pages)/project/_components/news-trending";
 
 // Social media engagement icons - Subtle, non-interactive styling
 const LikeIcon = () => (
@@ -171,6 +172,9 @@ export default function SocialFeed() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold">For you</h2>
       </div>
+
+      {/* News Trending Section - appears before posts */}
+      <NewsTrendingSection />
 
       {wall.isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

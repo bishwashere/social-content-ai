@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,16 +20,23 @@ import PaymentErrorPage from "./_components/payment-error";
 import { getInvoiceUrl } from "@/server-actions/get-invoice";
 import { toast } from "sonner";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function PaymentSuccess() {
   const [isMockLoading, setIsMockLoading] = useState(false);
   const user = useSession();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [waitingFor, setWaitingFor] = useState(6 * 1000); // 6 seconds
   const session = useGetCheckoutSessionDetails(
     searchParams.get("session_id") as string,
   );
   const router = useRouter();
+
+  // Get payment type before any early returns to use in hooks
+  const isCoinsPayment = useMemo(() => {
+    return searchParams.get("type") === "coins";
+  }, [searchParams]);
 
   // Launch confetti effect when the component mounts
   useEffect(() => {
@@ -82,11 +89,23 @@ export default function PaymentSuccess() {
     return () => clearInterval(interval);
   }, []);
 
+  // Invalidate session query when checkout success page loads (after delay to allow webhook to process)
+  // Must be before early returns to follow React hooks rules
+  useEffect(() => {
+    if (session.isSuccess && !isCoinsPayment) {
+      // Wait a bit for Stripe webhook to process, then invalidate session
+      const timeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["session"] });
+        console.log('[Checkout Success] Invalidated session query');
+      }, 2000); // 2 second delay
+
+      return () => clearTimeout(timeout);
+    }
+  }, [session.isSuccess, isCoinsPayment, queryClient]);
+
   if (session.isLoading) return <PaymentVerification />;
   if (session.isError || !session.data)
     return <PaymentErrorPage tid={searchParams.get("session_id") || ""} />;
-  const type = searchParams.get("type");
-  const isCoinsPayment = type === "coins";
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
@@ -185,8 +204,10 @@ export default function PaymentSuccess() {
             disabled={waitingFor > 0}
             className="w-full"
             loading={isMockLoading}
-            onClick={() => {
-              user.refetch();
+            onClick={async () => {
+              // Invalidate and refetch session to get latest subscription status
+              await queryClient.invalidateQueries({ queryKey: ["session"] });
+              await user.refetch();
               setIsMockLoading(true);
               setTimeout(() => {
                 setIsMockLoading(false);

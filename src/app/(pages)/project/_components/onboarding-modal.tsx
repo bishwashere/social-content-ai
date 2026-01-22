@@ -20,9 +20,10 @@ import { toast } from "sonner";
 type OnboardingModalProps = {
   open: boolean;
   onProjectCreated?: (projectId: string) => void;
+  onClose?: () => void;
 };
 
-export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps) {
+export function OnboardingModal({ open, onProjectCreated, onClose }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -175,25 +176,22 @@ export function OnboardingModal({ open, onProjectCreated }: OnboardingModalProps
     </div>,
   ];
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <Dialog 
       open={open} 
-      onOpenChange={() => {
-        // Prevent closing - onboarding is compulsory
-        // Do nothing when user tries to close
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleClose();
+        }
       }}
     >
-      <DialogContent 
-        onInteractOutside={(e) => {
-          // Prevent closing by clicking outside
-          e.preventDefault();
-        }}
-        onEscapeKeyDown={(e) => {
-          // Prevent closing with Escape key
-          e.preventDefault();
-        }}
-      >
-        {/* No DialogClose component - compulsory onboarding */}
+      <DialogContent>
         <DialogHeader className="relative pr-20">
           <DialogTitle className="pr-8">Create Your First Project</DialogTitle>
           <Button

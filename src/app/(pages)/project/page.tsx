@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Loading from "@/components/common/loading";
 import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
@@ -9,16 +10,31 @@ import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { TodayTimelineView } from "./_components/today-timeline-view";
 import { GetStartedGuide } from "./_components/get-started-guide";
+import { useFocus } from "@/providers/focus-provider";
+
+function getGreeting(name?: string | null): string {
+  const hour = new Date().getHours();
+  let timeGreeting = "Good morning";
+  if (hour >= 12 && hour < 17) timeGreeting = "Good afternoon";
+  else if (hour >= 17) timeGreeting = "Good evening";
+  
+  const firstName = name?.split(' ')[0];
+  return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
+}
 
 export default function Home() {
   const router = useRouter();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const { isLoading: sessionLoading, isError: sessionError } = useSession();
+  const { isLoading: sessionLoading, isError: sessionError, data: session } = useSession();
   const projects = useGetAllProjects();
   const { open: pricingModalOpen } = usePricingModal();
+  const { focusContext } = useFocus();
   const onboardingShownRef = useRef(false);
-  const pricingModalWasOpenRef = useRef(false);
   const projectSelectionCallbackRef = useRef<((projectId: string) => void) | null>(null);
+  
+  // Determine if user is new (has fewer than 3 projects)
+  const isNewUser = (projects.data?.length ?? 0) < 3;
+  const greeting = getGreeting(session?.user?.name);
 
   // Redirect if not authenticated (SessionProvider should handle this, but this is a safety check)
   useEffect(() => {
@@ -31,23 +47,13 @@ export default function Home() {
     }
   }, [sessionLoading, sessionError, router]);
 
-  // Track when pricing modal opens/closes
-  // This ensures payment screen always shows first, before onboarding
-  useEffect(() => {
-    if (pricingModalOpen) {
-      pricingModalWasOpenRef.current = true;
-      setOnboardingOpen(false); // Always close onboarding when pricing modal opens
-      onboardingShownRef.current = false; // Reset so onboarding can show after payment modal closes
-    }
-  }, [pricingModalOpen]);
-
   // Auto-open onboarding modal for first-time users (zero projects)
-  // BUT only after payment wall is handled (pricing modal has been closed)
+  // Show onboarding FIRST, before any pricing/trial modals
   useEffect(() => {
     if (sessionLoading || sessionError) return;
     if (projects.isLoading) return;
     
-    // NEVER show onboarding if pricing modal is currently open (payment wall must show first)
+    // NEVER show onboarding if pricing modal is currently open
     if (pricingModalOpen) {
       setOnboardingOpen(false);
       return;
@@ -55,22 +61,18 @@ export default function Home() {
     
     // Check if user has zero projects
     if (projects.data?.length === 0) {
-      // Only show onboarding if:
-      // 1. Pricing modal was opened at some point (user saw payment screen)
-      // 2. Pricing modal is now closed (not currently open)
-      // 3. Onboarding hasn't been shown yet
-      if (pricingModalWasOpenRef.current && !onboardingShownRef.current) {
-        // Small delay to ensure pricing modal is fully closed and UI is ready
+      // Show onboarding immediately for first-time users
+      if (!onboardingShownRef.current) {
+        // Small delay to ensure UI is ready
         const timer = setTimeout(() => {
           setOnboardingOpen(true);
           onboardingShownRef.current = true;
-        }, 500);
+        }, 300);
         return () => clearTimeout(timer);
       }
     } else if (projects.data && projects.data.length > 0) {
-      // Reset the refs when user has projects (allows modals to show again if they delete all projects)
+      // Reset the ref when user has projects (allows modal to show again if they delete all projects)
       onboardingShownRef.current = false;
-      pricingModalWasOpenRef.current = false; // Reset for next time
       // Close modal if it's open (in case projects were created outside the modal)
       if (onboardingOpen) {
         setOnboardingOpen(false);
@@ -105,8 +107,6 @@ export default function Home() {
     return <Loading className="h-screen" />;
   }
 
-  // Determine if user is new (has fewer than 3 projects)
-  const isNewUser = (projects.data?.length ?? 0) < 3;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -119,17 +119,37 @@ export default function Home() {
 
       <div className="relative max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
         <div className="space-y-6">
+          {/* Header with greeting and date - always at the top */}
+          <header className="mb-2">
+            <p className="text-sm font-medium text-muted-foreground mb-1">
+              {format(new Date(), "EEEE, MMMM d")}
+            </p>
+            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+              {greeting}
+            </h1>
+            {focusContext?.projectName && focusContext.type !== "empty" && (
+              <p className="mt-2 text-muted-foreground flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Working on <span className="font-medium text-foreground">{focusContext.projectName}</span>
+                {focusContext.campaignName && (
+                  <span className="text-muted-foreground">• {focusContext.campaignName}</span>
+                )}
+              </p>
+            )}
+          </header>
+
           {/* Show GetStartedGuide only for new users */}
           {isNewUser && <GetStartedGuide />}
           
           {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
-          <TodayTimelineView />
+          <TodayTimelineView showGetStartedGuide={isNewUser} />
         </div>
         
         <AddGuidedProjectModal />
         <OnboardingModal 
           open={onboardingOpen} 
           onProjectCreated={handleProjectCreated}
+          onClose={() => setOnboardingOpen(false)}
         />
       </div>
     </div>

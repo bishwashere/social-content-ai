@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format, isToday, isTomorrow, addDays } from "date-fns";
@@ -26,34 +26,78 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { useTodayItems, TimelineItem, TimelineProject } from "@/hooks/useTodayItems";
-import { useFocus } from "@/providers/focus-provider";
 import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllScheduledPosts, useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
 import { NewsTrendingSection } from "./news-trending";
+import { useQuery } from "@tanstack/react-query";
 
-function getGreeting(name?: string | null): string {
-  const hour = new Date().getHours();
-  let timeGreeting = "Good morning";
-  if (hour >= 12 && hour < 17) timeGreeting = "Good afternoon";
-  else if (hour >= 17) timeGreeting = "Good evening";
-  
-  const firstName = name?.split(' ')[0];
-  return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
-}
+type TodayTimelineViewProps = {
+  showGetStartedGuide?: boolean;
+};
 
-export function TodayTimelineView() {
+export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimelineViewProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { items, groupedItems, isLoading, isEmpty, hasUrgentItems } = useTodayItems();
-  const { focusContext } = useFocus();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [hasUnlinkedPages, setHasUnlinkedPages] = useState(false);
   const scheduledPosts = useGetAllScheduledPosts();
   const projects = useGetAllProjects();
 
-  const greeting = getGreeting(session?.user?.name);
+  // Check if GetStartedGuide should be shown (same logic as GetStartedGuide component)
+  const { data: accountsData, isLoading: accountsLoading } = useQuery({
+    queryKey: ["connected-accounts", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return { hasProviders: false, providers: [] };
+
+      const response = await fetch(`/api/check-oauth-providers?userId=${session.user.id}`, {
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      const data = result.data || result;
+      return {
+        hasProviders: data.hasProviders || false,
+        providers: data.providers || []
+      };
+    },
+    enabled: !!session?.user?.id && showGetStartedGuide,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
+  // Check if user has scheduled or published posts
+  const hasScheduledOrPublished = useMemo(() => {
+    if (!projects.data) return false;
+    return projects.data.some((project) => {
+      const hasScheduled = (project.scheduledPosts || []).length > 0;
+      const hasPublished = (project.publishedPosts || []).length > 0;
+      return hasScheduled || hasPublished;
+    });
+  }, [projects.data]);
+
+  // Check if user has campaigns
+  const hasCampaigns = useMemo(() => {
+    if (!projects.data) return false;
+    return projects.data.some((project) => {
+      return (project.campaignPlanners || []).length > 0;
+    });
+  }, [projects.data]);
+
+  // Determine if GetStartedGuide is actually showing
+  const isGetStartedGuideVisible = useMemo(() => {
+    if (!showGetStartedGuide) return false;
+    if (projects.isLoading || accountsLoading) return false;
+    if (!projects.data) return false;
+
+    const hasNoSocials = !accountsData?.hasProviders;
+    const hasNoPosts = !hasScheduledOrPublished;
+    const hasNoCampaigns = !hasCampaigns;
+
+    return hasNoSocials || hasNoPosts || hasNoCampaigns;
+  }, [showGetStartedGuide, projects.isLoading, projects.data, accountsLoading, accountsData, hasScheduledOrPublished, hasCampaigns]);
   
   // Define today at component level so it's accessible in JSX
   const today = useMemo(() => {
@@ -370,14 +414,6 @@ export function TodayTimelineView() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <header className="mb-2">
-          <p className="text-sm font-medium text-muted-foreground mb-1">
-            {format(new Date(), "EEEE, MMMM d")}
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-            {greeting}
-          </h1>
-        </header>
         <Skeleton className="h-32 w-full rounded-2xl" />
         <Skeleton className="h-24 w-full rounded-2xl" />
         <Skeleton className="h-24 w-full rounded-2xl" />
@@ -385,19 +421,34 @@ export function TodayTimelineView() {
     );
   }
 
+  // Action buttons component - always show these useful actions
+  const ActionButtons = () => (
+    <div className="flex flex-wrap gap-3">
+      <Button asChild className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
+        <Link href="/project/video-maker">
+          <Sparkles className="w-4 h-4 mr-2" />
+          Create Video
+        </Link>
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href="/project/wall">
+          Get Inspired
+        </Link>
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href="/project/content-planner">
+          <Calendar className="w-4 h-4 mr-2" />
+          View Content Planner
+        </Link>
+      </Button>
+    </div>
+  );
+
   // If no items at all, show empty state with actions
-  if (isEmpty) {
+  // BUT don't show "You're all caught up" if GetStartedGuide is visible
+  if (isEmpty && !isGetStartedGuideVisible) {
     return (
       <div className="space-y-6">
-        <header className="mb-2">
-          <p className="text-sm font-medium text-muted-foreground mb-1">
-            {format(new Date(), "EEEE, MMMM d")}
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-            {greeting}
-          </h1>
-        </header>
-        
         <Card className="border-dashed border-2 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mb-4">
@@ -407,51 +458,26 @@ export function TodayTimelineView() {
             <p className="text-muted-foreground mb-6 max-w-md">
               No pending tasks for today. Great job staying on top of your content!
             </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button asChild className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
-                <Link href="/project/video-maker">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Create Video
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/project/wall">
-                  Get Inspired
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/project/content-planner">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  View Content Planner
-                </Link>
-              </Button>
-            </div>
+            <ActionButtons />
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // If GetStartedGuide is visible and there are no items, show just the action buttons
+  if (isEmpty && isGetStartedGuideVisible) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <ActionButtons />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="mb-2">
-        <p className="text-sm font-medium text-muted-foreground mb-1">
-          {format(new Date(), "EEEE, MMMM d")}
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-          {greeting}
-        </h1>
-        {focusContext?.projectName && focusContext.type !== "empty" && (
-          <p className="mt-2 text-muted-foreground flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Working on <span className="font-medium text-foreground">{focusContext.projectName}</span>
-            {focusContext.campaignName && (
-              <span className="text-muted-foreground">• {focusContext.campaignName}</span>
-            )}
-          </p>
-        )}
-      </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
         {/* Left column: primary work */}
@@ -901,6 +927,20 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [expansionLevel, setExpansionLevel] = useState<0 | 1 | 2>(0); // 0 = none, 1 = 3 projects, 2 = all
+
+  // Initialize expansion level for inactive groups based on project count
+  useEffect(() => {
+    if (item.isGrouped && item.projects && item.title?.includes("inactive for 7+ days")) {
+      const projectCount = item.projects.length;
+      if (projectCount <= 3) {
+        // 1-3 projects: show all by default (fully expanded)
+        setExpansionLevel(2);
+      } else {
+        // More than 3 projects: show 3 by default
+        setExpansionLevel(1);
+      }
+    }
+  }, [item.isGrouped, item.projects, item.title]);
 
   const getVariantStyles = () => {
     switch (variant) {
