@@ -79,7 +79,7 @@ const GoogleLoginButton = ({
         <DialogTrigger asChild>
           {trigger ?? (
             <Button className={triggerClassName}>
-              Get Started Now
+              Start with 100 free credits
               <MoveRight className="scale-125" />
             </Button>
           )}
