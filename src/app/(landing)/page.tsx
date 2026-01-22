@@ -332,7 +332,75 @@ export default function HomeV3() {
           </div>
         </div>
 
-        {/* Section 2 - The NextPostAI Advantage */}
+        {/* Section 2 - How It Works */}
+        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5">
+          <div className="w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16">
+            <p className="font-bold text-5xl md:text-5xl">How It Works</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-8 px-5 md:px-0">
+              {[
+                {
+                  title: "Step 1",
+                  content:
+                    "Get started with your marketing journey",
+                  image: "/how-it-works-step-1.png",
+                },
+                {
+                  title: "Step 2",
+                  content:
+                    "Configure your campaign settings",
+                  image: "/how-it-works-step-2.png",
+                },
+                {
+                  title: "Step 3",
+                  content:
+                    "Generate your content with AI",
+                  image: "/how-it-works-step-3.png",
+                },
+                {
+                  title: "Step 4",
+                  content:
+                    "Review and customize your content",
+                  image: "/how-it-works-step-4.png",
+                },
+                {
+                  title: "Step 5",
+                  content:
+                    "Schedule and plan your posts",
+                  image: "/how-it-works-step-5.png",
+                },
+                {
+                  title: "Step 6",
+                  content:
+                    "Publish and track your results",
+                  image: "/how-it-works-step-6.png",
+                },
+              ].map((data, idx) => (
+                <div
+                  className="flex flex-col items-center justify-center"
+                  key={idx}
+                >
+                  <Image
+                    src={data.image}
+                    width={400}
+                    height={400}
+                    className="max-w-full mb-5 rounded-lg shadow-lg"
+                    alt={data.title}
+                  />
+                  <p className="text-lg font-semibold text-center">
+                    {data.title}
+                  </p>
+                  <p className="text-sm text-white text-center">
+                    {data.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {/* <button className='px-12 py-2 bg-white text-lg w-fit rounded-3xl mt-6 lg:mt-0'>Get Started Now</button> */}
+            <GoogleLoginButton triggerClassName="px-12 py-2 bg-white text-black text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
+          </div>
+        </section>
+
+        {/* Section 3 - The NextPostAI Advantage */}
         <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-5xl font-light">
@@ -398,63 +466,7 @@ export default function HomeV3() {
           </div>
         </section>
 
-        {/* Section 4 - How It Works */}
-        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5">
-          <div className="w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16">
-            <p className="font-bold text-5xl md:text-5xl">How It Works</p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-5 px-5 md:px-0">
-              {[
-                {
-                  title: "Input Your Goals",
-                  content:
-                    "Start with your product, launch stage, or marketing objective.",
-                  image: "/tmp_jjomf91.webp",
-                },
-                {
-                  title: "Generate Campaign Content",
-                  content:
-                    "Let our AI create posts, content ideas, and timelines tailored to your audience.",
-                  image: "/tmpj30ux4pp.webp",
-                },
-                {
-                  title: "Plan & Schedule",
-                  content:
-                    "Organize content with our visual planner - track launch dates, feature drops, and seasonal themes.",
-                  image: "/tmpq7ttjaop.webp",
-                },
-                {
-                  title: "Engage & Grow",
-                  content:
-                    "Put your strategy into action, post with consistency, and watch engagement grow.",
-                  image: "/tmppzfdqeak.webp",
-                },
-              ].map((data, idx) => (
-                <div
-                  className="flex flex-col items-center justify-center"
-                  key={idx}
-                >
-                  <Image
-                    src={data.image}
-                    width={400}
-                    height={400}
-                    className="max-w-28 mb-5"
-                    alt="image"
-                  />
-                  <p className="text-lg font-semibold text-center">
-                    {data.title}
-                  </p>
-                  <p className="text-sm text-white text-center">
-                    {data.content}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {/* <button className='px-12 py-2 bg-white text-lg w-fit rounded-3xl mt-6 lg:mt-0'>Get Started Now</button> */}
-            <GoogleLoginButton triggerClassName="px-12 py-2 bg-white text-black text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
-          </div>
-        </section>
-
-        {/* Section 3 - Why Choose NextPostAI */}
+        {/* Section 4 - Why Choose NextPostAI */}
         <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-20 gap-5">
           <div className="flex w-full flex-col sm:flex-row gap-5 items-center justify-between">
             <div className="flex flex-col justify-center">
