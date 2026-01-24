@@ -76,7 +76,13 @@ export default function VideoSelectionPage() {
   }
 
   const proceedWithGeneration = () => {
-    if (!uploadedVideo || !selectedVideo) return
+    // Ensure all required fields are present: video file, text, and viralVideoId
+    if (!uploadedVideo || !selectedVideo || !hookText) {
+      if (!uploadedVideo) toast.error("Please upload a video!")
+      if (!selectedVideo) toast.error("Please select a video!")
+      if (!hookText) toast.error("Please enter a text!")
+      return
+    }
 
     generate.mutate({
       name: typeof uploadedVideo === "string" ? uploadedVideo.split("/").pop() || `${hookText}.mp4` : uploadedVideo.name || `${hookText}.mp4`,
@@ -171,13 +177,14 @@ export default function VideoSelectionPage() {
                   <p className="text-muted-foreground mb-4">Drag and drop your video file here or click to browse</p>
                   <div className="relative">
                     <SelectVideoDialog
+                      projectId={id as string}
                       onSelect={(vid) => {
                         console.log(vid)
                         if (vid instanceof File) {
                           setUploadedVideo(vid)
                           setUploadedVideoUrl(URL.createObjectURL(vid))
                         } else {
-                          setUploadedVideo(vid.videoId)
+                          setUploadedVideo(vid.key)
                           setUploadedVideoUrl(vid.url)
                         }
                       }}

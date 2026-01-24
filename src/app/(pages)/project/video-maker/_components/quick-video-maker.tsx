@@ -23,9 +23,11 @@ import { useSession } from "@/backend-apis/auth/hooks"
 import { useQuery } from "@tanstack/react-query"
 import { getFirstViewTooltip } from "@/server-actions/first-view-tooltip/actions"
 import { cn } from "@/lib/cn"
+import { v4 as uuidv4 } from "uuid"
 
 
 export default function QuickVideoMaker() {
+  const [sessionId] = useState(() => uuidv4())
   const [hookText, setHookText] = useState("")
   const [uploadedVideo, setUploadedVideo] = useState<File | string | null>(null)
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null)
@@ -158,12 +160,22 @@ export default function QuickVideoMaker() {
   }
 
   const proceedWithGeneration = () => {
-    if (!uploadedVideo || !selectedVideo) return
+    // Ensure all required fields are present: video file, text, and viralVideoId
+    if (!uploadedVideo || !selectedVideo || !hookText) {
+      if (!uploadedVideo) toast.error("Please upload a video!")
+      if (!selectedVideo) toast.error("Please select a video!")
+      if (!hookText) toast.error("Please enter a text!")
+      return
+    }
+
+    const videoName = typeof uploadedVideo === "string" 
+      ? uploadedVideo.split("/").pop() || `${hookText}.mp4`
+      : uploadedVideo.name || `${hookText}.mp4`
 
     generate.mutate({
-      name: typeof uploadedVideo === "string" ? uploadedVideo.split("/").pop() || `${hookText}.mp4` : uploadedVideo.name || `${hookText}.mp4`,
+      name: videoName,
       viralVideoId: selectedVideo,
-      video: uploadedVideo,
+      video: uploadedVideo, // Can be File or string (media key)
       text: hookText,
       musicId: selectedMusic?.split("/").pop() || "",
       // No projectId, campaignPlannerId, or day - standalone video maker
@@ -385,13 +397,14 @@ export default function QuickVideoMaker() {
                         <p className="text-muted-foreground mb-4">Drag and drop your video file here or click to browse</p>
                         <div className="relative">
                           <SelectVideoDialog
-                            onSelect={(vid) => {
-                              console.log(vid)
+                            sessionId={sessionId}
+                            onSelect={async (vid) => {
                               if (vid instanceof File) {
                                 setUploadedVideo(vid)
                                 setUploadedVideoUrl(URL.createObjectURL(vid))
                               } else {
-                                setUploadedVideo(vid.videoId)
+                                // vid is { key, url }
+                                setUploadedVideo(vid.key)
                                 setUploadedVideoUrl(vid.url)
                               }
                             }}
@@ -465,7 +478,11 @@ export default function QuickVideoMaker() {
               <div className="mt-4 space-y-4">
                 <div>
                   <h3 className="font-medium">Your Hook</h3>
-                  <p className="text-muted-foreground">{hookText || hookSkipped ? "Hook skipped" : "Add a hook to engage your audience"}</p>
+                  <p className="text-muted-foreground">
+                    {hookSkipped 
+                      ? "Hook skipped" 
+                      : hookText || "Add a hook to engage your audience"}
+                  </p>
                 </div>
                 {selectedVideo && (
                   <div>

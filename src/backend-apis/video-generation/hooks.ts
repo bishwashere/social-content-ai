@@ -1,11 +1,14 @@
 import {
   addMetadataToVideo,
   copyVideo,
+  deleteProcessingVideo,
   getPresignedUrlForDemoVideoUpload,
   getSignedKeyForScheduledPost,
+  getSignedUrlForMediaKey,
   getUploadedVideoUrl,
   listAllFilesByKey,
   listAllUploadedVideos,
+  listAllUserMedia,
   listAllViralMusics,
   listAllViralVideos,
   saveVideoDataToDb,
@@ -32,9 +35,25 @@ export const useGenerateVideo = () => {
   let uid: string;
   return useMutation({
     mutationFn: async (data: GenerateVideoProps) => {
+      // Validate required fields: video file, text, and viralVideoId
+      if (!data.video) {
+        throw new Error("Video file is required");
+      }
+      if (!data.text || data.text.trim().length === 0) {
+        throw new Error("Text content is required");
+      }
+      if (!data.viralVideoId || data.viralVideoId.trim().length === 0) {
+        throw new Error("Viral video ID is required");
+      }
+
       uid = id();
 
-      if (typeof data.video !== "string") {
+      if (typeof data.video === "string") {
+        // Copy from media-uploads to rendering
+        const filename = data.video.split("/").pop() || data.name;
+        await copyVideo(data.video, `rendering/${uid}/${filename}`);
+      } else {
+        // Upload File directly to rendering
         const signedUrl = await getPresignedUrlForDemoVideoUpload({
           folder: uid,
           name: data.name,
@@ -44,7 +63,6 @@ export const useGenerateVideo = () => {
           throw new Error("Failed to get signed url");
         }
 
-        // upload the video as binary to the signed url
         const res = await fetch(signedUrl, {
           method: "PUT",
           body: data.video,
@@ -56,10 +74,6 @@ export const useGenerateVideo = () => {
         if (!res.ok) {
           throw new Error("Failed to upload video");
         }
-      } else {
-        console.log("Copying video", data.video);
-        const filename = data.video.split("/").pop();
-        await copyVideo(data.video, `rendering/${uid}/${filename}`);
       }
 
       await addMetadataToVideo({
@@ -139,12 +153,18 @@ export const useUploadMedia = () => {
         throw new Error("Failed to upload media");
       }
 
-      return key;
+      // Get signed download URL for preview
+      const downloadUrl = await getSignedUrlForMediaKey(key);
+
+      return { key, url: downloadUrl };
     },
     onSuccess: () => {
       toast.success("Media uploaded successfully");
       queryClient.invalidateQueries({
         queryKey: ["uploaded-media"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["all-user-media"],
       });
     },
     onError: (error) => {
@@ -189,6 +209,59 @@ export const useUploadMediaForScheduledPost = () => {
   });
 };
 
+export const useUploadMediaForVideoMaker = () => {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { file: File; sessionId: string }) => {
+      const { url: presignedUrl, key } = await uploadMedia(
+        session?.user?.id || "",
+        `video-maker-${data.sessionId}`,
+        data.file.name
+      );
+
+      const res = await fetch(presignedUrl, {
+        method: "PUT",
+        body: data.file,
+        headers: {
+          "Content-Type": data.file.type,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload media");
+      }
+
+      // Get signed download URL for preview
+      const downloadUrl = await getSignedUrlForMediaKey(key);
+
+      return { key, url: downloadUrl };
+    },
+    onSuccess: (_, variables) => {
+      toast.success("Media uploaded successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["all-user-media"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["video-maker-media", session?.user?.id, variables.sessionId],
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
+export const useQueryAllUserMedia = () => {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ["all-user-media", session?.user?.id],
+    queryFn: () => listAllUserMedia(session?.user?.id || ""),
+    enabled: !!session?.user?.id,
+  });
+};
+
 export const useQueryAllUploadedMedia = (projectId: string) => {
   const { data: session } = useSession();
 
@@ -200,6 +273,7 @@ export const useQueryAllUploadedMedia = (projectId: string) => {
   });
 };
 
+
 export const useQueryUploadedVideoUrl = (
   projectId: string,
   campaignPlannerId: string,
@@ -209,5 +283,57 @@ export const useQueryUploadedVideoUrl = (
     queryKey: ["uploaded-video-url", projectId, campaignPlannerId, day],
     queryFn: () => getUploadedVideoUrl(projectId, campaignPlannerId, day),
     enabled: !!projectId && !!campaignPlannerId && !!day,
+  });
+};
+
+export const useQueryVideoMakerMedia = (sessionId?: string) => {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ["video-maker-media", session?.user?.id, sessionId],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      
+      if (sessionId) {
+        // Query specific session folder
+        return listAllFilesByKey(
+          `media-uploads/${session.user.id}/video-maker-${sessionId}/`
+        );
+      } else {
+        // Query all video-maker-* folders
+        // First get all folders under media-uploads/{userId}/
+        const allMedia = await listAllUserMedia(session.user.id);
+        // Filter to only video-maker-* folders
+        const videoMakerFiles = allMedia.filter(
+          (file) => file.key?.includes("/video-maker-") && !file.key?.includes("/video-maker/")
+        );
+        return videoMakerFiles;
+      }
+    },
+    enabled: !!session?.user?.id,
+  });
+};
+
+export const useDeleteProcessingVideo = () => {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (videoId: string) => {
+      if (!session?.user?.id) {
+        throw new Error("Not authenticated");
+      }
+      return deleteProcessingVideo(videoId, session.user.id);
+    },
+    onSuccess: () => {
+      toast.success("Video deleted successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["uploaded-videos"],
+      });
+    },
+    onError: (error) => {
+      console.error("Delete error:", error);
+      toast.error(error.message || "Failed to delete video");
+    },
   });
 };

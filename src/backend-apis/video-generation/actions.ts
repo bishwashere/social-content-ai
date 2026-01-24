@@ -35,6 +35,20 @@ export const addMetadataToVideo = async ({
   folderId: string;
   musicId: string | null | undefined;
 }) => {
+  // Validate required fields
+  if (!text || text.trim().length === 0) {
+    throw new Error("Text content is required for video generation");
+  }
+  if (!viralVideoId || viralVideoId.trim().length === 0) {
+    throw new Error("Viral video ID is required for video generation");
+  }
+  if (!demoVideoId || demoVideoId.trim().length === 0) {
+    throw new Error("Demo video ID is required for video generation");
+  }
+  if (!folderId || folderId.trim().length === 0) {
+    throw new Error("Folder ID is required for video generation");
+  }
+
   const file1 = {
     name: "txt.txt",
     content: text,
@@ -77,7 +91,7 @@ export const saveVideoDataToDb = async ({
     throw new Error("User not found");
   }
 
-  const CREDITS_PER_VIDEO = 2;
+  const CREDITS_PER_VIDEO = 10;
 
   if (user.remainingChatGenerations < CREDITS_PER_VIDEO) {
     throw new Error(`Insufficient credits. You need ${CREDITS_PER_VIDEO} credits to generate a video.`);
@@ -126,7 +140,7 @@ export const listAllUploadedVideos = async (userId: string) => {
 
       if (!output) {
         const input = s3Result.find(
-          (file) => !file.Key?.endsWith("output.mp4")
+          (file) => file.Key?.endsWith(".mp4") && !file.Key?.endsWith("output.mp4")
         )!;
 
         const signedUrl = await s3.getSignedUrlForVideoDownload(
@@ -156,7 +170,7 @@ export const listAllUploadedVideos = async (userId: string) => {
         );
 
         const input = s3Result.find(
-          (file) => !file.Key?.endsWith("output.mp4")
+          (file) => file.Key?.endsWith(".mp4") && !file.Key?.endsWith("output.mp4")
         )!;
 
         const inputUrl = await s3.getSignedUrlForVideoDownload(
@@ -177,11 +191,6 @@ export const listAllUploadedVideos = async (userId: string) => {
   return res;
 };
 
-export const copyVideo = async (from: string, to: string) => {
-  console.log("Copying video", from, to);
-  return await s3.copyVideo(from, to);
-};
-
 export const listAllViralMusics = async () => {
   try {
     return (await s3.listAllViralMusics()) || [];
@@ -190,12 +199,16 @@ export const listAllViralMusics = async () => {
   }
 };
 
+export const copyVideo = async (from: string, to: string) => {
+  return await s3.copyVideo(from, to);
+};
+
 export const uploadMedia = async (
   userId: string,
-  projectId: string,
+  folderPath: string,
   filename: string
 ) => {
-  const key = `media-uploads/${userId}/${projectId}/${filename}`;
+  const key = `media-uploads/${userId}/${folderPath}/${filename}`;
   const url = await s3.getPresignedUrlForVideoUpload(key);
 
   return {
@@ -217,12 +230,26 @@ export const getSignedKeyForScheduledPost = async (
   };
 };
 
+export const listAllUserMedia = async (userId: string) => {
+  try {
+    // List all media recursively from media-uploads/{userId}/
+    // This includes all projects and video-maker folder
+    return (await s3.listAllFilesByKey(`media-uploads/${userId}/`)) || [];
+  } catch {
+    return [];
+  }
+};
+
 export const listAllFilesByKey = async (key: string) => {
   try {
     return (await s3.listAllFilesByKey(key)) || [];
   } catch {
     return [];
   }
+};
+
+export const getSignedUrlForMediaKey = async (key: string) => {
+  return await s3.getSignedUrlForVideoDownload(key);
 };
 
 export const getUploadedVideoUrl = async (
@@ -268,4 +295,30 @@ export const getUploadedVideoUrl = async (
   const signedUrl = await s3.getSignedUrlForVideoDownload(output.key as string);
 
   return signedUrl;
+};
+
+export const deleteProcessingVideo = async (videoId: string, userId: string) => {
+  // First, find the video record
+  const video = await prisma.uploadedVideo.findFirst({
+    where: {
+      id: videoId,
+      userId: userId,
+    },
+  });
+
+  if (!video) {
+    throw new Error("Video not found or you don't have permission to delete it");
+  }
+
+  // Delete all files from S3 folder
+  await s3.deleteFolder(`rendering/${video.folderId}/`);
+
+  // Delete the database record
+  await prisma.uploadedVideo.delete({
+    where: {
+      id: videoId,
+    },
+  });
+
+  return { success: true };
 };

@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   CopyObjectCommand,
+  DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 class S3 {
@@ -195,6 +196,35 @@ class S3 {
     );
 
     return withSignedUrl || [];
+  }
+
+  async deleteFolder(prefix: string) {
+    // First, list all objects in the folder
+    const data = await this.s3.send(
+      new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: prefix,
+      })
+    );
+
+    const objects = data.Contents || [];
+
+    if (objects.length === 0) {
+      return true; // Nothing to delete
+    }
+
+    // Delete all objects in the folder
+    await this.s3.send(
+      new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: {
+          Objects: objects.map((obj) => ({ Key: obj.Key! })),
+          Quiet: true,
+        },
+      })
+    );
+
+    return true;
   }
 }
 
