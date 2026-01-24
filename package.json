@@ -17,6 +17,8 @@
     "fix:template-date-strings": "npx tsx scripts/fix-template-date-strings.ts",
     "clean:content-asterisks": "npx tsx scripts/clean-content-asterisks.ts",
     "delete:user": "npx tsx scripts/delete-user.ts",
+    "tokens:set-all-100": "TOKENS=100 MODE=set npx tsx scripts/set-all-users-tokens.ts",
+    "tokens:ensure-min-100": "TOKENS=100 MODE=min npx tsx scripts/set-all-users-tokens.ts",
     "migrate:platform-icons": "npx tsx scripts/add-platform-icons-onboarding-field.ts",
     "migrate:onboarding-settings": "npx tsx scripts/add-onboarding-settings-fields.ts",
     "migrate:ideas": "npx tsx scripts/migrate-ideas-to-db.ts",

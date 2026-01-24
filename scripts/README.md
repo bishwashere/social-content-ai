@@ -1,5 +1,19 @@
 # Test Scripts
 
+## Set all users to 100 tokens
+
+Tokens in this app are stored on the user record as `remainingChatGenerations`.
+
+### Usage
+
+```bash
+# Set EVERY user to exactly 100 tokens
+pnpm tokens:set-all-100
+
+# Only top-up users below 100 tokens (won't reduce anyone above 100)
+pnpm tokens:ensure-min-100
+```
+
 ## Facebook API Test Script
 
 The `test-facebook-api.ts` script is designed to:

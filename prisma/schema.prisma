@@ -14,7 +14,7 @@ model User {
   avatarUrl                        String
   name                             String
   idFromProvider                   String
-  remainingChatGenerations         Int       @default(0)
+  remainingChatGenerations         Int       @default(100)
   hasClaimedFreeTrial              Boolean   @default(false)
   lastInformedAboutInactiveProject DateTime? @default(now())
   guidedTourEnabled                Boolean   @default(true)
