@@ -148,14 +148,15 @@ export const POST = applyMiddleware(
       console.error("Error auto-linking providers to new project:", err);
     });
 
-    try {
-      axios.put(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL}/api/projects/`,
-        {
-          projectId: project.id,
-        }
-      );
-    } catch { }
+    // Best-effort background notify (must not crash the request on failure)
+    const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL;
+    if (backendBaseUrl) {
+      void axios
+        .put(`${backendBaseUrl}/api/projects/`, { projectId: project.id })
+        .catch((err) => {
+          console.error("[api/projects][POST] Failed to notify backend:", err);
+        });
+    }
 
     return sendNextResponse({
       status: 201,

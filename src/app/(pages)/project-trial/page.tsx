@@ -177,7 +177,6 @@ export default function ProjectTrialPage() {
                 </section>
               )}
 
-              {/* Check out the news on */}
               <section className="space-y-4">
                 <NewsTrendingSection />
               </section>

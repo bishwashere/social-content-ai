@@ -21,78 +21,21 @@ import {
 } from "@/backend-apis/payment/hooks";
 import { useRouter } from "next/navigation";
 import { useAssignBasicTokens, useSession } from "@/backend-apis/auth/hooks";
-import { useEffect, useState, useRef } from "react";
+import { useRef } from "react";
 import { isSubscriptionExpired } from "@/lib/sub";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 
 type Props = {
   open: boolean;
   setOpen: (open: boolean) => void;
+  onSkippedPaywall?: () => void;
 };
 
-export default function PricingModal({ open, setOpen }: Props) {
+export default function PricingModal({ open, setOpen, onSkippedPaywall }: Props) {
   const payment = useCreateCheckoutSession();
   const manage = useManageSubscription();
   const router = useRouter();
-  const { data, isLoading: sessionLoading } = useSession();
-  // const [isLoading, setIsLoading] = useState(false); // COMMENTED OUT: No longer needed for custom trial claims
-  const queryClient = useQueryClient();
-  const projects = useGetAllProjects();
+  const { data } = useSession();
   const userDismissedRef = useRef(false); // Track if user explicitly closed the modal
-  const lastUserIdRef = useRef<string | undefined>(undefined); // Track last user ID to reset dismissal on login
-
-  // Reset dismissal flag when user logs in (user ID changes)
-  useEffect(() => {
-    if (data?.user?.id && data.user.id !== lastUserIdRef.current) {
-      // User has logged in (new user ID detected or first time seeing this user)
-      lastUserIdRef.current = data.user.id;
-      userDismissedRef.current = false; // Reset dismissal flag on login
-    }
-  }, [data?.user?.id]);
-
-  // Show paywall if: user has 1 project AND user has not paid (no subscription)
-  useEffect(() => {
-    // Wait for projects and session to load
-    if (projects.isLoading || sessionLoading) {
-      return;
-    }
-
-    // Don't show if user has explicitly dismissed the modal in this session
-    if (userDismissedRef.current && !open) {
-      return;
-    }
-
-    const hasNoSubscription = !data?.subscription || 
-      (data.subscription && isSubscriptionExpired(data.subscription.endsAt).isExpired);
-    const projectsCount = projects.data?.length || 0;
-    const hasOneProject = projectsCount === 1;
-
-    // Debug: Log the actual values
-    console.log('[PricingModal] Check:', {
-      projectsCount,
-      hasOneProject,
-      hasSubscription: !!data?.subscription,
-      hasNoSubscription,
-      subscriptionEndsAt: data?.subscription?.endsAt,
-      subscriptionExpired: data?.subscription ? isSubscriptionExpired(data.subscription.endsAt).isExpired : 'N/A'
-    });
-
-    // Simple check: Show paywall if user has 1 project and has not paid
-    if (hasOneProject && hasNoSubscription) {
-      console.log('[PricingModal] ✅ Showing paywall - user has 1 project and no subscription');
-      setOpen(true);
-    } else {
-      console.log('[PricingModal] ❌ Not showing:', {
-        reason: !hasOneProject ? 'not exactly 1 project' : 'has active subscription'
-      });
-      setOpen(false);
-    }
-  }, [data?.subscription, data?.user?.id, setOpen, projects.isLoading, projects.data, open, sessionLoading]);
-
-  // Don't reset dismissal flag when user gets projects - we want to show on next login instead
-  // This ensures modal shows on second login, not immediately after project creation
 
   // COMMENTED OUT: Custom trial claim logic - now handled by Stripe
   // const claimTrial = async () => {
@@ -120,15 +63,16 @@ export default function PricingModal({ open, setOpen }: Props) {
     // Mark that user explicitly dismissed the modal
     userDismissedRef.current = true;
     
-    // Assign basic tokens instead of logging out
+    // Assign basic tokens instead of logging out (but congrats message is independent).
     try {
       await assignBasicTokens.mutateAsync();
       localStorage.setItem(`lastOpen__${data?.user?.id}`, Date.now().toString());
       setOpen(false);
-      toast.success("You've been assigned 100 free tokens to get started!");
     } catch (error) {
       // If assignment fails, just close the modal
       setOpen(false);
+    } finally {
+      onSkippedPaywall?.();
     }
   };
 
@@ -139,6 +83,7 @@ export default function PricingModal({ open, setOpen }: Props) {
     >
       <SheetContent 
         side="bottom" 
+        data-autoplay-blocker="pricing"
         className="sm:max-w-md mx-auto rounded-t-2xl max-h-[90vh] overflow-y-auto [&>button:last-child]:hidden"
         onInteractOutside={(e) => {
           // Prevent closing when clicking outside
@@ -160,21 +105,20 @@ export default function PricingModal({ open, setOpen }: Props) {
         
         <div className="space-y-6 pb-6 px-6">
           {/* Header */}
-          <SheetHeader className="text-left">
-            <SheetTitle className="text-2xl font-bold leading-tight">
+          <SheetHeader className="text-left space-y-3">
+            <SheetTitle className="text-2xl sm:text-3xl font-bold leading-tight">
               Turn ideas into ready-to-post content
             </SheetTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              7-day free trial · Cancel anytime
+            {/* Hero trial line (big + centered) */}
+            <div className="text-center">
+              <div className="text-4xl sm:text-5xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300">
+                7-day free trial
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Cancel anytime. Then <span className="font-medium text-foreground">$10/month</span> after trial.
             </p>
           </SheetHeader>
-
-          {/* Price - Quiet */}
-          <div className="text-center">
-            <div className="text-2xl text-muted-foreground">
-              $10 <span className="text-base font-normal">/ month after trial</span>
-            </div>
-          </div>
 
           {/* Value - 3 bullets only */}
           <div className="space-y-4">
@@ -245,7 +189,7 @@ export default function PricingModal({ open, setOpen }: Props) {
           <div className="pt-4 border-t">
             <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
               <Lock className="h-3 w-3" />
-              No posting on your behalf · Content stays private
+              Content stays private
             </p>
           </div>
         </div>

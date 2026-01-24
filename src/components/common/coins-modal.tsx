@@ -32,7 +32,7 @@ export function CoinsModal({ open, setOpen }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent data-autoplay-blocker="coins" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Get Coins</DialogTitle>
           <DialogDescription>Purchase coins for your account!</DialogDescription>

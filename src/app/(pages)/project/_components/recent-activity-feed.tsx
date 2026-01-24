@@ -29,8 +29,8 @@ function getMomentumSummary(activities: ActivityItem[]): string | null {
   const daysAgo = differenceInDays(today, latest);
 
   // Generate summary based on activity
-  if (daysAgo === 0) return "You were active today — keep going.";
-  if (daysAgo === 1) return "You were active yesterday — stay in the flow.";
+  if (daysAgo === 0) return "You were active today - keep going.";
+  if (daysAgo === 1) return "You were active yesterday - stay in the flow.";
   return `Active ${activeDays} of last 7 days. Last activity ${daysAgo} days ago.`;
 }
 

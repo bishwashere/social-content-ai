@@ -1,9 +1,14 @@
 import { prisma } from "../src/lib/prisma";
 
-const EMAILS = [
+const DEFAULT_EMAILS = [
   "b.bishwas@gmail.com",
   "bishwas.work@gmail.com",
+  "bishwas.scholar@gmail.com",
 ];
+
+// Allow overriding via CLI args:
+//   pnpm tsx scripts/delete-user.ts a@b.com c@d.com
+const EMAILS = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_EMAILS;
 
 async function deleteUserAndAllData(email: string) {
   try {

@@ -4,7 +4,7 @@ export default function TryPage() {
     return (
         <main className="bg-[#0B0D12] text-white antialiased">
             <Head>
-                <title>ViralPost — Create &amp; Auto-Post</title>
+                <title>ViralPost - Create &amp; Auto-Post</title>
             </Head>
 
             {/* Top Bar */}
@@ -62,7 +62,7 @@ export default function TryPage() {
                         Create viral posts. Auto-post everywhere.
                     </h1>
                     <p className="mt-3 text-white/70 max-w-2xl mx-auto">
-                        Draft once. Tailor per platform. Queue and go. No fluff—just the
+                        Draft once. Tailor per platform. Queue and go. No fluff, just the
                         essentials to ship daily.
                     </p>
                     <div className="mt-5 flex items-center justify-center gap-2">

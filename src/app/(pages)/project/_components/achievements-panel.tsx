@@ -348,7 +348,7 @@ export function AchievementsPanel() {
                         <h3 className={`font-semibold text-sm ${
                           isCurrentTier ? "text-green-900" : ""
                         }`}>
-                          Level {level.level} — {level.label}
+                          Level {level.level} - {level.label}
                         </h3>
                         {isCurrentTier && (
                           <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded">

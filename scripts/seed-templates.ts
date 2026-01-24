@@ -21,9 +21,9 @@ To everyone else who finished: we did it. 🎉`,
     icon: "🎓",
   },
   {
-    title: "I didn't think I could do it — and then I did",
+    title: "I didn't think I could do it, and then I did",
     description: "Tell the story of trying something you thought was out of reach. What made you take the leap, and what surprised you...",
-    content: `I didn't think I could {{achieve this goal}} — and then I did.
+    content: `I didn't think I could {{achieve this goal}}, and then I did.
 
 Here's what changed:
 

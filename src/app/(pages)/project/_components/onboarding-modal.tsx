@@ -176,6 +176,15 @@ export function OnboardingModal({ open, onProjectCreated, onClose }: OnboardingM
     </div>,
   ];
 
+  const handleBack = () => {
+    // On the final step, take user back to project name so they can edit before finalizing.
+    if (step >= steps.length - 1) {
+      setStep(0);
+      return;
+    }
+    setStep((prev) => Math.max(prev - 1, 0));
+  };
+
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -209,10 +218,20 @@ export function OnboardingModal({ open, onProjectCreated, onClose }: OnboardingM
         <form onSubmit={handleSubmit} className="space-y-4">
           {steps[step]}
 
-          <div className="flex justify-end mt-4">
+          <div className="flex gap-2 mt-4">
+            {step > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleBack}
+                disabled={createProject.isPending || desc.isPending}
+              >
+                Back
+              </Button>
+            )}
             {step < steps.length - 1 ? (
               <Button
-                className="w-full"
+                className={step > 0 ? "flex-1" : "w-full"}
                 type="button"
                 onClick={handleNext}
                 loading={desc.isPending}
@@ -224,7 +243,7 @@ export function OnboardingModal({ open, onProjectCreated, onClose }: OnboardingM
               </Button>
             ) : (
               <Button
-                className="w-full"
+                className={step > 0 ? "flex-1" : "w-full"}
                 loading={createProject.isPending}
                 disabled={!name || !description}
                 type="submit"

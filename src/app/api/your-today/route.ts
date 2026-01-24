@@ -285,7 +285,7 @@ async function analyzeProjectConsistency(projectId: string): Promise<Consistency
       impressionsBoost: 0,
       lastPostDate: null,
       daysSinceLastPost: 30,
-      message: "Start posting to build your consistency — the more you post, the more we can optimize",
+      message: "Start posting to build your consistency - the more you post, the more we can optimize",
       needsAction: true
     };
   }
@@ -366,35 +366,35 @@ async function analyzeProjectConsistency(projectId: string): Promise<Consistency
     if (impressionsBoost > 0) {
       message = `Great streak of ${streak} days! Your consistent posting boosted impressions by ${impressionsBoost}%`;
     } else {
-      message = `You're on a ${streak}-day streak — keep the momentum going!`;
+      message = `You're on a ${streak}-day streak - keep the momentum going!`;
     }
     needsAction = false;
   } else if (streak >= 3) {
     // Building momentum
     if (impressionsBoost > 0) {
-      message = `${streak}-day streak building momentum — impressions up ${impressionsBoost}% when consistent`;
+      message = `${streak}-day streak building momentum - impressions up ${impressionsBoost}% when consistent`;
     } else {
-      message = `${streak}-day streak and growing — schedule today's post to keep momentum`;
+      message = `${streak}-day streak and growing - schedule today's post to keep momentum`;
     }
     needsAction = true;
   } else if (daysSinceLastPost <= 2) {
     // Recently posted but no streak
-    message = `Posted ${daysSinceLastPost === 0 ? 'today' : daysSinceLastPost === 1 ? 'yesterday' : '2 days ago'} — add one more to start a streak`;
+    message = `Posted ${daysSinceLastPost === 0 ? 'today' : daysSinceLastPost === 1 ? 'yesterday' : '2 days ago'} - add one more to start a streak`;
     needsAction = true;
   } else if (daysSinceLastPost <= 7) {
     // Gap of a few days
     if (avgImpressionsConsistent > 0 && impressionsBoost > 10) {
-      message = `${daysSinceLastPost} days since last post — your impressions were ${impressionsBoost}% higher when posting consistently`;
+      message = `${daysSinceLastPost} days since last post - your impressions were ${impressionsBoost}% higher when posting consistently`;
     } else {
-      message = `${daysSinceLastPost} days since last post — schedule one to rebuild momentum`;
+      message = `${daysSinceLastPost} days since last post - schedule one to rebuild momentum`;
     }
     needsAction = true;
   } else {
     // Long gap
     if (allPosts.length > 5 && avgImpressionsConsistent > 0) {
-      message = `${daysSinceLastPost} days inactive — past data shows you got ${Math.round(avgImpressionsConsistent).toLocaleString()} avg impressions when active`;
+      message = `${daysSinceLastPost} days inactive - past data shows you got ${Math.round(avgImpressionsConsistent).toLocaleString()} avg impressions when active`;
     } else {
-      message = `${daysSinceLastPost} days since last post — let's get back on track`;
+      message = `${daysSinceLastPost} days since last post - let's get back on track`;
     }
     needsAction = true;
   }
@@ -708,7 +708,7 @@ export async function GET(request: NextRequest) {
             tasksByType["failed_post"].projects.push({
               projectId: projectId,
               projectName: projectName,
-              description: `${projectFailedPosts.length} post${projectFailedPosts.length > 1 ? 's' : ''} failed yesterday — fix ${projectFailedPosts.length > 1 ? 'them' : 'it'}`,
+              description: `${projectFailedPosts.length} post${projectFailedPosts.length > 1 ? 's' : ''} failed yesterday - fix ${projectFailedPosts.length > 1 ? 'them' : 'it'}`,
               userRole: userRole,
               needsAction: true
             });
@@ -735,7 +735,7 @@ export async function GET(request: NextRequest) {
             tasksByType["stuck_blog_news"].projects.push({
               projectId: projectId,
               projectName: projectName,
-              description: `${stuckCount} Blog News post${stuckCount > 1 ? 's' : ''} stuck at Step ${stuckAtStep} — ${stepDetails}`,
+              description: `${stuckCount} Blog News post${stuckCount > 1 ? 's' : ''} stuck at Step ${stuckAtStep} - ${stepDetails}`,
               userRole: userRole,
               needsAction: true
             });
@@ -873,7 +873,7 @@ export async function GET(request: NextRequest) {
                 tasksByType["campaigns"].projects.push({
                   projectId: projectId,
                   projectName: projectName,
-                  description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
+                  description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} - generate now`,
                   campaignId: campaign.campaignId,
                   campaignName: campaign.campaignName,
                   day: campaign.day,
@@ -888,7 +888,7 @@ export async function GET(request: NextRequest) {
                 tasksByType["campaigns"].projects.push({
                   projectId: projectId,
                   projectName: projectName,
-                  description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
+                  description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} - generate now`,
                   campaignId: campaign.campaignId,
                   campaignName: campaign.campaignName,
                   day: campaign.day,
@@ -903,7 +903,7 @@ export async function GET(request: NextRequest) {
               tasksByType["campaigns"].projects.push({
                 projectId: projectId,
                 projectName: projectName,
-                description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} — generate now`,
+                description: `Campaign "${campaign.campaignName}" needs content for ${dateLabel} - generate now`,
                 campaignId: campaign.campaignId,
                 campaignName: campaign.campaignName,
                 day: campaign.day,
@@ -951,7 +951,7 @@ export async function GET(request: NextRequest) {
                 // Condition 1: Last campaign ended recently (≤14 days)
                 if (daysSinceEnd >= 0 && daysSinceEnd <= 14) {
                   isReadyForNewCampaign = true;
-                  readinessReason = `Last campaign ended ${daysSinceEnd === 0 ? 'today' : daysSinceEnd === 1 ? 'yesterday' : `${daysSinceEnd} days ago`} — ready for next`;
+                  readinessReason = `Last campaign ended ${daysSinceEnd === 0 ? 'today' : daysSinceEnd === 1 ? 'yesterday' : `${daysSinceEnd} days ago`} - ready for next`;
                 }
                 
                 // Condition 3: Previous campaign performed well (check if posts were published)
@@ -1005,7 +1005,7 @@ export async function GET(request: NextRequest) {
                   if (successfulScheduledPosts > 0 || recentPosts.length > 0) {
                     isReadyForNewCampaign = true;
                     const postCount = successfulScheduledPosts + recentPosts.length;
-                    readinessReason = `Previous campaign had ${postCount} published post${postCount > 1 ? 's' : ''} — build on success`;
+                    readinessReason = `Previous campaign had ${postCount} published post${postCount > 1 ? 's' : ''} - build on success`;
                   }
                 }
               }
@@ -1040,7 +1040,7 @@ export async function GET(request: NextRequest) {
               
               if (recentPosts.length > 0) {
                 isReadyForNewCampaign = true;
-                readinessReason = `${recentPosts.length} post${recentPosts.length > 1 ? 's' : ''} in last 30 days without a campaign — organize with a campaign`;
+                readinessReason = `${recentPosts.length} post${recentPosts.length > 1 ? 's' : ''} in last 30 days without a campaign - organize with a campaign`;
               }
             }
             
@@ -1066,7 +1066,7 @@ export async function GET(request: NextRequest) {
               } = {
                 projectId: projectId,
                 projectName: projectName,
-                description: `"${projectName}" is ready for a new campaign — ${readinessReason}`,
+                description: `"${projectName}" is ready for a new campaign - ${readinessReason}`,
                 userRole: userRole,
                 needsAction: true,
                 stats: stats,
@@ -1081,7 +1081,7 @@ export async function GET(request: NextRequest) {
               tasksByType["campaigns"].projects.push({
                 projectId: projectId,
                 projectName: projectName,
-                description: `"${projectName}" has campaigns — no active chats in the next 3 days`,
+                description: `"${projectName}" has campaigns - no active chats in the next 3 days`,
                 userRole: userRole,
                 needsAction: false,
                 daysSinceLastPost: daysSinceLastPostMap.get(projectId) ?? null

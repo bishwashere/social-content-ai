@@ -38,6 +38,16 @@ function ProjectPage() {
     [projects?.data, id]
   );
 
+  const isProjectLessThanOneDayOld = useMemo(() => {
+    if (!project?.createdAt) return false;
+    const createdAtMs =
+      project.createdAt instanceof Date
+        ? project.createdAt.getTime()
+        : new Date(project.createdAt as any).getTime();
+    if (!Number.isFinite(createdAtMs)) return false;
+    return Date.now() - createdAtMs < 24 * 60 * 60 * 1000;
+  }, [project?.createdAt]);
+
   // Call campaign planner query here to track its status (React Query will deduplicate)
   // This allows us to check when it completes before loading project pulse
   // React Query automatically refetches when projectId changes (via query key dependency)
@@ -159,7 +169,9 @@ function ProjectPage() {
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5">
       <ProjectSocialConnectionAlert projectId={id as string} />
-      <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
+      {!isProjectLessThanOneDayOld && (
+        <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
+      )}
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
           <TabsTrigger value="campaign" onClick={() => handleTabChange("campaign")}>

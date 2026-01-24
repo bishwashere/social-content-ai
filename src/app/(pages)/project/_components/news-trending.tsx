@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -122,6 +122,7 @@ const setCachedData = (categoryName: string, data: TrendingData): void => {
 
 // Collapsible section wrapper component
 export function NewsTrendingSection() {
+  // Expanded by default so users don't need to click "Get Inspired..."
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -132,12 +133,12 @@ export function NewsTrendingSection() {
           className="flex items-center gap-2 text-lg font-semibold hover:opacity-80 transition-opacity cursor-pointer group text-left"
         >
           {isExpanded ? (
-            <ChevronDown className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform flex-shrink-0" />
-          ) : (
             <ChevronUp className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform flex-shrink-0" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform flex-shrink-0" />
           )}
           <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0" />
-          <span>Check out the news on</span>
+          <span>Get Inspired from world events</span>
         </button>
         <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
           <NewsTrendingSettingsButton />
@@ -398,6 +399,7 @@ export function NewsTrending() {
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [userTopics, setUserTopics] = useState<string[]>(DEFAULT_TOPICS);
   const [loadingPreferences, setLoadingPreferences] = useState(true);
+  const hasAutoSelectedCategoryRef = useRef(false);
 
   // Load user preferences on mount and listen for updates
   useEffect(() => {
@@ -431,6 +433,7 @@ export function NewsTrending() {
       if (selectedCategory && !event.detail.topics.includes(selectedCategory)) {
         setSelectedCategory(null);
         setTrendingData(null);
+        setExpandedPostId(null);
       }
     };
 
@@ -456,10 +459,11 @@ export function NewsTrending() {
   // Combine predefined and custom categories
   const categories = [...predefinedCategories, ...customCategories];
 
-  const handleCategoryClick = async (category: typeof ALL_CATEGORIES[0]) => {
+  const handleCategoryClick = useCallback(async (category: typeof ALL_CATEGORIES[0]) => {
     setSelectedCategory(category.name);
     setLoading(true);
     setTrendingData(null);
+    setExpandedPostId(null);
 
     try {
       // Check cache first
@@ -495,7 +499,24 @@ export function NewsTrending() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Auto-select a random topic once (as if clicked)
+  useEffect(() => {
+    if (loadingPreferences) return;
+    if (loading) return;
+    if (selectedCategory) return;
+    if (categories.length === 0) return;
+    if (hasAutoSelectedCategoryRef.current) return;
+
+    hasAutoSelectedCategoryRef.current = true;
+
+    // Prefer a non-"news" topic if present (for cases where a user adds a "News" topic).
+    const nonNewsCategories = categories.filter((c) => !/news/i.test(c.name));
+    const candidates = nonNewsCategories.length > 0 ? nonNewsCategories : categories;
+    const randomCategory = candidates[Math.floor(Math.random() * candidates.length)];
+    handleCategoryClick(randomCategory);
+  }, [categories, handleCategoryClick, loading, loadingPreferences, selectedCategory]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString();
@@ -561,7 +582,7 @@ export function NewsTrending() {
                         </div>
                       )}
                     </div>
-                    <CardTitle className="text-sm line-clamp-2 mt-2">
+                    <CardTitle className="text-sm line-clamp-4 mt-2">
                       {item.post.title}
                     </CardTitle>
                   </CardHeader>

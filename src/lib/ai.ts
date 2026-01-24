@@ -55,7 +55,7 @@ export class AI {
       }
     }
 
-    // All retries failed — return fallback
+    // All retries failed - return fallback
     console.error("All retries failed for generateChatName");
     return "New Chat";
   }
@@ -198,7 +198,7 @@ export class AI {
       }
     }
 
-    // All retries failed — return fallback
+    // All retries failed - return fallback
     console.error("All retries failed");
     return "New Chat";
   }

@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
             activities.push({
               type: "scheduled_missed",
               icon: "⚠️",
-              message: "Scheduled post missed — no template available",
+              message: "Scheduled post missed - no template available",
               projectName: post.project?.name || "Unknown Project",
               projectId: post.projectId,
               timestamp: post.date.toISOString(),

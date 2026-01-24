@@ -109,7 +109,7 @@ function sampleViralPost(topic: string, tone: (typeof TONES)[number]) {
   } as const;
 
   const viralPosts = [
-    "doesn't need luck—just a repeatable system. 30 days, focused channels, consistent voice. Ship ideas fast, measure, iterate.",
+    "doesn't need luck - just a repeatable system. 30 days, focused channels, consistent voice. Ship ideas fast, measure, iterate.",
     "is all about consistency over perfection. Start small, show up daily, build momentum. The results will follow.",
     "requires strategic thinking, not just random posting. Map your journey, track metrics, adjust course.",
     "success comes from understanding your audience first. Listen, engage, then create content that resonates.",
@@ -226,7 +226,7 @@ export default function LandingPage() {
             </h1>
             <p className="mt-4 text-lg text-slate-600">
               Pick your channels, set intensity, and preview a full month.
-              Generate viral‑style posts for each slot—then schedule or publish.
+              Generate viral‑style posts for each slot - then schedule or publish.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild className="rounded-2xl">
@@ -460,7 +460,7 @@ export default function LandingPage() {
                             )}
                           </div>
                         ) : (
-                          <div className="text-[10px] text-slate-300">—</div>
+                          <div className="text-[10px] text-slate-300"></div>
                         )}
                       </div>
                     );
@@ -637,7 +637,7 @@ export default function LandingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-slate-600">
-              X/Twitter, LinkedIn, Instagram, Facebook, Threads, Reddit — with
+              X/Twitter, LinkedIn, Instagram, Facebook, Threads, Reddit - with
               more on the way.
             </CardContent>
           </Card>

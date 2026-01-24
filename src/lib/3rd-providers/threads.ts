@@ -104,7 +104,7 @@ class Threads {
 
   /**
    * Check container status once and publish if ready.
-   * Single attempt — returns:
+   * Single attempt - returns:
    * - { success: true, publishData, containerStatus }
    * - { success: false, error, containerStatus?, raw? }
    * - null -> container not ready (e.g. PROCESSING) -> caller can retry later

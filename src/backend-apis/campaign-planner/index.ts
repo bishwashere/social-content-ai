@@ -118,6 +118,8 @@ export const startCampaignPlanner = async (
       goal: plan.goal,
       targetAudience: plan.targetAudience,
       name: campaignName,
+      // Default: campaign starts when it is created
+      startDate: new Date(),
       platforms: platforms,
       totalDays: totalDays, // Save totalDays when creating campaign
       // Store Blog News metadata at campaign level

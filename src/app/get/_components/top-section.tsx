@@ -112,7 +112,7 @@ const TopSection = () => {
             {
               title: "Context-Aware Post Generator",
               content:
-                "Create content that adapts to your campaign's stage, audience type, and platform—no generic prompts, just focused output.",
+                "Create content that adapts to your campaign's stage, audience type, and platform - no generic prompts, just focused output.",
             },
             {
               title: "Cross-Platform Scheduler",
@@ -161,7 +161,7 @@ const TopSection = () => {
               {
                 title: "Plan & Schedule",
                 content:
-                  "Organize content with our visual planner — track launch dates, feature drops, and seasonal themes.",
+                  "Organize content with our visual planner - track launch dates, feature drops, and seasonal themes.",
                 image: "/tmpq7ttjaop.webp",
               },
               {

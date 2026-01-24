@@ -26,11 +26,11 @@ export const PLATFORM_CUSTOM_PROMPTS = {
         - Use a numbered or bulleted list to show features or differentiators
         - Add specific data points or time savings if available
         - Keep the tone confident and conversational
-        - Avoid repeating “AI” or “content generator”—focus on outcomes and clarity
+        - Avoid repeating “AI” or “content generator”; focus on outcomes and clarity
         - End with a clear call to action or thought-provoking question
       `,
   threads:
-    "Use a conversational, engaging style with short, punchy phrasing. Add emojis sparingly and include a simple CTA. Avoid storytelling—focus on clarity and brevity. No multiple options.",
+    "Use a conversational, engaging style with short, punchy phrasing. Add emojis sparingly and include a simple CTA. Avoid storytelling; focus on clarity and brevity. No multiple options.",
   reddit:
     "This is reddit post. Do not market directly but at end or in comparision with other products. Write one complete and direct answer. No greetings or filler. Use a personal tone. Avoid -, --, and :. Give a post title. Share either a personal journey, practical lessons, data-backed insights, beginner tips, or a clear step-by-step guide for gaining traction or simplifying social media with free or AI tools. Also mention a reason to share like helping others or going though the pain etc.",
 } as const;

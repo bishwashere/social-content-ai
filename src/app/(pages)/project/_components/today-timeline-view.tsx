@@ -82,6 +82,24 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
     });
   }, [projects.data]);
 
+  // Don't overwhelm brand-new users with alerts immediately after they create their first project.
+  const isWithinFirstProjectHour = useMemo(() => {
+    if (!projects.data || projects.data.length === 0) return false;
+
+    const createdTimes = projects.data
+      .map((p: any) => {
+        const raw = p?.createdAt ?? p?.created_at ?? p?.created;
+        const d = raw ? new Date(raw) : null;
+        return d && !Number.isNaN(d.getTime()) ? d.getTime() : null;
+      })
+      .filter((t: number | null): t is number => typeof t === "number");
+
+    if (createdTimes.length === 0) return false;
+
+    const firstCreatedAt = Math.min(...createdTimes);
+    return Date.now() - firstCreatedAt < 60 * 60 * 1000;
+  }, [projects.data]);
+
   // Determine if GetStartedGuide is actually showing
   const isGetStartedGuideVisible = useMemo(() => {
     if (!showGetStartedGuide) return false;
@@ -525,36 +543,45 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
           )}
 
           {/* Action Items - Primary tasks for today */}
-          {(groupedItems.action.length > 0 || hasUnlinkedPages) && (
+          {(groupedItems.action.length > 0 || hasUnlinkedPages || isWithinFirstProjectHour) && (
             <div className="space-y-3">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-500" />
                 Action Required
               </h2>
-              {/* Project Creation Suggestions */}
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
-                <ProjectCreationSuggestions onHasPagesChange={setHasUnlinkedPages} />
-              </div>
-              {/* Existing Action Items */}
-              {groupedItems.action.length > 0 && (
+              {isWithinFirstProjectHour ? (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-10">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+                    Alerts and reminders will appear here
+                  </p>
+                </div>
+              ) : (
                 <>
-                  {hasUnlinkedPages && groupedItems.action.length > 0 && (
-                    <div className="border-t border-slate-200 dark:border-slate-700 my-3" />
-                  )}
-                  {groupedItems.action.slice(0, 5).map((item) => (
-                    <TimelineCard key={item.id} item={item} variant="action" />
-                  ))}
-                  {groupedItems.action.length > 5 && (
-                    <Button variant="ghost" size="sm" className="w-full">
-                      Show {groupedItems.action.length - 5} more
-                    </Button>
+                  {/* Project Creation Suggestions */}
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+                    <ProjectCreationSuggestions onHasPagesChange={setHasUnlinkedPages} />
+                  </div>
+                  {/* Existing Action Items */}
+                  {groupedItems.action.length > 0 && (
+                    <>
+                      {hasUnlinkedPages && groupedItems.action.length > 0 && (
+                        <div className="border-t border-slate-200 dark:border-slate-700 my-3" />
+                      )}
+                      {groupedItems.action.slice(0, 5).map((item) => (
+                        <TimelineCard key={item.id} item={item} variant="action" />
+                      ))}
+                      {groupedItems.action.length > 5 && (
+                        <Button variant="ghost" size="sm" className="w-full">
+                          Show {groupedItems.action.length - 5} more
+                        </Button>
+                      )}
+                    </>
                   )}
                 </>
               )}
             </div>
           )}
 
-          {/* Check out the news on */}
           <NewsTrendingSection />
         </div>
 

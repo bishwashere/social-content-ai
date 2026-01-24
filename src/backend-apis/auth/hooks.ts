@@ -83,10 +83,9 @@ export const useAssignBasicTokens = () => {
       return authService.assignBasicTokens(queryClient);
     },
     onError: (error) => {
+      // If the user already has tokens, this shouldn't be surfaced as an error in the UI.
+      if (error.message === "User already has tokens") return;
       toast.error(error.message);
-    },
-    onSuccess: (data) => {
-      toast.success(data.message || "Basic tokens assigned successfully");
     },
   });
 };

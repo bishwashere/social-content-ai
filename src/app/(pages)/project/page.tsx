@@ -87,7 +87,7 @@ export default function Home() {
       projectSelectionCallbackRef.current(projectId);
     }
     setTimeout(() => {
-      router.push(`/project/${projectId}`);
+      router.push(`/project/${projectId}?tab=campaign&autoplay=1`);
     }, 400);
   };
 

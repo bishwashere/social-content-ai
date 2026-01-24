@@ -323,7 +323,12 @@ export default function ModernLanding() {
 
               {/* Tagline */}
               <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400">
-                Save 10+ Hours a Week on Marketing
+                <span className="relative inline-block">
+                  <span className="relative z-10 px-3 py-1 rounded-xl bg-white text-slate-900">
+                    Save 10+ Hours a Week
+                  </span>
+                </span>{" "}
+                <span>on Marketing</span>
               </p>
 
               {/* Subheading */}
@@ -349,7 +354,7 @@ export default function ModernLanding() {
               <div className="pt-16">
                 <p className="text-sm text-gray-400 mb-6 flex items-center justify-center gap-2">
                   <span className="w-2 h-2 bg-green-500 rounded-full pulse-live" />
-                  Growing Fast — Join the Momentum
+                  Growing Fast - Join the Momentum
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
                   {statData.map((stat, index) => {
@@ -374,7 +379,7 @@ export default function ModernLanding() {
                   })}
                 </div>
                 <p className="mt-4 text-xs text-gray-500">
-                  Real numbers from real users — updated live.
+                  Real numbers from real users - updated live.
                 </p>
               </div>
             </div>
@@ -536,7 +541,7 @@ export default function ModernLanding() {
                 <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full mb-6" />
                 <p className="text-gray-400 text-lg mb-8">
                   Everything you need to launch and grow your product with consistent, 
-                  engaging content — without the marketing headache.
+                  engaging content - without the marketing headache.
                 </p>
                 <Image
                   src="/tmp0u5_noks.webp"
@@ -728,7 +733,7 @@ export default function ModernLanding() {
               <span className="gradient-text-accent">& Launch Smarter?</span>
             </h2>
             <p className="text-gray-300 text-lg mb-10 max-w-2xl mx-auto">
-              Join 146+ creators using AI to plan, post, and grow — free to start.
+              Join 146+ creators using AI to plan, post, and grow - free to start.
             </p>
             <GoogleLoginButton 
               triggerClassName="glow-button px-10 py-5 text-xl font-bold rounded-2xl text-white inline-flex items-center gap-3"
