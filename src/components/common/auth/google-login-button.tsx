@@ -21,12 +21,14 @@ type Props = {
   triggerClassName?: string;
   trigger?: React.ReactNode;
   gotoDashboard?: React.ReactNode;
+  buttonText?: string;
 };
 
 const GoogleLoginButton = ({
   triggerClassName,
   trigger,
   gotoDashboard,
+  buttonText = "Start with 100 free credits",
 }: Props) => {
   const [open, setOpen] = useState(false);
   const continueWithGoogle = useContinueWithGoogle();
@@ -71,7 +73,7 @@ const GoogleLoginButton = ({
             className={triggerClassName}
             onClick={() => router.push("/project")}
           >
-            Start with 100 free credits
+            {buttonText}
             <MoveRight className="scale-125" />
           </Button>
         )
@@ -79,7 +81,7 @@ const GoogleLoginButton = ({
         <DialogTrigger asChild>
           {trigger ?? (
             <Button className={triggerClassName}>
-              Start with 100 free credits
+              {buttonText}
               <MoveRight className="scale-125" />
             </Button>
           )}
