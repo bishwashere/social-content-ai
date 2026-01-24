@@ -26,6 +26,7 @@ import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
@@ -285,6 +286,8 @@ function CampaignAutoplayOverlay({
 }) {
   if (!active) return null;
 
+  // Treat an empty label as the "intro" phase (no separate state).
+  const isIntro = label === "";
   const rect = highlight
     ? {
         left: highlight.left - 10,
@@ -296,7 +299,9 @@ function CampaignAutoplayOverlay({
 
   return (
     <>
-      {rect && (
+      {isIntro ? (
+        <div className="fixed inset-0 z-[70] bg-black/40 pointer-events-auto" />
+      ) : rect ? (
         <svg
           className="fixed inset-0 z-[70] pointer-events-none"
           width="100%"
@@ -323,31 +328,36 @@ function CampaignAutoplayOverlay({
             mask="url(#campaign-autoplay-mask)"
           />
         </svg>
+      ) : (
+        <div className="fixed inset-0 z-[70] bg-black/25 pointer-events-none" />
       )}
 
-      {/* Main heading */}
-      <div className="fixed z-[80] top-4 left-1/2 -translate-x-1/2 pointer-events-none w-[min(680px,calc(100vw-2rem))]">
-        <div className="rounded-2xl bg-white/95 text-slate-900 border px-4 py-3 shadow-sm">
-          <div className="text-sm sm:text-base font-semibold">
-            Setting up your first campaign
-          </div>
-          <div className="text-xs sm:text-sm text-slate-600 mt-0.5">
-            This usually takes under a minute
-          </div>
-          {label ? (
-            <div className="text-xs sm:text-sm font-medium mt-2">
-              {label}
+      {isIntro ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 pointer-events-none">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border px-6 py-5 shadow-lg">
+            <div className="text-base sm:text-lg font-semibold">
+              Creating your first campaign
             </div>
-          ) : (
-            <div className="text-xs sm:text-sm text-slate-500 mt-2">
+            <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+              This can take a few minutes
+            </div>
+            <div className="text-sm text-slate-700 dark:text-slate-400 mt-4">
               Preparing…
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="fixed z-[80] top-4 left-1/2 -translate-x-1/2 pointer-events-none w-[min(680px,calc(100vw-2rem))]">
+          <div className="rounded-full bg-white/95 text-slate-900 border px-4 py-2 shadow-sm">
+            <div className="text-xs sm:text-sm font-medium">
+              {label ? label : "Preparing…"}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fake cursor */}
-      {rect && (
+      {!isIntro && rect && (
         <div
           className="fixed z-[80] pointer-events-none"
           style={{
@@ -634,6 +644,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [demoHighlight, setDemoHighlight] = useState<DOMRect | null>(null);
   const [demoLabel, setDemoLabel] = useState<string>("");
   const [demoFeatureTourOpen, setDemoFeatureTourOpen] = useState(false);
+  const [showPreDemoMessage, setShowPreDemoMessage] = useState(false); // New state for centered message BEFORE demo
   const showCampaignFormRef = useRef(showCampaignForm);
 
   useEffect(() => {
@@ -741,6 +752,7 @@ export default function CampaignPlannerPage({ project }: Props) {
 
     let cancelled = false;
     (async () => {
+      console.log('[DEMO] Starting demo flow - waiting for blockers to clear');
       // IMPORTANT: Don't "start" the demo at all until blockers are gone.
       while (!cancelled && !demoCancelledRef.current && document.querySelector("[data-autoplay-blocker]")) {
         await sleep(200);
@@ -749,6 +761,7 @@ export default function CampaignPlannerPage({ project }: Props) {
       if (!isAutoplayStillRequested()) return;
       if (demoRanRef.current) return;
 
+      console.log('[DEMO] Blockers cleared, marking demo as started');
       demoRanRef.current = true;
       demoStartPendingRef.current = false;
 
@@ -761,10 +774,27 @@ export default function CampaignPlannerPage({ project }: Props) {
         window.history.replaceState({}, "", url.toString());
       } catch { }
 
+      // Show centered message BEFORE starting demo
+      console.log('Setting showPreDemoMessage to true');
+      flushSync(() => {
+        setShowPreDemoMessage(true);
+      });
+      await sleep(3500); // Show centered message for 3.5 seconds
+      console.log('Hiding pre-demo message, starting actual demo');
+      flushSync(() => {
+        setShowPreDemoMessage(false);
+      });
+      
+      if (demoCancelledRef.current) return;
+
+      // NOW start the actual demo
       setDemoActive(true);
-      // Show only the main heading first (no step label), then begin.
-      setDemoLabel("");
-      await sleep(1400);
+      setDemoLabel("Starting campaign setup");
+      setDemoHighlight(null);
+      setDemoCursor({ x: -100, y: -100 });
+      
+      await sleep(800); // Brief pause before first action
+      if (demoCancelledRef.current) return;
 
       // 1) Click "Plan Campaign"
       if (!showCampaignFormRef.current) {
@@ -1300,6 +1330,26 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
+      {/* Pre-demo centered message - shows BEFORE demo starts */}
+      {showPreDemoMessage && (
+        <>
+          <div className="fixed inset-0 z-[70] bg-black/40 pointer-events-auto" />
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 pointer-events-none">
+            <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border px-6 py-5 shadow-lg">
+              <div className="text-base sm:text-lg font-semibold">
+                Creating your first campaign
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                This can take a few minutes
+              </div>
+              <div className="text-sm text-slate-700 dark:text-slate-400 mt-4">
+                Preparing…
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      
       <CampaignAutoplayOverlay
         active={demoActive}
         cursor={demoCursor}
@@ -1312,6 +1362,7 @@ export default function CampaignPlannerPage({ project }: Props) {
           setDemoCursor({ x: -100, y: -100 });
           setDemoLabel("");
           setDemoFeatureTourOpen(false);
+          setShowPreDemoMessage(false);
         }}
       />
       <CampaignDemoFeatureTour
