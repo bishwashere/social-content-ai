@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 const roboto = Roboto({ subsets: ["latin"], weight: ["300", "400", "500", "700", "900"] })
 
 export const metadata: Metadata = {
-  title: "NextPostAI - Marketing Assistant for Apps & Products",
-  description: "Generate engaging social media content with AI",
+  title: "Save 10+ Hours a Week on Marketing | NextPostAI",
+  description: "AI creates launch plans, generates posts for X, LinkedIn, Instagram & Facebook, and sends reminders, so you build instead of post.",
   icons: {
     icon: [
       { url: "/logo-transparent.png", type: "image/png" },

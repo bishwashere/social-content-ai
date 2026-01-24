@@ -1,41 +1,51 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import Script from "next/script";
-// Dynamic import for non-critical components
 import dynamic from "next/dynamic";
+import Image from "next/image";
+import Link from "next/link";
+import "./landing.css";
+
 const GoogleLoginButton = dynamic(
   () => import("@/components/common/auth/google-login-button"),
   { ssr: false }
 );
-import "../home.css";
 
-import Image from "next/image";
-import Footer from "@/components/footer";
 import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+  Sparkles,
+  Zap,
+  Calendar,
+  Target,
+  TrendingUp,
+  Users,
+  Rocket,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  MessageSquare,
+  Shield,
+  Smartphone,
+  ArrowRight,
+  Bot,
+  Brain,
+  Lightbulb,
+} from "lucide-react";
 
-const LoaderIcon = () => (
-  <svg
-    width="30"
-    height="30"
-    viewBox="0 0 100 100"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="#FAA41B"
-  >
-    <g transform="translate(50,50)">
-      <circle r="7" cx="0" cy="-30" />
-      {/* <circle r="8" cx="21.21" cy="-21.21"/> */}
-      <circle r="7" cx="30" cy="0" />
-      <circle r="7" cx="21.21" cy="21.21" />
-      <circle r="7" cx="0" cy="30" />
-      <circle r="7" cx="-21.21" cy="21.21" />
-      <circle r="7" cx="-30" cy="0" />
-      <circle r="7" cx="-21.21" cy="-21.21" />
-    </g>
-  </svg>
-);
+// Section titles for dynamic browser tab
+const SECTION_TITLES: Record<string, string> = {
+  hero: "Save 10+ Hours a Week on Marketing | NextPostAI",
+  "how-it-works": "How It Works | NextPostAI",
+  comparison: "Stop Wasting Hours. Get This Instead | NextPostAI",
+  features: "Why Choose NextPostAI?",
+  testimonials: "Testimonials | NextPostAI",
+  trust: "Mobile-Friendly Design | NextPostAI",
+  benefits: "Who Can Benefit? | NextPostAI",
+  cta: "Ready to Save 10+ Hours & Launch Smarter? | NextPostAI",
+  faq: "Frequently Asked Questions | NextPostAI",
+};
 
 interface LandingStats {
   totalContentCreated: number;
@@ -43,131 +53,224 @@ interface LandingStats {
   totalUsers: number;
 }
 
-interface PlatformBreakdown {
-  platform: string;
-  displayName: string;
-  count: number;
-}
-
-interface CampaignPlatformData {
-  platformBreakdown: PlatformBreakdown[];
-  totalCampaigns: number;
-}
-
-export default function HomeV3() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+export default function ModernLanding() {
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [stats, setStats] = useState<LandingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [selectedStatIndex, setSelectedStatIndex] = useState<number | null>(null);
-  const [campaignPlatforms, setCampaignPlatforms] = useState<CampaignPlatformData | null>(null);
-  const [loadingPlatforms, setLoadingPlatforms] = useState(false);
+  const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch("/api/landing/stats");
-        if (!response.ok) {
-          console.error("Failed to fetch stats:", response.status, response.statusText);
-          return;
-        }
-        const data = await response.json();
-        console.log("Landing stats response:", data);
-        if (data.data) {
-          console.log("Setting stats:", data.data);
-          setStats(data.data);
-        } else {
-          console.error("No data in response:", data);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data) setStats(data.data);
         }
       } catch (error) {
-        console.error("Failed to fetch landing stats:", error);
+        console.error("Failed to fetch stats:", error);
       } finally {
         setLoadingStats(false);
       }
     };
-
     fetchStats();
   }, []);
 
   useEffect(() => {
-    const fetchCampaignPlatforms = async () => {
-      if (selectedStatIndex === 1) { // Campaigns is index 1
-        setLoadingPlatforms(true);
-        try {
-          const response = await fetch("/api/landing/campaign-platforms");
-          if (!response.ok) {
-            console.error("Failed to fetch campaign platforms:", response.status, response.statusText);
-            return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }));
           }
-          const data = await response.json();
-          if (data.data) {
-            setCampaignPlatforms(data.data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch campaign platforms:", error);
-        } finally {
-          setLoadingPlatforms(false);
-        }
-      } else {
-        setCampaignPlatforms(null);
-      }
-    };
+        });
+      },
+      { threshold: 0.1 }
+    );
 
-    fetchCampaignPlatforms();
-  }, [selectedStatIndex]);
+    Object.values(sectionRefs.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Intersection Observer for dynamic browser tab title
+  useEffect(() => {
+    const titleObserver = new IntersectionObserver(
+      (entries) => {
+        // Find the most visible section
+        let maxRatio = 0;
+        let visibleSectionId = "hero";
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
+            visibleSectionId = entry.target.id || "hero";
+          }
+        });
+
+        // Update document title
+        if (maxRatio > 0 && SECTION_TITLES[visibleSectionId]) {
+          document.title = SECTION_TITLES[visibleSectionId];
+        }
+      },
+      {
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+        rootMargin: "-10% 0px -10% 0px",
+      }
+    );
+
+    // Observe all sections including hero
+    Object.values(sectionRefs.current).forEach((ref) => {
+      if (ref) titleObserver.observe(ref);
+    });
+
+    return () => titleObserver.disconnect();
+  }, []);
 
   const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M+";
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "K+";
-    }
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M+";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K+";
     return num.toString() + "+";
-  };
-
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
   };
 
   const statData = [
     {
-      title: "Total Content",
+      title: "Posts Generated",
       value: loadingStats ? "1.2K+" : formatNumber(stats?.totalContentCreated || 1200),
-      description: "Projects, campaigns, and chats across all platforms. Track your content creation journey from start to finish.",
-      date: new Date(),
+      description: "AI-powered content in seconds",
+      icon: Rocket,
     },
     {
-      title: "Campaigns",
-      value: loadingStats ? "46+" : formatNumber(stats?.totalCampaigns || 46),
-      description: "Marketing campaigns planned and executed by users. Strategic content planning for product launches.",
-      date: new Date(),
+      title: "Campaigns Launched",
+      value: loadingStats ? "47+" : formatNumber(stats?.totalCampaigns || 47),
+      description: "Full marketing strategies",
+      icon: BarChart3,
     },
     {
-      title: "Active Users",
-      value: loadingStats ? "145+" : formatNumber(stats?.totalUsers || 145),
-      description: "Growing community of marketers and creators. Join thousands of users building their brand presence.",
-      date: new Date(),
+      title: "Active Creators",
+      value: loadingStats ? "146+" : formatNumber(stats?.totalUsers || 146),
+      description: "Indie devs & founders",
+      icon: Users,
+    },
+  ];
+
+  const features = [
+    {
+      icon: Brain,
+      title: "AI-Powered Strategy",
+      description: "Get a complete marketing roadmap tailored to your product launch timeline.",
+    },
+    {
+      icon: Zap,
+      title: "Instant Content",
+      description: "Generate 30 days of posts in minutes, customized to your brand voice.",
+    },
+    {
+      icon: Calendar,
+      title: "Smart Scheduling",
+      description: "Never miss a post with intelligent scheduling and timely reminders.",
+    },
+    {
+      icon: Target,
+      title: "Multi-Platform",
+      description: "Create content for X, LinkedIn, Instagram, Facebook, and more.",
+    },
+  ];
+
+  const howItWorks = [
+    {
+      step: "01",
+      title: "Describe Your Product",
+      description: "Tell the AI about your project, target audience, and goals.",
+      image: "/how-it-works-step-1.png",
+    },
+    {
+      step: "02",
+      title: "Get Your Strategy",
+      description: "Receive a complete campaign plan with milestones and content ideas.",
+      image: "/how-it-works-step-2.png",
+    },
+    {
+      step: "03",
+      title: "Generate Content",
+      description: "AI creates platform-optimized posts matching your brand voice.",
+      image: "/how-it-works-step-3.png",
+    },
+    {
+      step: "04",
+      title: "Review & Customize",
+      description: "Fine-tune your content with easy editing tools.",
+      image: "/how-it-works-step-4.png",
+    },
+    {
+      step: "05",
+      title: "Schedule & Automate",
+      description: "Plan your posts and get reminders when it's time to publish.",
+      image: "/how-it-works-step-5.png",
+    },
+    {
+      step: "06",
+      title: "Launch & Grow",
+      description: "Track your progress and iterate on what works.",
+      image: "/how-it-works-step-6.png",
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: "Alex R",
+      role: "Digital Marketer",
+      image: "/tmpdj5rdrob.webp",
+      quote: "NextPostAI transformed how I market my product. It's like having a mini CMO in my pocket!",
+    },
+    {
+      name: "Jamie L",
+      role: "Small Business Owner",
+      image: "/tmp6gymd1vw.webp",
+      quote: "I stopped overthinking and just followed the AI's plan. It works.",
+    },
+    {
+      name: "Morgan K",
+      role: "Content Creator",
+      image: "/tmph6iuxe9k.webp",
+      quote: "The campaign timelines helped me organize my entire product launch.",
     },
   ];
 
   const faqs = [
     {
       question: "Is NextPostAI suitable for all social media platforms?",
-      answer: "Yes, it supports Facebook, LinkedIn, X, and Instagram.",
+      answer: "Yes, it supports Facebook, LinkedIn, X, Instagram, Reddit, and Threads with platform-specific optimization.",
     },
     {
       question: "Can I customize the AI-generated content?",
-      answer:
-        "Absolutely! You can edit and tailor the content to fit your brand voice",
+      answer: "Absolutely! You can edit and tailor the content to fit your brand voice, tone, and style.",
     },
     {
       question: "Is there a free trial available?",
-      answer:
-        "A: Yes, we offer a free trial so you can experience the benefits firsthand.",
+      answer: "Yes, we offer a free trial with 100 credits so you can experience the benefits firsthand.",
+    },
+  ];
+
+  const benefits = [
+    {
+      audience: "Entrepreneurs",
+      description: "Launch with confidence using AI-backed strategies",
+    },
+    {
+      audience: "Marketers",
+      description: "Plan campaigns, not just posts",
+    },
+    {
+      audience: "Influencers",
+      description: "Promote offers, collabs, or content drops",
+    },
+    {
+      audience: "Small Businesses",
+      description: "Build brand presence with structured promotion",
     },
   ];
 
@@ -183,548 +286,521 @@ export default function HomeV3() {
               "https://backend.leadconnectorhq.com",
               ".www.nextpostai.com"
             );
-          } catch { }
+          } catch {}
         }}
       />
 
-      <div className="homepage">
-        {/* Section 1 */}
-        <div className="bg-[#000321] relative flex items-center justify-center pt-20 pb-10">
-          <div className="absolute top-0 left-0 w-full h-full bg-top-section z-10 object-fill" />
-          <div className="relative flex flex-col items-center justify-center z-20 w-[90%] md:w-[80%] gap-5">
-            <div className="flex flex-col items-center md:items-start">
-              <p className="text-[#FAA41B] text-2xl">Welcome To</p>
-              <p className="text-6xl md:text-8xl xl:text-9xl font-[900] text-white mt-3 md:mt-0">
+      <div className="landing-page min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
+        {/* Hero Section */}
+        <section
+          id="hero"
+          ref={(el) => { sectionRefs.current["hero"] = el }}
+          className="relative min-h-screen flex items-center justify-center hero-gradient"
+        >
+          {/* Floating orbs */}
+          <div className="floating-orb orb-1" />
+          <div className="floating-orb orb-2" />
+          <div className="floating-orb orb-3" />
+          
+          {/* Grid pattern */}
+          <div className="grid-pattern" />
+          
+          {/* Neural pattern */}
+          <div className="neural-pattern" />
+
+          <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-32">
+            <div className="text-center space-y-8">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-purple-500/30">
+                <Bot className="w-4 h-4 text-purple-400" />
+                <span className="text-sm text-purple-200">AI-Powered Marketing Assistant</span>
+              </div>
+
+              {/* Main heading */}
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white">
                 NextPostAI
+              </h1>
+
+              {/* Tagline */}
+              <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400">
+                Save 10+ Hours a Week on Marketing
+              </p>
+
+              {/* Subheading */}
+              <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto">
+                AI creates launch plans, generates posts for X, LinkedIn, Instagram & Facebook, and sends reminders, so you build instead of post.
+              </p>
+
+              {/* CTA Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <GoogleLoginButton 
+                  triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
+                  buttonText="Start Free with 100 Credits"
+                />
+                <Link 
+                  href="/documentation" 
+                  className="px-8 py-4 text-lg font-semibold rounded-xl border border-white/20 hover:border-purple-500/50 hover:bg-white/5 transition-all flex items-center gap-2"
+                >
+                  Learn More <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+
+              {/* Stats Section */}
+              <div className="pt-16">
+                <p className="text-sm text-gray-400 mb-6 flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full pulse-live" />
+                  Growing Fast — Join the Momentum
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                  {statData.map((stat, index) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div
+                        key={index}
+                        className="glass-card rounded-2xl p-6 text-center cursor-pointer group"
+                      >
+                        <div className="flex justify-center mb-4">
+                          <div className="icon-glow w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                            <Icon className="w-6 h-6 text-purple-400 group-hover:text-purple-300 transition-colors" />
+                          </div>
+                        </div>
+                        <div className="stat-value text-3xl lg:text-4xl font-bold text-white mb-2">
+                          {stat.value}
+                        </div>
+                        <p className="text-purple-300 font-medium mb-1">{stat.title}</p>
+                        <p className="text-gray-400 text-sm">{stat.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-4 text-xs text-gray-500">
+                  Real numbers from real users — updated live.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Scroll indicator */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+            <ChevronDown className="w-6 h-6 text-gray-400" />
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section
+          id="how-it-works"
+          ref={(el) => { sectionRefs.current["how-it-works"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent" />
+          
+          <div className={`relative z-10 max-w-7xl mx-auto px-6 reveal ${isVisible["how-it-works"] ? "visible" : ""}`}>
+            {/* Section header */}
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-cyan-500/30 mb-6">
+                <Lightbulb className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm text-cyan-200">Simple Process</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                <span className="text-white">How It </span>
+                <span className="gradient-text-accent">Works</span>
+              </h2>
+              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                From idea to viral content in minutes, not hours
               </p>
             </div>
-            <p className="text-center text-3xl md:text-5xl xl:text-6xl font-bold text-[#FAA41B]">
-              Marketing Assistant for Apps & Products
-            </p>
-            {/* <p className='text-lg md:text-2xl text-center text-white font-light'>A task manager so clear and simple, it feels like it reads your mind.</p> */}
-            <hr className="my-6 lg:my-10 bg-white w-[50%] lg:w-[40%] h-[1px]" />
-            <div className="flex flex-col lg:flex-row justify-center lg:justify-between items-center gap-5 w-full">
-              {/* Left Column: Button and Stats stacked on large screens */}
-              <div className="flex flex-col gap-5 w-full lg:w-auto items-center lg:items-start">
-                {/* Dashboard Button - Above stats on large screens */}
-                <div className="flex flex-col gap-2 lg:gap-8 items-center lg:items-start w-full lg:w-auto">
-                  <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mb-4 lg:mb-0" />
-                </div>
-                {/* Statistics Section - Below button on large screens */}
-                <div className="w-full lg:w-auto mt-4 lg:mt-0">
-                  {/* Mobile Layout - 3 tiles in one line without descriptions */}
-                  <div className="grid grid-cols-3 gap-3 md:hidden w-full">
-                    {statData.map((stat, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedStatIndex(index)}
-                        className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
-                      >
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
-                        <div className="text-2xl font-bold text-[#FAA41B]">
-                          {stat.value}
-                        </div>
-                        <p className={`text-white ${index === 0 ? 'text-[14px]' : 'text-[12.8px]'} font-light mt-1`}>
-                          {stat.title}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
 
-                  {/* Desktop Layout - 3 Column Grid */}
-                  <div className="hidden md:grid grid-cols-3 gap-6 lg:gap-8">
-                    {statData.map((stat, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedStatIndex(index)}
-                        className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
-                      >
-                        <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
-                        <div className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#FAA41B] mb-2">
-                          {stat.value}
-                        </div>
-                        <p className={`text-white ${index === 0 ? 'text-[11.4px] lg:text-[12.3px]' : 'text-[10.4px] lg:text-[11.2px]'} font-light leading-tight mb-2`}>
-                          {stat.title}
-                        </p>
-                      </button>
-                    ))}
+            {/* Steps grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {howItWorks.map((item, index) => (
+                <div
+                  key={index}
+                  className="feature-card glass-card rounded-3xl p-6 group"
+                >
+                  <div className="relative mb-6 rounded-2xl overflow-hidden">
+                    <Image
+                      src={item.image}
+                      width={400}
+                      height={300}
+                      alt={item.title}
+                      className="w-full h-48 object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-4 left-4 w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-lg font-bold">
+                      {item.step}
+                    </div>
                   </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">{item.title}</h3>
+                  <p className="text-gray-400">{item.description}</p>
                 </div>
+              ))}
+            </div>
 
-                {/* Dialog for stat details - all screens */}
-                <Dialog open={selectedStatIndex !== null} onOpenChange={(open) => !open && setSelectedStatIndex(null)}>
-                  <DialogContent className="bg-[#000321] border-white/20 text-white max-w-[90%] md:max-w-lg">
-                    {selectedStatIndex !== null && (
-                      <div className="flex flex-col gap-4">
-                        <div className="relative flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-xl px-6 py-6 border border-white/20 w-full">
-                          <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot"></div>
-                          <div className="text-4xl font-bold text-[#FAA41B] mb-2">
-                            {statData[selectedStatIndex].value}
-                          </div>
-                          <p className="text-white text-lg font-light">
-                            {statData[selectedStatIndex].title}
-                          </p>
-                        </div>
-                        <p className="text-white text-[15.4px] font-light leading-relaxed text-center">
-                          {statData[selectedStatIndex].description}
-                        </p>
-                        
-                        {/* Platform Breakdown for Campaigns */}
-                        {selectedStatIndex === 1 && (
-                          <div className="mt-4">
-                            <h3 className="text-white text-lg font-semibold mb-3 text-center">
-                              Platform Breakdown
-                            </h3>
-                            {loadingPlatforms ? (
-                              <div className="text-center text-white/60 py-4">
-                                Loading platform data...
-                              </div>
-                            ) : campaignPlatforms && campaignPlatforms.platformBreakdown.length > 0 ? (
-                              <div className="space-y-2">
-                                {campaignPlatforms.platformBreakdown.map((platform) => {
-                                  const percentage = campaignPlatforms.totalCampaigns > 0
-                                    ? ((platform.count / campaignPlatforms.totalCampaigns) * 100).toFixed(0)
-                                    : 0;
-                                  return (
-                                    <div key={platform.platform} className="flex flex-col gap-1">
-                                      <div className="flex items-center justify-between text-sm">
-                                        <span className="text-white font-medium">
-                                          {platform.displayName}
-                                        </span>
-                                        <span className="text-[#FAA41B] font-semibold">
-                                          {platform.count} ({percentage}%)
-                                        </span>
-                                      </div>
-                                      <div className="w-full bg-white/10 rounded-full h-2">
-                                        <div
-                                          className="bg-[#FAA41B] h-2 rounded-full transition-all"
-                                          style={{ width: `${percentage}%` }}
-                                        />
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="text-center text-white/60 py-4">
-                                No platform data available
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        <p className="text-white text-sm font-light text-center text-[#FAA41B] mt-2">
-                          Last updated: {formatDate(statData[selectedStatIndex].date)}
-                        </p>
-                      </div>
-                    )}
-                  </DialogContent>
-                </Dialog>
-              </div>
-              <Image
-                src="/tmpu3cg1514.webp"
-                width={600}
-                height={600}
-                alt="image"
-                className="hidden lg:block max-w-96"
+            {/* CTA */}
+            <div className="text-center mt-12">
+              <GoogleLoginButton 
+                triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white"
+                buttonText="Start Free with 100 Credits"
               />
             </div>
           </div>
-        </div>
-
-        {/* Section 2 - How It Works */}
-        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-5">
-          <div className="w-full h-full bg-[#FAA41B] rounded-[30px] md:rounded-[80px] px-2 py-10 md:p-16 flex flex-col items-center justify-center gap-16">
-            <p className="font-bold text-5xl md:text-5xl">How It Works</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-8 px-5 md:px-0">
-              {[
-                {
-                  title: "Step 1",
-                  content:
-                    "Get started with your marketing journey",
-                  image: "/how-it-works-step-1.png",
-                },
-                {
-                  title: "Step 2",
-                  content:
-                    "Configure your campaign settings",
-                  image: "/how-it-works-step-2.png",
-                },
-                {
-                  title: "Step 3",
-                  content:
-                    "Generate your content with AI",
-                  image: "/how-it-works-step-3.png",
-                },
-                {
-                  title: "Step 4",
-                  content:
-                    "Review and customize your content",
-                  image: "/how-it-works-step-4.png",
-                },
-                {
-                  title: "Step 5",
-                  content:
-                    "Schedule and plan your posts",
-                  image: "/how-it-works-step-5.png",
-                },
-                {
-                  title: "Step 6",
-                  content:
-                    "Publish and track your results",
-                  image: "/how-it-works-step-6.png",
-                },
-              ].map((data, idx) => (
-                <div
-                  className="flex flex-col items-center justify-center"
-                  key={idx}
-                >
-                  <Image
-                    src={data.image}
-                    width={400}
-                    height={400}
-                    className="max-w-full mb-5 rounded-lg shadow-lg"
-                    alt={data.title}
-                  />
-                  <p className="text-lg font-semibold text-center">
-                    {data.title}
-                  </p>
-                  <p className="text-sm text-white text-center">
-                    {data.content}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {/* <button className='px-12 py-2 bg-white text-lg w-fit rounded-3xl mt-6 lg:mt-0'>Get Started Now</button> */}
-            <GoogleLoginButton triggerClassName="px-12 py-2 bg-white text-black text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
-          </div>
         </section>
 
-        {/* Section 3 - The NextPostAI Advantage */}
-        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-24 gap-10">
-          <div className="text-center">
-            <h2 className="text-3xl md:text-5xl font-light">
-              The{" "}
-              <span className="text-[#FAA41B] font-semibold">NextPostAI</span>{" "}
-              Advantage
-            </h2>
-            <hr className="border-t border-gray-600 mt-3 w-24 mx-auto" />
-          </div>
+        {/* Divider */}
+        <div className="section-divider" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 text-white place-items-center">
-            {/* Traditional Approach */}
-            <div>
-              <h3 className="text-3xl font-bold mb-2 text-black dark:text-white">
-                Traditional Approach
-              </h3>
-              <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
-              <ul className="space-y-3 text-base font-light text-black dark:text-white">
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">✖</span> Time-consuming trend
-                  analysis
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">✖</span> Inconsistent posting
-                  schedule
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">✖</span> Manual content
-                  creation
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">✖</span> No structure for
-                  long-term planning
-                </li>
-              </ul>
-            </div>
-
-            {/* With NextPostAI */}
-            <div>
-              <h3 className="text-3xl font-bold mb-2 text-black dark:text-white">
-                With NextPostAI
-              </h3>
-              <div className="w-10 h-1 bg-[#FAA41B] mb-6" />
-              <ul className="space-y-3 text-base font-light text-black dark:text-white">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Smart marketing
-                  plans built with AI
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Instant post & promo
-                  content generation
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Reminders to stay on
-                  track
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> Access to a
-                  supportive creator community
-                </li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 4 - Why Choose NextPostAI */}
-        <section className="flex flex-col w-full justify-center px-5 md:px-20 lg:px-36 mt-20 gap-5">
-          <div className="flex w-full flex-col sm:flex-row gap-5 items-center justify-between">
-            <div className="flex flex-col justify-center">
-              <p className="text-5xl">Why Choose</p>
-              <p className="text-5xl font-medium mt-2">
-                <span className="text-[#FAA41B] mr-[2px] font-bold">
-                  NextPostAI
-                </span>
-                ?
-              </p>
-              <hr className="bg-[#FAA41B] w-24 h-[6px] mt-5" />
-            </div>
-            <Image
-              src="/tmp0u5_noks.webp"
-              width={500}
-              height={500}
-              alt="image"
-              className="max-w-72 -mt-5"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[
-              {
-                title: "Marketing Strategy Assistant",
-                content:
-                  "Go beyond posts - map out your entire promotional journey with timelines and goals tailored to your product.",
-              },
-              {
-                title: "Smart Calendar",
-                content:
-                  "Schedule content and get timely reminders to stay visible and consistent across platforms.",
-              },
-              {
-                title: "AI-Driven Post & Campaign Generator",
-                content:
-                  "Generate posts, announcements, and promotional ideas that align with your marketing milestones.",
-              },
-              {
-                title: "Community Inspiration",
-                content:
-                  "Explore real-world campaigns, see what others are doing, and gather fresh ideas from fellow builders.",
-              },
-            ].map((data, idx) => (
-              <div className="flex flex-row gap-1" key={idx}>
-                <p>
-                  <LoaderIcon />
-                </p>
-                <div className="flex flex-col gap-2">
-                  <p className="text-xl font-medium">{data.title}</p>
-                  <p className="text-sm font-light">{data.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
-          <div className="bg-[#222639] text-white rounded-t-[80px] rounded-b-[80px] py-16 px-10 md:px-16 flex flex-col items-center gap-12">
-            <h2 className="text-4xl md:text-5xl text-[#FAA41B] font-medium text-center">
-              Testimonials
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-              {[
-                {
-                  name: "Alex R",
-                  role: "Digital Marketer",
-                  image: "/tmpdj5rdrob.webp",
-                  quote:
-                    "NextPostAI transformed how I market my product. It’s like having a mini CMO in my pocket!",
-                },
-                {
-                  name: "Jamie L",
-                  role: "Small Business Owner",
-                  image: "/tmp6gymd1vw.webp",
-                  quote:
-                    "I stopped overthinking and just followed the AI’s plan. It works.",
-                },
-                {
-                  name: "Morgan K",
-                  role: "Content Creator",
-                  image: "/tmph6iuxe9k.webp",
-                  quote:
-                    "The campaign timelines helped me organize my entire product launch.",
-                },
-              ].map((user, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white dark:bg-gray-300 text-black rounded-2xl p-6 flex flex-col gap-4 items-start"
-                >
-                  <Image
-                    width={40}
-                    height={40}
-                    src={user.image}
-                    alt={user.name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div className="text-yellow-500 text-lg">★★★★★</div>
-                  <p className="text-sm font-normal">
-                    &quot;{user.quote}&quot;
-                  </p>
-                  <div>
-                    <p className="font-bold">{user.name}</p>
-                    <p className="text-xs text-gray-500">({user.role})</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center mt-8">
-              <p className="text-white text-lg mb-4">Ready to get started?</p>
-              <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
-            </div>
-          </div>
-        </section>
-
-        <section className="w-full px-5 md:px-20 lg:px-36 mt-24">
-          {/* Mobile-Friendly Design */}
-          <div className="flex flex-col md:flex-row items-center justify-around gap-10 mb-16">
-            <Image
-              width={200}
-              height={200}
-              src="/mobile-icon.webp"
-              alt="Mobile Design"
-              className="w-40 md:w-60"
-            />
-            <div className="flex flex-col max-w-xl">
-              <h3 className="text-3xl md:text-5xl font-bold text-[#0F1124] dark:text-white">
-                Mobile-Friendly <br />
-                <span className="text-[#FAA41B]">Design</span>
-              </h3>
-              <div className="w-10 h-1 bg-[#FAA41B] my-4" />
-              <p className="text-sm md:text-lg text-[#0F1124] dark:text-white">
-                Access NextPostAI on any device. Whether you&apos;re on the go
-                or at your desk, your marketing tools are always within reach.
-              </p>
-            </div>
-          </div>
-
-          <hr className="border-t border-gray-300 mb-16" />
-
-          {/* Privacy & Security */}
-          <div className="flex flex-col md:flex-row items-center justify-around gap-10">
-            <div className="flex flex-col max-w-xl order-2 md:order-1">
-              <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">
-                Privacy <span className="text-[#0F1124] dark:text-white">& Security</span>
-              </h3>
-              <div className="w-10 h-1 bg-[#FAA41B] my-4" />
-              <ul className="list-disc pl-5 space-y-2 text-[#0F1124] dark:text-white text-sm md:text-lg">
-                <li>100% free to start - no credit card required</li>
-                <li>Upgrade later for pro features</li>
-                <li>Stay with the free version if that’s all you need</li>
-                <li>30-second signup, full productivity support</li>
-              </ul>
-            </div>
-            <Image
-              width={200}
-              height={200}
-              src="/privacy-icon.webp"
-              alt="Privacy"
-              className="w-40 md:w-60 order-1 md:order-2"
-            />
-          </div>
-        </section>
-
-        <section className="w-full mt-24 md:mt-48 px-4 md:px-8 lg:px-20 flex flex-col items-center">
-          {/* Who Can Benefit */}
-          <div className="bg-[#FAA41B] text-white pt-24 skew-y-[-5deg] w-full relative pb-56">
-            <div
-              className="absolute left-0 -top-16 md:-top-[87px] inset-0 bg-[#222639] h-14 w-56 md:h-20 md:w-96"
-              style={{
-                clipPath: "polygon(0 0, 21% 64%, 100% 100%, 0% 100%)",
-              }}
-            />
-            <div
-              className="absolute right-0 -bottom-8 bg-[#222639] h-7 w-24"
-              style={{
-                clipPath: "polygon(0 0, 100% 0, 100% 100%, 100% 100%)",
-              }}
-            />
-            <div className="skew-y-[5deg] max-w-3xl mx-auto flex flex-col items-center pt-5">
-              <h2 className="text-3xl md:text-5xl font-light mb-6">
-                Who Can Benefit?
+        {/* Comparison Section */}
+        <section
+          id="comparison"
+          ref={(el) => { sectionRefs.current["comparison"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className={`max-w-7xl mx-auto px-6 reveal ${isVisible["comparison"] ? "visible" : ""}`}>
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                <span className="text-white">Stop Wasting Hours. </span>
+                <span className="gradient-text-accent">Get This Instead</span>
               </h2>
-              <ul className="text-left space-y-4 text-base md:text-lg font-light px-5">
-                <li>
-                  <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Entrepreneurs:</span> Launch
-                  with confidence using AI-backed strategies
-                </li>
-                <li>
-                  <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Marketers:</span> Plan
-                  campaigns, not just posts
-                </li>
-                <li>
-                  <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Influencers:</span> Promote
-                  offers, collabs, or content drops
-                </li>
-                <li>
-                  <span className="mr-2">🟡</span>
-                  <span className="font-semibold">Small Businesses:</span> Build
-                  brand presence with structured promotion
-                </li>
-              </ul>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Traditional Approach */}
+              <div className="comparison-card negative glass-card rounded-3xl p-8">
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                    <X className="w-5 h-5 text-red-400" />
+                  </div>
+                  Traditional Approach
+                </h3>
+                <ul className="space-y-4">
+                  {[
+                    "Spend 5–15 hours/week analyzing trends & brainstorming",
+                    "Post inconsistently and lose momentum",
+                    "Write everything manually (takes forever)",
+                    "No real long-term plan – just random posts",
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-gray-300">
+                      <X className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* With NextPostAI */}
+              <div className="comparison-card positive glass-card rounded-3xl p-8 animated-border">
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-green-400" />
+                  </div>
+                  With NextPostAI
+                </h3>
+                <ul className="space-y-4">
+                  {[
+                    "Save 10+ hours/week – AI handles strategy & planning",
+                    "Never miss a post – Smart calendar + timely reminders",
+                    "30 days of content in minutes – Instant generation",
+                    "Stay consistent & grow – Full promo journey",
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-gray-200 font-medium">
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-gray-500 mt-8">
+              Typical time savings reported by indie tools & builders.
+            </p>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="section-divider" />
+
+        {/* Features Section */}
+        <section
+          id="features"
+          ref={(el) => { sectionRefs.current["features"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className={`max-w-7xl mx-auto px-6 reveal ${isVisible["features"] ? "visible" : ""}`}>
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+              <div className="lg:w-1/2">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                  <span className="text-white">Why Choose </span>
+                  <span className="gradient-text-accent">NextPostAI</span>
+                  <span className="text-white">?</span>
+                </h2>
+                <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full mb-6" />
+                <p className="text-gray-400 text-lg mb-8">
+                  Everything you need to launch and grow your product with consistent, 
+                  engaging content — without the marketing headache.
+                </p>
+                <Image
+                  src="/tmp0u5_noks.webp"
+                  width={400}
+                  height={400}
+                  alt="AI Marketing"
+                  className="hidden lg:block max-w-sm"
+                />
+              </div>
+
+              <div className="lg:w-1/2 grid gap-6">
+                {features.map((feature, idx) => {
+                  const Icon = feature.icon;
+                  return (
+                    <div
+                      key={idx}
+                      className="feature-card glass-card rounded-2xl p-6 flex gap-5"
+                    >
+                      <div className="icon-glow w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-7 h-7 text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                        <p className="text-gray-400">{feature.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-
-          {/* Get Started Today */}
-          <div className="bg-[#222639] text-white w-full md:w-[70%] px-5 md:px-20 lg:px-36 py-20 rounded-[60px] text-center -mt-36 z-20">
-            <h2 className="text-4xl md:text-5xl font-bold mb-10">
-              Get Started Today
-            </h2>
-            <p className="text-sm md:text-base font-light max-w-xl mx-auto mb-10">
-              Experience the power of having a smart marketing assistant by your
-              side. <br />
-              Sign up now and simplify your promotional strategy.
-            </p>
-            <GoogleLoginButton triggerClassName="px-12 py-3 text-black bg-[#FAA41B] text-lg w-fit rounded-3xl mt-6 lg:mt-0" />
-          </div>
         </section>
 
-        <section className="w-full px-5 md:px-20 lg:px-36 mt-24 mb-12">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-4xl text-[#0F1124] dark:text-white font-light">
-              Frequently
-            </h2>
-            <h3 className="text-3xl md:text-5xl font-bold text-[#FAA41B]">
-              Asked Questions
-            </h3>
-          </div>
+        {/* Divider */}
+        <div className="section-divider" />
 
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <div key={idx} className="border rounded-md overflow-hidden">
-                <button
-                  onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
-                  className="w-full bg-[#222639] text-white px-6 py-4 text-left font-semibold flex justify-between items-center"
-                >
-                  <span>
-                    Question {idx + 1}: {faq.question}
-                  </span>
-                  <span className="text-lg">
-                    {openIndex === idx ? "▴" : "▾"}
-                  </span>
-                </button>
-                {openIndex === idx && (
-                  <div className="bg-white dark:bg-transparent text-[#222639] dark:text-white px-6 pt-6 pb-4 text-sm">
-                    {faq.answer}
-                  </div>
-                )}
+        {/* Testimonials Section */}
+        <section
+          id="testimonials"
+          ref={(el) => { sectionRefs.current["testimonials"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className="absolute inset-0 cta-gradient" />
+          
+          <div className={`relative z-10 max-w-7xl mx-auto px-6 reveal ${isVisible["testimonials"] ? "visible" : ""}`}>
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-yellow-500/30 mb-6">
+                <MessageSquare className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm text-yellow-200">What People Say</span>
               </div>
-            ))}
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold">
+                <span className="gradient-text-accent">Testimonials</span>
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial, idx) => (
+                <div key={idx} className="testimonial-card rounded-3xl p-8">
+                  <div className="flex items-center gap-4 mb-6">
+                    <Image
+                      src={testimonial.image}
+                      width={50}
+                      height={50}
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="font-semibold text-white">{testimonial.name}</p>
+                      <p className="text-sm text-gray-400">{testimonial.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Sparkles key={i} className="w-5 h-5 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-300 leading-relaxed">
+                    &ldquo;{testimonial.quote}&rdquo;
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-16">
+              <p className="text-gray-400 text-lg mb-6">Ready to get started?</p>
+              <GoogleLoginButton 
+                triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white"
+                buttonText="Start Free with 100 Credits"
+              />
+            </div>
           </div>
         </section>
 
-          <Footer />
+        {/* Mobile & Privacy Section */}
+        <section
+          id="trust"
+          ref={(el) => { sectionRefs.current["trust"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className={`max-w-7xl mx-auto px-6 reveal ${isVisible["trust"] ? "visible" : ""}`}>
+            <div className="grid md:grid-cols-2 gap-16">
+              {/* Mobile Friendly */}
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                  <Smartphone className="w-12 h-12 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-bold text-white mb-3">
+                    Mobile-Friendly <span className="gradient-text-accent">Design</span>
+                  </h3>
+                  <p className="text-gray-400 leading-relaxed">
+                    Access NextPostAI on any device. Whether you&apos;re on the go or at your desk, 
+                    your marketing tools are always within reach.
+                  </p>
+                </div>
+              </div>
+
+              {/* Privacy */}
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-12 h-12 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-bold gradient-text-accent mb-3">
+                    Privacy <span className="text-white">& Security</span>
+                  </h3>
+                  <ul className="text-gray-400 space-y-2">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-400" /> 100% free to start
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-400" /> Upgrade later for pro features
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-400" /> 30-second signup
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="section-divider" />
+
+        {/* Who Can Benefit */}
+        <section
+          id="benefits"
+          ref={(el) => { sectionRefs.current["benefits"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-transparent to-transparent" />
+          
+          <div className={`relative z-10 max-w-4xl mx-auto px-6 text-center reveal ${isVisible["benefits"] ? "visible" : ""}`}>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-12">
+              <span className="text-white">Who Can </span>
+              <span className="gradient-text-accent">Benefit?</span>
+            </h2>
+
+            <div className="grid sm:grid-cols-2 gap-6">
+              {benefits.map((benefit, idx) => (
+                <div key={idx} className="glass-card rounded-2xl p-6 text-left flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-lg">{benefit.audience}</p>
+                    <p className="text-gray-400">{benefit.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA Section */}
+        <section
+          id="cta"
+          ref={(el) => { sectionRefs.current["cta"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className="absolute inset-0 cta-gradient" />
+          
+          <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+              <span className="text-white">Ready to Save 10+ Hours </span>
+              <br />
+              <span className="gradient-text-accent">& Launch Smarter?</span>
+            </h2>
+            <p className="text-gray-300 text-lg mb-10 max-w-2xl mx-auto">
+              Join 146+ creators using AI to plan, post, and grow — free to start.
+            </p>
+            <GoogleLoginButton 
+              triggerClassName="glow-button px-10 py-5 text-xl font-bold rounded-2xl text-white inline-flex items-center gap-3"
+              buttonText="Start Free with 100 Credits"
+            />
+            <p className="text-gray-400 text-sm mt-6">
+              No card required. Upgrade anytime for unlimited.
+            </p>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="section-divider" />
+
+        {/* FAQ Section */}
+        <section
+          id="faq"
+          ref={(el) => { sectionRefs.current["faq"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className={`max-w-3xl mx-auto px-6 reveal ${isVisible["faq"] ? "visible" : ""}`}>
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-bold mb-2">
+                <span className="text-white">Frequently </span>
+                <span className="gradient-text-accent">Asked Questions</span>
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              {faqs.map((faq, idx) => (
+                <div
+                  key={idx}
+                  className={`faq-item rounded-2xl overflow-hidden ${openFaq === idx ? "open" : ""}`}
+                >
+                  <button
+                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                    className="w-full p-6 text-left flex items-center justify-between gap-4 bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <span className="font-semibold text-white">{faq.question}</span>
+                    {openFaq === idx ? (
+                      <ChevronUp className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    )}
+                  </button>
+                  {openFaq === idx && (
+                    <div className="px-6 pb-6 text-gray-300">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-white/10 py-12">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex items-center gap-6 text-sm text-gray-400">
+                <Link href="/ideas" className="hover:text-white transition-colors">Ideas</Link>
+                <Link href="/documentation" className="hover:text-white transition-colors">Documentation</Link>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
+              </div>
+              <p className="text-sm text-gray-500">
+                Copyright © 2025. All rights reserved. NextPostAI
+              </p>
+            </div>
+          </div>
+        </footer>
       </div>
     </>
   );

@@ -28,6 +28,10 @@ export default async function UsernamePage({
     "checkout",
     "_next",
     "favicon.ico",
+    "landing",
+    "landing-preview",
+    "documentation",
+    "terms",
   ];
 
   if (knownRoutes.includes(username.toLowerCase())) {

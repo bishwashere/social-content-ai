@@ -29,6 +29,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/error") ||
     pathname.startsWith("/checkout") ||
     pathname.startsWith("/documentation") ||
+    pathname.startsWith("/landing") ||
+    pathname.startsWith("/landing-preview") ||
     normalizedPath === "/receive" || // Skip /receive (webhook endpoint, should be /ideas/receive but handle legacy)
     pathname === "/receive" || // Also check original pathname
     pathname === "/" ||
