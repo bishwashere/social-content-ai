@@ -104,7 +104,7 @@ export default function ModernLanding() {
       icon: BarChart3,
     },
     {
-      title: "Active Creators",
+      title: "Creators on the Platform",
       value: loadingStats ? "146+" : formatNumber(stats?.totalUsers || 146),
       description: "Indie devs & founders",
       icon: Users,

@@ -17,12 +17,29 @@ export const GET = catchApiAsyncError(async (_req: NextRequest, _params?: Params
       totalProjectChats,
       totalCampaignChats,
       totalUsers,
+      usersWithAvatars,
     ] = await Promise.all([
       prisma.projects.count(),
       prisma.campaignPlanner.count(),
       prisma.projectChat.count(),
       prisma.campaignChat.count(),
       prisma.user.count(),
+      // Fetch 50 users with avatars for display
+      prisma.user.findMany({
+        where: {
+          avatarUrl: {
+            not: "",
+          },
+        },
+        select: {
+          avatarUrl: true,
+          name: true,
+        },
+        take: 50,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
     ]);
 
     // Calculate total content created
@@ -37,6 +54,7 @@ export const GET = catchApiAsyncError(async (_req: NextRequest, _params?: Params
       totalCampaignChats,
       totalUsers,
       totalContentCreated,
+      usersWithAvatarsCount: usersWithAvatars.length,
     });
 
     return sendNextResponse({
@@ -46,6 +64,7 @@ export const GET = catchApiAsyncError(async (_req: NextRequest, _params?: Params
         totalContentCreated,
         totalCampaigns,
         totalUsers,
+        userAvatars: usersWithAvatars,
       },
     });
   } catch (error) {

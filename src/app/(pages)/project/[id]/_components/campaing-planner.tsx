@@ -61,6 +61,8 @@ import { TimePickerDialog } from "@/components/common/time-picker";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
+import { markDemoCampaignCreated } from "@/server-actions/user-flags";
+import { ProjectLocationTour } from "@/components/common/project-location-tour";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -643,8 +645,9 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [demoCursor, setDemoCursor] = useState<{ x: number; y: number }>({ x: -100, y: -100 });
   const [demoHighlight, setDemoHighlight] = useState<DOMRect | null>(null);
   const [demoLabel, setDemoLabel] = useState<string>("");
-  const [demoFeatureTourOpen, setDemoFeatureTourOpen] = useState(false);
   const [showPreDemoMessage, setShowPreDemoMessage] = useState(false); // New state for centered message BEFORE demo
+  const [showProjectLocationTour, setShowProjectLocationTour] = useState(false);
+  const projectLocationTourShownRef = useRef(false);
   const showCampaignFormRef = useRef(showCampaignForm);
 
   useEffect(() => {
@@ -662,6 +665,7 @@ export default function CampaignPlannerPage({ project }: Props) {
     const shouldAutoplay =
       searchParams.get("autoplay") === "1" ||
       searchParams.get("autoplayCampaign") === "1";
+    const fromOnboarding = searchParams.get("fromOnboarding") === "1";
 
     if (!shouldAutoplay) return;
     if (demoRanRef.current) return;
@@ -765,14 +769,131 @@ export default function CampaignPlannerPage({ project }: Props) {
       demoRanRef.current = true;
       demoStartPendingRef.current = false;
 
-      // Clean the URL so refresh doesn't replay the demo (only once we truly start)
+      // Clean the URL and check if we need to do project selection flow
+      let shouldShowProjectSelection = false;
       try {
-        // Use history.replaceState to avoid re-triggering this effect (which would cancel the in-flight demo).
         const url = new URL(window.location.href);
+        shouldShowProjectSelection = url.searchParams.get("fromOnboarding") === "1";
         url.searchParams.delete("autoplay");
         url.searchParams.delete("autoplayCampaign");
+        url.searchParams.delete("fromOnboarding");
         window.history.replaceState({}, "", url.toString());
-      } catch { }
+      } catch (err) {
+        console.error('[DEMO] Error parsing URL:', err);
+      }
+
+      // If coming from onboarding, show project selection demo first
+      if (shouldShowProjectSelection) {
+        console.log('[DEMO] Coming from onboarding, showing project selection demo');
+        
+        // Show welcome message
+        flushSync(() => {
+          setShowPreDemoMessage(true);
+        });
+        
+        await sleep(2000);
+        
+        if (demoCancelledRef.current) return;
+        
+        // Hide message and start animated demo
+        flushSync(() => {
+          setShowPreDemoMessage(false);
+          setDemoActive(true);
+        });
+        
+        setDemoLabel("Let me show you where your projects are");
+        await sleep(800);
+        
+        if (demoCancelledRef.current) return;
+        
+        // Step 1: Expand sidebar if collapsed
+        console.log('[DEMO] Checking sidebar state');
+        const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
+        if (sidebarElement?.getAttribute('data-state') === 'collapsed') {
+          const railButton = document.querySelector('[data-sidebar="rail"]') as HTMLElement;
+          if (railButton) {
+            await clickEl(railButton, "Opening sidebar");
+            await sleep(400);
+          }
+        }
+        
+        if (demoCancelledRef.current) return;
+        
+        // Step 2: Click project selector
+        console.log('[DEMO] Looking for project selector');
+        const projectSelector = await waitFor(
+          () => document.querySelector('[data-project-selector="true"]') as HTMLElement | null,
+          5000
+        );
+        
+        if (!projectSelector) {
+          console.error('[DEMO] Project selector not found');
+          setDemoActive(false);
+        } else {
+          await clickEl(projectSelector, "This is where you switch projects");
+          await sleep(1500);
+          
+          if (demoCancelledRef.current) return;
+          
+          // Step 3: Show the project in the list (but don't click it, just highlight)
+          console.log('[DEMO] Highlighting current project in list');
+          const currentProjectButton = await waitFor(
+            () => document.querySelector(`[data-project-item="true"][data-project-id="${projectId}"]`) as HTMLElement | null,
+            5000
+          );
+          
+          if (currentProjectButton) {
+            await moveTo(currentProjectButton, `"${project?.name}" is your current project`);
+            await sleep(2000);
+            
+            if (demoCancelledRef.current) return;
+            
+            // Close the popover by clicking outside or pressing escape
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+            await sleep(500);
+          }
+        }
+        
+        // Stop the animated demo
+        setDemoActive(false);
+        setDemoHighlight(null);
+        setDemoCursor({ x: -100, y: -100 });
+        setDemoLabel("");
+        
+        await sleep(500);
+      }
+
+      // Continue with normal demo flow
+      
+      // Skip the project location tour for first-time users coming from onboarding
+      // since we just showed them the project selector in the animated demo
+      if (shouldShowProjectSelection) {
+        projectLocationTourShownRef.current = true; // Mark as shown so it doesn't appear
+      }
+
+      // NEW: After credit modal closes, show project location tour ONCE
+      // Only show if NOT coming from onboarding (since we already showed project selector)
+      if (!projectLocationTourShownRef.current) {
+        console.log('[DEMO] Showing project location tour');
+        projectLocationTourShownRef.current = true;
+        setShowProjectLocationTour(true);
+        
+        // Wait for tour to be dismissed by user (check DOM or wait for state change)
+        // We'll poll to check if tour is still open by checking if the component is rendered
+        while (!demoCancelledRef.current) {
+          await sleep(200);
+          // Check if tour dialog is still in DOM
+          const tourElement = document.querySelector('[data-tour="project-location"]');
+          if (!tourElement) {
+            break;
+          }
+        }
+        await sleep(500); // Brief pause after tour closes
+        console.log('[DEMO] Project location tour completed');
+      }
+
+      if (demoCancelledRef.current) return;
 
       // Show centered message BEFORE starting demo
       console.log('Setting showPreDemoMessage to true');
@@ -894,8 +1015,8 @@ export default function CampaignPlannerPage({ project }: Props) {
         }
       }
 
-      // After expanding, show a quick feature explanation (auto-post + AI generate).
-      // Wait for the controls to exist in the DOM (desktop view).
+      // After expanding, the demo is complete
+      // Wait for the controls to exist in the DOM to ensure campaign is fully loaded
       await waitFor(
         () =>
           document.querySelector(
@@ -908,7 +1029,13 @@ export default function CampaignPlannerPage({ project }: Props) {
       setDemoHighlight(null);
       setDemoCursor({ x: -100, y: -100 });
       setDemoLabel("");
-      setDemoFeatureTourOpen(true);
+      
+      // Mark demo campaign as created in database
+      if (session?.user?.id) {
+        markDemoCampaignCreated(session.user.id).catch(console.error);
+      }
+      
+      console.log('[DEMO] Demo completed successfully');
       return;
     })();
     return () => {
@@ -918,7 +1045,7 @@ export default function CampaignPlannerPage({ project }: Props) {
         demoStartPendingRef.current = false;
       }
     };
-  }, [searchParams, router, project?.name]);
+  }, [searchParams, router, project?.name, session?.user?.id]);
 
   const [showPast, setShowPast] = useState(false);
 
@@ -1361,14 +1488,14 @@ export default function CampaignPlannerPage({ project }: Props) {
           setDemoHighlight(null);
           setDemoCursor({ x: -100, y: -100 });
           setDemoLabel("");
-          setDemoFeatureTourOpen(false);
           setShowPreDemoMessage(false);
+          setShowProjectLocationTour(false);
         }}
       />
-      <CampaignDemoFeatureTour
-        isOpen={demoFeatureTourOpen}
-        onClose={() => setDemoFeatureTourOpen(false)}
-        campaignId={demoCampaignIdRef.current}
+      <ProjectLocationTour
+        isOpen={showProjectLocationTour}
+        onClose={() => setShowProjectLocationTour(false)}
+        projectName={project?.name || "your project"}
       />
       {!showCampaignForm && (
         <Button 

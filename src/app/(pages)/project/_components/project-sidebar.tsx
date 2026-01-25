@@ -295,6 +295,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
           <PopoverTrigger asChild>
             <button
+              data-project-selector="true"
               ref={(el) => {
                 if (elementRefs && el) {
                   elementRefs.current.projects = el;
@@ -360,6 +361,9 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       return (
                         <button
                           key={project.id}
+                          data-project-item="true"
+                          data-project-id={project.id}
+                          data-project-name={project.name}
                           onClick={() => handleProjectSelect(project.id)}
                           className={cn(
                             "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",

@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import { MoveRight } from "lucide-react";
+import { MoveRight, Lock, Shield, Check } from "lucide-react";
 import { EmailLogin } from "./email-login.";
 import Link from "next/link";
 
@@ -95,9 +95,6 @@ const GoogleLoginButton = ({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-center text-xl">
-                Welcome Back
-              </DialogTitle>
               <DialogDescription className="text-center">
                 Sign in to your account to continue
               </DialogDescription>
@@ -124,8 +121,25 @@ const GoogleLoginButton = ({
                 Login with Email
               </Button>
 
-              <div className="mt-4 text-sm text-muted-foreground text-center">
-                By continuing, you agree to our <br />
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Encrypted Connection</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Privacy Protected</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>No credit card required</span>
+                </div>
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground text-center">
+                By continuing, you agree to our{" "}
                 <Link href={"/privacy"} className="underline">
                   Terms of Service and Privacy Policy.
                 </Link>

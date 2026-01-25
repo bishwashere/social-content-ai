@@ -86,8 +86,15 @@ export default function Home() {
     if (projectSelectionCallbackRef.current) {
       projectSelectionCallbackRef.current(projectId);
     }
+    
+    // Only trigger autoplay demo if user hasn't created a demo campaign before
+    const hasCreatedDemoCampaign = session?.user?.demoCampaignCreated;
+    const targetUrl = hasCreatedDemoCampaign 
+      ? `/project/${projectId}?tab=campaign`
+      : `/project/${projectId}?tab=campaign&autoplay=1&fromOnboarding=1`;
+    
     setTimeout(() => {
-      router.push(`/project/${projectId}?tab=campaign&autoplay=1`);
+      router.push(targetUrl);
     }, 400);
   };
 

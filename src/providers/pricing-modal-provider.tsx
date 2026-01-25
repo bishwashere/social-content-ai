@@ -7,6 +7,7 @@ import { FreeCreditsCongratsModal } from "@/components/common/free-credits-congr
 import { useAssignBasicTokens, useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { isSubscriptionExpired } from "@/lib/sub";
+import { markFreeCreditsCongratsShown } from "@/server-actions/user-flags";
 
 type PricingModalContextType = {
   open: boolean;
@@ -56,6 +57,14 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
     if (!userId) return;
     if (projects.isLoading) return;
 
+    // Check if user has already seen the congrats modal (from database)
+    if (data?.user?.freeCreditsCongratsShown) {
+      return;
+    }
+    
+    // Prevent showing multiple times in the same session
+    if (firstProjectCongratsShownRef.current) return;
+
     // Only for the "first project just exists" scenario.
     const projectsCount = projects.data?.length ?? 0;
     if (projectsCount !== 1) return;
@@ -66,15 +75,11 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
       isSubscriptionExpired(data.subscription.endsAt).isExpired;
     if (!hasNoSubscription) return;
 
-    // Don't show repeatedly.
-    const storageKey = `first_project_free_credits_shown__${userId}`;
-    if (typeof window !== "undefined" && localStorage.getItem(storageKey) === "1") return;
-    if (firstProjectCongratsShownRef.current) return;
-
+    // Mark as shown in session
     firstProjectCongratsShownRef.current = true;
-    if (typeof window !== "undefined") {
-      localStorage.setItem(storageKey, "1");
-    }
+    
+    // Mark as shown in database
+    markFreeCreditsCongratsShown(userId).catch(console.error);
 
     // Ensure the user actually has credits if they were at 0 for any reason.
     if ((data?.user?.remainingChatGenerations ?? 0) <= 0) {
@@ -83,7 +88,8 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
 
     // Show immediately.
     showFreeCreditsCongratsWithDelay(0);
-  }, [assignBasicTokens, data?.subscription, data?.user?.id, data?.user?.remainingChatGenerations, projects.data, projects.isLoading]);
+  }, [assignBasicTokens, data?.subscription, data?.user?.id, data?.user?.freeCreditsCongratsShown, data?.user?.remainingChatGenerations, projects.data, projects.isLoading]);
+  
   const handleCoinsFinished = () => {
     // If user has no tokens and no subscription, show pricing modal
     const hasNoTokens = (data?.user?.remainingChatGenerations || 0) <= 0;

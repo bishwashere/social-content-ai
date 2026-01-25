@@ -16,6 +16,8 @@ model User {
   idFromProvider                   String
   remainingChatGenerations         Int       @default(100)
   hasClaimedFreeTrial              Boolean   @default(false)
+  freeCreditsCongratsShown         Boolean   @default(false)
+  demoCampaignCreated              Boolean   @default(false)
   lastInformedAboutInactiveProject DateTime? @default(now())
   guidedTourEnabled                Boolean   @default(true)
   createdAt                        DateTime  @default(now())

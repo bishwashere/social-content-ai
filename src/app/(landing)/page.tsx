@@ -47,10 +47,16 @@ const SECTION_TITLES: Record<string, string> = {
   faq: "Frequently Asked Questions | NextPostAI",
 };
 
+interface UserAvatar {
+  avatarUrl: string;
+  name: string;
+}
+
 interface LandingStats {
   totalContentCreated: number;
   totalCampaigns: number;
   totalUsers: number;
+  userAvatars: UserAvatar[];
 }
 
 export default function ModernLanding() {
@@ -58,7 +64,25 @@ export default function ModernLanding() {
   const [stats, setStats] = useState<LandingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
+  const [avatarCount, setAvatarCount] = useState(35);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Handle responsive avatar count
+  useEffect(() => {
+    const updateAvatarCount = () => {
+      if (window.innerWidth < 640) {
+        setAvatarCount(15);
+      } else if (window.innerWidth < 768) {
+        setAvatarCount(20);
+      } else {
+        setAvatarCount(35);
+      }
+    };
+
+    updateAvatarCount();
+    window.addEventListener('resize', updateAvatarCount);
+    return () => window.removeEventListener('resize', updateAvatarCount);
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -138,10 +162,10 @@ export default function ModernLanding() {
 
   const statData = [
     {
-      title: "Posts Generated",
-      value: loadingStats ? "1.2K+" : formatNumber(stats?.totalContentCreated || 1200),
-      description: "AI-powered content in seconds",
-      icon: Rocket,
+      title: "Creators on the Platform",
+      value: loadingStats ? "146+" : formatNumber(stats?.totalUsers || 146),
+      description: "Indie devs & founders",
+      icon: Users,
     },
     {
       title: "Campaigns Launched",
@@ -150,10 +174,10 @@ export default function ModernLanding() {
       icon: BarChart3,
     },
     {
-      title: "Active Creators",
-      value: loadingStats ? "146+" : formatNumber(stats?.totalUsers || 146),
-      description: "Indie devs & founders",
-      icon: Users,
+      title: "Posts Generated",
+      value: loadingStats ? "1.2K+" : formatNumber(stats?.totalContentCreated || 1200),
+      description: "AI-powered content in seconds",
+      icon: Rocket,
     },
   ];
 
@@ -309,13 +333,7 @@ export default function ModernLanding() {
           <div className="neural-pattern" />
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-32">
-            <div className="text-center space-y-8">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-purple-500/30">
-                <Bot className="w-4 h-4 text-purple-400" />
-                <span className="text-sm text-purple-200">AI-Powered Marketing Assistant</span>
-              </div>
-
+            <div className="text-center space-y-4">
               {/* Main heading */}
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white">
                 NextPostAI
@@ -323,42 +341,63 @@ export default function ModernLanding() {
 
               {/* Tagline */}
               <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400">
-                <span className="relative inline-block">
-                  <span className="relative z-10 px-3 py-1 rounded-xl bg-white text-slate-900">
-                    Save 10+ Hours a Week
-                  </span>
-                </span>{" "}
-                <span>on Marketing</span>
+                Save 10+ Hours a Week on Marketing
               </p>
 
               {/* Subheading */}
-              <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto">
-                AI creates launch plans, generates posts for X, LinkedIn, Instagram & Facebook, and sends reminders, so you build instead of post.
+              <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto leading-relaxed opacity-90 px-4">
+                Launch plans, scheduled posts, and ready-to-publish content.
+                <br />
+                Based on proven templates, with metrics to track what works.
               </p>
 
               {/* CTA Button */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <div className="flex flex-col items-center justify-center gap-11 pt-6">
                 <GoogleLoginButton 
                   triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
-                  buttonText="Start Free with 100 Credits"
+                  buttonText="Start Free · 100 Credits"
                 />
-                <Link 
-                  href="/documentation" 
-                  className="px-8 py-4 text-lg font-semibold rounded-xl border border-white/20 hover:border-purple-500/50 hover:bg-white/5 transition-all flex items-center gap-2"
-                >
-                  Learn More <ArrowRight className="w-5 h-5" />
-                </Link>
+                
+                {/* Avatars Section */}
+                <div className="flex flex-col items-center gap-4 opacity-90">
+                  <div className="flex -space-x-3 justify-center max-w-xl px-4">
+                    {(stats?.userAvatars?.slice(0, avatarCount) || []).map((user, idx) => (
+                      <div
+                        key={idx}
+                        className="relative"
+                        title={user.name}
+                        style={{ zIndex: 10 }}
+                      >
+                        <Image
+                          src={user.avatarUrl}
+                          alt={user.name}
+                          width={28}
+                          height={28}
+                          className="w-7 h-7 min-w-[1.75rem] min-h-[1.75rem] rounded-full border-2 border-[#0a0a0f] object-cover hover:scale-110 transition-transform saturate-90"
+                        />
+                      </div>
+                    ))}
+                    {((stats?.totalUsers || 147) - (stats?.userAvatars?.slice(0, avatarCount)?.length || avatarCount)) > 0 && (
+                      <div 
+                        className="relative w-7 h-7 min-w-[1.75rem] min-h-[1.75rem] rounded-full border-2 border-[#0a0a0f] bg-purple-600 flex items-center justify-center text-xs font-semibold text-white"
+                        style={{ zIndex: 20 }}
+                      >
+                        +{(stats?.totalUsers || 147) - (stats?.userAvatars?.slice(0, avatarCount)?.length || avatarCount)}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm md:text-base font-medium text-gray-300 px-4">
+                    <span className="text-white font-semibold">{stats?.totalUsers || 147}+</span> indie builders using NextPostAI
+                  </p>
+                </div>
               </div>
 
               {/* Stats Section */}
               <div className="pt-16">
-                <p className="text-sm text-gray-400 mb-6 flex items-center justify-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full pulse-live" />
-                  Growing Fast - Join the Momentum
-                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
                   {statData.map((stat, index) => {
                     const Icon = stat.icon;
+                    
                     return (
                       <div
                         key={index}
@@ -378,9 +417,12 @@ export default function ModernLanding() {
                     );
                   })}
                 </div>
-                <p className="mt-4 text-xs text-gray-500">
-                  Real numbers from real users - updated live.
-                </p>
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full pulse-live" />
+                  <p className="text-xs text-gray-500">
+                    <span className="text-green-400 font-semibold">Live.</span> Real numbers from real users - updated live.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
