@@ -544,7 +544,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
 
           {/* Action Items - Primary tasks for today */}
           {(groupedItems.action.length > 0 || hasUnlinkedPages || isWithinFirstProjectHour) && (
-            <div className="space-y-3">
+            <div className="space-y-3" data-dashboard-section="action-required">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-500" />
                 Action Required
@@ -587,10 +587,10 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
 
         {/* Right column: sidebar (collapsed by default) */}
         {(groupedItems.suggestions.length > 0 || groupedItems.activity.length > 0) && (
-          <aside className="space-y-6 lg:sticky lg:top-6 self-start">
+          <aside className="space-y-6 lg:sticky lg:top-6 self-start" data-dashboard-section="sidebar">
             {/* Suggestions - Collapsible */}
             {groupedItems.suggestions.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-3" data-dashboard-section="suggestions">
                 <button
                   onClick={() => setShowSuggestions(!showSuggestions)}
                   className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
@@ -612,7 +612,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
 
             {/* Recent Activity - Collapsible */}
             {groupedItems.activity.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-3" data-dashboard-section="activity">
                 <button
                   onClick={() => setShowActivity(!showActivity)}
                   className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
@@ -633,7 +633,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
             )}
 
             {/* Calendar - Today and Tomorrow */}
-            <div className="space-y-3">
+            <div className="space-y-3" data-dashboard-section="calendar">
               <div className="flex items-center gap-2 text-lg font-semibold">
                 <Calendar className="w-5 h-5 text-slate-500" />
                 Calendar

@@ -38,6 +38,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useCreateCheckoutSession } from '@/backend-apis/payment/hooks'
+import { useRouter } from 'next/navigation'
 
 interface PreviewVideo {
   url: string;
@@ -62,6 +64,8 @@ const MyVideosPage = () => {
   const { data: allUserMedia, isLoading: isLoadingMedia } = useQueryAllUserMedia();
   const { data: projects } = useGetAllProjects();
   const deleteVideo = useDeleteProcessingVideo();
+  const payment = useCreateCheckoutSession();
+  const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
   const [previewVideo, setPreviewVideo] = useState<PreviewVideo | null>(null);
@@ -607,6 +611,27 @@ const MyVideosPage = () => {
           {renderUploadedMedia()}
         </TabsContent>
       </Tabs>
+
+      {/* Start 7-Day Free Trial CTA */}
+      <div className="mt-12 flex justify-center">
+        <Button
+          onClick={async () => {
+            try {
+              const res = await payment.mutateAsync("subscription");
+              if (res?.data?.redirectUrl) {
+                router.push(res.data.redirectUrl);
+              }
+            } catch (error) {
+              console.error("Error creating checkout session:", error);
+            }
+          }}
+          disabled={payment.isPending}
+          size="lg"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-8 py-6 text-lg"
+        >
+          {payment.isPending ? "Loading..." : "Start 7-Day Free Trial"}
+        </Button>
+      </div>
 
       {/* Video Preview Dialog */}
       <Dialog open={!!previewVideo} onOpenChange={(open) => !open && setPreviewVideo(null)}>

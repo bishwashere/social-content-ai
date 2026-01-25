@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  PlusCircle,
+  Home,
   Compass,
   Calendar,
   TrendingUp,
@@ -18,10 +18,10 @@ interface NavigationTourProps {
 }
 
 const NAVIGATION_STEPS = {
-  addProject: {
-    name: "Add Project",
-    description: "Create a new project to organize your content. Each project can have its own description, URL, and content history.",
-    icon: PlusCircle,
+  today: {
+    name: "Today",
+    description: "Your personalized dashboard showing action items, suggestions, and important updates. Stay on top of what needs your attention right now.",
+    icon: Home,
   },
   forYou: {
     name: "Discover",
@@ -29,7 +29,7 @@ const NAVIGATION_STEPS = {
     icon: Compass,
   },
   contentPlanner: {
-    name: "Calendar",
+    name: "Content Planner",
     description: "Plan and schedule your content. Track what you've posted along with dates to help you plan future posts with the calendar view.",
     icon: Calendar,
   },
@@ -50,7 +50,7 @@ const NAVIGATION_STEPS = {
   },
 };
 
-const NAVIGATION_ORDER = ["addProject", "forYou", "contentPlanner", "analytics", "videoMaker", "myVideos"];
+const NAVIGATION_ORDER = ["today", "forYou", "contentPlanner", "analytics", "videoMaker", "myVideos"];
 
 export function NavigationTour({
   isOpen,
@@ -309,7 +309,7 @@ export function NavigationTour({
   return (
     <>
       {/* Dark overlay */}
-      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%" data-tour="navigation">
         <defs>
           <mask id="spotlight-mask">
             <rect width="100%" height="100%" fill="white" />

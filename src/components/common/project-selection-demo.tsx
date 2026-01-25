@@ -215,7 +215,7 @@ export function ProjectSelectionDemo({ projectId, projectName }: ProjectSelectio
   return (
     <>
       {/* Dark overlay */}
-      <div className="fixed inset-0 z-[70] bg-black/25 pointer-events-none" />
+      <div className="fixed inset-0 z-[70] bg-black/25 pointer-events-none" data-demo-active="true" />
 
       {/* Highlight */}
       {demoHighlight && (

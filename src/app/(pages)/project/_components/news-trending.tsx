@@ -126,7 +126,7 @@ export function NewsTrendingSection() {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-dashboard-section="news-trending">
       <div className="flex items-center justify-between">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -556,8 +556,13 @@ export function NewsTrending() {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center gap-2 py-8">
+          <div className="flex gap-1">
+            <div className="h-2 w-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="h-2 w-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="h-2 w-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+          <span className="text-sm text-muted-foreground">Getting latest from Reddit & Hacker News</span>
         </div>
       )}
 

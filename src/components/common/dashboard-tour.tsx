@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Folder,
-  Link as LinkIcon,
   Coins,
 } from "lucide-react";
 import { useUpdateFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
@@ -29,10 +28,20 @@ const TOUR_STEPS = {
     description: "Overview of the main navigation sections",
     icon: Folder,
   },
-  connectSocials: {
-    name: "Connect Socials",
-    description: "Connect your social media accounts to automatically post content. Link Facebook, LinkedIn, Twitter, and more.",
-    icon: LinkIcon,
+  actionRequired: {
+    name: "Action Required",
+    description: "Your most important tasks and project suggestions appear here. Check this section daily to stay on top of what needs attention.",
+    icon: Folder,
+  },
+  getInspired: {
+    name: "Get Inspired",
+    description: "Discover trending news and world events to inspire your content. Customize topics to match your interests and audience.",
+    icon: Folder,
+  },
+  rightSidebar: {
+    name: "Insights & Calendar",
+    description: "Track suggestions, recent activity, and your content calendar to stay on top of your schedule.",
+    icon: Folder,
   },
   subscribe: {
     name: "Subscribe",
@@ -41,7 +50,7 @@ const TOUR_STEPS = {
   },
 };
 
-const TOUR_ORDER = ["projects", "topSections", "connectSocials", "subscribe"];
+const TOUR_ORDER = ["projects", "topSections", "actionRequired", "getInspired", "rightSidebar", "subscribe"];
 
 export function DashboardTour({
   isOpen,
@@ -156,6 +165,379 @@ export function DashboardTour({
       };
     }
 
+    // If it's the actionRequired step, highlight only action-required section
+    if (currentElementKey === 'actionRequired') {
+      setTimeout(() => {
+        const actionSection = document.querySelector('[data-dashboard-section="action-required"]') as HTMLElement;
+        
+        if (actionSection) {
+          const updateHighlightPosition = () => {
+            const rect = actionSection.getBoundingClientRect();
+            const highlightBox = document.getElementById('tour-highlight-box');
+            
+            if (highlightBox) {
+              highlightBox.style.top = `${rect.top - 8}px`;
+              highlightBox.style.left = `${rect.left - 8}px`;
+              highlightBox.style.width = `${rect.width + 16}px`;
+              highlightBox.style.height = `${rect.height + 16}px`;
+              
+              // Update highlighted rect for mask
+              const highlightRect = new DOMRect(rect.left - 8, rect.top - 8, rect.width + 16, rect.height + 16);
+              setHighlightedRect(highlightRect);
+              
+              // Update dialog position
+              const dialogWidth = 400;
+              const padding = 16;
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
+              const approximateDialogHeight = 200;
+
+              // Try positioning on the right side first
+              let finalLeft = rect.right + 40;
+              let top = rect.top;
+              
+              // Check if it fits on the right
+              if (finalLeft + dialogWidth > viewportWidth - padding) {
+                // Try left side
+                finalLeft = rect.left - dialogWidth - 40;
+                
+                // If doesn't fit on left either, position above or below
+                if (finalLeft < padding) {
+                  // Position above the highlighted area
+                  finalLeft = Math.max(padding, Math.min(
+                    rect.left,
+                    viewportWidth - dialogWidth - padding
+                  ));
+                  
+                  // Position above if there's space
+                  if (rect.top - approximateDialogHeight - 40 > padding) {
+                    top = rect.top - approximateDialogHeight - 40;
+                  } 
+                  // Otherwise position below
+                  else if (rect.bottom + 40 + approximateDialogHeight < viewportHeight - padding) {
+                    top = rect.bottom + 40;
+                  }
+                  // If no space above or below, position at top of viewport
+                  else {
+                    top = padding;
+                  }
+                }
+              }
+              
+              // Ensure dialog stays within viewport vertically
+              if (top < padding) {
+                top = padding;
+              }
+              
+              if (top + approximateDialogHeight > viewportHeight - padding) {
+                top = viewportHeight - approximateDialogHeight - padding;
+                if (top < padding) top = padding;
+              }
+              
+              // Final check: ensure dialog doesn't overlap with highlight area
+              const dialogRect = {
+                left: finalLeft,
+                right: finalLeft + dialogWidth,
+                top: top,
+                bottom: top + approximateDialogHeight
+              };
+              
+              const overlaps = !(
+                dialogRect.right < highlightRect.left ||
+                dialogRect.left > highlightRect.right ||
+                dialogRect.bottom < highlightRect.top ||
+                dialogRect.top > highlightRect.bottom
+              );
+              
+              // If still overlapping, force position above or below
+              if (overlaps) {
+                finalLeft = Math.max(padding, Math.min(
+                  rect.left,
+                  viewportWidth - dialogWidth - padding
+                ));
+                
+                // Try above first
+                if (rect.top - approximateDialogHeight - 40 > padding) {
+                  top = rect.top - approximateDialogHeight - 40;
+                } else {
+                  // Position below
+                  top = rect.bottom + 40;
+                  // Ensure it fits
+                  if (top + approximateDialogHeight > viewportHeight - padding) {
+                    top = viewportHeight - approximateDialogHeight - padding;
+                  }
+                }
+              }
+
+              setPosition({ top, left: finalLeft });
+            }
+          };
+          
+          const rect = actionSection.getBoundingClientRect();
+          
+          // Create highlight box
+          const highlightBox = document.createElement('div');
+          highlightBox.id = 'tour-highlight-box';
+          highlightBox.style.position = 'fixed';
+          highlightBox.style.top = `${rect.top - 8}px`;
+          highlightBox.style.left = `${rect.left - 8}px`;
+          highlightBox.style.width = `${rect.width + 16}px`;
+          highlightBox.style.height = `${rect.height + 16}px`;
+          highlightBox.style.border = '4px solid rgb(59 130 246)'; // blue-500
+          highlightBox.style.borderRadius = '8px';
+          highlightBox.style.zIndex = '60';
+          highlightBox.style.pointerEvents = 'none';
+          highlightBox.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+          document.body.appendChild(highlightBox);
+
+          // Initial positioning
+          updateHighlightPosition();
+          
+          // Add scroll listener to update position on scroll
+          window.addEventListener('scroll', updateHighlightPosition, true);
+          window.addEventListener('resize', updateHighlightPosition);
+        }
+
+        setShowTopSectionsDialog(true);
+      }, 300);
+
+      // Cleanup
+      return () => {
+        const highlightBox = document.getElementById('tour-highlight-box');
+        if (highlightBox) {
+          highlightBox.remove();
+        }
+        // Remove scroll listeners
+        window.removeEventListener('scroll', () => {}, true);
+        window.removeEventListener('resize', () => {});
+        setShowTopSectionsDialog(false);
+      };
+    }
+
+    // If it's the getInspired step, highlight news-trending section
+    if (currentElementKey === 'getInspired') {
+      setTimeout(() => {
+        const newsSection = document.querySelector('[data-dashboard-section="news-trending"]') as HTMLElement;
+        
+        if (newsSection) {
+          const updateHighlightPosition = () => {
+            const rect = newsSection.getBoundingClientRect();
+            const highlightBox = document.getElementById('tour-highlight-box');
+            
+            if (highlightBox) {
+              highlightBox.style.top = `${rect.top - 8}px`;
+              highlightBox.style.left = `${rect.left - 8}px`;
+              highlightBox.style.width = `${rect.width + 16}px`;
+              highlightBox.style.height = `${rect.height + 16}px`;
+              
+              // Update highlighted rect for mask
+              const highlightRect = new DOMRect(rect.left - 8, rect.top - 8, rect.width + 16, rect.height + 16);
+              setHighlightedRect(highlightRect);
+              
+              // Update dialog position
+              const dialogWidth = 400;
+              const padding = 16;
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
+              const approximateDialogHeight = 200;
+
+              // Try positioning on the right side first
+              let finalLeft = rect.right + 40;
+              let top = rect.top;
+              
+              // Check if it fits on the right
+              if (finalLeft + dialogWidth > viewportWidth - padding) {
+                // Try left side
+                finalLeft = rect.left - dialogWidth - 40;
+                
+                // If doesn't fit on left either, position above or below
+                if (finalLeft < padding) {
+                  // Position above the highlighted area
+                  finalLeft = Math.max(padding, Math.min(
+                    rect.left,
+                    viewportWidth - dialogWidth - padding
+                  ));
+                  
+                  // Position above if there's space
+                  if (rect.top - approximateDialogHeight - 40 > padding) {
+                    top = rect.top - approximateDialogHeight - 40;
+                  } 
+                  // Otherwise position below
+                  else if (rect.bottom + 40 + approximateDialogHeight < viewportHeight - padding) {
+                    top = rect.bottom + 40;
+                  }
+                  // If no space above or below, position at top of viewport
+                  else {
+                    top = padding;
+                  }
+                }
+              }
+              
+              // Ensure dialog stays within viewport vertically
+              if (top < padding) {
+                top = padding;
+              }
+              
+              if (top + approximateDialogHeight > viewportHeight - padding) {
+                top = viewportHeight - approximateDialogHeight - padding;
+                if (top < padding) top = padding;
+              }
+              
+              // Final check: ensure dialog doesn't overlap with highlight area
+              const dialogRect = {
+                left: finalLeft,
+                right: finalLeft + dialogWidth,
+                top: top,
+                bottom: top + approximateDialogHeight
+              };
+              
+              const overlaps = !(
+                dialogRect.right < highlightRect.left ||
+                dialogRect.left > highlightRect.right ||
+                dialogRect.bottom < highlightRect.top ||
+                dialogRect.top > highlightRect.bottom
+              );
+              
+              // If still overlapping, force position above or below
+              if (overlaps) {
+                finalLeft = Math.max(padding, Math.min(
+                  rect.left,
+                  viewportWidth - dialogWidth - padding
+                ));
+                
+                // Try above first
+                if (rect.top - approximateDialogHeight - 40 > padding) {
+                  top = rect.top - approximateDialogHeight - 40;
+                } else {
+                  // Position below
+                  top = rect.bottom + 40;
+                  // Ensure it fits
+                  if (top + approximateDialogHeight > viewportHeight - padding) {
+                    top = viewportHeight - approximateDialogHeight - padding;
+                  }
+                }
+              }
+
+              setPosition({ top, left: finalLeft });
+            }
+          };
+          
+          const rect = newsSection.getBoundingClientRect();
+          
+          // Create highlight box
+          const highlightBox = document.createElement('div');
+          highlightBox.id = 'tour-highlight-box';
+          highlightBox.style.position = 'fixed';
+          highlightBox.style.top = `${rect.top - 8}px`;
+          highlightBox.style.left = `${rect.left - 8}px`;
+          highlightBox.style.width = `${rect.width + 16}px`;
+          highlightBox.style.height = `${rect.height + 16}px`;
+          highlightBox.style.border = '4px solid rgb(59 130 246)'; // blue-500
+          highlightBox.style.borderRadius = '8px';
+          highlightBox.style.zIndex = '60';
+          highlightBox.style.pointerEvents = 'none';
+          highlightBox.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+          document.body.appendChild(highlightBox);
+
+          // Initial positioning
+          updateHighlightPosition();
+          
+          // Add scroll listener to update position on scroll
+          window.addEventListener('scroll', updateHighlightPosition, true);
+          window.addEventListener('resize', updateHighlightPosition);
+        }
+
+        setShowTopSectionsDialog(true);
+      }, 300);
+
+      // Cleanup
+      return () => {
+        const highlightBox = document.getElementById('tour-highlight-box');
+        if (highlightBox) {
+          highlightBox.remove();
+        }
+        // Remove scroll listeners
+        window.removeEventListener('scroll', () => {}, true);
+        window.removeEventListener('resize', () => {});
+        setShowTopSectionsDialog(false);
+      };
+    }
+
+    // If it's the rightSidebar step, highlight the right sidebar sections  
+    if (currentElementKey === 'rightSidebar') {
+      setTimeout(() => {
+        const sidebarElement = document.querySelector('[data-dashboard-section="sidebar"]') as HTMLElement;
+        
+        if (sidebarElement) {
+          const updateHighlightPosition = () => {
+            const rect = sidebarElement.getBoundingClientRect();
+            const highlightBox = document.getElementById('tour-highlight-box');
+            
+            if (highlightBox) {
+              highlightBox.style.top = `${rect.top - 8}px`;
+              highlightBox.style.left = `${rect.left - 8}px`;
+              highlightBox.style.width = `${rect.width + 16}px`;
+              highlightBox.style.height = `${rect.height + 16}px`;
+              
+              // Update highlighted rect for mask
+              setHighlightedRect(new DOMRect(rect.left - 8, rect.top - 8, rect.width + 16, rect.height + 16));
+              
+              // Update dialog position
+              const dialogWidth = 400;
+              const padding = 16;
+              const spacingFromSidebar = 80; // Increased spacing from sidebar to move more left
+
+              let finalLeft = rect.left - dialogWidth - spacingFromSidebar;
+              if (finalLeft < padding) {
+                finalLeft = padding;
+              }
+
+              const top = Math.max(padding, rect.top);
+              setPosition({ top, left: finalLeft });
+            }
+          };
+          
+          const rect = sidebarElement.getBoundingClientRect();
+          
+          // Create highlight box
+          const highlightBox = document.createElement('div');
+          highlightBox.id = 'tour-highlight-box';
+          highlightBox.style.position = 'fixed';
+          highlightBox.style.top = `${rect.top - 8}px`;
+          highlightBox.style.left = `${rect.left - 8}px`;
+          highlightBox.style.width = `${rect.width + 16}px`;
+          highlightBox.style.height = `${rect.height + 16}px`;
+          highlightBox.style.border = '4px solid rgb(59 130 246)'; // blue-500
+          highlightBox.style.borderRadius = '8px';
+          highlightBox.style.zIndex = '60';
+          highlightBox.style.pointerEvents = 'none';
+          highlightBox.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+          document.body.appendChild(highlightBox);
+
+          // Initial positioning
+          updateHighlightPosition();
+          
+          // Add scroll listener to update position on scroll
+          window.addEventListener('scroll', updateHighlightPosition, true);
+          window.addEventListener('resize', updateHighlightPosition);
+        }
+
+        setShowTopSectionsDialog(true);
+      }, 300);
+
+      // Cleanup
+      return () => {
+        const highlightBox = document.getElementById('tour-highlight-box');
+        if (highlightBox) {
+          highlightBox.remove();
+        }
+        // Remove scroll listeners
+        window.removeEventListener('scroll', () => {}, true);
+        window.removeEventListener('resize', () => {});
+        setShowTopSectionsDialog(false);
+      };
+    }
+
     // Regular single element highlighting for other steps
     let element: HTMLElement | null = elementRefs[currentElementKey];
     const originalElement = element; // Keep reference to original element
@@ -249,11 +631,26 @@ export function DashboardTour({
               }
             }
 
-            // Position vertically centered with the element
-            top = rect.top + (rect.height / 2) - 100; // Center vertically, adjust for dialog height
+          // Position vertically centered with the element
+          // Approximate dialog height is ~220px
+          const approximateDialogHeight = 220;
+          const viewportHeight = window.innerHeight;
+          
+          top = rect.top + (rect.height / 2) - (approximateDialogHeight / 2);
+          
+          // Check if dialog would overflow top edge
+          if (top < padding) {
+            top = padding;
+          }
+          
+          // Check if dialog would overflow bottom edge
+          if (top + approximateDialogHeight > viewportHeight - padding) {
+            top = viewportHeight - approximateDialogHeight - padding;
+            // Make sure it doesn't go negative
             if (top < padding) {
               top = padding;
             }
+          }
           } else {
             // For other elements, use centered positioning
             const spaceBelow = window.innerHeight - rect.bottom;
@@ -280,7 +677,8 @@ export function DashboardTour({
     return () => {
       setHighlightedRect(null); // Clear highlighted rect
       TOUR_ORDER.forEach((key) => {
-        if (key === 'topSections') return; // Skip topSections, handled above
+        // Skip steps that use custom highlight boxes
+        if (key === 'topSections' || key === 'actionRequired' || key === 'getInspired' || key === 'rightSidebar') return;
 
         const originalElement = elementRefs[key];
         if (originalElement) {
@@ -313,7 +711,8 @@ export function DashboardTour({
 
     const updatePosition = () => {
       const currentElementKey = TOUR_ORDER[currentStep];
-      if (currentElementKey === 'topSections') return;
+      // Skip steps that use custom highlight boxes
+      if (currentElementKey === 'topSections' || currentElementKey === 'actionRequired' || currentElementKey === 'getInspired' || currentElementKey === 'rightSidebar') return;
 
       let element: HTMLElement | null = elementRefs[currentElementKey];
 
@@ -363,9 +762,24 @@ export function DashboardTour({
             }
           }
 
-          top = rect.top + (rect.height / 2) - 100;
+          // Approximate dialog height is ~220px
+          const approximateDialogHeight = 220;
+          const viewportHeight = window.innerHeight;
+          
+          top = rect.top + (rect.height / 2) - (approximateDialogHeight / 2);
+          
+          // Check if dialog would overflow top edge
           if (top < padding) {
             top = padding;
+          }
+          
+          // Check if dialog would overflow bottom edge
+          if (top + approximateDialogHeight > viewportHeight - padding) {
+            top = viewportHeight - approximateDialogHeight - padding;
+            // Make sure it doesn't go negative
+            if (top < padding) {
+              top = padding;
+            }
           }
         } else {
           const spaceBelow = window.innerHeight - rect.bottom;
@@ -423,10 +837,36 @@ export function DashboardTour({
 
   // If showing top sections dialog, render it
   if (showTopSectionsDialog) {
+    // Determine arrow direction based on dialog position relative to highlight
+    let arrowPosition: 'left' | 'right' | 'top' | 'bottom' = 'left';
+    
+    if (highlightedRect) {
+      const dialogWidth = 400;
+      const dialogRight = position.left + dialogWidth;
+      const dialogBottom = position.top + 200; // approximate height
+      
+      // Check if dialog is to the right of highlight
+      if (position.left > highlightedRect.right) {
+        arrowPosition = 'left';
+      }
+      // Check if dialog is to the left of highlight
+      else if (dialogRight < highlightedRect.left) {
+        arrowPosition = 'right';
+      }
+      // Check if dialog is above highlight
+      else if (dialogBottom < highlightedRect.top) {
+        arrowPosition = 'bottom';
+      }
+      // Dialog is below highlight
+      else {
+        arrowPosition = 'top';
+      }
+    }
+    
     return (
       <>
         {/* Dark overlay */}
-        <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+        <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%" data-tour="dashboard">
           <defs>
             <mask id="folders-spotlight-mask">
               <rect width="100%" height="100%" fill="white" />
@@ -456,19 +896,52 @@ export function DashboardTour({
         />
         {/* Custom dialog positioned on the right side */}
         <div
-          className="fixed z-[60] bg-white rounded-lg border border-gray-200 shadow-lg p-6 max-w-md"
+          className="fixed z-[60] bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-lg p-6 max-w-md"
           style={{
             top: `${position.top}px`,
             left: `${position.left}px`,
             isolation: 'isolate',
           }}
         >
-          <h2 className="text-lg font-semibold mb-3">Top Navigation Sections</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            These are your main navigation sections. Use these to navigate between different features and manage your content.
-          </p>
+          {/* Arrow pointing to highlighted element */}
+          {arrowPosition === 'left' && (
+            <div
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full w-0 h-0 border-t-8 border-b-8 border-r-8 border-transparent border-r-white dark:border-r-slate-800"
+              style={{ left: '-8px' }}
+            />
+          )}
+          {arrowPosition === 'right' && (
+            <div
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full w-0 h-0 border-t-8 border-b-8 border-l-8 border-transparent border-l-white dark:border-l-slate-800"
+              style={{ right: '-8px' }}
+            />
+          )}
+          {arrowPosition === 'top' && (
+            <div
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-l border-t border-gray-200 dark:border-slate-700 rotate-45"
+            />
+          )}
+          {arrowPosition === 'bottom' && (
+            <div
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-r border-b border-gray-200 dark:border-slate-700 rotate-45"
+            />
+          )}
+          
+          {stepInfo && IconComponent && (
+            <>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900 shrink-0">
+                  <IconComponent className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h2 className="text-lg font-semibold dark:text-white">{stepInfo.name}</h2>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                {stepInfo.description}
+              </p>
+            </>
+          )}
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               {currentStep + 1} of {TOUR_ORDER.length}
             </div>
             <Button onClick={handleTopSectionsDialogClose} size="sm">
@@ -491,7 +964,7 @@ export function DashboardTour({
   return (
     <>
       {/* Dark overlay - simple single overlay, elements above will show through */}
-      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%" data-tour="dashboard">
         <defs>
           <mask id="folders-spotlight-mask">
             <rect width="100%" height="100%" fill="white" />

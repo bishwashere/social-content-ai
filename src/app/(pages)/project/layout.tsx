@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
@@ -38,7 +39,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
   const [showProjectsTour, setShowProjectsTour] = useState(false);
   const elementRefs = useRef<Record<string, HTMLElement | null>>({
     projects: null,
-    addProject: null,
+    today: null,
     forYou: null,
     contentPlanner: null,
     analytics: null,
@@ -50,14 +51,25 @@ const Main = ({ children }: { children: React.ReactNode }) => {
 
   const subscribeRef = useRef<HTMLDivElement>(null);
   const sidebar = useSidebar();
+  const router = useRouter();
+  const pathname = usePathname();
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sidebarElementRef = useRef<HTMLElement | null>(null);
 
   // Auto-minimize sidebar after 5 seconds of inactivity
   useEffect(() => {
-    // Only auto-minimize on desktop (not mobile) and when sidebar is open
-    if (sidebar.isMobile || !sidebar.open) {
-      // Clear timer if sidebar is closed or on mobile
+    // Don't auto-minimize during tours
+    const isTourActive = showTour || showNavigationTour || showFoldersTour || showProjectsTour;
+    
+    // Also check for any active tour/demo overlays in the DOM
+    const hasActiveTourOverlay = () => {
+      return document.querySelector('[data-tour]') !== null || 
+             document.querySelector('[data-demo-active="true"]') !== null;
+    };
+    
+    // Only auto-minimize on desktop (not mobile) and when sidebar is open and no tour is active
+    if (sidebar.isMobile || !sidebar.open || isTourActive) {
+      // Clear timer if sidebar is closed or on mobile or tour is active
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
@@ -73,7 +85,8 @@ const Main = ({ children }: { children: React.ReactNode }) => {
 
       // Set new timer to close sidebar after 5 seconds
       inactivityTimerRef.current = setTimeout(() => {
-        if (sidebar.open && !sidebar.isMobile) {
+        // Double-check no tour is active before closing
+        if (sidebar.open && !sidebar.isMobile && !isTourActive && !hasActiveTourOverlay()) {
           sidebar.setOpen(false);
         }
       }, 5000); // 5 seconds
@@ -138,9 +151,22 @@ const Main = ({ children }: { children: React.ReactNode }) => {
         sidebarElementRef.current = null;
       }
     };
-  }, [sidebar.open, sidebar.isMobile, sidebar.setOpen]);
+  }, [sidebar.open, sidebar.isMobile, sidebar.setOpen, showTour, showNavigationTour, showFoldersTour, showProjectsTour]);
 
   const handleTourStart = () => {
+    // Navigate to /project first if not already there
+    if (pathname !== '/project') {
+      router.push('/project');
+      // Wait for navigation to complete before starting tour
+      setTimeout(() => {
+        startTour();
+      }, 500);
+    } else {
+      startTour();
+    }
+  };
+
+  const startTour = () => {
     // Ensure sidebar is open for the tour
     sidebar.setOpen(true);
     

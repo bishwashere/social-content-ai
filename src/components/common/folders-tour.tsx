@@ -98,7 +98,7 @@ export function FoldersTour({
   return (
     <>
       {/* Dark overlay */}
-      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%" data-tour="folders">
         <defs>
           <mask id="folders-spotlight-mask">
             <rect width="100%" height="100%" fill="white" />

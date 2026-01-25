@@ -103,9 +103,24 @@ export function ProjectLocationTour({
           }
 
           // Position vertically centered with the element
-          let top = rect.top + (rect.height / 2) - 100;
+          // Approximate dialog height is ~200px
+          const approximateDialogHeight = 200;
+          const viewportHeight = window.innerHeight;
+          
+          let top = rect.top + (rect.height / 2) - (approximateDialogHeight / 2);
+          
+          // Check if dialog would overflow top edge
           if (top < padding) {
             top = padding;
+          }
+          
+          // Check if dialog would overflow bottom edge
+          if (top + approximateDialogHeight > viewportHeight - padding) {
+            top = viewportHeight - approximateDialogHeight - padding;
+            // Make sure it doesn't go negative
+            if (top < padding) {
+              top = padding;
+            }
           }
 
           setPosition({
@@ -164,9 +179,25 @@ export function ProjectLocationTour({
           }
         }
 
-        let top = rect.top + (rect.height / 2) - 100;
+        // Position vertically centered with the element
+        // Approximate dialog height is ~200px
+        const approximateDialogHeight = 200;
+        const viewportHeight = window.innerHeight;
+        
+        let top = rect.top + (rect.height / 2) - (approximateDialogHeight / 2);
+        
+        // Check if dialog would overflow top edge
         if (top < padding) {
           top = padding;
+        }
+        
+        // Check if dialog would overflow bottom edge
+        if (top + approximateDialogHeight > viewportHeight - padding) {
+          top = viewportHeight - approximateDialogHeight - padding;
+          // Make sure it doesn't go negative
+          if (top < padding) {
+            top = padding;
+          }
         }
 
         setPosition({
