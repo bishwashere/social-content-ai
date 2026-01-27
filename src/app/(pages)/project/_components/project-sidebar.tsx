@@ -337,11 +337,12 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         )}
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          // Check if click is on interactive elements
+          // Check if click is on interactive elements or inside popover content
           const isInteractive = target.closest('a, button, [role="button"], [data-radix-popover-trigger]') || 
                                target.tagName === 'A' || 
                                target.tagName === 'BUTTON' ||
-                               target.closest('[data-sidebar="rail"]');
+                               target.closest('[data-sidebar="rail"]') ||
+                               target.closest('[data-slot="popover-content"]');
           
           // If not on interactive element, toggle sidebar
           if (!isInteractive) {
@@ -423,7 +424,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                           data-project-item="true"
                           data-project-id={project.id}
                           data-project-name={project.name}
-                          onClick={() => handleProjectSelect(project.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProjectSelect(project.id);
+                          }}
                           className={cn(
                             "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",
                             isActive
