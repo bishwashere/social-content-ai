@@ -390,7 +390,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           <PopoverContent 
             side="top" 
             align="start" 
-            className="w-72 p-0 rounded-xl border-slate-200/80 dark:border-slate-700/80 shadow-xl overflow-hidden"
+            className="w-72 p-0 rounded-xl border-slate-200/80 dark:border-slate-700/80 shadow-xl overflow-hidden z-[100]"
             sideOffset={8}
           >
             <div className="p-2 pb-0">

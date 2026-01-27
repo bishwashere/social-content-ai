@@ -221,6 +221,18 @@ function Sidebar({
             } as React.CSSProperties
           }
           side={side}
+          onInteractOutside={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("[data-slot='popover-content']")) {
+              e.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("[data-slot='popover-content']")) {
+              e.preventDefault();
+            }
+          }}
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>
