@@ -64,7 +64,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
   const pathname = usePathname();
   const router = useRouter();
   const sidebar = useSidebar();
-  const isOpen = sidebar.open;
+  // On mobile, treat sheet-open as expanded so nav shows labels left-aligned; desktop uses sidebar.open
+  const isOpen = sidebar.isMobile ? sidebar.openMobile : sidebar.open;
   const { data: settings } = useUserSettings();
   const { data: session } = useSession();
   const [projectSelectorOpen, setProjectSelectorOpen] = React.useState(false);
@@ -337,12 +338,13 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
         )}
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          // Check if click is on interactive elements or inside popover content
+          // Check if click is on interactive elements, inside popover, or inside mobile project dropdown
           const isInteractive = target.closest('a, button, [role="button"], [data-radix-popover-trigger]') || 
                                target.tagName === 'A' || 
                                target.tagName === 'BUTTON' ||
                                target.closest('[data-sidebar="rail"]') ||
-                               target.closest('[data-slot="popover-content"]');
+                               target.closest('[data-slot="popover-content"]') ||
+                               target.closest('[data-project-dropdown]');
           
           // If not on interactive element, toggle sidebar
           if (!isInteractive) {
@@ -352,14 +354,20 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
           }
         }}
       >
-        <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
-          <PopoverTrigger asChild>
+        {sidebar.isMobile ? (
+          /* Mobile: inline dropdown inside sheet so it's clickable (no portal) */
+          <div className="relative w-full">
             <button
+              type="button"
               data-project-selector="true"
               ref={(el) => {
                 if (elementRefs && el) {
                   elementRefs.current.projects = el;
                 }
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setProjectSelectorOpen((v) => !v);
               }}
               className={cn(
                 "w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 group",
@@ -386,25 +394,138 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                 </>
               )}
             </button>
-          </PopoverTrigger>
-          <PopoverContent 
-            side="top" 
-            align="start" 
-            className="w-72 p-0 rounded-xl border-slate-200/80 dark:border-slate-700/80 shadow-xl overflow-hidden z-[100]"
-            sideOffset={8}
-          >
-            <div className="p-2 pb-0">
-              <div className="px-2 py-1.5 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Switch Project
-                </span>
-                <Badge variant="secondary" className="text-xs rounded-full">
-                  {projects?.length || 0}
-                </Badge>
+            {projectSelectorOpen && (
+              <div
+                data-project-dropdown
+                className="absolute bottom-full left-0 right-0 mb-2 w-full min-w-[var(--sidebar-width)] max-h-[min(256px,calc(50vh-100px))] rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 shadow-xl overflow-hidden z-[60]"
+              >
+                <div className="p-2 pb-0">
+                  <div className="px-2 py-1.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Switch Project
+                    </span>
+                    <Badge variant="secondary" className="text-xs rounded-full">
+                      {projects?.length || 0}
+                    </Badge>
+                  </div>
+                </div>
+                <ScrollArea className="h-[min(240px,_calc(50vh-120px))] px-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="space-y-1">
+                    {isLoading ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-10 rounded-lg" />
+                      ))
+                    ) : projects?.length === 0 ? (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+                        No projects yet
+                      </p>
+                    ) : (
+                      projects?.map((project) => {
+                        const isActive = currentProjectId === project.id;
+                        return (
+                          <button
+                            key={project.id}
+                            type="button"
+                            data-project-item="true"
+                            data-project-id={project.id}
+                            data-project-name={project.name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProjectSelect(project.id);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",
+                              isActive
+                                ? "bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800"
+                                : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <div className={cn(
+                              "p-1.5 rounded-lg flex-shrink-0",
+                              isActive ? "bg-violet-100 dark:bg-violet-800/50" : "bg-slate-100 dark:bg-slate-700"
+                            )}>
+                              <Folder className={cn(
+                                "h-3.5 w-3.5",
+                                isActive ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400"
+                              )} />
+                            </div>
+                            <p className={cn(
+                              "flex-1 min-w-0 text-sm font-medium truncate",
+                              isActive ? "text-violet-900 dark:text-violet-100" : "text-slate-700 dark:text-slate-200"
+                            )}>
+                              {project.name}
+                            </p>
+                            {isActive && (
+                              <Check className="h-4 w-4 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+                            )}
+                            {session?.user?.id !== project.userId && (
+                              <Users className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="p-2 pt-0 border-t border-slate-100 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+                  <AddProjectButton variant="ghost" />
+                </div>
               </div>
-            </div>
-              
-            <ScrollArea className="h-[min(256px,_calc(50vh-100px))] px-2">
+            )}
+          </div>
+        ) : (
+          <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
+            <PopoverTrigger asChild>
+              <button
+                data-project-selector="true"
+                ref={(el) => {
+                  if (elementRefs && el) {
+                    elementRefs.current.projects = el;
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 group",
+                  !isOpen && "justify-center p-2"
+                )}
+              >
+                <div className={cn(
+                  "rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 flex-shrink-0 flex items-center justify-center",
+                  isOpen ? "p-2" : "p-1.5"
+                )}>
+                  <Folder className={cn("text-white", isOpen ? "h-4 w-4" : "h-3.5 w-3.5")} />
+                </div>
+                {isOpen && (
+                  <>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                        {currentProject?.name || "Select Project"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {projects?.length || 0} projects
+                      </p>
+                    </div>
+                    <ChevronsUpDown className="h-4 w-4 text-slate-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                  </>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent 
+              side="top" 
+              align="start" 
+              className="w-72 p-0 rounded-xl border-slate-200/80 dark:border-slate-700/80 shadow-xl overflow-hidden z-[100]"
+              sideOffset={8}
+            >
+              <div className="p-2 pb-0">
+                <div className="px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Switch Project
+                  </span>
+                  <Badge variant="secondary" className="text-xs rounded-full">
+                    {projects?.length || 0}
+                  </Badge>
+                </div>
+              </div>
+              <ScrollArea className="h-[min(256px,_calc(50vh-100px))] px-2">
                 <div className="space-y-1">
                   {isLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
@@ -417,7 +538,6 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                   ) : (
                     projects?.map((project) => {
                       const isActive = currentProjectId === project.id;
-                      
                       return (
                         <button
                           key={project.id}
@@ -437,22 +557,16 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                         >
                           <div className={cn(
                             "p-1.5 rounded-lg flex-shrink-0",
-                            isActive 
-                              ? "bg-violet-100 dark:bg-violet-800/50" 
-                              : "bg-slate-100 dark:bg-slate-700"
+                            isActive ? "bg-violet-100 dark:bg-violet-800/50" : "bg-slate-100 dark:bg-slate-700"
                           )}>
                             <Folder className={cn(
                               "h-3.5 w-3.5",
-                              isActive 
-                                ? "text-violet-600 dark:text-violet-400" 
-                                : "text-slate-500 dark:text-slate-400"
+                              isActive ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400"
                             )} />
                           </div>
                           <p className={cn(
                             "flex-1 min-w-0 text-sm font-medium truncate",
-                            isActive 
-                              ? "text-violet-900 dark:text-violet-100" 
-                              : "text-slate-700 dark:text-slate-200"
+                            isActive ? "text-violet-900 dark:text-violet-100" : "text-slate-700 dark:text-slate-200"
                           )}>
                             {project.name}
                           </p>
@@ -467,16 +581,15 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                     })
                   )}
                 </div>
-            </ScrollArea>
-              
-            {/* Quick Add Project */}
-            <div className="p-2 pt-0">
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <AddProjectButton variant="ghost" />
+              </ScrollArea>
+              <div className="p-2 pt-0">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <AddProjectButton variant="ghost" />
+                </div>
               </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        )}
       </SidebarFooter>
 
       <SidebarRail className="bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/50" />
