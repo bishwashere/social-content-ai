@@ -21,7 +21,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Label } from "@/components/ui/label";
 import { campaignPlanner } from "@/lib/campaign-planner";
 import sleep from "@/lib/sleep";
-import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, HelpCircle, Loader2, Pencil, RefreshCw, Settings, Sparkles, Trash, VideoIcon, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, HelpCircle, Loader2, Pencil, RefreshCw, Settings, Sparkles, Trash, VideoIcon, Wand2, X } from "lucide-react";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -65,6 +65,7 @@ import { markDemoCampaignCreated } from "@/server-actions/user-flags";
 import { ProjectLocationTour } from "@/components/common/project-location-tour";
 import { UploadMediaToCampaignChat } from "./upload-media-to-campaign-chat";
 import { ViewMedia } from "@/components/social/view-media";
+import { useGenerateAIImage } from "@/backend-apis/ai-image/hooks";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -1446,7 +1447,9 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   const [editedMedia, setEditedMedia] = useState<Record<string, string>>({});
+  const [editedMediaPreview, setEditedMediaPreview] = useState<Record<string, string>>({}); // Preview URLs for display
   const editContent = useEditChatContent();
+  const generateAIImage = useGenerateAIImage();
   const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
   const handleSave = async (campaignId: string, day: number, platform: string, scheduledPostId?: string) => {
     // You can handle saving here
@@ -1462,6 +1465,7 @@ export default function CampaignPlannerPage({ project }: Props) {
       .then(() => toast.success(`Content edited for ${platform}`));
     setEditingPlatform(null);
     setEditedMedia({});
+    setEditedMediaPreview({});
   };
 
   return (
@@ -2576,16 +2580,56 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
                                                   />
                                                   {MEDIA_SUPPORTED_PLATFORMS.includes(platform) && (
-                                                    <UploadMediaToCampaignChat
-                                                      campaignId={campaign.id}
-                                                      day={timeline.day}
-                                                      platform={platform}
-                                                      media={editedMedia[platform] || (timeline.media as Record<string, string>)?.[platform]}
-                                                      onMediaUploaded={(key) => setEditedMedia({ ...editedMedia, [platform]: key })}
-                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                      <UploadMediaToCampaignChat
+                                                        campaignId={campaign.id}
+                                                        day={timeline.day}
+                                                        platform={platform}
+                                                        media={editedMedia[platform] || (timeline.media as Record<string, string>)?.[platform]}
+                                                        mediaPreviewUrl={editedMediaPreview[platform]}
+                                                        onMediaUploaded={(key) => {
+                                                          setEditedMedia({ ...editedMedia, [platform]: key });
+                                                          // Clear any AI-generated preview when manually uploading
+                                                          setEditedMediaPreview({ ...editedMediaPreview, [platform]: "" });
+                                                        }}
+                                                      />
+                                                      <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={generateAIImage.isPending}
+                                                        loading={generateAIImage.isPending}
+                                                        onClick={async () => {
+                                                          if (!session?.user?.id) {
+                                                            toast.error("Please log in to generate images");
+                                                            return;
+                                                          }
+                                                          const contentToUse = editedContent[platform] || text;
+                                                          if (!contentToUse) {
+                                                            toast.error("No content to generate image from");
+                                                            return;
+                                                          }
+                                                          const result = await generateAIImage.mutateAsync({
+                                                            userId: session.user.id,
+                                                            content: contentToUse,
+                                                            campaignId: campaign.id,
+                                                            day: timeline.day,
+                                                            platform,
+                                                          });
+                                                          if (result.success && result.mediaKey) {
+                                                            setEditedMedia({ ...editedMedia, [platform]: result.mediaKey });
+                                                            if (result.previewUrl) {
+                                                              setEditedMediaPreview({ ...editedMediaPreview, [platform]: result.previewUrl });
+                                                            }
+                                                          }
+                                                        }}
+                                                        title="Generate AI Image (5 credits)"
+                                                      >
+                                                        <Wand2 className="h-4 w-4" />
+                                                      </Button>
+                                                    </div>
                                                   )}
                                                   <div className="flex gap-2 justify-end">
-                                                    <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedMedia({}); }}>
+                                                    <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedMedia({}); setEditedMediaPreview({}); }}>
                                                       Cancel
                                                     </Button>
                                                     <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform, scheduledInfo?.scheduledPostId)} loading={editContent.isPending}>
