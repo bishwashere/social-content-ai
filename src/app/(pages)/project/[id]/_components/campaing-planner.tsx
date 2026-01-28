@@ -66,6 +66,8 @@ import { ProjectLocationTour } from "@/components/common/project-location-tour";
 import { UploadMediaToCampaignChat } from "./upload-media-to-campaign-chat";
 import { ViewMedia } from "@/components/social/view-media";
 import { useGenerateAIImage } from "@/backend-apis/ai-image/hooks";
+import { useRewriteWithAI } from "@/backend-apis/ai-text/hooks";
+import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -1450,6 +1452,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [editedMediaPreview, setEditedMediaPreview] = useState<Record<string, string>>({}); // Preview URLs for display
   const editContent = useEditChatContent();
   const generateAIImage = useGenerateAIImage();
+  const rewriteWithAI = useRewriteWithAI();
   const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
   const handleSave = async (campaignId: string, day: number, platform: string, scheduledPostId?: string) => {
     // You can handle saving here
@@ -2579,6 +2582,32 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     value={editedContent[platform] ?? text}
                                                     onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
                                                   />
+                                                  <div className="flex items-center gap-2">
+                                                    <RewriteWithAIDialog
+                                                      isPending={rewriteWithAI.isPending}
+                                                      disabled={!session?.user?.id}
+                                                      onRewrite={async (prompt) => {
+                                                        if (!session?.user?.id) {
+                                                          toast.error("Please log in to rewrite content");
+                                                          return;
+                                                        }
+                                                        const contentToUse = editedContent[platform] || text;
+                                                        if (!contentToUse) {
+                                                          toast.error("No content to rewrite");
+                                                          return;
+                                                        }
+                                                        const result = await rewriteWithAI.mutateAsync({
+                                                          userId: session.user.id,
+                                                          content: contentToUse,
+                                                          prompt: prompt || undefined,
+                                                        });
+                                                        if (result.success && result.rewrittenContent) {
+                                                          setEditedContent({ ...editedContent, [platform]: result.rewrittenContent });
+                                                        }
+                                                      }}
+                                                    />
+                                                    <span className="text-xs text-muted-foreground">Rewrite with AI</span>
+                                                  </div>
                                                   {MEDIA_SUPPORTED_PLATFORMS.includes(platform) && (
                                                     <div className="flex items-center gap-2">
                                                       <UploadMediaToCampaignChat

@@ -2,6 +2,7 @@
 
 import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
+import { cleanAIGeneratedText } from "@/lib/clean-ai-text";
 import { getRandomInRange } from "@/lib/getRandomInRange";
 import { prisma } from "@/lib/prisma";
 import { s3 } from "@/lib/s3";
@@ -715,11 +716,11 @@ export const generateCampaignChat = async (props: {
     };
   }
 
-  // Clean up content: remove ** (markdown bold markers) from all platform content
+  // Clean up AI-generated content for all platforms
   const cleanedContent: Record<string, string> = {};
   for (const [platform, content] of Object.entries(chatFromAI)) {
     if (typeof content === 'string') {
-      cleanedContent[platform] = content.replace(/\*\*/g, '');
+      cleanedContent[platform] = cleanAIGeneratedText(content);
     } else {
       cleanedContent[platform] = content;
     }

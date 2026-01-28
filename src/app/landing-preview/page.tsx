@@ -798,7 +798,7 @@ export default function ModernLanding() {
                 <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
               </div>
               <p className="text-sm text-gray-500">
-                Copyright © 2025. All rights reserved. NextPostAI
+                Copyright © 2026. All rights reserved. NextPostAI
               </p>
             </div>
           </div>

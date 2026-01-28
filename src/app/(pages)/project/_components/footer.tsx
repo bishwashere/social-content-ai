@@ -18,7 +18,7 @@ export function Footer() {
             </a>
           </div>
           <div className="text-center md:text-left">
-            Copyright © 2025. All rights reserved. NextPostAI
+            Copyright © 2026. All rights reserved. NextPostAI
           </div>
         </div>
       </div>
