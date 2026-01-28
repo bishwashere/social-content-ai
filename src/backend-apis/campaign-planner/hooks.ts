@@ -470,10 +470,15 @@ export const useEditChatContent = () => {
   return useMutation({
     mutationFn: editChatContent,
     onSuccess: (projectId) => {
-      if (projectId)
+      if (projectId) {
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner", projectId],
         });
+        // Also invalidate scheduled posts since we might be editing a scheduled post
+        queryClient.invalidateQueries({
+          queryKey: ["scheduledPosts"],
+        });
+      }
     },
     onError: () => toast.error("Some error occurred!"),
   });

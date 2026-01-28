@@ -63,6 +63,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
 import { markDemoCampaignCreated } from "@/server-actions/user-flags";
 import { ProjectLocationTour } from "@/components/common/project-location-tour";
+import { UploadMediaToCampaignChat } from "./upload-media-to-campaign-chat";
+import { ViewMedia } from "@/components/social/view-media";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -218,6 +220,9 @@ const ICONS = {
   reddit: "/reddit.svg",
   tiktok: "/tiktok.svg"
 };
+
+// Platforms that support media upload (same as scheduled posts)
+const MEDIA_SUPPORTED_PLATFORMS = ["facebook", "linkedin", "threads"];
 
 const getPrompt = (str: string) => `
 Description: ${str}
@@ -1440,19 +1445,23 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
+  const [editedMedia, setEditedMedia] = useState<Record<string, string>>({});
   const editContent = useEditChatContent();
   const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
-  const handleSave = async (campaignId: string, day: number, platform: string) => {
+  const handleSave = async (campaignId: string, day: number, platform: string, scheduledPostId?: string) => {
     // You can handle saving here
-    console.log("Saving for:", platform, "with content:", editedContent[platform]);
+    console.log("Saving for:", platform, "with content:", editedContent[platform], "media:", editedMedia[platform], "scheduledPostId:", scheduledPostId);
     await editContent.mutateAsync({
       campaignId,
       day,
       platform,
-      content: editedContent[platform]
+      content: editedContent[platform],
+      media: editedMedia[platform],
+      scheduledPostId
     })
       .then(() => toast.success(`Content edited for ${platform}`));
     setEditingPlatform(null);
+    setEditedMedia({});
   };
 
   return (
@@ -2480,12 +2489,13 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             )}
                                             {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => {
                                               const resolvedText = applyPlaceholders(text, projectPlaceholders);
+                                              const scheduledInfo = (timeline.scheduledPlatforms as Record<string, { scheduledPostId: string; scheduledDate: Date; status: string }>)?.[platform];
+                                              const isScheduled = !!scheduledInfo;
                                               return (
-                                          <Card key={platform} className="rounded-lg border mb-5">
+                                          <Card key={platform} className={cn("rounded-lg border mb-5", isScheduled && "border-green-500/50")}>
                                             <div className="flex flex-col gap-0">
-                                              <CardHeader className="flex justify-between items-center flex-row">
-                                                <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                                <div className="flex flex-wrap justify-center items-center sm:flex-row sm:items-center sm:gap-2">
+                                              <CardHeader className="flex flex-col gap-2">
+                                                <div className="flex flex-wrap items-center gap-1">
                                                   <Button variant="ghost" size="icon"
                                                     onClick={() => {
                                                       setEditedContent({ ...editedContent, [platform]: text });
@@ -2503,27 +2513,19 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     projectId={project.id}
                                                     prompt=""
                                                   />
-
-                                                  {
-                                                    (() => {
-                                                      const platformUrl = project.platformUrls?.[platform as keyof typeof project.platformUrls];
-                                                      const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
-                                                      const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
-
-
-                                                      if (!finalUrl) return null;
-
-                                                      return (
-                                                        <Button variant="ghost" size="icon" asChild>
-                                                          <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
-                                                            <Image src={ICONS[platform]} alt={platform} width={16} height={16} className="dark:brightness-0 dark:invert" />
-                                                          </Link>
-                                                        </Button>
-                                                      );
-                                                    })()
-                                                  }
-
-
+                                                  {(() => {
+                                                    const platformUrl = project.platformUrls?.[platform as keyof typeof project.platformUrls];
+                                                    const redditFallbackUrl = timeline.subreddit ? `https://www.reddit.com/r/${timeline.subreddit}` : null;
+                                                    const finalUrl = platform === "reddit" ? (platformUrl || redditFallbackUrl) : platformUrl;
+                                                    if (!finalUrl) return null;
+                                                    return (
+                                                      <Button variant="ghost" size="icon" asChild>
+                                                        <Link href={finalUrl} target="_blank" rel="noopener noreferrer">
+                                                          <Image src={ICONS[platform]} alt={platform} width={16} height={16} className="dark:brightness-0 dark:invert" />
+                                                        </Link>
+                                                      </Button>
+                                                    );
+                                                  })()}
                                                   <SavePlatformCard
                                                     platform={platform}
                                                     projectId={project.id}
@@ -2543,6 +2545,15 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     }}
                                                     disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
                                                   />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
+                                                  {isScheduled && (
+                                                    <Badge variant="outline" className="text-xs text-green-600 border-green-500/50 whitespace-nowrap">
+                                                      <Clock className="w-3 h-3 mr-1" />
+                                                      Scheduled
+                                                    </Badge>
+                                                  )}
                                                 </div>
                                               </CardHeader>
                                               {timeline.subreddit && platform === "reddit" && <div className="px-6 flex flex-col gap-0.5">
@@ -2564,23 +2575,39 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     value={editedContent[platform] ?? text}
                                                     onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
                                                   />
+                                                  {MEDIA_SUPPORTED_PLATFORMS.includes(platform) && (
+                                                    <UploadMediaToCampaignChat
+                                                      campaignId={campaign.id}
+                                                      day={timeline.day}
+                                                      platform={platform}
+                                                      media={editedMedia[platform] || (timeline.media as Record<string, string>)?.[platform]}
+                                                      onMediaUploaded={(key) => setEditedMedia({ ...editedMedia, [platform]: key })}
+                                                    />
+                                                  )}
                                                   <div className="flex gap-2 justify-end">
-                                                    <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
+                                                    <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedMedia({}); }}>
                                                       Cancel
                                                     </Button>
-                                                    <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform)} loading={editContent.isPending}>
+                                                    <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform, scheduledInfo?.scheduledPostId)} loading={editContent.isPending}>
                                                       Save
                                                     </Button>
                                                   </div>
                                                 </div>
                                               ) : (
-                                                <Markdown>
-                                                  {resolvedText
-                                                    .split("\n")
-                                                    .map(line => line.trim())
-                                                    .filter(line => line.length > 0)
-                                                    .join("\n\n")}
-                                                </Markdown>
+                                                <>
+                                                  <Markdown>
+                                                    {resolvedText
+                                                      .split("\n")
+                                                      .map(line => line.trim())
+                                                      .filter(line => line.length > 0)
+                                                      .join("\n\n")}
+                                                  </Markdown>
+                                                  {MEDIA_SUPPORTED_PLATFORMS.includes(platform) && (timeline.media as Record<string, string>)?.[platform] && (
+                                                    <div className="mt-4">
+                                                      <ViewMedia post={{ media: (timeline.media as Record<string, string>)[platform] }} showMedia />
+                                                    </div>
+                                                  )}
+                                                </>
                                               )}
                                             </CardContent>
 

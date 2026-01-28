@@ -8,6 +8,7 @@ type Props = {
   platform: string;
   content: string;
   date: string;
+  media?: string;
   meta?: Prisma.InputJsonValue;
 };
 
@@ -70,6 +71,7 @@ export const schedulePost = async (props: Props) => {
         date: scheduledDate.toISOString(),
         status: "pending",
         oauthProviderId: projectProvider.oauthProviderId,
+        ...(props.media && { media: props.media }),
         ...(props.meta && { meta: props.meta })
       },
     });

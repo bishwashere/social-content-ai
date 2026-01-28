@@ -352,7 +352,7 @@ export default function ModernLanding() {
               </p>
 
               {/* CTA Button */}
-              <div className="flex flex-col items-center justify-center gap-11 pt-6">
+              <div className="flex flex-col items-center justify-center gap-11 pt-10">
                 <GoogleLoginButton 
                   triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
                   buttonText="Start Free · 100 Credits"

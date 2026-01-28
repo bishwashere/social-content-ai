@@ -142,6 +142,7 @@ model CampaignChat {
   completed Boolean  @default(false)
   contents  Json     @default("{}") // Map<string, string> -> JSON
   tickMark  Json     @default("{}") // Map<string, string> -> JSON
+  media     Json     @default("{}") // Map<string, string> -> JSON (platform -> S3 key)
   status    Status   @default(PENDING)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

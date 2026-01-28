@@ -4,6 +4,7 @@ import {
   deleteProcessingVideo,
   getPresignedUrlForDemoVideoUpload,
   getSignedKeyForScheduledPost,
+  getSignedKeyForCampaignChat,
   getSignedUrlForMediaKey,
   getUploadedVideoUrl,
   listAllFilesByKey,
@@ -201,6 +202,50 @@ export const useUploadMediaForScheduledPost = () => {
       toast.success("Media uploaded successfully");
       queryClient.invalidateQueries({
         queryKey: ["uploaded-media"],
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
+export const useUploadMediaForCampaignChat = () => {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { 
+      file: File; 
+      campaignId: string; 
+      day: number; 
+      platform: string;
+    }) => {
+      const { url: presignedUrl, key } = await getSignedKeyForCampaignChat(
+        session?.user?.id || "",
+        data.campaignId,
+        data.day,
+        data.platform,
+        data.file.name
+      );
+
+      const res = await fetch(presignedUrl, {
+        method: "PUT",
+        body: data.file,
+        headers: {
+          "Content-Type": data.file.type,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload media");
+      }
+
+      return key;
+    },
+    onSuccess: () => {
+      toast.success("Media uploaded successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["campaignPlanner"],
       });
     },
     onError: (error) => {

@@ -230,6 +230,22 @@ export const getSignedKeyForScheduledPost = async (
   };
 };
 
+export const getSignedKeyForCampaignChat = async (
+  userId: string,
+  campaignId: string,
+  day: number,
+  platform: string,
+  filename: string
+) => {
+  const key = `campaign-chats/${userId}/${campaignId}/${day}/${platform}/${filename}`;
+  const url = await s3.getPresignedUrlForVideoUpload(key);
+
+  return {
+    key,
+    url,
+  };
+};
+
 export const listAllUserMedia = async (userId: string) => {
   try {
     // List all media recursively from media-uploads/{userId}/

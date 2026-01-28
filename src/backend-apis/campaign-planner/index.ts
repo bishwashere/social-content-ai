@@ -4,6 +4,7 @@ import { AI } from "@/lib/ai";
 import { CampaignPlanner } from "@/lib/campaign-planner";
 import { getRandomInRange } from "@/lib/getRandomInRange";
 import { prisma } from "@/lib/prisma";
+import { s3 } from "@/lib/s3";
 import { schedulePost } from "@/server-actions/schedule-post";
 
 export const startCampaignPlanner = async (
@@ -372,7 +373,46 @@ export const getOldCampaigns = async (projectId: string) => {
   };
 };
 
+// Function to get scheduled posts for a campaign, grouped by day and platform
+export const getScheduledPostsForCampaign = async (campaignId: string) => {
+  // MongoDB Prisma doesn't support path queries, so we fetch and filter
+  const allScheduledPosts = await prisma.scheduledPost.findMany({
+    where: {
+      status: { not: "posted" }, // Only get pending/scheduled posts, not already posted
+    },
+    orderBy: { date: "asc" },
+  });
+
+  // Filter posts that belong to this campaign
+  const campaignPosts = allScheduledPosts.filter((post) => {
+    const meta = post.meta as { campaignId?: string; day?: number; source?: string } | null;
+    return meta?.campaignId === campaignId && meta?.source === "campaign";
+  });
+
+  // Group by day and platform, and generate signed URLs for media
+  const postsWithSignedMedia = await Promise.all(
+    campaignPosts.map(async (post) => {
+      let signedMedia: string | null = null;
+      if (post.media) {
+        try {
+          signedMedia = await s3.getSignedUrlForVideoDownload(post.media);
+        } catch (error) {
+          console.error(`Failed to get signed URL for scheduled post media:`, error);
+          signedMedia = post.media; // Fallback to original key
+        }
+      }
+      return {
+        ...post,
+        media: signedMedia,
+      };
+    })
+  );
+
+  return postsWithSignedMedia;
+};
+
 // Function to load chats for a specific campaign on demand
+// Merges scheduled post data when posts have been scheduled
 export const getCampaignChats = async (campaignId: string) => {
   const campaign = await prisma.campaignPlanner.findUnique({
     where: { id: campaignId },
@@ -383,9 +423,88 @@ export const getCampaignChats = async (campaignId: string) => {
     return null;
   }
 
+  // Get scheduled posts for this campaign
+  const scheduledPosts = await getScheduledPostsForCampaign(campaignId);
+
+  // Create a map of scheduled posts by day and platform for quick lookup
+  const scheduledPostsMap = new Map<string, typeof scheduledPosts[0]>();
+  for (const post of scheduledPosts) {
+    const meta = post.meta as { day?: number } | null;
+    if (meta?.day) {
+      // Convert platform name back (twitter -> x)
+      const platformKey = post.platform === "twitter" ? "x" : post.platform;
+      const key = `${meta.day}-${platformKey}`;
+      scheduledPostsMap.set(key, post);
+    }
+  }
+
+  // Process chats and merge with scheduled post data
+  const chatsWithScheduledData = await Promise.all(
+    campaign.chats.map(async (chat) => {
+      const chatContents = (chat.contents as Record<string, string>) || {};
+      const chatMedia = (chat.media as Record<string, string>) || {};
+      
+      // Build new contents and media from scheduled posts (if available)
+      const mergedContents: Record<string, string> = {};
+      const mergedMedia: Record<string, string> = {};
+      const scheduledPlatforms: Record<string, { 
+        scheduledPostId: string; 
+        scheduledDate: Date;
+        status: string;
+      }> = {};
+
+      // Get all platforms from both campaign chat and scheduled posts
+      const allPlatforms = new Set([
+        ...Object.keys(chatContents),
+        ...scheduledPosts
+          .filter(p => (p.meta as { day?: number } | null)?.day === chat.day)
+          .map(p => p.platform === "twitter" ? "x" : p.platform)
+      ]);
+
+      for (const platform of allPlatforms) {
+        const key = `${chat.day}-${platform}`;
+        const scheduledPost = scheduledPostsMap.get(key);
+
+        if (scheduledPost) {
+          // Use scheduled post data (this is the source of truth after scheduling)
+          mergedContents[platform] = scheduledPost.content;
+          if (scheduledPost.media) {
+            mergedMedia[platform] = scheduledPost.media;
+          }
+          scheduledPlatforms[platform] = {
+            scheduledPostId: scheduledPost.id,
+            scheduledDate: scheduledPost.date,
+            status: scheduledPost.status,
+          };
+        } else {
+          // Use campaign chat data (not yet scheduled)
+          if (chatContents[platform]) {
+            mergedContents[platform] = chatContents[platform];
+          }
+          // Generate signed URL for campaign chat media
+          if (chatMedia[platform]) {
+            try {
+              mergedMedia[platform] = await s3.getSignedUrlForVideoDownload(chatMedia[platform]);
+            } catch (error) {
+              console.error(`Failed to get signed URL for ${platform} media:`, error);
+              mergedMedia[platform] = chatMedia[platform];
+            }
+          }
+        }
+      }
+
+      return {
+        ...chat,
+        contents: mergedContents,
+        media: mergedMedia,
+        scheduledPlatforms, // New field to track which platforms are scheduled
+      };
+    })
+  );
+
   return {
     id: campaign.id,
-    chats: campaign.chats.sort((a, b) => a.day - b.day),
+    chats: chatsWithScheduledData.sort((a, b) => a.day - b.day),
   };
 };
 
@@ -833,12 +952,67 @@ export const editChatContent = async ({
   day,
   platform,
   content,
+  media,
+  scheduledPostId,
 }: {
   campaignId: string;
   day: number;
   platform: string;
   content: string;
+  media?: string;
+  scheduledPostId?: string; // If provided, update the scheduled post directly
 }): Promise<string | null> => {
+  // Convert platform name for database (x -> twitter)
+  const dbPlatform = platform === "x" ? "twitter" : platform;
+
+  // If scheduledPostId is provided, update the scheduled post directly
+  if (scheduledPostId) {
+    const scheduledPost = await prisma.scheduledPost.findUnique({
+      where: { id: scheduledPostId },
+    });
+
+    if (!scheduledPost) return null;
+
+    await prisma.scheduledPost.update({
+      where: { id: scheduledPostId },
+      data: {
+        content: content,
+        ...(media !== undefined && { media: media }),
+      },
+    });
+
+    // Get the projectId to return for cache invalidation
+    return scheduledPost.projectId;
+  }
+
+  // Otherwise, check if there's a scheduled post for this campaign/day/platform
+  const allScheduledPosts = await prisma.scheduledPost.findMany({
+    where: {
+      platform: dbPlatform,
+      status: { not: "posted" },
+    },
+  });
+
+  // Find the scheduled post for this campaign and day
+  const existingScheduledPost = allScheduledPosts.find((post) => {
+    const meta = post.meta as { campaignId?: string; day?: number; source?: string } | null;
+    return meta?.campaignId === campaignId && meta?.day === day && meta?.source === "campaign";
+  });
+
+  if (existingScheduledPost) {
+    // Update the scheduled post
+    await prisma.scheduledPost.update({
+      where: { id: existingScheduledPost.id },
+      data: {
+        content: content,
+        ...(media !== undefined && { media: media }),
+      },
+    });
+
+    return existingScheduledPost.projectId;
+  }
+
+  // No scheduled post found, update the campaign chat
   const chat = await prisma.campaignChat.findFirst({
     where: {
       plannerId: campaignId,
@@ -848,14 +1022,21 @@ export const editChatContent = async ({
 
   if (!chat) return null;
 
-  // Update the tickMark JSON
+  // Update the contents JSON
   const currentContents = (chat.contents as Record<string, string>) || {};
   currentContents[platform] = content;
+
+  // Update the media JSON if provided
+  const currentMedia = (chat.media as Record<string, string>) || {};
+  if (media !== undefined) {
+    currentMedia[platform] = media;
+  }
 
   const updated = await prisma.campaignChat.update({
     where: { id: chat.id },
     data: {
       contents: currentContents,
+      media: currentMedia,
     },
     include: {
       planner: true,
@@ -983,8 +1164,9 @@ export const scheduleCampaignPosts = async ({
         continue; // Skip this chat day
       }
 
-      // Get contents
+      // Get contents and media
       const contents = (chat.contents as Record<string, string>) || {};
+      const mediaRecord = (chat.media as Record<string, string>) || {};
 
       // For each platform
       for (const platform of platforms) {
@@ -995,6 +1177,9 @@ export const scheduleCampaignPosts = async ({
 
         // Convert platform name (x -> twitter)
         const platformName = platform === "x" ? "twitter" : platform;
+        
+        // Get media for this platform (if any)
+        const platformMedia = mediaRecord[platform];
 
         // Schedule the post
         try {
@@ -1003,6 +1188,7 @@ export const scheduleCampaignPosts = async ({
             platform: platformName,
             content: content,
             date: chatDate.toISOString(),
+            media: platformMedia,
             meta: {
               campaignId: campaignId,
               campaignName: campaign.name || "",
