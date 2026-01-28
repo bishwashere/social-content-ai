@@ -39,6 +39,18 @@ export const GET = applyMiddleware(
               }
             }
           },
+          projectToOAuthProviders: {
+            include: {
+              oauthProvider: {
+                select: {
+                  id: true,
+                  platform: true,
+                  pageId: true,
+                  pageName: true,
+                }
+              }
+            }
+          },
         },
         orderBy: {
           updatedAt: "desc",
@@ -57,6 +69,18 @@ export const GET = applyMiddleware(
                 },
               },
               invitedUsers: true,
+              projectToOAuthProviders: {
+                include: {
+                  oauthProvider: {
+                    select: {
+                      id: true,
+                      platform: true,
+                      pageId: true,
+                      pageName: true,
+                    }
+                  }
+                }
+              },
             },
           },
         },

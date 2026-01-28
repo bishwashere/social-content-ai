@@ -25,6 +25,7 @@ import Subscription from "@/components/common/subscription";
 import { useParams, useRouter } from "next/navigation";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { ProjectEditModal } from "./project-edit-modal";
+import { ProjectSocialLinks } from "./project-social-links";
 import Image from "next/image";
 import { useUserSettings, useUpdateUserSettings } from "@/backend-apis/user-settings/hooks";
 import { Switch } from "@/components/ui/switch";
@@ -89,7 +90,12 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
               const project = projects?.data?.find(
                 (project) => project.id === id
               );
-              return project ? <ProjectEditModal project={project} /> : null;
+              return project ? (
+                <>
+                  <ProjectEditModal project={project} />
+                  <ProjectSocialLinks project={project} />
+                </>
+              ) : null;
             })()}
             {onTourStart && data?.user && (settings?.guidedTourEnabled ?? true) && (
               <button

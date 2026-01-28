@@ -1,8 +1,15 @@
 import { ProjectValidatorType } from "@/validators/projects";
-import { Projects } from "@prisma/client";
+import { Projects, OauthPlatform } from "@prisma/client";
 import { ProjectTracking } from "@prisma/client";
 
 export type CreateProjectProps = ProjectValidatorType["createProject"];
+
+export type LinkedOAuthProvider = {
+  id: string;
+  platform: OauthPlatform;
+  pageId: string | null;
+  pageName: string | null;
+};
 
 export type ProjectWithChats = Projects & {
   projectChats?: {
@@ -28,6 +35,9 @@ export type ProjectWithChats = Projects & {
     user: { name: string, email: string };
   }[];
   userRole?: string; // Role of the current user for this project
+  projectToOAuthProviders?: {
+    oauthProvider: LinkedOAuthProvider;
+  }[];
 };
 
 export type UpdateProjectProps = ProjectValidatorType["updateProject"] & {
