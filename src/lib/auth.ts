@@ -83,6 +83,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       type: "oauth",
       clientId: process.env.AUTH_INSTAGRAM_ID!,
       clientSecret: process.env.AUTH_INSTAGRAM_SECRET!,
+      // Disable PKCE - Instagram doesn't support it
+      checks: ["state"],
       authorization: {
         url: "https://www.instagram.com/oauth/authorize",
         params: {
@@ -93,52 +95,59 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       token: {
         url: "https://api.instagram.com/oauth/access_token",
         async request(context: any) {
-          const { params, provider } = context;
-          
           console.log("[Instagram OAuth] Starting token exchange...");
-          console.log("[Instagram OAuth] Context keys:", Object.keys(context));
-          console.log("[Instagram OAuth] Params:", JSON.stringify(params || {}));
           
-          // Build the redirect URI - Instagram requires exact match
-          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.nextpostai.com";
-          const redirectUri = `${baseUrl}/api/auth/callback/instagram`;
-          
-          console.log("[Instagram OAuth] Using redirect_uri:", redirectUri);
+          const { provider, params, checks } = context;
+          console.log("[Instagram OAuth] Provider clientId present:", !!provider?.clientId);
           console.log("[Instagram OAuth] Code present:", !!params?.code);
+          console.log("[Instagram OAuth] Checks:", checks);
+          
+          // Build the redirect URI - must match exactly what's in Instagram app settings
+          const redirectUri = `https://www.nextpostai.com/api/auth/callback/instagram`;
+          console.log("[Instagram OAuth] Using redirect_uri:", redirectUri);
+          
+          const tokenParams = new URLSearchParams({
+            client_id: provider.clientId,
+            client_secret: provider.clientSecret,
+            grant_type: "authorization_code",
+            redirect_uri: redirectUri,
+            code: params.code,
+          });
+          
+          console.log("[Instagram OAuth] Making token request...");
           
           const response = await fetch("https://api.instagram.com/oauth/access_token", {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
-            body: new URLSearchParams({
-              client_id: provider.clientId as string,
-              client_secret: provider.clientSecret as string,
-              grant_type: "authorization_code",
-              redirect_uri: redirectUri,
-              code: params?.code as string || "",
-            }),
+            body: tokenParams,
           });
 
+          console.log("[Instagram OAuth] Token response status:", response.status);
+          
           const data = await response.json();
-          console.log("[Instagram OAuth] Token response:", { 
-            hasAccessToken: !!data.access_token, 
+          console.log("[Instagram OAuth] Token response data:", {
+            hasAccessToken: !!data.access_token,
             userId: data.user_id,
-            error: data.error_message || data.error_type,
-            errorDescription: data.error_description
+            error: data.error_message || data.error_type || data.error,
+            errorDescription: data.error_description,
           });
 
-          if (data.error_type || data.error_message || data.error) {
-            console.error("[Instagram OAuth] Error:", data.error_message || data.error_type || data.error);
-            throw new Error(data.error_message || data.error_description || data.error || "Instagram OAuth error");
+          if (!response.ok || data.error_type || data.error_message || data.error) {
+            const errorMsg = data.error_message || data.error_description || data.error || `HTTP ${response.status}`;
+            console.error("[Instagram OAuth] Token exchange failed:", errorMsg);
+            throw new Error(`Instagram token exchange failed: ${errorMsg}`);
           }
 
-          // Instagram returns: { access_token, user_id, permissions }
-          // next-auth expects a flat TokenSet object with token_type
+          // Return tokens in the format next-auth expects
           return {
-            access_token: data.access_token,
-            token_type: "bearer", // Add missing token_type required by next-auth
-            user_id: data.user_id, // Pass through for use in signIn callback
+            tokens: {
+              access_token: data.access_token,
+              token_type: "bearer",
+              // Store user_id in the token object for access in signIn callback
+              providerAccountId: String(data.user_id),
+            },
           };
         },
       },
@@ -147,7 +156,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async request(context: any) {
           const { tokens } = context;
           console.log("[Instagram OAuth] Fetching user info...");
-          console.log("[Instagram OAuth] Has access_token:", !!tokens?.access_token);
           
           const response = await fetch(
             `https://graph.instagram.com/me?fields=id,username,account_type,name&access_token=${tokens?.access_token}`
