@@ -93,6 +93,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
       token: {
+        url: "https://api.instagram.com/oauth/access_token",
         async request(context: any) {
           console.log("[Instagram OAuth] Starting token exchange...");
           
@@ -139,14 +140,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error(`Instagram token exchange failed: ${errorMsg}`);
           }
 
-          // Return tokens in the format next-auth expects
+          // Return tokens directly - next-auth v5 expects a flat TokenSet
+          console.log("[Instagram OAuth] Returning tokens to next-auth");
           return {
-            tokens: {
-              access_token: data.access_token,
-              token_type: "bearer",
-              // Store user_id in the token object for access in signIn callback
-              providerAccountId: String(data.user_id),
-            },
+            access_token: data.access_token,
+            token_type: "bearer",
+            user_id: String(data.user_id),
           };
         },
       },
