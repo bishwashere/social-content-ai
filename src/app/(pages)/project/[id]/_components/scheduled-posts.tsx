@@ -46,6 +46,7 @@ import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronsUpDown } from "lucide-react";
+import InstagramPostView from "@/components/social/instagram-post-view";
 interface Props {
   project: Project;
 }
@@ -430,6 +431,10 @@ export function ScheduledPosts({ project }: Props) {
             />
           ) : post.platform === "threads" ? (
             <ThreadsPost post={post}
+              viewContentEdit={viewContentEdit}
+              setViewContentEdit={setViewContentEdit} />
+          ): post.platform === "instagram" ? (
+            <InstagramPostView post={post}
               viewContentEdit={viewContentEdit}
               setViewContentEdit={setViewContentEdit} />
           ) : (
