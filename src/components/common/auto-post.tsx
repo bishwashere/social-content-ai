@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { mapProjectToOAuthProvider } from '@/server-actions/map-project-oauth-provider'
 import { checkProjectOAuthProvider } from '@/server-actions/check-project-oauth-provider'
 import { authenticateWithThreads } from '@/lib/auth/threads'
+import { authenticateWithInstagram } from '@/lib/auth/instagram'
 
 const ICONS = {
   x: "/x.svg",
@@ -75,6 +76,9 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
         setTimeout(() => {
           if (platform === "threads") {
             authenticateWithThreads()
+          }
+          else if (platform === "instagram") {
+            authenticateWithInstagram()
           } else if (platform === "linkedin") {
             const currentUrl = window.location.href;
             window.location.href = `/api/linkedin-login/auth?redirectTo=${encodeURIComponent(currentUrl)}`;
