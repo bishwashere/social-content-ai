@@ -75,42 +75,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
-    // Instagram Business API - Custom OAuth provider
-    // 
-    // APPROACHES TRIED:
-    // 1. InstagramProvider (built-in) - Failed: Instagram response missing "token_type"
-    // 2. Custom provider with token.conform - Failed: Only works on 200 responses
-    // 3. Custom provider with token.request - Failed: Custom request function not called
-    // 4. Removed token.url - Failed: "Missing issuer and token endpoint" error
-    // 5. token.url + token.request together - Failed: Default behavior used, custom ignored
-    //
-    // CURRENT: Using custom OAuth routes at /api/instagram-login/* (like LinkedIn)
-    // TODO: Remove this once custom routes are implemented
-    {
-      id: "instagram",
-      name: "Instagram",
-      type: "oauth",
-      clientId: process.env.AUTH_INSTAGRAM_ID!,
-      clientSecret: process.env.AUTH_INSTAGRAM_SECRET!,
-      checks: ["state"],
-      authorization: {
-        url: "https://www.instagram.com/oauth/authorize",
-        params: {
-          scope: "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights",
-          response_type: "code",
-        },
-      },
-      token: "https://api.instagram.com/oauth/access_token",
-      userinfo: "https://graph.instagram.com/me?fields=id,username,name",
-      profile(profile: { id: string; name?: string; username?: string }) {
-        return {
-          id: profile.id,
-          name: profile.name || profile.username,
-          email: null,
-          image: null,
-        };
-      },
-    }
   ],
   pages: {
     error: "/error/auth",
@@ -158,11 +122,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             "id" | "createdAt" | "updatedAt" | "pageFollowers"
           >[] = [];
 
-          const encryptedTokens = { accessToken: '', refreshToken:''};
-          if(account.access_token) {
+          const encryptedTokens = { accessToken: '', refreshToken: '' };
+          if (account.access_token) {
             encryptedTokens.accessToken = encryptToken(account.access_token);
           }
-          if(account.refresh_token) {
+          if (account.refresh_token) {
             encryptedTokens.refreshToken = encryptToken(account.refresh_token);
           }
 
@@ -271,52 +235,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 pageId: String(account.open_id) || "",
                 accessToken: encryptedTokens.accessToken,
                 refreshToken: encryptedTokens.refreshToken,
-                expiresAt: Number(account.expires_at)*1000!,
+                expiresAt: Number(account.expires_at) * 1000!,
                 pageName: user.name || "",
                 pageProfilePhoto: user.image || "",
                 isPersonal: true, // tiktok is always personal
               });
 
-              break;
-
-            case "instagram":
-              console.log("[Instagram SignIn] Starting Instagram OAuth callback");
-              console.log("[Instagram SignIn] Account data:", JSON.stringify({
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                user_id: account.user_id,
-                hasAccessToken: !!account.access_token,
-              }));
-              console.log("[Instagram SignIn] User data:", JSON.stringify({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-              }));
-              
-              // Instagram Business API - the user_id from the account is the Instagram Business Account ID
-              // This is used for posting via the Instagram Graph API
-              const instagramUserId = account.user_id || account.providerAccountId || user.id;
-              
-              if (!instagramUserId) {
-                console.error("[Instagram SignIn] No Instagram user ID found in account");
-                return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
-              }
-
-              console.log("[Instagram SignIn] Using Instagram user ID:", instagramUserId);
-
-              authProviders.push({
-                userId: googleUser.id,
-                platform: "instagram",
-                pageId: String(instagramUserId),
-                accessToken: encryptedTokens.accessToken,
-                refreshToken: encryptedTokens.refreshToken || "",
-                expiresAt: account.expires_at ? Number(account.expires_at) * 1000 : null,
-                pageName: user.name || "Instagram Account",
-                pageProfilePhoto: user.image || "",
-                isPersonal: true, // Instagram Business accounts are tied to a user
-              });
-
-              console.log("[Instagram SignIn] Provider added to save queue");
               break;
 
 

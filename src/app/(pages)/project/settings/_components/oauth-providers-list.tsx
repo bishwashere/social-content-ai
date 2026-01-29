@@ -22,6 +22,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Lock, Shield } from "lucide-react";
+import { authenticateWithInstagram } from "@/lib/auth/instagram";
 
 type GroupedProviders = {
   [key: string]: OauthProvider[];
@@ -108,7 +109,7 @@ export function OAuthProvidersList() {
   };
 
   const handleInstagramConnect = () => {
-    signIn("instagram");
+    return authenticateWithInstagram();
   }
 
   // Platform configuration

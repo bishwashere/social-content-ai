@@ -16,6 +16,7 @@ import { signIn } from "next-auth/react"
 import Image from "next/image"
 import { authenticateWithThreads } from "@/lib/auth/threads"
 import { useState } from "react"
+import { authenticateWithInstagram } from "@/lib/auth/instagram"
 
 type ConnectedProvider = {
   platform: string
@@ -94,7 +95,7 @@ export function ConnectAccountsButton() {
   }
 
   const handleInstagramConnect = () => {
-    signIn("instagram")
+    return authenticateWithInstagram();
   }
 
   return (
