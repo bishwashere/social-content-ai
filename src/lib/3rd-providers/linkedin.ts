@@ -191,16 +191,27 @@ class Linkedin {
         );
 
         const stats = statsRes.data.elements?.[0]?.totalShareStatistics;
-        // console.log(stats);
+        
+        // Log impression data for debugging
+        if (stats) {
+          console.log(`[LinkedIn] Post ${postId.substring(0, 30)}... stats:`, {
+            impressionCount: stats.impressionCount,
+            uniqueImpressionsCount: stats.uniqueImpressionsCount,
+            likeCount: stats.likeCount,
+            commentCount: stats.commentCount,
+          });
+        } else {
+          console.warn(`[LinkedIn] No stats returned for post ${postId}`);
+        }
 
         insights.push({
           postId,
           content: commentary,
-          likes: stats.likeCount || 0,
-          comments: stats.commentCount || 0,
-          impressions: stats.impressionCount || 0,
-          uniqueImpressions: stats.uniqueImpressionsCount || 0,
-          shares: stats.shareCount || 0,
+          likes: stats?.likeCount || 0,
+          comments: stats?.commentCount || 0,
+          impressions: stats?.impressionCount || 0,
+          uniqueImpressions: stats?.uniqueImpressionsCount || 0,
+          shares: stats?.shareCount || 0,
           // clicks: stats.clickCount || 0,
           // engagement: stats.engagement || 0,
           date,

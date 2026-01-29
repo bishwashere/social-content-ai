@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
-import { checkAndRefreshTwitterToken } from "@/lib/twitter-auth";
+import { checkAndRefreshTwitterToken } from "@/lib/3rd-providers/twitter";
 import { getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { postToSocial } from "@/lib/post-to-social";

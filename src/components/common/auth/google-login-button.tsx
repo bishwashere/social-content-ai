@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { MoveRight, Lock, Shield, Check } from "lucide-react";
-import { EmailLogin } from "./email-login.";
+import { EmailLogin } from "./email-login";
 import Link from "next/link";
 
 type Props = {

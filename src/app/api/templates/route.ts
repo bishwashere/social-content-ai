@@ -1,40 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
-import { verifyJWT } from "@/lib/jwt";
 import { TemplateCategory } from "@prisma/client";
-
-// Helper function to get user from JWT token
-async function getUserFromToken(request: NextRequest) {
-  // Check Authorization header first (from axios)
-  const authHeader = request.headers.get("authorization");
-  let token = authHeader?.replace("Bearer ", "");
-  
-  // Fallback to cookie if no Authorization header
-  if (!token) {
-    const cookieStore = await cookies();
-    token = cookieStore.get("social-ai-token")?.value;
-  }
-  
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
-  const payload = verifyJWT(token, process.env.JWT_SECRET as string);
-  if (!payload) {
-    throw new Error("Invalid authentication token");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: payload.email }
-  });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  return user;
-}
+import { getUserFromToken, isAuthenticationError } from "@/lib/auth-utils";
+import { toISOString } from "@/lib/date-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,46 +59,19 @@ export async function GET(request: NextRequest) {
     }) as any;
     
     const rawData = rawTemplates.cursor?.firstBatch || [];
-    const templates = rawData.map((t: any) => {
-      // Helper to convert date from MongoDB format to ISO string
-      const convertDate = (dateValue: any): string | null => {
-        if (!dateValue) return null;
-        if (dateValue instanceof Date) {
-          return dateValue.toISOString();
-        }
-        if (typeof dateValue === 'string') {
-          // If already a string, try to parse and return ISO
-          const parsed = new Date(dateValue);
-          return isNaN(parsed.getTime()) ? null : parsed.toISOString();
-        }
-        // Handle MongoDB date format { $date: "..." }
-        if (dateValue && typeof dateValue === 'object' && dateValue.$date) {
-          const parsed = new Date(dateValue.$date);
-          return isNaN(parsed.getTime()) ? null : parsed.toISOString();
-        }
-        // Handle MongoDB timestamp format
-        if (typeof dateValue === 'object' && dateValue.$timestamp) {
-          const timestamp = dateValue.$timestamp;
-          const parsed = new Date(timestamp * 1000);
-          return isNaN(parsed.getTime()) ? null : parsed.toISOString();
-        }
-        return null;
-      };
-
-      return {
-        id: t._id?.$oid || t._id?.toString() || t._id,
-        title: t.title,
-        description: t.description,
-        category: t.category,
-        content: t.content,
-        icon: t.icon || null,
-        source: t.source || null,
-        sourcePostId: t.sourcePostId || null,
-        impressions: t.impressions ?? null,
-        createdAt: convertDate(t.createdAt) || new Date().toISOString(),
-        updatedAt: convertDate(t.updatedAt) || new Date().toISOString(),
-      };
-    });
+    const templates = rawData.map((t: any) => ({
+      id: t._id?.$oid || t._id?.toString() || t._id,
+      title: t.title,
+      description: t.description,
+      category: t.category,
+      content: t.content,
+      icon: t.icon || null,
+      source: t.source || null,
+      sourcePostId: t.sourcePostId || null,
+      impressions: t.impressions ?? null,
+      createdAt: toISOString(t.createdAt) || new Date().toISOString(),
+      updatedAt: toISOString(t.updatedAt) || new Date().toISOString(),
+    }));
 
     console.log(`[Templates API] Found ${templates.length} templates for category: ${category || "ALL"}`);
 
@@ -141,7 +82,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in templates GET:', error);
-    if (error instanceof Error && error.message.includes("authentication")) {
+    if (isAuthenticationError(error)) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
     // Handle Prisma enum errors gracefully
@@ -186,7 +127,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in templates POST:', error);
-    if (error instanceof Error && error.message.includes("authentication")) {
+    if (isAuthenticationError(error)) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -625,9 +625,9 @@ export const getTiktokMetrics = async (userId: string, projectId: string | null)
   }
 };
 
-export const getAllPlatformMetrics = async (userId: string, projectId: string | null) => {
+export const getAllPlatformMetrics = async (userId: string, projectId: string | null, forceRefresh: boolean = false) => {
   try {
-    console.log(`[getAllPlatformMetrics] User: ${userId}, Project: ${projectId}`);
+    console.log(`[getAllPlatformMetrics] User: ${userId}, Project: ${projectId}, ForceRefresh: ${forceRefresh}`);
     
     if (!projectId) {
       console.log(`[getAllPlatformMetrics] No projectId provided`);
@@ -684,20 +684,28 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
     for (const provider of linkedProviders) {
       const existingPosts = provider.pagePosts || [];
       
+      // Check if we should refresh: no posts, forceRefresh, or posts have null impressions (never fetched)
+      // Note: impressions === 0 is a valid value (post with no views), only refresh when null
+      const hasPostsWithNullImpressions = existingPosts.some(p => p.impressions === null);
+      const shouldFetchFromApi = existingPosts.length === 0 || forceRefresh || hasPostsWithNullImpressions;
+      
       console.log(`[getAllPlatformMetrics] Processing ${provider.platform} (${provider.pageName}):`, {
         hasPageId: !!provider.pageId,
         hasAccessToken: !!provider.accessToken,
         existingPostsCount: existingPosts.length,
+        hasPostsWithNullImpressions,
+        shouldFetchFromApi,
         samplePost: existingPosts[0] ? {
           id: existingPosts[0].id,
           postId: existingPosts[0].postId,
           date: existingPosts[0].date,
+          impressions: existingPosts[0].impressions,
           dateType: typeof existingPosts[0].date,
           hasDate: !!existingPosts[0].date,
         } : null,
       });
       
-      if (existingPosts.length > 0) {
+      if (existingPosts.length > 0 && !shouldFetchFromApi) {
         // Use existing posts from database
         // Ensure date is properly formatted
         const formattedPosts = existingPosts.map(post => ({
@@ -707,11 +715,24 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
         allPosts.push(...formattedPosts);
         console.log(`[getAllPlatformMetrics] Using ${existingPosts.length} existing posts for ${provider.platform} (${provider.pageName})`);
       } else {
-        // Fetch from API if no posts in database
-        console.log(`[getAllPlatformMetrics] No posts in DB for ${provider.platform} (${provider.pageName}), fetching from API...`);
+        // Fetch from API - either no posts in database or refreshing due to missing impressions
+        const reason = existingPosts.length === 0 ? "no posts in DB" : 
+                       forceRefresh ? "force refresh requested" : 
+                       "posts have missing impressions";
+        console.log(`[getAllPlatformMetrics] Fetching ${provider.platform} (${provider.pageName}) from API: ${reason}`);
         
         try {
           let platformPosts: any[] = [];
+          
+          // If we have existing posts but need to refresh, delete them first
+          if (existingPosts.length > 0 && shouldFetchFromApi) {
+            console.log(`[getAllPlatformMetrics] Deleting ${existingPosts.length} existing posts for ${provider.platform} to refresh`);
+            await prisma.platformPost.deleteMany({
+              where: {
+                oauthProviderId: provider.id,
+              },
+            });
+          }
           
           if (provider.platform === "facebook" && provider.pageId) {
             console.log(`[getAllPlatformMetrics] Fetching Facebook posts for ${provider.pageName} (pageId: ${provider.pageId})`);
@@ -732,6 +753,13 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
               try {
                 metrics = await fb.getMyPostInsights(provider.pageId);
                 console.log(`[getAllPlatformMetrics] Facebook API returned ${metrics.length} posts`);
+                if (metrics.length > 0) {
+                  console.log(`[getAllPlatformMetrics] Sample Facebook post impressions:`, {
+                    postId: metrics[0].id,
+                    impressions: metrics[0].impressions,
+                    uniqueImpressions: metrics[0].uniqueImpressions,
+                  });
+                }
               } catch (apiError) {
                 console.error(`[getAllPlatformMetrics] Facebook API error for ${provider.pageName}:`, apiError);
                 console.error(`[getAllPlatformMetrics] Error details:`, {
@@ -760,8 +788,8 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
                 shares: post.shares || 0,
                 likes: post.reactions || 0,
                 comments: post.comments || 0,
-                impressions: post.impressions,
-                uniqueImpressions: post.uniqueImpressions,
+                impressions: post.impressions ?? 0,
+                uniqueImpressions: post.uniqueImpressions ?? 0,
               }));
               
               console.log(`[getAllPlatformMetrics] Saving ${postsToSave.length} Facebook posts to database`);
@@ -813,6 +841,15 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
             const metrics = await l.getMyPostInsights(provider.pageId);
             const followersCount = await l.getFollowersCount(provider.pageId);
             
+            console.log(`[getAllPlatformMetrics] LinkedIn API returned ${metrics.length} posts`);
+            if (metrics.length > 0) {
+              console.log(`[getAllPlatformMetrics] Sample LinkedIn post impressions:`, {
+                postId: metrics[0].postId,
+                impressions: metrics[0].impressions,
+                uniqueImpressions: metrics[0].uniqueImpressions,
+              });
+            }
+            
             const updated = await prisma.oauthProvider.update({
               where: { id: provider.id },
               data: {
@@ -821,11 +858,11 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
                   create: metrics.map((post) => ({
                     postId: post.postId,
                     content: post.content,
-                    likes: post.likes,
-                    comments: post.comments,
-                    shares: post.shares,
-                    impressions: post.impressions,
-                    uniqueImpressions: post.uniqueImpressions,
+                    likes: post.likes ?? 0,
+                    comments: post.comments ?? 0,
+                    shares: post.shares ?? 0,
+                    impressions: post.impressions ?? 0,
+                    uniqueImpressions: post.uniqueImpressions ?? 0,
                     date: post.date,
                   })),
                 },

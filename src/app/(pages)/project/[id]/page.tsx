@@ -14,7 +14,7 @@ import { Projects as Project } from "@prisma/client";
 import { useGetCampaignPlanner } from "@/backend-apis/campaign-planner/hooks";
 import QuickGenerate from "./_components/quick-generate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CampaignPlannerPage from "./_components/campaing-planner";
+import CampaignPlannerPage from "./_components/campaign-planner";
 import History from "./_components/history";
 import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";

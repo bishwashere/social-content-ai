@@ -242,9 +242,23 @@ class Fb {
             uniqueImpressions = insightsData.find(
               (item: any) => item.name === "post_impressions_unique"
             )?.values?.[0]?.value;
-          } catch {
-            // Silently fail insights fetch - not critical for basic post data
-            console.warn(`[Fb.getMyPostInsights] Failed to fetch insights for post ${post.id}`);
+            
+            // Log impression data for debugging
+            console.log(`[Fb.getMyPostInsights] Post ${post.id} impressions:`, {
+              impressions,
+              uniqueImpressions,
+              rawInsightsData: insightsData.length > 0 ? insightsData.map((i: any) => ({ name: i.name, value: i.values?.[0]?.value })) : "no data",
+            });
+          } catch (insightsError: any) {
+            // Log the actual error for debugging
+            console.warn(`[Fb.getMyPostInsights] Failed to fetch insights for post ${post.id}:`, {
+              message: insightsError.message,
+              status: insightsError.response?.status,
+              errorData: insightsError.response?.data?.error,
+            });
+            // Set to 0 instead of undefined so we know insights were attempted
+            impressions = 0;
+            uniqueImpressions = 0;
           }
           
           return {

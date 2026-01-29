@@ -5,7 +5,7 @@ import { format, startOfWeek, addDays, subWeeks, endOfWeek, addWeeks, isSameDay,
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useGetAllProjects, useGetAllScheduledPosts } from "@/backend-apis/projects/hooks";
-import { PLATFORMS } from "../../[id]/_components/campaing-planner";
+import { PLATFORMS } from "../../[id]/_components/campaign-planner";
 import { Badge } from "@/components/ui/badge";
 import { Filter, Check } from "lucide-react";
 import { usePathname } from "next/navigation";
