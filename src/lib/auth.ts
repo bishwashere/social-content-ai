@@ -203,9 +203,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 // Check if this Facebook Page has a linked Instagram Business Account
                 try {
+                  console.log(`🔍 Checking Instagram for Facebook Page: ${fbPage.name} (ID: ${fbPage.id})`);
                   const igAccount = await f.getInstagramBusinessAccount(fbPage.id, fbPage.accessToken);
+                  console.log(`📸 Instagram result for ${fbPage.name}:`, igAccount ? `@${igAccount.username} (ID: ${igAccount.id})` : 'null');
                   if (igAccount) {
-                    console.log(`📸 Found Instagram Business Account for page ${fbPage.name}: @${igAccount.username}`);
+                    console.log(`✅ Found Instagram Business Account for page ${fbPage.name}: @${igAccount.username}`);
                     authProviders.push({
                       userId: googleUser.id,
                       platform: "instagram",
@@ -218,8 +220,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                       isPersonal: false, // Business account linked to Facebook Page
                     });
                   }
-                } catch (igError) {
-                  console.warn(`⚠️ Could not fetch Instagram Business Account for page ${fbPage.name}:`, igError);
+                } catch (igError: any) {
+                  console.error(`❌ Error fetching Instagram Business Account for page ${fbPage.name}:`, igError?.response?.data || igError?.message || igError);
                   // Continue with just the Facebook page
                 }
               }
