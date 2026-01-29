@@ -93,6 +93,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       token: {
         url: "https://api.instagram.com/oauth/access_token",
         async request({ params, provider }: { params: Record<string, unknown>; provider: { clientId?: string; clientSecret?: string } }) {
+          console.log("[Instagram OAuth] Starting token exchange...");
+          
           const response = await fetch("https://api.instagram.com/oauth/access_token", {
             method: "POST",
             headers: {
@@ -108,29 +110,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
 
           const data = await response.json();
+          console.log("[Instagram OAuth] Token response:", { 
+            hasAccessToken: !!data.access_token, 
+            userId: data.user_id,
+            error: data.error_message || data.error_type 
+          });
 
           if (data.error_type || data.error_message) {
+            console.error("[Instagram OAuth] Error:", data.error_message || data.error_type);
             throw new Error(data.error_message || "Instagram OAuth error");
           }
 
           // Instagram returns: { access_token, user_id, permissions }
-          // We need to add token_type for next-auth compatibility
+          // next-auth expects a flat TokenSet object with token_type
           return {
-            tokens: {
-              access_token: data.access_token,
-              token_type: "bearer", // Add missing token_type
-              user_id: data.user_id,
-            },
+            access_token: data.access_token,
+            token_type: "bearer", // Add missing token_type required by next-auth
+            user_id: data.user_id, // Pass through for use in signIn callback
           };
         },
       },
       userinfo: {
         url: "https://graph.instagram.com/me",
         async request({ tokens }: { tokens: { access_token?: string } }) {
+          console.log("[Instagram OAuth] Fetching user info...");
           const response = await fetch(
             `https://graph.instagram.com/me?fields=id,username,account_type,name&access_token=${tokens.access_token}`
           );
           const profile = await response.json();
+          console.log("[Instagram OAuth] User profile:", { 
+            id: profile.id, 
+            username: profile.username,
+            error: profile.error?.message 
+          });
           return profile;
         },
       },
@@ -312,17 +324,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               break;
 
             case "instagram":
-              console.log("Instagram OAuth callback - account:", account);
-              console.log("Instagram OAuth callback - user:", user);
+              console.log("[Instagram SignIn] Starting Instagram OAuth callback");
+              console.log("[Instagram SignIn] Account data:", JSON.stringify({
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                user_id: account.user_id,
+                hasAccessToken: !!account.access_token,
+              }));
+              console.log("[Instagram SignIn] User data:", JSON.stringify({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              }));
               
               // Instagram Business API - the user_id from the account is the Instagram Business Account ID
               // This is used for posting via the Instagram Graph API
               const instagramUserId = account.user_id || account.providerAccountId || user.id;
               
               if (!instagramUserId) {
-                console.error("No Instagram user ID found in account");
+                console.error("[Instagram SignIn] No Instagram user ID found in account");
                 return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
               }
+
+              console.log("[Instagram SignIn] Using Instagram user ID:", instagramUserId);
 
               authProviders.push({
                 userId: googleUser.id,
@@ -336,6 +360,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 isPersonal: true, // Instagram Business accounts are tied to a user
               });
 
+              console.log("[Instagram SignIn] Provider added to save queue");
               break;
 
 
