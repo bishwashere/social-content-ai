@@ -8,7 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "sonner";
 
 type Props = {
-  platform: "facebook" | "x" | "linkedin" | "threads" | "reddit";
+  platform: "facebook" | "x" | "linkedin" | "threads" | "reddit" | "instagram";
   projectId: string;
   timelineDay: number;
 };

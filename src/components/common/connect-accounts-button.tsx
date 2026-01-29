@@ -43,6 +43,7 @@ export function ConnectAccountsButton() {
         hasTiktok: data.hasTiktok || false,
         hasThreads: data.hasThreads || false,
         hasReddit: data.hasReddit || false,
+        hasInstagram: data.hasInstagram || false,
         providers: data.providers || []
       }
     },
@@ -64,6 +65,7 @@ export function ConnectAccountsButton() {
   const hasTiktok = accountsData?.hasTiktok || false
   const hasThreads = accountsData?.hasThreads || false
   const hasReddit = accountsData?.hasReddit || false
+  const hasInstagram = accountsData?.hasInstagram || false
 
 
   const handleFacebookConnect = () => {
@@ -89,6 +91,10 @@ export function ConnectAccountsButton() {
 
   const handleRedditConnect = () => {
     signIn("reddit")
+  }
+
+  const handleInstagramConnect = () => {
+    signIn("instagram")
   }
 
   return (
@@ -120,6 +126,14 @@ export function ConnectAccountsButton() {
           className="dark:invert"
         />
       </div>}
+      {hasInstagram && <div className="opacity-40">
+        <Image
+          src="/instagram.svg"
+          alt="Instagram connected"
+          width={20}
+          height={20}
+        />
+      </div>}
       {hasReddit && <div className="opacity-40">
         <Image
           src="/reddit.svg"
@@ -140,14 +154,14 @@ export function ConnectAccountsButton() {
       </div>}
       {hasThreads && <div className="opacity-40">
         <Image
-          src="threads.svg"
+          src="/threads.svg"
           alt="Threads connected"
           width={20}
           height={20}
         />
       </div>}
 
-      {(!hasFacebook || !hasLinkedin || !hasReddit || !hasThreads || !hasTiktok || !hasTwitter) &&
+      {(!hasFacebook || !hasLinkedin || !hasReddit || !hasThreads || !hasTiktok || !hasTwitter || !hasInstagram) &&
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -194,6 +208,18 @@ export function ConnectAccountsButton() {
                   className="mr-2"
                 />
                 <span>Connect X</span>
+              </DropdownMenuItem>
+            )}
+            {!hasInstagram && (
+              <DropdownMenuItem onClick={handleInstagramConnect} className="cursor-pointer">
+                <Image
+                  src="/instagram.svg"
+                  alt="Instagram"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+                <span>Connect Instagram</span>
               </DropdownMenuItem>
             )}
             {!hasReddit && (

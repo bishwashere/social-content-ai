@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
 import FacebookProvider from "next-auth/providers/facebook";
 import TiktokProvider from "next-auth/providers/tiktok";
+import InstagramProvider from "next-auth/providers/instagram";
 // import LinkedInProvider from "next-auth/providers/linkedin";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
@@ -74,6 +75,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ]
         },
       },
+    }),
+    InstagramProvider({
+      clientId: process.env.AUTH_INSTAGRAM_ID!,
+      clientSecret: process.env.AUTH_INSTAGRAM_SECRET!,
+      authorization: {
+        url: "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=24156712590683211&redirect_uri=https://www.nextpostai.com/api/auth/callback/instagram&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights",
+      }
     })
   ],
   pages: {
@@ -242,6 +250,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               });
 
               break;
+
+            case "instagram":
+              console.log(account)
+              console.log(user)
+              // const r = new Reddit({
+              //   accessToken: encryptedTokens.accessToken,
+              //   refreshToken: encryptedTokens.refreshToken,
+              //   expiresAt: account.expires_at!,
+              // });
+              // const { data } = await r.getModeratedSubreddits();
+
+              // const subreddits = data.filter(
+              //   (subreddit) => !subreddit.is_personal
+              // );
+
+              // if (subreddits.length === 0) {
+              //   return `/error/auth?code=${AUTH_ERROR_CODES.ZERO_SUBREDDITS}`;
+              // } else {
+              //   // for each subreddit, create a new oauthProvider
+              //   for (const subreddit of subreddits) {
+              //     authProviders.push({
+              //       userId: googleUser.id,
+              //       platform: "reddit",
+              //       pageId: subreddit.display_name || "",
+              //       accessToken: encryptedTokens.accessToken || "",
+              //       refreshToken: encryptedTokens.refreshToken || "",
+              //       expiresAt: account.expires_at || 0,
+              //       pageName: subreddit.title || "",
+              //       pageProfilePhoto: subreddit.icon_img || "",
+              //       isPersonal: subreddit.is_personal,
+              //     });
+              //   }
+              // }
+              // break;
 
 
             case "threads":

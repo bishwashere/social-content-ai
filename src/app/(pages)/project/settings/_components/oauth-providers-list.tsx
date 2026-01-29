@@ -52,6 +52,7 @@ export function OAuthProvidersList() {
         hasTiktok: data.hasTiktok || false,
         hasThreads: data.hasThreads || false,
         hasReddit: data.hasReddit || false,
+        hasInstagram: data.hasInstagram || false,
         providers: data.providers || []
       }
     },
@@ -78,6 +79,7 @@ export function OAuthProvidersList() {
   const hasTiktok = accountsData?.hasTiktok || false;
   const hasThreads = accountsData?.hasThreads || false;
   const hasReddit = accountsData?.hasReddit || false;
+  const hasInstagram = accountsData?.hasInstagram || false;
 
   // Connection handlers (same as header dropdown)
   const handleFacebookConnect = () => {
@@ -104,6 +106,10 @@ export function OAuthProvidersList() {
   const handleRedditConnect = () => {
     signIn("reddit");
   };
+
+  const handleInstagramConnect = () => {
+    signIn("instagram");
+  }
 
   // Platform configuration
   const platforms = [
@@ -148,6 +154,13 @@ export function OAuthProvidersList() {
       icon: "/threads.svg",
       connected: hasThreads,
       handler: handleThreadsConnect,
+    },
+    {
+      key: "instagram",
+      name: "Instagram",
+      icon: "/instagram.svg",
+      connected: hasInstagram,
+      handler: handleInstagramConnect,
     },
   ];
 
