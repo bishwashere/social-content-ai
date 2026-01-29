@@ -47,22 +47,29 @@ import RedditPostView from "@/components/social/reddit-post-view";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronsUpDown } from "lucide-react";
 import InstagramPostView from "@/components/social/instagram-post-view";
+import { PLATFORM_IDS, PLATFORM_ICONS } from "@/constants/platforms";
+
 interface Props {
   project: Project;
 }
 
 const getPlatformIcon = (platform: string) => {
   switch (platform.toLowerCase()) {
-    case "facebook":
+    case PLATFORM_IDS.FACEBOOK:
       return <Facebook className="h-4 w-4" />;
     case "twitter":
+    case PLATFORM_IDS.X:
       return <Twitter className="h-4 w-4" />;
-    case "linkedin":
+    case PLATFORM_IDS.LINKEDIN:
       return <Linkedin className="h-4 w-4" />;
-    case "instagram":
+    case PLATFORM_IDS.INSTAGRAM:
       return <Instagram className="h-4 w-4" />;
-    case "threads":
-      return <Image src="/threads.svg" alt="Threads" width={24} height={24} />;
+    case PLATFORM_IDS.THREADS:
+      return <Image src={PLATFORM_ICONS[PLATFORM_IDS.THREADS]} alt="Threads" width={24} height={24} />;
+    case PLATFORM_IDS.REDDIT:
+      return <Image src={PLATFORM_ICONS[PLATFORM_IDS.REDDIT]} alt="Reddit" width={24} height={24} />;
+    case PLATFORM_IDS.TIKTOK:
+      return <Image src={PLATFORM_ICONS[PLATFORM_IDS.TIKTOK]} alt="TikTok" width={24} height={24} />;
     default:
       return null;
   }
@@ -70,14 +77,21 @@ const getPlatformIcon = (platform: string) => {
 
 const getPlatformColor = (platform: string) => {
   switch (platform.toLowerCase()) {
-    case "facebook":
+    case PLATFORM_IDS.FACEBOOK:
       return "bg-blue-500";
     case "twitter":
+    case PLATFORM_IDS.X:
       return "bg-sky-500";
-    case "linkedin":
+    case PLATFORM_IDS.LINKEDIN:
       return "bg-blue-700";
-    case "threads":
+    case PLATFORM_IDS.THREADS:
       return "bg-muted rounded-full border border-gray-300";
+    case PLATFORM_IDS.REDDIT:
+      return "bg-orange-500";
+    case PLATFORM_IDS.TIKTOK:
+      return "bg-black";
+    case PLATFORM_IDS.INSTAGRAM:
+      return "bg-gradient-to-r from-purple-500 to-pink-500";
     default:
       return "bg-gray-500";
   }
@@ -399,44 +413,42 @@ export function ScheduledPosts({ project }: Props) {
 
       <CardContent className="space-y-4 p-1">
         <div className="flex w-full items-center justify-center ">
-          {post.platform === "facebook" ? (
+          {post.platform === PLATFORM_IDS.FACEBOOK ? (
             <FacebookPostView
               post={post}
               viewContentEdit={viewContentEdit}
               setViewContentEdit={setViewContentEdit}
             />
-          ) : post.platform === "linkedin" ? (
+          ) : post.platform === PLATFORM_IDS.LINKEDIN ? (
             <LinkedinPostView
               post={post}
               viewContentEdit={viewContentEdit}
               setViewContentEdit={setViewContentEdit}
             />
-          ) : post.platform === "twitter" ? (
+          ) : post.platform === "twitter" || post.platform === PLATFORM_IDS.X ? (
             <XPostView
               post={post}
               viewContentEdit={viewContentEdit}
               setViewContentEdit={setViewContentEdit}
             />
-          ) : post.platform === "threads" ? (
+          ) : post.platform === PLATFORM_IDS.THREADS ? (
             <ThreadsPostView
               post={post}
               viewContentEdit={viewContentEdit}
               setViewContentEdit={setViewContentEdit}
             />
-          ) : post.platform === "reddit" ? (
+          ) : post.platform === PLATFORM_IDS.REDDIT ? (
             <RedditPostView
               post={post}
               viewContentEdit={viewContentEdit}
               setViewContentEdit={setViewContentEdit}
             />
-          ) : post.platform === "threads" ? (
-            <ThreadsPost post={post}
+          ) : post.platform === PLATFORM_IDS.INSTAGRAM ? (
+            <InstagramPostView
+              post={post}
               viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit} />
-          ): post.platform === "instagram" ? (
-            <InstagramPostView post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit} />
+              setViewContentEdit={setViewContentEdit}
+            />
           ) : (
             <div
               className="text-sm text-muted-foreground w-full"

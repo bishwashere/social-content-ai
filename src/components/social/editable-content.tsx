@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { Button } from "../ui/button";
 import Markdown from "react-markdown";
-import { Pencil } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import { UploadMediaToScheduledPost } from "@/app/(pages)/project/[id]/_components/upload-media-to-scheduled-post";
+import { useGenerateAIImageForScheduledPost } from "@/backend-apis/ai-image/hooks";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 type Props = {
   id: string;
@@ -19,6 +21,8 @@ type Props = {
 const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, media, showMedia=true }: Props) => {
   const [editedContent, setEditedContent] = useState(content);
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const generateAIImage = useGenerateAIImageForScheduledPost();
 
   const { id: projectId } = useParams();
 
@@ -70,7 +74,35 @@ const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, med
             value={editedContent ?? content}
             onChange={(e) => setEditedContent(e.target.value)}
           />
-          <UploadMediaToScheduledPost media={media} postId={id} />
+          <div className="flex items-center gap-2">
+            <UploadMediaToScheduledPost media={media} postId={id} />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={generateAIImage.isPending || !session?.user?.id}
+              loading={generateAIImage.isPending}
+              onClick={async () => {
+                if (!session?.user?.id) {
+                  toast.error("Please log in to generate images");
+                  return;
+                }
+                const contentToUse = editedContent || content;
+                if (!contentToUse) {
+                  toast.error("No content to generate image from");
+                  return;
+                }
+                await generateAIImage.mutateAsync({
+                  userId: session.user.id,
+                  scheduledPostId: id,
+                  content: contentToUse,
+                });
+              }}
+              title="Generate AI Image (5 credits)"
+            >
+              <Wand2 className="h-4 w-4 mr-1" />
+              Create with AI
+            </Button>
+          </div>
           <div className="flex gap-2 justify-end">
             <Button variant="secondary" size="sm" onClick={() => toggleEdit(id)}>
               Cancel

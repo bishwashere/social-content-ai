@@ -68,6 +68,13 @@ import { ViewMedia } from "@/components/social/view-media";
 import { useGenerateAIImage } from "@/backend-apis/ai-image/hooks";
 import { useRewriteWithAI } from "@/backend-apis/ai-text/hooks";
 import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog";
+import { 
+  PLATFORM_IDS, 
+  PLATFORM_ICONS, 
+  PLATFORM_LABELS,
+  PLATFORMS_WITH_MEDIA_SUPPORT,
+  type PlatformId 
+} from "@/constants/platforms";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -205,27 +212,17 @@ function BlogNewsDayContent({
 }
 
 export const PLATFORMS = [
-  { key: 'x', label: 'Twitter', icon: <Image src="/x.svg" width={16} height={16} alt="X" className="dark:brightness-0 dark:invert" /> },
-  { key: 'facebook', label: 'Facebook', icon: <Image src="/fb.svg" width={16} height={16} alt="Facebook" className="dark:brightness-0 dark:invert" /> },
-  { key: 'linkedin', label: 'LinkedIn', icon: <Image src="/linkedin.png" width={16} height={16} alt="LinkedIn" className="dark:brightness-0 dark:invert" /> },
-  { key: 'instagram', label: 'Instagram', icon: <Image src="/instagram.svg" width={16} height={16} alt="Instagram" className="dark:brightness-0 dark:invert" /> },
-  { key: 'threads', label: 'Threads', icon: <Image src="/threads.svg" width={16} height={16} alt="Threads" className="dark:brightness-0 dark:invert" /> },
-  { key: 'reddit', label: 'Reddit', icon: <Image src="/reddit.svg" width={16} height={16} alt="Reddit" className="dark:brightness-0 dark:invert" /> },
-  { key: 'tiktok', label: 'TikTok', icon: <Image src="/tiktok.svg" width={16} height={16} alt="TikTok" className="dark:brightness-0 dark:invert" /> }
+  { key: PLATFORM_IDS.X, label: PLATFORM_LABELS[PLATFORM_IDS.X], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.X]} width={16} height={16} alt="X" className="dark:brightness-0 dark:invert" /> },
+  { key: PLATFORM_IDS.FACEBOOK, label: PLATFORM_LABELS[PLATFORM_IDS.FACEBOOK], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.FACEBOOK]} width={16} height={16} alt="Facebook" className="dark:brightness-0 dark:invert" /> },
+  { key: PLATFORM_IDS.LINKEDIN, label: PLATFORM_LABELS[PLATFORM_IDS.LINKEDIN], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.LINKEDIN]} width={16} height={16} alt="LinkedIn" className="dark:brightness-0 dark:invert" /> },
+  { key: PLATFORM_IDS.INSTAGRAM, label: PLATFORM_LABELS[PLATFORM_IDS.INSTAGRAM], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.INSTAGRAM]} width={16} height={16} alt="Instagram" className="dark:brightness-0 dark:invert" /> },
+  { key: PLATFORM_IDS.THREADS, label: PLATFORM_LABELS[PLATFORM_IDS.THREADS], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.THREADS]} width={16} height={16} alt="Threads" className="dark:brightness-0 dark:invert" /> },
+  { key: PLATFORM_IDS.REDDIT, label: PLATFORM_LABELS[PLATFORM_IDS.REDDIT], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.REDDIT]} width={16} height={16} alt="Reddit" className="dark:brightness-0 dark:invert" /> },
+  { key: PLATFORM_IDS.TIKTOK, label: PLATFORM_LABELS[PLATFORM_IDS.TIKTOK], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.TIKTOK]} width={16} height={16} alt="TikTok" className="dark:brightness-0 dark:invert" /> }
 ];
 
-const ICONS = {
-  x: "/x.svg",
-  facebook: "/fb.svg",
-  linkedin: "/linkedin.png",
-  instagram: "/instagram.svg",
-  threads: "/threads.svg",
-  reddit: "/reddit.svg",
-  tiktok: "/tiktok.svg"
-};
-
-// Platforms that support media upload (same as scheduled posts)
-const MEDIA_SUPPORTED_PLATFORMS = ["facebook", "linkedin", "threads"];
+// Use centralized PLATFORM_ICONS from constants
+const ICONS = PLATFORM_ICONS;
 
 const getPrompt = (str: string) => `
 Description: ${str}
@@ -2608,7 +2605,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     />
                                                     <span className="text-xs text-muted-foreground">Rewrite with AI</span>
                                                   </div>
-                                                  {MEDIA_SUPPORTED_PLATFORMS.includes(platform) && (
+                                                  {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (
                                                     <div className="flex items-center gap-2">
                                                       <UploadMediaToCampaignChat
                                                         campaignId={campaign.id}
@@ -2675,7 +2672,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       .filter(line => line.length > 0)
                                                       .join("\n\n")}
                                                   </Markdown>
-                                                  {MEDIA_SUPPORTED_PLATFORMS.includes(platform) && (timeline.media as Record<string, string>)?.[platform] && (
+                                                  {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (timeline.media as Record<string, string>)?.[platform] && (
                                                     <div className="mt-4">
                                                       <ViewMedia post={{ media: (timeline.media as Record<string, string>)[platform] }} showMedia />
                                                     </div>

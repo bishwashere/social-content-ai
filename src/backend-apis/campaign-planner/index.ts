@@ -7,6 +7,7 @@ import { getRandomInRange } from "@/lib/getRandomInRange";
 import { prisma } from "@/lib/prisma";
 import { s3 } from "@/lib/s3";
 import { schedulePost } from "@/server-actions/schedule-post";
+import { PLATFORM_IDS } from "@/constants/platforms";
 
 export const startCampaignPlanner = async (
   id: string | undefined,
@@ -433,7 +434,7 @@ export const getCampaignChats = async (campaignId: string) => {
     const meta = post.meta as { day?: number } | null;
     if (meta?.day) {
       // Convert platform name back (twitter -> x)
-      const platformKey = post.platform === "twitter" ? "x" : post.platform;
+      const platformKey = post.platform === "twitter" ? PLATFORM_IDS.X : post.platform;
       const key = `${meta.day}-${platformKey}`;
       scheduledPostsMap.set(key, post);
     }
@@ -459,7 +460,7 @@ export const getCampaignChats = async (campaignId: string) => {
         ...Object.keys(chatContents),
         ...scheduledPosts
           .filter(p => (p.meta as { day?: number } | null)?.day === chat.day)
-          .map(p => p.platform === "twitter" ? "x" : p.platform)
+          .map(p => p.platform === "twitter" ? PLATFORM_IDS.X : p.platform)
       ]);
 
       for (const platform of allPlatforms) {
@@ -675,13 +676,13 @@ export const generateCampaignChat = async (props: {
 
   // Get selected platforms for this campaign (exclude tiktok - video only)
   const platforms = (projectCampaign.platforms || [
-    "x",
-    "facebook",
-    "linkedin",
-    "instagram",
-    "threads",
-    "reddit",
-  ]).filter(p => p !== "tiktok");
+    PLATFORM_IDS.X,
+    PLATFORM_IDS.FACEBOOK,
+    PLATFORM_IDS.LINKEDIN,
+    PLATFORM_IDS.INSTAGRAM,
+    PLATFORM_IDS.THREADS,
+    PLATFORM_IDS.REDDIT,
+  ]).filter(p => p !== PLATFORM_IDS.TIKTOK);
 
   const chatFromAI = await ai.generateContent({
     userPrompt: props.prompt || "",
@@ -964,7 +965,7 @@ export const editChatContent = async ({
   scheduledPostId?: string; // If provided, update the scheduled post directly
 }): Promise<string | null> => {
   // Convert platform name for database (x -> twitter)
-  const dbPlatform = platform === "x" ? "twitter" : platform;
+  const dbPlatform = platform === PLATFORM_IDS.X ? "twitter" : platform;
 
   // If scheduledPostId is provided, update the scheduled post directly
   if (scheduledPostId) {
@@ -1177,7 +1178,7 @@ export const scheduleCampaignPosts = async ({
         }
 
         // Convert platform name (x -> twitter)
-        const platformName = platform === "x" ? "twitter" : platform;
+        const platformName = platform === PLATFORM_IDS.X ? "twitter" : platform;
         
         // Get media for this platform (if any)
         const platformMedia = mediaRecord[platform];

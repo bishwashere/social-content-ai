@@ -14,18 +14,13 @@ import { mapProjectToOAuthProvider } from '@/server-actions/map-project-oauth-pr
 import { checkProjectOAuthProvider } from '@/server-actions/check-project-oauth-provider'
 import { authenticateWithThreads } from '@/lib/auth/threads'
 import { authenticateWithInstagram } from '@/lib/auth/instagram'
+import { PLATFORM_IDS, PLATFORM_ICONS, type PlatformId } from '@/constants/platforms'
 
-const ICONS = {
-  x: "/x.svg",
-  facebook: "/fb.svg",
-  linkedin: "/linkedin.png",
-  instagram: "/instagram.svg",
-  threads: "/threads.svg",
-  reddit: "/reddit.svg"
-}
+// Use centralized platform icons
+const ICONS = PLATFORM_ICONS
 
 type Props = {
-  platform: "x" | "facebook" | "linkedin" | "threads" | "reddit" | "instagram"
+  platform: PlatformId
   content: string
   projectId: string
   mediaUrl?: string
@@ -65,7 +60,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
       return false
     }
 
-    const platformName = platform === "x" ? "twitter" : platform
+    const platformName = platform === PLATFORM_IDS.X ? "twitter" : platform
 
     try {
       const result = await checkProjectOAuthProvider(projectId, data.user.id, platformName)
@@ -74,12 +69,11 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
         // User needs to connect their account first
         toast.loading(`You need to connect your ${platform} account first, redirecting...`)
         setTimeout(() => {
-          if (platform === "threads") {
+          if (platform === PLATFORM_IDS.THREADS) {
             authenticateWithThreads()
-          }
-          else if (platform === "instagram") {
+          } else if (platform === PLATFORM_IDS.INSTAGRAM) {
             authenticateWithInstagram()
-          } else if (platform === "linkedin") {
+          } else if (platform === PLATFORM_IDS.LINKEDIN) {
             const currentUrl = window.location.href;
             window.location.href = `/api/linkedin-login/auth?redirectTo=${encodeURIComponent(currentUrl)}`;
           }
@@ -144,7 +138,7 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
     setIsDatePickerOpen(false)
 
     let platformName = platform as string
-    if (platform === "x") {
+    if (platform === PLATFORM_IDS.X) {
       platformName = "twitter"
     }
 
@@ -186,8 +180,8 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
             <AlertDialogDescription>
               Choose whether to post now or schedule for later
               {/* <div className='flex'>
-              {platform === "facebook" && <FacebookPostView content={content} />}
-              {platform === "linkedin" && <LinkedinPostView content={content} />}
+              {platform === PLATFORM_IDS.FACEBOOK && <FacebookPostView content={content} />}
+              {platform === PLATFORM_IDS.LINKEDIN && <LinkedinPostView content={content} />}
               </div> */}
             </AlertDialogDescription>
           </AlertDialogHeader>
