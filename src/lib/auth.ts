@@ -252,38 +252,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               break;
 
             case "instagram":
-              console.log(account)
-              console.log(user)
-              // const r = new Reddit({
-              //   accessToken: encryptedTokens.accessToken,
-              //   refreshToken: encryptedTokens.refreshToken,
-              //   expiresAt: account.expires_at!,
-              // });
-              // const { data } = await r.getModeratedSubreddits();
+              console.log("Instagram OAuth callback - account:", account);
+              console.log("Instagram OAuth callback - user:", user);
+              
+              // Instagram Business API - the user_id from the account is the Instagram Business Account ID
+              // This is used for posting via the Instagram Graph API
+              const instagramUserId = account.user_id || account.providerAccountId || user.id;
+              
+              if (!instagramUserId) {
+                console.error("No Instagram user ID found in account");
+                return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
+              }
 
-              // const subreddits = data.filter(
-              //   (subreddit) => !subreddit.is_personal
-              // );
+              authProviders.push({
+                userId: googleUser.id,
+                platform: "instagram",
+                pageId: String(instagramUserId),
+                accessToken: encryptedTokens.accessToken,
+                refreshToken: encryptedTokens.refreshToken || "",
+                expiresAt: account.expires_at ? Number(account.expires_at) * 1000 : null,
+                pageName: user.name || "Instagram Account",
+                pageProfilePhoto: user.image || "",
+                isPersonal: true, // Instagram Business accounts are tied to a user
+              });
 
-              // if (subreddits.length === 0) {
-              //   return `/error/auth?code=${AUTH_ERROR_CODES.ZERO_SUBREDDITS}`;
-              // } else {
-              //   // for each subreddit, create a new oauthProvider
-              //   for (const subreddit of subreddits) {
-              //     authProviders.push({
-              //       userId: googleUser.id,
-              //       platform: "reddit",
-              //       pageId: subreddit.display_name || "",
-              //       accessToken: encryptedTokens.accessToken || "",
-              //       refreshToken: encryptedTokens.refreshToken || "",
-              //       expiresAt: account.expires_at || 0,
-              //       pageName: subreddit.title || "",
-              //       pageProfilePhoto: subreddit.icon_img || "",
-              //       isPersonal: subreddit.is_personal,
-              //     });
-              //   }
-              // }
-              // break;
+              break;
 
 
             case "threads":

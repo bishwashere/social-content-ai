@@ -24,9 +24,10 @@ const ICONS = {
 }
 
 type Props = {
-  platform: "x" | "facebook" | "linkedin" | "threads" | "reddit"
+  platform: "x" | "facebook" | "linkedin" | "threads" | "reddit" | "instagram"
   content: string
   projectId: string
+  mediaUrl?: string
 }
 
 const AutoPost = ({ platform, content, projectId }: Props) => {

@@ -63,6 +63,7 @@ export const PLATFORM_CHARACTER_LIMITS: Record<PlatformId, number> = {
 // Platforms that support media uploads
 export const PLATFORMS_WITH_MEDIA_SUPPORT: PlatformId[] = [
   "facebook",
+  "instagram",
   "linkedin",
   "x",
   "threads",

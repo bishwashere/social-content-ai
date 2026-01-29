@@ -8,6 +8,7 @@ import { postToSocial } from "@/lib/post-to-social";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import { Fb } from "@/lib/3rd-providers/fb";
 import { Threads } from "@/lib/3rd-providers/threads";
+import { Instagram } from "@/lib/3rd-providers/instagram";
 import { generateBlogNewsContent, generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
 import { schedulePost } from "@/server-actions/schedule-post";
 import { logger } from "@/utils/logger";
@@ -202,6 +203,7 @@ export const GET = applyMiddleware(
     const linkedinPosts = regularPosts.filter((p) => p.platform === "linkedin");
     const threadsPosts = regularPosts.filter((p) => p.platform === "threads");
     const redditPosts = regularPosts.filter((p) => p.platform === "reddit");
+    const instagramPosts = regularPosts.filter((p) => p.platform === "instagram");
     
     console.log(`📰 Found ${blogNewsPosts.length} Blog News posts to process`);
     console.log(`🐦 Found ${twitterPosts.length} Twitter posts to process`);
@@ -209,6 +211,7 @@ export const GET = applyMiddleware(
     console.log(`📘 Found ${linkedinPosts.length} Linkedin posts to process`);
     console.log(`🧵 Found ${threadsPosts.length} Threads posts to process`);
     console.log(`📘 Found ${redditPosts.length} Reddit posts to process`);
+    console.log(`📸 Found ${instagramPosts.length} Instagram posts to process`);
     
     // Debug: Log sample of posts that should be processed
     if (allPostsToProcess.length > 0) {
@@ -962,6 +965,72 @@ export const GET = applyMiddleware(
       })
     );
 
+    const instagramResults = await Promise.all(
+      instagramPosts.map(async (post) => {
+        console.log(`🔄 Processing Instagram post ID: ${post.id}`);
+        try {
+          const oauthProvider = getOAuthProviderForPlatform(post, "instagram");
+
+          if (!oauthProvider?.accessToken) {
+            console.log(`❌ No access token found for Instagram post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", "No access token found");
+            return {
+              id: post.id,
+              success: false,
+              error: "No access token found",
+            };
+          }
+
+          // Instagram requires media for all posts
+          if (!post.media) {
+            console.log(`❌ No media found for Instagram post ID: ${post.id} - Instagram requires media`);
+            await updatePostStatus(post.id, "failed", "Instagram requires media (image or video) for all posts");
+            return {
+              id: post.id,
+              success: false,
+              error: "Instagram requires media (image or video) for all posts",
+            };
+          }
+
+          const instagram = new Instagram({
+            accessToken: oauthProvider.accessToken,
+          });
+
+          // Post to Instagram
+          const instagramResult = await instagram.postToInstagram(
+            applyPlaceholders(post.content, getProjectPlaceholders(post.project as any)),
+            oauthProvider.pageId || "",
+            post.media
+          );
+
+          if (instagramResult.success) {
+            console.log(
+              `✅ Successfully posted to Instagram for post ID: ${post.id}`
+            );
+            await updatePostStatus(post.id, "success");
+            return { id: post.id, success: true };
+          } else {
+            console.log(`❌ Failed to post to Instagram for post ID: ${post.id}`);
+            await updatePostStatus(post.id, "failed", instagramResult.error);
+            return {
+              id: post.id,
+              success: false,
+              error: instagramResult.error,
+            };
+          }
+        } catch (error) {
+          console.error(
+            `❌ Error processing Instagram post ID: ${post.id}`,
+            error
+          );
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          await updatePostStatus(post.id, "failed", errorMessage);
+          return { id: post.id, success: false, error: errorMessage };
+        }
+      })
+    );
+
     const processing = await prisma.scheduledPost.findMany({
       where: {
         status: "processing",
@@ -1040,6 +1109,7 @@ export const GET = applyMiddleware(
       ...linkedinResults,
       ...threadsResults,
       ...redditResults,
+      ...instagramResults,
       ...threadsPostProcessingResult,
     ];
 
@@ -1074,6 +1144,11 @@ export const GET = applyMiddleware(
           processed: threadsResults.length,
           successful: threadsResults.filter((r) => r.success).length,
           failed: threadsResults.filter((r) => !r.success).length,
+        },
+        instagram: {
+          processed: instagramResults.length,
+          successful: instagramResults.filter((r) => r.success).length,
+          failed: instagramResults.filter((r) => !r.success).length,
         },
         details: allResults,
       },
