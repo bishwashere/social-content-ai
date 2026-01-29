@@ -93,7 +93,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
       token: {
-        url: "https://api.instagram.com/oauth/access_token",
         async request(context: any) {
           console.log("[Instagram OAuth] Starting token exchange...");
           
