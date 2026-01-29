@@ -1316,15 +1316,15 @@ export default function CampaignPlannerPage({ project }: Props) {
           handleCoinsFinished();
         }
       }
-      campaignPlannerData.refetch();
-      // Clear loaded chats cache for this campaign since it was updated
-      if (chatLoading) {
-        setLoadedChats(prev => {
-          const next = { ...prev };
-          delete next[chatLoading.campaignId];
-          return next;
-        });
-      }
+      // Clear loaded chats cache for this campaign BEFORE refetching
+      // Use the local campaignId parameter to avoid stale closure issues
+      setLoadedChats(prev => {
+        const next = { ...prev };
+        delete next[campaignId];
+        return next;
+      });
+      // Wait for refetch to complete so UI updates with fresh data
+      await campaignPlannerData.refetch();
     } catch { }
     setChatLoading(null);
   }

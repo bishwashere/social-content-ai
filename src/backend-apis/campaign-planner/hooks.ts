@@ -206,9 +206,13 @@ export const useGenerateCampaignChat = () => {
         day,
         productRelated,
       }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["session"],
+      });
+      // Invalidate campaign planner queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: ["campaignPlanner", variables.projectId],
       });
     },
     onError: () => {
