@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { mapProjectToOAuthProvider } from '@/server-actions/map-project-oauth-provider'
 import { checkProjectOAuthProvider } from '@/server-actions/check-project-oauth-provider'
 import { authenticateWithThreads } from '@/lib/auth/threads'
-import { authenticateWithInstagram } from '@/lib/auth/instagram'
 import { PLATFORM_IDS, PLATFORM_ICONS, type PlatformId } from '@/constants/platforms'
 
 // Use centralized platform icons
@@ -67,12 +66,19 @@ const AutoPost = ({ platform, content, projectId, mediaUrl }: Props) => {
       console.log(result)
       if (!result.hasProviderConnected) {
         // User needs to connect their account first
+        if (platform === PLATFORM_IDS.INSTAGRAM) {
+          // Instagram requires connecting via Facebook (for Business/Creator accounts)
+          toast.error("Instagram posting requires a Business account. Please connect via Facebook first.", {
+            description: "Go to Settings → Connect Facebook. Make sure your Facebook Page has an Instagram Business account linked.",
+            duration: 8000,
+          })
+          return false
+        }
+        
         toast.loading(`You need to connect your ${platform} account first, redirecting...`)
         setTimeout(() => {
           if (platform === PLATFORM_IDS.THREADS) {
             authenticateWithThreads()
-          } else if (platform === PLATFORM_IDS.INSTAGRAM) {
-            authenticateWithInstagram()
           } else if (platform === PLATFORM_IDS.LINKEDIN) {
             const currentUrl = window.location.href;
             window.location.href = `/api/linkedin-login/auth?redirectTo=${encodeURIComponent(currentUrl)}`;
