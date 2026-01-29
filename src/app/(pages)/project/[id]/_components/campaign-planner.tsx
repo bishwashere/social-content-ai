@@ -69,6 +69,9 @@ import { useGenerateAIImage } from "@/backend-apis/ai-image/hooks";
 import { useGenerateTextCardImage } from "@/backend-apis/text-image/hooks";
 import { useRewriteWithAI } from "@/backend-apis/ai-text/hooks";
 import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog";
+import { NewImageButton } from "@/components/common/new-image-button";
+import { UploadImageButton } from "@/components/common/upload-image-button";
+import { useUploadMediaForCampaignChat } from "@/backend-apis/video-generation/hooks";
 import { 
   PLATFORM_IDS, 
   PLATFORM_ICONS, 
@@ -1452,6 +1455,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const generateAIImage = useGenerateAIImage();
   const generateTextCardImage = useGenerateTextCardImage();
   const rewriteWithAI = useRewriteWithAI();
+  const uploadMedia = useUploadMediaForCampaignChat();
   const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
   const handleSave = async (campaignId: string, day: number, platform: string, scheduledPostId?: string) => {
     // You can handle saving here
@@ -2569,7 +2573,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 <CardContent className="text-sm text-muted-foreground">
                                                   {editingPlatform === 'instagram' ? (
                                                     <div className="flex flex-col gap-4">
-                                                      {/* Text content editor */}
+                                                      {/* Text content editor - full width */}
                                                       <div className="flex flex-col gap-2">
                                                         <label className="text-xs font-medium text-muted-foreground">Text Content (appears on image)</label>
                                                         <textarea
@@ -2579,10 +2583,16 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                           onChange={(e) => setEditedContent({ ...editedContent, instagram: e.target.value })}
                                                           placeholder="Enter the text that will appear on the Instagram image..."
                                                         />
-                                                        <div className="flex items-center gap-2">
+                                                      </div>
+                                                      
+                                                      {/* Buttons on left, Image preview on right */}
+                                                      <div className="flex gap-4 items-start">
+                                                        {/* Left side: Buttons */}
+                                                        <div className="flex-1 flex flex-col gap-2">
                                                           <RewriteWithAIDialog
                                                             isPending={rewriteWithAI.isPending}
                                                             disabled={!session?.user?.id}
+                                                            fullWidth
                                                             onRewrite={async (prompt) => {
                                                               if (!session?.user?.id) {
                                                                 toast.error("Please log in to rewrite content");
@@ -2603,24 +2613,91 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                               }
                                                             }}
                                                           />
-                                                          <span className="text-xs text-muted-foreground">Rewrite with AI</span>
+                                                          <NewImageButton
+                                                            isTextCardPending={generateTextCardImage.isPending}
+                                                            isAIImagePending={generateAIImage.isPending}
+                                                            disabled={!session?.user?.id}
+                                                            hasExistingImage={!!(editedMediaKey.instagram || editedMediaSignedUrl.instagram || instagramMedia)}
+                                                            onTextCard={async () => {
+                                                              if (!session?.user?.id) {
+                                                                toast.error("Please log in to generate images");
+                                                                return;
+                                                              }
+                                                              const contentToUse = editedContent.instagram || (timeline.contents as Record<string, string>)?.instagram || project.description || project.name || "Instagram post";
+                                                              const result = await generateTextCardImage.mutateAsync({
+                                                                content: contentToUse,
+                                                                userId: session.user.id,
+                                                                campaignId: campaign.id,
+                                                                day: timeline.day,
+                                                              });
+                                                              if (result.success && result.mediaKey) {
+                                                                setEditedMediaKey({ ...editedMediaKey, instagram: result.mediaKey });
+                                                                if (result.previewUrl) {
+                                                                  setEditedMediaSignedUrl({ ...editedMediaSignedUrl, instagram: result.previewUrl });
+                                                                }
+                                                              }
+                                                            }}
+                                                            onAIImage={async () => {
+                                                              if (!session?.user?.id) {
+                                                                toast.error("Please log in to generate images");
+                                                                return;
+                                                              }
+                                                              const contentToUse = editedContent.instagram || (timeline.contents as Record<string, string>)?.instagram || project.description || project.name || "Instagram post";
+                                                              const result = await generateAIImage.mutateAsync({
+                                                                content: contentToUse,
+                                                                userId: session.user.id,
+                                                                campaignId: campaign.id,
+                                                                day: timeline.day,
+                                                                platform: "instagram",
+                                                              });
+                                                              if (result.success && result.mediaKey) {
+                                                                setEditedMediaKey({ ...editedMediaKey, instagram: result.mediaKey });
+                                                                if (result.previewUrl) {
+                                                                  setEditedMediaSignedUrl({ ...editedMediaSignedUrl, instagram: result.previewUrl });
+                                                                }
+                                                              }
+                                                            }}
+                                                          />
+                                                          <UploadImageButton
+                                                            isPending={uploadMedia.isPending}
+                                                            disabled={!session?.user?.id}
+                                                            hasExistingImage={!!(editedMediaKey.instagram || editedMediaSignedUrl.instagram || instagramMedia)}
+                                                            onUpload={async (file) => {
+                                                              const key = await uploadMedia.mutateAsync({
+                                                                file,
+                                                                campaignId: campaign.id,
+                                                                day: timeline.day,
+                                                                platform: "instagram",
+                                                              });
+                                                              setEditedMediaKey({ ...editedMediaKey, instagram: key });
+                                                              // Create local preview
+                                                              const previewUrl = URL.createObjectURL(file);
+                                                              setEditedMediaSignedUrl({ ...editedMediaSignedUrl, instagram: previewUrl });
+                                                            }}
+                                                          />
                                                         </div>
+                                                        
+                                                        {/* Right side: Image preview (smaller, clickable) */}
+                                                        <Dialog>
+                                                          <DialogTrigger asChild>
+                                                            <div className="w-24 h-24 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity rounded overflow-hidden border">
+                                                              <ViewMedia post={{ media: editedMediaSignedUrl.instagram || instagramMedia }} showMedia />
+                                                            </div>
+                                                          </DialogTrigger>
+                                                          <DialogContent className="max-w-3xl p-4" aria-describedby={undefined}>
+                                                            <DialogHeader>
+                                                              <DialogTitle>Image Preview</DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="flex justify-center">
+                                                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                              <img src={editedMediaSignedUrl.instagram || instagramMedia} alt="Instagram post" className="max-h-[70vh] w-auto rounded" />
+                                                            </div>
+                                                          </DialogContent>
+                                                        </Dialog>
                                                       </div>
                                                       
-                                                      {/* Image preview */}
-                                                      <div className="flex flex-col gap-2">
-                                                        <label className="text-xs font-medium text-muted-foreground">Image Preview</label>
-                                                        <div className="aspect-square max-w-[300px] mx-auto">
-                                                          {/* Use signed URL for display, fall back to original media */}
-                                                          <ViewMedia post={{ media: editedMediaSignedUrl.instagram || instagramMedia }} showMedia />
-                                                          {editedMediaSignedUrl.instagram && (
-                                                            <p className="text-xs text-center mt-2 text-muted-foreground">Preview (unsaved)</p>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                      
-                                                      {/* Image options */}
-                                                      <div className="flex flex-col gap-3">
+                                                      {/* Image options - keeping existing regenerate button for backward compat */}
+                                                      <div className="flex flex-col gap-3 hidden">
                                                         <div className="flex items-center gap-2">
                                                           <Button
                                                             variant="outline"
@@ -2782,88 +2859,131 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             </div>
                                             <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
                                               {editingPlatform === platform ? (
-                                                <div className="flex flex-col gap-2">
+                                                <div className="flex flex-col gap-4">
+                                                  {/* Text content editor - full width */}
                                                   <textarea
                                                     className="w-full border p-2 rounded text-black"
                                                     rows={10}
                                                     value={editedContent[platform] ?? text}
                                                     onChange={(e) => setEditedContent({ ...editedContent, [platform]: e.target.value })}
                                                   />
-                                                  <div className="flex items-center gap-2">
-                                                    <RewriteWithAIDialog
-                                                      isPending={rewriteWithAI.isPending}
-                                                      disabled={!session?.user?.id}
-                                                      onRewrite={async (prompt) => {
-                                                        if (!session?.user?.id) {
-                                                          toast.error("Please log in to rewrite content");
-                                                          return;
-                                                        }
-                                                        const contentToUse = editedContent[platform] || text;
-                                                        if (!contentToUse) {
-                                                          toast.error("No content to rewrite");
-                                                          return;
-                                                        }
-                                                        const result = await rewriteWithAI.mutateAsync({
-                                                          userId: session.user.id,
-                                                          content: contentToUse,
-                                                          prompt: prompt || undefined,
-                                                        });
-                                                        if (result.success && result.rewrittenContent) {
-                                                          setEditedContent({ ...editedContent, [platform]: result.rewrittenContent });
-                                                        }
-                                                      }}
-                                                    />
-                                                    <span className="text-xs text-muted-foreground">Rewrite with AI</span>
-                                                  </div>
-                                                  {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (
-                                                    <div className="flex items-center gap-2">
-                                                      <UploadMediaToCampaignChat
-                                                        campaignId={campaign.id}
-                                                        day={timeline.day}
-                                                        platform={platform}
-                                                        media={editedMediaKey[platform] || (timeline.media as Record<string, string>)?.[platform]}
-                                                        mediaPreviewUrl={editedMediaSignedUrl[platform]}
-                                                        onMediaUploaded={(key) => {
-                                                          setEditedMediaKey({ ...editedMediaKey, [platform]: key });
-                                                          // Clear any AI-generated preview when manually uploading
-                                                          setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: "" });
-                                                        }}
-                                                      />
-                                                      <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={generateAIImage.isPending}
-                                                        loading={generateAIImage.isPending}
-                                                        onClick={async () => {
+                                                  
+                                                  {/* Buttons on left, Image preview on right (for platforms with media) */}
+                                                  <div className="flex gap-4 items-start">
+                                                    {/* Left side: Buttons */}
+                                                    <div className="flex-1 flex flex-col gap-2">
+                                                      <RewriteWithAIDialog
+                                                        isPending={rewriteWithAI.isPending}
+                                                        disabled={!session?.user?.id}
+                                                        fullWidth
+                                                        onRewrite={async (prompt) => {
                                                           if (!session?.user?.id) {
-                                                            toast.error("Please log in to generate images");
+                                                            toast.error("Please log in to rewrite content");
                                                             return;
                                                           }
                                                           const contentToUse = editedContent[platform] || text;
                                                           if (!contentToUse) {
-                                                            toast.error("No content to generate image from");
+                                                            toast.error("No content to rewrite");
                                                             return;
                                                           }
-                                                          const result = await generateAIImage.mutateAsync({
+                                                          const result = await rewriteWithAI.mutateAsync({
                                                             userId: session.user.id,
                                                             content: contentToUse,
-                                                            campaignId: campaign.id,
-                                                            day: timeline.day,
-                                                            platform,
+                                                            prompt: prompt || undefined,
                                                           });
-                                                          if (result.success && result.mediaKey) {
-                                                            setEditedMediaKey({ ...editedMediaKey, [platform]: result.mediaKey });
-                                                            if (result.previewUrl) {
-                                                              setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: result.previewUrl });
-                                                            }
+                                                          if (result.success && result.rewrittenContent) {
+                                                            setEditedContent({ ...editedContent, [platform]: result.rewrittenContent });
                                                           }
                                                         }}
-                                                        title="Generate AI Image (5 credits)"
-                                                      >
-                                                        <Wand2 className="h-4 w-4" />
-                                                      </Button>
+                                                      />
+                                                      {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (
+                                                        <NewImageButton
+                                                          isTextCardPending={generateTextCardImage.isPending}
+                                                          isAIImagePending={generateAIImage.isPending}
+                                                          disabled={!session?.user?.id}
+                                                          hasExistingImage={!!(editedMediaKey[platform] || editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform])}
+                                                          onTextCard={async () => {
+                                                            if (!session?.user?.id) {
+                                                              toast.error("Please log in to generate images");
+                                                              return;
+                                                            }
+                                                            const contentToUse = editedContent[platform] || text || project.description || project.name || "Social post";
+                                                            const result = await generateTextCardImage.mutateAsync({
+                                                              content: contentToUse,
+                                                              userId: session.user.id,
+                                                              campaignId: campaign.id,
+                                                              day: timeline.day,
+                                                            });
+                                                            if (result.success && result.mediaKey) {
+                                                              setEditedMediaKey({ ...editedMediaKey, [platform]: result.mediaKey });
+                                                              if (result.previewUrl) {
+                                                                setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: result.previewUrl });
+                                                              }
+                                                            }
+                                                          }}
+                                                          onAIImage={async () => {
+                                                            if (!session?.user?.id) {
+                                                              toast.error("Please log in to generate images");
+                                                              return;
+                                                            }
+                                                            const contentToUse = editedContent[platform] || text || project.description || project.name || "Social post";
+                                                            const result = await generateAIImage.mutateAsync({
+                                                              content: contentToUse,
+                                                              userId: session.user.id,
+                                                              campaignId: campaign.id,
+                                                              day: timeline.day,
+                                                              platform,
+                                                            });
+                                                            if (result.success && result.mediaKey) {
+                                                              setEditedMediaKey({ ...editedMediaKey, [platform]: result.mediaKey });
+                                                              if (result.previewUrl) {
+                                                                setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: result.previewUrl });
+                                                              }
+                                                            }
+                                                          }}
+                                                        />
+                                                      )}
+                                                      {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (
+                                                        <UploadImageButton
+                                                          isPending={uploadMedia.isPending}
+                                                          disabled={!session?.user?.id}
+                                                          hasExistingImage={!!(editedMediaKey[platform] || editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform])}
+                                                          onUpload={async (file) => {
+                                                            const key = await uploadMedia.mutateAsync({
+                                                              file,
+                                                              campaignId: campaign.id,
+                                                              day: timeline.day,
+                                                              platform,
+                                                            });
+                                                            setEditedMediaKey({ ...editedMediaKey, [platform]: key });
+                                                            const previewUrl = URL.createObjectURL(file);
+                                                            setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: previewUrl });
+                                                          }}
+                                                        />
+                                                      )}
                                                     </div>
-                                                  )}
+                                                    
+                                                    {/* Right side: Image preview (smaller, clickable) - only for platforms with media */}
+                                                    {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform]) && (
+                                                      <Dialog>
+                                                        <DialogTrigger asChild>
+                                                          <div className="w-24 h-24 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity rounded overflow-hidden border">
+                                                            <ViewMedia post={{ media: editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform] }} showMedia />
+                                                          </div>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-3xl p-4" aria-describedby={undefined}>
+                                                          <DialogHeader>
+                                                            <DialogTitle>Image Preview</DialogTitle>
+                                                          </DialogHeader>
+                                                          <div className="flex justify-center">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img src={editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform]} alt={`${platform} post`} className="max-h-[70vh] w-auto rounded" />
+                                                          </div>
+                                                        </DialogContent>
+                                                      </Dialog>
+                                                    )}
+                                                  </div>
+                                                  
                                                   <div className="flex gap-2 justify-end">
                                                     <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedMediaKey({}); setEditedMediaSignedUrl({}); }}>
                                                       Cancel

@@ -159,7 +159,7 @@ export function OAuthProvidersList() {
     },
     {
       key: "instagram",
-      name: "Instagram (Personal)",
+      name: "Instagram",
       icon: "/instagram.svg",
       connected: hasInstagram,
       handler: handleInstagramConnect,

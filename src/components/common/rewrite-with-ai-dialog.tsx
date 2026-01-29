@@ -18,12 +18,15 @@ interface RewriteWithAIDialogProps {
   onRewrite: (prompt: string) => Promise<void>;
   isPending: boolean;
   disabled?: boolean;
+  /** If true, button spans full width and shows "Rewrite with AI" text */
+  fullWidth?: boolean;
 }
 
 export function RewriteWithAIDialog({
   onRewrite,
   isPending,
   disabled,
+  fullWidth = false,
 }: RewriteWithAIDialogProps) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -42,8 +45,10 @@ export function RewriteWithAIDialog({
           size="sm"
           disabled={disabled || isPending}
           title="Rewrite with AI (1 credit)"
+          className={fullWidth ? "w-full justify-center" : ""}
         >
           <Sparkles className="h-4 w-4" />
+          {fullWidth && <span className="ml-2">Rewrite with AI</span>}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
