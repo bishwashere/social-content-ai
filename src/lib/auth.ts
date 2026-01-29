@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
 import FacebookProvider from "next-auth/providers/facebook";
 import TiktokProvider from "next-auth/providers/tiktok";
-import InstagramProvider from "next-auth/providers/instagram";
 // import LinkedInProvider from "next-auth/providers/linkedin";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
@@ -76,13 +75,74 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
-    InstagramProvider({
+    // Instagram Business API - Custom provider to handle non-standard OAuth response
+    // Instagram doesn't return token_type in its response, so we need to handle it manually
+    {
+      id: "instagram",
+      name: "Instagram",
+      type: "oauth",
       clientId: process.env.AUTH_INSTAGRAM_ID!,
       clientSecret: process.env.AUTH_INSTAGRAM_SECRET!,
       authorization: {
-        url: "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=24156712590683211&redirect_uri=https://www.nextpostai.com/api/auth/callback/instagram&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights",
-      }
-    })
+        url: "https://www.instagram.com/oauth/authorize",
+        params: {
+          scope: "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights",
+          response_type: "code",
+        },
+      },
+      token: {
+        url: "https://api.instagram.com/oauth/access_token",
+        async request({ params, provider }: { params: Record<string, unknown>; provider: { clientId?: string; clientSecret?: string } }) {
+          const response = await fetch("https://api.instagram.com/oauth/access_token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              client_id: provider.clientId as string,
+              client_secret: provider.clientSecret as string,
+              grant_type: "authorization_code",
+              redirect_uri: params.redirect_uri as string,
+              code: params.code as string,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (data.error_type || data.error_message) {
+            throw new Error(data.error_message || "Instagram OAuth error");
+          }
+
+          // Instagram returns: { access_token, user_id, permissions }
+          // We need to add token_type for next-auth compatibility
+          return {
+            tokens: {
+              access_token: data.access_token,
+              token_type: "bearer", // Add missing token_type
+              user_id: data.user_id,
+            },
+          };
+        },
+      },
+      userinfo: {
+        url: "https://graph.instagram.com/me",
+        async request({ tokens }: { tokens: { access_token?: string } }) {
+          const response = await fetch(
+            `https://graph.instagram.com/me?fields=id,username,account_type,name&access_token=${tokens.access_token}`
+          );
+          const profile = await response.json();
+          return profile;
+        },
+      },
+      profile(profile: { id: string; name?: string; username?: string }) {
+        return {
+          id: profile.id,
+          name: profile.name || profile.username,
+          email: null, // Instagram doesn't provide email
+          image: null,
+        };
+      },
+    }
   ],
   pages: {
     error: "/error/auth",
