@@ -15,13 +15,13 @@ import { OauthProvider } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { authenticateWithThreads } from "@/lib/auth/threads";
 import { signIn } from "next-auth/react";
-import { useDeleteAllUserOAuthProviders } from "@/backend-apis/user/hooks";
+import { useDeleteAllUserOAuthProviders, useDeleteSingleOAuthProvider } from "@/backend-apis/user/hooks";
 import { confirm } from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Lock, Shield } from "lucide-react";
+import { Lock, Shield, Trash2 } from "lucide-react";
 import { authenticateWithInstagram } from "@/lib/auth/instagram";
 
 type GroupedProviders = {
@@ -31,7 +31,8 @@ type GroupedProviders = {
 export function OAuthProvidersList() {
   const { data: session } = useSession();
   const { data: providers, isLoading } = useOAuthProviders();
-  const del = useDeleteAllUserOAuthProviders();
+  const deleteAll = useDeleteAllUserOAuthProviders();
+  const deleteSingle = useDeleteSingleOAuthProvider();
   const [showSecurityInfo, setShowSecurityInfo] = useState(false);
 
   // Get connection status for all platforms
@@ -305,19 +306,41 @@ export function OAuthProvidersList() {
                             : "#"
                         }
                         target="_blank"
-                        className="font-medium  underline"
+                        className="font-medium underline"
                       >
-                        {provider.pageName || provider.pageId}
+                        {provider.pageName || provider.pageId || "Unknown"}
                       </Link>
                       <p className="text-sm text-muted-foreground">
-                        Connected on{" "}
+                        {provider.isPersonal ? "Personal" : "Business"} account
+                        {" · "}Connected on{" "}
                         {new Date(provider.createdAt).toLocaleDateString()}{" "}
                         {provider.expiresAt &&
-                          `| Expires on ${new Date(
+                          `· Expires on ${new Date(
                             provider.expiresAt
                           ).toLocaleDateString()}`}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={async () => {
+                        const confirmed = await confirm({
+                          title: "Disconnect this account?",
+                          description: `This will remove the connection to "${provider.pageName || provider.pageId || provider.platform}". You can reconnect it anytime.`,
+                        });
+
+                        if (!confirmed || !session?.user?.id) return;
+
+                        deleteSingle.mutate({
+                          providerId: provider.id,
+                          userId: session.user.id,
+                        });
+                      }}
+                      disabled={deleteSingle.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -344,9 +367,9 @@ export function OAuthProvidersList() {
 
                 if (!confirmed) return;
 
-                del.mutate(session.user.id);
+                deleteAll.mutate(session.user.id);
               }}
-              loading={del.isPending}
+              loading={deleteAll.isPending}
               className="w-fit ml-auto"
               variant={"destructive-outline"}
             >

@@ -1446,8 +1446,8 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
-  const [editedMedia, setEditedMedia] = useState<Record<string, string>>({});
-  const [editedMediaPreview, setEditedMediaPreview] = useState<Record<string, string>>({}); // Preview URLs for display
+  const [editedMediaKey, setEditedMediaKey] = useState<Record<string, string>>({}); // S3 keys for saving to database
+  const [editedMediaSignedUrl, setEditedMediaSignedUrl] = useState<Record<string, string>>({}); // Signed URLs for display in UI
   const editContent = useEditChatContent();
   const generateAIImage = useGenerateAIImage();
   const generateTextCardImage = useGenerateTextCardImage();
@@ -1455,19 +1455,19 @@ export default function CampaignPlannerPage({ project }: Props) {
   const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
   const handleSave = async (campaignId: string, day: number, platform: string, scheduledPostId?: string) => {
     // You can handle saving here
-    console.log("Saving for:", platform, "with content:", editedContent[platform], "media:", editedMedia[platform], "scheduledPostId:", scheduledPostId);
+    console.log("Saving for:", platform, "with content:", editedContent[platform], "mediaKey:", editedMediaKey[platform], "scheduledPostId:", scheduledPostId);
     await editContent.mutateAsync({
       campaignId,
       day,
       platform,
       content: editedContent[platform],
-      media: editedMedia[platform],
+      media: editedMediaKey[platform], // Save the S3 key to database
       scheduledPostId
     })
       .then(() => toast.success(`Content edited for ${platform}`));
     setEditingPlatform(null);
-    setEditedMedia({});
-    setEditedMediaPreview({});
+    setEditedMediaKey({});
+    setEditedMediaSignedUrl({});
   };
 
   return (
@@ -2611,8 +2611,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       <div className="flex flex-col gap-2">
                                                         <label className="text-xs font-medium text-muted-foreground">Image Preview</label>
                                                         <div className="aspect-square max-w-[300px] mx-auto">
-                                                          <ViewMedia post={{ media: editedMedia.instagram || instagramMedia }} showMedia />
-                                                          {editedMediaPreview.instagram && (
+                                                          {/* Use signed URL for display, fall back to original media */}
+                                                          <ViewMedia post={{ media: editedMediaSignedUrl.instagram || instagramMedia }} showMedia />
+                                                          {editedMediaSignedUrl.instagram && (
                                                             <p className="text-xs text-center mt-2 text-muted-foreground">Preview (unsaved)</p>
                                                           )}
                                                         </div>
@@ -2640,9 +2641,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                                 day: timeline.day,
                                                               });
                                                               if (result.success && result.mediaKey) {
-                                                                setEditedMedia({ ...editedMedia, instagram: result.mediaKey });
+                                                                setEditedMediaKey({ ...editedMediaKey, instagram: result.mediaKey });
                                                                 if (result.previewUrl) {
-                                                                  setEditedMediaPreview({ ...editedMediaPreview, instagram: result.previewUrl });
+                                                                  setEditedMediaSignedUrl({ ...editedMediaSignedUrl, instagram: result.previewUrl });
                                                                 }
                                                               }
                                                             }}
@@ -2658,11 +2659,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                             campaignId={campaign.id}
                                                             day={timeline.day}
                                                             platform="instagram"
-                                                            media={editedMedia.instagram || instagramMedia}
-                                                            mediaPreviewUrl={editedMediaPreview.instagram}
+                                                            media={editedMediaKey.instagram || instagramMedia}
+                                                            mediaPreviewUrl={editedMediaSignedUrl.instagram}
                                                             onMediaUploaded={(key) => {
-                                                              setEditedMedia({ ...editedMedia, instagram: key });
-                                                              setEditedMediaPreview({ ...editedMediaPreview, instagram: "" });
+                                                              setEditedMediaKey({ ...editedMediaKey, instagram: key });
+                                                              setEditedMediaSignedUrl({ ...editedMediaSignedUrl, instagram: "" });
                                                             }}
                                                           />
                                                           <span className="text-xs text-muted-foreground">Or upload custom image</span>
@@ -2670,7 +2671,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       </div>
                                                       
                                                       <div className="flex gap-2 justify-end">
-                                                        <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedContent({}); setEditedMedia({}); setEditedMediaPreview({}); }}>
+                                                        <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedContent({}); setEditedMediaKey({}); setEditedMediaSignedUrl({}); }}>
                                                           Cancel
                                                         </Button>
                                                         <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, "instagram", instagramScheduledInfo?.scheduledPostId)} loading={editContent.isPending}>
@@ -2820,12 +2821,12 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                         campaignId={campaign.id}
                                                         day={timeline.day}
                                                         platform={platform}
-                                                        media={editedMedia[platform] || (timeline.media as Record<string, string>)?.[platform]}
-                                                        mediaPreviewUrl={editedMediaPreview[platform]}
+                                                        media={editedMediaKey[platform] || (timeline.media as Record<string, string>)?.[platform]}
+                                                        mediaPreviewUrl={editedMediaSignedUrl[platform]}
                                                         onMediaUploaded={(key) => {
-                                                          setEditedMedia({ ...editedMedia, [platform]: key });
+                                                          setEditedMediaKey({ ...editedMediaKey, [platform]: key });
                                                           // Clear any AI-generated preview when manually uploading
-                                                          setEditedMediaPreview({ ...editedMediaPreview, [platform]: "" });
+                                                          setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: "" });
                                                         }}
                                                       />
                                                       <Button
@@ -2851,9 +2852,9 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                             platform,
                                                           });
                                                           if (result.success && result.mediaKey) {
-                                                            setEditedMedia({ ...editedMedia, [platform]: result.mediaKey });
+                                                            setEditedMediaKey({ ...editedMediaKey, [platform]: result.mediaKey });
                                                             if (result.previewUrl) {
-                                                              setEditedMediaPreview({ ...editedMediaPreview, [platform]: result.previewUrl });
+                                                              setEditedMediaSignedUrl({ ...editedMediaSignedUrl, [platform]: result.previewUrl });
                                                             }
                                                           }
                                                         }}
@@ -2864,7 +2865,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     </div>
                                                   )}
                                                   <div className="flex gap-2 justify-end">
-                                                    <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedMedia({}); setEditedMediaPreview({}); }}>
+                                                    <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedMediaKey({}); setEditedMediaSignedUrl({}); }}>
                                                       Cancel
                                                     </Button>
                                                     <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, platform, scheduledInfo?.scheduledPostId)} loading={editContent.isPending}>

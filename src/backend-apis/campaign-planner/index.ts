@@ -472,8 +472,14 @@ export const getCampaignChats = async (campaignId: string) => {
           // Use scheduled post data (this is the source of truth after scheduling)
           mergedContents[platform] = scheduledPost.content;
           if (scheduledPost.media) {
-            mergedMedia[platform] = scheduledPost.media;
-            mergedMediaKeys[platform] = scheduledPost.media; // Already an S3 key in database
+            mergedMediaKeys[platform] = scheduledPost.media; // Store original S3 key for scheduling
+            // Generate signed URL for display
+            try {
+              mergedMedia[platform] = await s3.getSignedUrlForVideoDownload(scheduledPost.media);
+            } catch (error) {
+              console.error(`Failed to get signed URL for scheduled ${platform} media:`, error);
+              mergedMedia[platform] = scheduledPost.media; // Fallback to raw key (will fail in UI)
+            }
           }
           scheduledPlatforms[platform] = {
             scheduledPostId: scheduledPost.id,
