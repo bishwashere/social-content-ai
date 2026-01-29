@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderOpen,
+  Instagram,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Md from "react-markdown";
@@ -57,6 +58,8 @@ const getPlatformIcon = (platform: string) => {
       return <Twitter className="h-4 w-4" />;
     case "linkedin":
       return <Linkedin className="h-4 w-4" />;
+    case "instagram":
+      return <Instagram className="h-4 w-4" />;
     case "threads":
       return <Image src="/threads.svg" alt="Threads" width={24} height={24} />;
     default:

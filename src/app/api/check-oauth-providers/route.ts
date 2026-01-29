@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       where: {
         userId,
         platform: {
-          in: ["facebook", "linkedin", "twitter", "threads", "tiktok", "reddit"],
+          in: ["facebook", "linkedin", "twitter", "threads", "tiktok", "reddit", "instagram"],
         },
       },
       select: {
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     const hasThreads = uniquePlatforms.some(p => p.platform === "threads");
     const hasTiktok = uniquePlatforms.some(p => p.platform === "tiktok");
     const hasReddit = uniquePlatforms.some(p => p.platform === "reddit");
+    const hasInstagram = uniquePlatforms.some(p => p.platform === "instagram");
 
     return sendNextResponse({
       status: 200,
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
         hasThreads,
         hasTiktok,
         hasReddit,
+        hasInstagram,
         count: providers.length,
         providers: uniquePlatforms,
       },
