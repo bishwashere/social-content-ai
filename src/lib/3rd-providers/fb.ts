@@ -80,6 +80,50 @@ class Fb {
     })) as FbPage[];
   }
 
+  /**
+   * Get Instagram Business Account ID linked to a Facebook Page
+   * @param pageId - Facebook Page ID
+   * @param pageAccessToken - Page's access token
+   * @returns Instagram Business Account ID and username, or null if not linked
+   */
+  async getInstagramBusinessAccount(pageId: string, pageAccessToken: string): Promise<{
+    id: string;
+    username: string;
+    profilePictureUrl?: string;
+  } | null> {
+    try {
+      // First, get the Instagram Business Account ID
+      const res = await this._client.get(`/${pageId}`, {
+        params: {
+          fields: "instagram_business_account",
+          access_token: pageAccessToken,
+        },
+      });
+
+      const igAccountId = res.data?.instagram_business_account?.id;
+      if (!igAccountId) {
+        return null;
+      }
+
+      // Then, get the Instagram account details
+      const igRes = await this._client.get(`/${igAccountId}`, {
+        params: {
+          fields: "id,username,profile_picture_url",
+          access_token: pageAccessToken,
+        },
+      });
+
+      return {
+        id: igRes.data?.id,
+        username: igRes.data?.username || "",
+        profilePictureUrl: igRes.data?.profile_picture_url,
+      };
+    } catch (error) {
+      console.error("Error getting Instagram Business Account:", error);
+      return null;
+    }
+  }
+
   private _getMyPostInsightsApiUrl(pageId: string) {
     // For v3.3+, many fields are deprecated when requesting posts
     // Use minimal fields only - fetch everything else separately

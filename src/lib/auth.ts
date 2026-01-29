@@ -31,6 +31,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             "pages_read_engagement", // to read the engagement metrics for the given pages
             "pages_read_user_content", // to read the content of the posts on the given pages
             "read_insights", // to read the insights for the given pages
+            // Instagram Business Account permissions
+            "instagram_basic", // to access Instagram Business Account
+            "instagram_content_publish", // to publish content to Instagram
+            "instagram_manage_comments", // to manage comments on Instagram posts
+            "instagram_manage_insights", // to read insights for Instagram
           ].join(" "),
         },
       },
@@ -195,6 +200,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   pageProfilePhoto: fbPage.picture,
                   isPersonal: false,
                 });
+
+                // Check if this Facebook Page has a linked Instagram Business Account
+                try {
+                  const igAccount = await f.getInstagramBusinessAccount(fbPage.id, fbPage.accessToken);
+                  if (igAccount) {
+                    console.log(`📸 Found Instagram Business Account for page ${fbPage.name}: @${igAccount.username}`);
+                    authProviders.push({
+                      userId: googleUser.id,
+                      platform: "instagram",
+                      pageId: igAccount.id, // Instagram Business Account ID (used for posting)
+                      accessToken: encryptToken(fbPage.accessToken), // Use Facebook Page's access token
+                      refreshToken: "",
+                      expiresAt: null, // Page tokens don't expire
+                      pageName: igAccount.username,
+                      pageProfilePhoto: igAccount.profilePictureUrl || null,
+                      isPersonal: false, // Business account linked to Facebook Page
+                    });
+                  }
+                } catch (igError) {
+                  console.warn(`⚠️ Could not fetch Instagram Business Account for page ${fbPage.name}:`, igError);
+                  // Continue with just the Facebook page
+                }
               }
 
               break;
