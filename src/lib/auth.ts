@@ -75,110 +75,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
-    // Instagram Business API - Custom provider to handle non-standard OAuth response
-    // Instagram doesn't return token_type in its response, so we need to handle it manually
+    // Instagram Business API - Custom OAuth provider
+    // 
+    // APPROACHES TRIED:
+    // 1. InstagramProvider (built-in) - Failed: Instagram response missing "token_type"
+    // 2. Custom provider with token.conform - Failed: Only works on 200 responses
+    // 3. Custom provider with token.request - Failed: Custom request function not called
+    // 4. Removed token.url - Failed: "Missing issuer and token endpoint" error
+    // 5. token.url + token.request together - Failed: Default behavior used, custom ignored
+    //
+    // CURRENT: Using custom OAuth routes at /api/instagram-login/* (like LinkedIn)
+    // TODO: Remove this once custom routes are implemented
     {
       id: "instagram",
       name: "Instagram",
       type: "oauth",
       clientId: process.env.AUTH_INSTAGRAM_ID!,
       clientSecret: process.env.AUTH_INSTAGRAM_SECRET!,
-      // Disable PKCE - Instagram doesn't support it
       checks: ["state"],
       authorization: {
         url: "https://www.instagram.com/oauth/authorize",
         params: {
-          scope: "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights",
+          scope: "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights",
           response_type: "code",
         },
       },
-      token: {
-        url: "https://api.instagram.com/oauth/access_token",
-        async request(context: any) {
-          console.log("[Instagram OAuth] Starting token exchange...");
-          
-          const { provider, params, checks } = context;
-          console.log("[Instagram OAuth] Provider clientId present:", !!provider?.clientId);
-          console.log("[Instagram OAuth] Code present:", !!params?.code);
-          console.log("[Instagram OAuth] Checks:", checks);
-          
-          // Build the redirect URI - must match exactly what's in Instagram app settings
-          const redirectUri = `https://www.nextpostai.com/api/auth/callback/instagram`;
-          console.log("[Instagram OAuth] Using redirect_uri:", redirectUri);
-          
-          const tokenParams = new URLSearchParams({
-            client_id: provider.clientId,
-            client_secret: provider.clientSecret,
-            grant_type: "authorization_code",
-            redirect_uri: redirectUri,
-            code: params.code,
-          });
-          
-          console.log("[Instagram OAuth] Making token request...");
-          
-          const response = await fetch("https://api.instagram.com/oauth/access_token", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: tokenParams,
-          });
-
-          console.log("[Instagram OAuth] Token response status:", response.status);
-          
-          const data = await response.json();
-          console.log("[Instagram OAuth] Token response data:", {
-            hasAccessToken: !!data.access_token,
-            userId: data.user_id,
-            error: data.error_message || data.error_type || data.error,
-            errorDescription: data.error_description,
-          });
-
-          if (!response.ok || data.error_type || data.error_message || data.error) {
-            const errorMsg = data.error_message || data.error_description || data.error || `HTTP ${response.status}`;
-            console.error("[Instagram OAuth] Token exchange failed:", errorMsg);
-            throw new Error(`Instagram token exchange failed: ${errorMsg}`);
-          }
-
-          // Return tokens directly - next-auth v5 expects a flat TokenSet
-          console.log("[Instagram OAuth] Returning tokens to next-auth");
-          return {
-            access_token: data.access_token,
-            token_type: "bearer",
-            user_id: String(data.user_id),
-          };
-        },
-      },
-      userinfo: {
-        url: "https://graph.instagram.com/me",
-        async request(context: any) {
-          const { tokens } = context;
-          console.log("[Instagram OAuth] Fetching user info...");
-          
-          const response = await fetch(
-            `https://graph.instagram.com/me?fields=id,username,account_type,name&access_token=${tokens?.access_token}`
-          );
-          const profile = await response.json();
-          console.log("[Instagram OAuth] User profile:", { 
-            id: profile.id, 
-            username: profile.username,
-            accountType: profile.account_type,
-            error: profile.error?.message 
-          });
-          
-          if (profile.error) {
-            console.error("[Instagram OAuth] Profile error:", profile.error);
-            throw new Error(profile.error.message || "Failed to fetch Instagram profile");
-          }
-          
-          return profile;
-        },
-      },
+      token: "https://api.instagram.com/oauth/access_token",
+      userinfo: "https://graph.instagram.com/me?fields=id,username,name",
       profile(profile: { id: string; name?: string; username?: string }) {
         return {
           id: profile.id,
           name: profile.name || profile.username,
-          email: null, // Instagram doesn't provide email
+          email: null,
           image: null,
         };
       },
