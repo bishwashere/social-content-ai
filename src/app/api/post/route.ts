@@ -992,8 +992,12 @@ export const GET = applyMiddleware(
             };
           }
 
+          // Use correct API endpoint based on auth flow:
+          // - Standalone (Instagram Login): uses graph.instagram.com
+          // - Via Facebook: uses graph.facebook.com
           const instagram = new Instagram({
             accessToken: oauthProvider.accessToken,
+            isStandalone: oauthProvider.isStandalone ?? false,
           });
 
           // Post to Instagram

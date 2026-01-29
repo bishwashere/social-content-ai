@@ -14,11 +14,18 @@ type AnalyticsData = {
 
 type ConstructorProps = {
   accessToken: string;
+  /**
+   * If true, uses graph.instagram.com (for Instagram Login flow)
+   * If false, uses graph.facebook.com (for Facebook Login flow with linked Instagram Business account)
+   */
+  isStandalone?: boolean;
 };
 
 /**
  * Instagram Business API Client
- * Uses the Instagram Graph API (via Facebook Graph API) for Business accounts
+ * Supports two authentication flows:
+ * 1. Instagram Login (standalone): Uses graph.instagram.com with instagram_business_* permissions
+ * 2. Facebook Login: Uses graph.facebook.com with Facebook Page tokens
  * Note: Instagram requires media for all posts - text-only posts are not supported
  */
 class Instagram {
@@ -28,10 +35,15 @@ class Instagram {
 
   constructor(args: ConstructorProps) {
     this._accessToken = decryptToken(args.accessToken);
-    this._baseUrl = "https://graph.facebook.com/v23.0";
+    // Use Instagram Graph API endpoint for standalone accounts (Instagram Login flow)
+    // Use Facebook Graph API endpoint for accounts linked via Facebook
+    this._baseUrl = args.isStandalone 
+      ? "https://graph.instagram.com/v23.0"
+      : "https://graph.facebook.com/v23.0";
     this._client = axios.create({
       baseURL: this._baseUrl,
     });
+    console.log(`📸 Instagram client initialized with base URL: ${this._baseUrl}`);
   }
 
   /**
