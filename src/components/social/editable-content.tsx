@@ -13,9 +13,10 @@ type Props = {
   viewContentEdit: string[];
   setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>
   media?: string | null
+  showMedia?: boolean
 }
 
-const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, media }: Props) => {
+const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, media, showMedia=true }: Props) => {
   const [editedContent, setEditedContent] = useState(content);
   const queryClient = useQueryClient();
 
@@ -102,7 +103,7 @@ const EditableContent = ({ id, content, viewContentEdit, setViewContentEdit, med
                 .join("\n\n")
             }
           </Markdown>
-          {media && <img src={media} alt="Media" className="w-full h-auto" />}
+          {showMedia && media && <img src={media} alt="Media" className="w-full h-auto" />}
         </>
       )}
     </div>
