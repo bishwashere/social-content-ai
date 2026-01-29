@@ -36,7 +36,7 @@ class Threads {
       };
 
       if (mediaUrl) {
-        const signedUrl = await s3.getSignedUrlForVideoDownload(mediaUrl);
+        const signedUrl = await s3.getSignedUrlForExternalApi(mediaUrl);
         const detected = detectMediaTypeFromUrl(signedUrl);
         if (detected === "img") {
           createBody.media_type = "IMAGE";

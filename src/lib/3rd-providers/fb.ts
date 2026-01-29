@@ -402,7 +402,7 @@ class Fb {
       };
 
       if (mediaUrl) {
-        const signedUrl = await s3.getSignedUrlForVideoDownload(mediaUrl);
+        const signedUrl = await s3.getSignedUrlForExternalApi(mediaUrl);
 
         const mediaType = detectMediaTypeFromUrl(signedUrl);
 

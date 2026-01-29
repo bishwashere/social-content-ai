@@ -56,8 +56,8 @@ class Instagram {
         };
       }
 
-      // Get signed URL for media
-      const signedUrl = await s3.getSignedUrlForVideoDownload(mediaUrl);
+      // Get signed URL for media (use external API method without Content-Disposition header)
+      const signedUrl = await s3.getSignedUrlForExternalApi(mediaUrl);
       const mediaType = detectMediaTypeFromUrl(signedUrl);
 
       if (!mediaType || (mediaType !== "img" && mediaType !== "video")) {

@@ -83,7 +83,7 @@ class Linkedin {
     };
 
     // Download image from URL into buffer
-    const signedUrl = await s3.getSignedUrlForVideoDownload(mediaUrl);
+    const signedUrl = await s3.getSignedUrlForExternalApi(mediaUrl);
     const imageBuffer = await new Promise<Buffer>((resolve, reject) => {
       const chunks: any[] = [];
       get(signedUrl, (resp) => {

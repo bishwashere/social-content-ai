@@ -113,6 +113,26 @@ class S3 {
     return url;
   }
 
+  /**
+   * Get a signed URL for external APIs (like Instagram, Facebook, etc.)
+   * This URL does NOT include Content-Disposition header, making it suitable
+   * for APIs that need to fetch and process the image directly.
+   */
+  async getSignedUrlForExternalApi(key: string) {
+    const url = await getSignedUrl(
+      this.s3,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }),
+      {
+        expiresIn: 60 * 60, // 1 hour
+      }
+    );
+
+    return url;
+  }
+
   async readDir(key: string) {
     const data = await this.s3.send(
       new ListObjectsV2Command({
