@@ -2497,7 +2497,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             {campaign.platforms.includes('instagram') && (timeline.media as Record<string, string>)?.instagram && (() => {
                                               const instagramScheduledInfo = (timeline.scheduledPlatforms as Record<string, { scheduledPostId: string; scheduledDate: Date; status: string }>)?.instagram;
                                               const isInstagramScheduled = !!instagramScheduledInfo;
-                                              const instagramMedia = (timeline.media as Record<string, string>).instagram;
+                                              const instagramMedia = (timeline.media as Record<string, string>).instagram; // Signed URL for display
+                                              const instagramMediaKey = (timeline.mediaKeys as Record<string, string>)?.instagram || instagramMedia; // S3 key for scheduling
                                               return (
                                               <Card className={cn("rounded-lg border mb-5", isInstagramScheduled && "border-green-500/50")}>
                                                 <div className="flex flex-col gap-0">
@@ -2540,7 +2541,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                         projectId={project.id}
                                                         timelineDay={timeline.day}
                                                       />
-                                                      <AutoPost platform="instagram" content="" projectId={project.id} mediaUrl={instagramMedia} />
+                                                      <AutoPost platform="instagram" content="" projectId={project.id} mediaUrl={instagramMediaKey} />
                                                       <Checkbox
                                                         checked={(timeline.tickMark as Record<string, boolean>)?.instagram || false}
                                                         onCheckedChange={async (checked) => {

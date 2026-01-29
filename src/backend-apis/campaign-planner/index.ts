@@ -448,7 +448,8 @@ export const getCampaignChats = async (campaignId: string) => {
       
       // Build new contents and media from scheduled posts (if available)
       const mergedContents: Record<string, string> = {};
-      const mergedMedia: Record<string, string> = {};
+      const mergedMedia: Record<string, string> = {}; // Signed URLs for display
+      const mergedMediaKeys: Record<string, string> = {}; // Original S3 keys for scheduling
       const scheduledPlatforms: Record<string, { 
         scheduledPostId: string; 
         scheduledDate: Date;
@@ -472,6 +473,7 @@ export const getCampaignChats = async (campaignId: string) => {
           mergedContents[platform] = scheduledPost.content;
           if (scheduledPost.media) {
             mergedMedia[platform] = scheduledPost.media;
+            mergedMediaKeys[platform] = scheduledPost.media; // Already an S3 key in database
           }
           scheduledPlatforms[platform] = {
             scheduledPostId: scheduledPost.id,
@@ -483,8 +485,9 @@ export const getCampaignChats = async (campaignId: string) => {
           if (chatContents[platform]) {
             mergedContents[platform] = chatContents[platform];
           }
-          // Generate signed URL for campaign chat media
+          // Generate signed URL for campaign chat media, but keep original key
           if (chatMedia[platform]) {
+            mergedMediaKeys[platform] = chatMedia[platform]; // Store original S3 key
             try {
               mergedMedia[platform] = await s3.getSignedUrlForVideoDownload(chatMedia[platform]);
             } catch (error) {
@@ -499,7 +502,8 @@ export const getCampaignChats = async (campaignId: string) => {
         ...chat,
         contents: mergedContents,
         media: mergedMedia,
-        scheduledPlatforms, // New field to track which platforms are scheduled
+        mediaKeys: mergedMediaKeys, // Original S3 keys for scheduling
+        scheduledPlatforms, // Field to track which platforms are scheduled
       };
     })
   );
