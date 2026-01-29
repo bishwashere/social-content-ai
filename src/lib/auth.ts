@@ -86,6 +86,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
+      console.log("🔐 [NextAuth signIn] Callback triggered for provider:", account?.provider);
       if (account && user) {
         try {
           // Get the current user from your custom JWT token
@@ -170,11 +171,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               break;
 
             case "facebook":
+              console.log("📘 [Facebook OAuth] Starting Facebook OAuth flow for user:", googleUser.id);
               const f = new Fb({
                 accessToken: encryptedTokens.accessToken,
                 refreshToken: encryptedTokens.refreshToken,
               });
 
+              console.log("📘 [Facebook OAuth] Exchanging for long-lived token...");
               const longLivedTokens = await f.exchangeForLongLivedToken();
 
               if (!longLivedTokens) {
@@ -182,10 +185,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               }
 
               const fbPages = await f.getMyPages();
+              console.log("📘 [Facebook OAuth] Pages fetched:", fbPages?.length || 0);
 
               if (!fbPages || !fbPages.length) {
+                console.log("❌ [Facebook OAuth] No Facebook pages found!");
                 return `/error/auth?code=${AUTH_ERROR_CODES.ZERO_FB_PAGES}`;
               }
+
+              console.log("📘 [Facebook OAuth] Processing pages:", fbPages.map(p => ({ id: p.id, name: p.name })));
 
               // for each fbPage, create a new oauthProvider
               for (const fbPage of fbPages) {
@@ -282,6 +289,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           if (authProviders.length > 0) {
+            console.log(`✅ [OAuth] Saving ${authProviders.length} auth providers to database:`, 
+              authProviders.map(p => ({ platform: p.platform, pageId: p.pageId, pageName: p.pageName }))
+            );
             //  for each authProvider, check if it already exists
             for (const authProvider of authProviders) {
               const existingProvider = await prisma.oauthProvider.findFirst({
@@ -294,6 +304,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
               let providerId: string;
               if (existingProvider) {
+                console.log(`📝 [OAuth] Updating existing provider: ${authProvider.platform} - ${authProvider.pageName}`);
                 // Update the existing provider
                 const updated = await prisma.oauthProvider.update({
                   where: {
@@ -310,12 +321,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   },
                 });
                 providerId = updated.id;
+                console.log(`✅ [OAuth] Updated provider ID: ${providerId}`);
               } else {
+                console.log(`📝 [OAuth] Creating new provider: ${authProvider.platform} - ${authProvider.pageName}`);
                 // Create a new provider
                 const created = await prisma.oauthProvider.create({
                   data: authProvider,
                 });
                 providerId = created.id;
+                console.log(`✅ [OAuth] Created provider ID: ${providerId}`);
               }
 
               // Auto-link this provider to matching projects (background operation)
@@ -323,13 +337,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 console.error("Error auto-linking provider:", err);
               });
             }
+            console.log("✅ [OAuth] All providers saved successfully!");
             return true;
           }
 
           // Return true to allow the sign-in
           return true;
-        } catch (error) {
-          console.error(`Error linking ${account.provider} account:`, error);
+        } catch (error: any) {
+          console.error(`❌ [OAuth Error] Error linking ${account.provider} account:`, {
+            message: error?.message,
+            stack: error?.stack,
+            response: error?.response?.data,
+          });
           return `/error/auth?code=${AUTH_ERROR_CODES.UNEXPECTED_ERROR}`;
         }
       }

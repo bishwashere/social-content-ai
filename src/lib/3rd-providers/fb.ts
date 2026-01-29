@@ -70,14 +70,20 @@ class Fb {
       },
     });
 
+    console.log(`📘 [FB.getMyPages] Found ${res.data.data?.length || 0} pages`);
+
     if (!res.data.data) return null;
 
-    return res.data.data?.map((page: any) => ({
+    const pages = res.data.data?.map((page: any) => ({
       id: page.id,
       name: page.name,
       accessToken: page.access_token,
       picture: page.picture?.data?.url,
     })) as FbPage[];
+
+    console.log(`📘 [FB.getMyPages] Pages:`, pages.map(p => ({ id: p.id, name: p.name, hasToken: !!p.accessToken })));
+
+    return pages;
   }
 
   /**
@@ -93,6 +99,7 @@ class Fb {
   } | null> {
     try {
       // First, get the Instagram Business Account ID
+      console.log(`📸 [FB.getInstagramBusinessAccount] Fetching for pageId: ${pageId}`);
       const res = await this._client.get(`/${pageId}`, {
         params: {
           fields: "instagram_business_account",
@@ -100,8 +107,11 @@ class Fb {
         },
       });
 
+      console.log(`📸 [FB.getInstagramBusinessAccount] Response:`, JSON.stringify(res.data, null, 2));
+
       const igAccountId = res.data?.instagram_business_account?.id;
       if (!igAccountId) {
+        console.log(`📸 [FB.getInstagramBusinessAccount] No instagram_business_account found in response`);
         return null;
       }
 
@@ -118,8 +128,12 @@ class Fb {
         username: igRes.data?.username || "",
         profilePictureUrl: igRes.data?.profile_picture_url,
       };
-    } catch (error) {
-      console.error("Error getting Instagram Business Account:", error);
+    } catch (error: any) {
+      console.error("❌ [FB.getInstagramBusinessAccount] Error:", {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+      });
       return null;
     }
   }
