@@ -26,7 +26,7 @@ type Props = {
   mediaUrl?: string
 }
 
-const AutoPost = ({ platform, content, projectId }: Props) => {
+const AutoPost = ({ platform, content, projectId, mediaUrl }: Props) => {
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false)
   const [isAlertOpen, setIsAlertOpen] = React.useState(false)
   const [isProviderSelectOpen, setIsProviderSelectOpen] = React.useState(false)
@@ -146,7 +146,8 @@ const AutoPost = ({ platform, content, projectId }: Props) => {
       content,
       platform: platformName,
       projectId,
-      date: date.toISOString()
+      date: date.toISOString(),
+      ...(mediaUrl && { media: mediaUrl })
     })
 
     if (!res) {
