@@ -47,7 +47,7 @@ class ProjectValidator {
     platformUrls: z.record(
       commonValidator.availablePlatform(),
       commonValidator.optionalString()
-    ),
+    ).optional().nullable().nullish(),
     // Project-level placeholders for content, e.g. { "Address": "123 Main St" }
     // Used to replace tokens like [Address] (and optionally {{Address}}) at render/post time.
     placeholders: z.record(z.string().min(1), z.string()).optional().nullable().nullish(),
