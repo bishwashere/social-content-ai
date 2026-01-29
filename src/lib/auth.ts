@@ -92,8 +92,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       token: {
         url: "https://api.instagram.com/oauth/access_token",
-        async request({ params, provider }: { params: Record<string, unknown>; provider: { clientId?: string; clientSecret?: string } }) {
+        async request(context: any) {
+          const { params, provider } = context;
+          
           console.log("[Instagram OAuth] Starting token exchange...");
+          console.log("[Instagram OAuth] Context keys:", Object.keys(context));
+          console.log("[Instagram OAuth] Params:", JSON.stringify(params || {}));
+          
+          // Build the redirect URI - Instagram requires exact match
+          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.nextpostai.com";
+          const redirectUri = `${baseUrl}/api/auth/callback/instagram`;
+          
+          console.log("[Instagram OAuth] Using redirect_uri:", redirectUri);
+          console.log("[Instagram OAuth] Code present:", !!params?.code);
           
           const response = await fetch("https://api.instagram.com/oauth/access_token", {
             method: "POST",
@@ -104,8 +115,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               client_id: provider.clientId as string,
               client_secret: provider.clientSecret as string,
               grant_type: "authorization_code",
-              redirect_uri: params.redirect_uri as string,
-              code: params.code as string,
+              redirect_uri: redirectUri,
+              code: params?.code as string || "",
             }),
           });
 
@@ -113,12 +124,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log("[Instagram OAuth] Token response:", { 
             hasAccessToken: !!data.access_token, 
             userId: data.user_id,
-            error: data.error_message || data.error_type 
+            error: data.error_message || data.error_type,
+            errorDescription: data.error_description
           });
 
-          if (data.error_type || data.error_message) {
-            console.error("[Instagram OAuth] Error:", data.error_message || data.error_type);
-            throw new Error(data.error_message || "Instagram OAuth error");
+          if (data.error_type || data.error_message || data.error) {
+            console.error("[Instagram OAuth] Error:", data.error_message || data.error_type || data.error);
+            throw new Error(data.error_message || data.error_description || data.error || "Instagram OAuth error");
           }
 
           // Instagram returns: { access_token, user_id, permissions }
@@ -132,17 +144,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       userinfo: {
         url: "https://graph.instagram.com/me",
-        async request({ tokens }: { tokens: { access_token?: string } }) {
+        async request(context: any) {
+          const { tokens } = context;
           console.log("[Instagram OAuth] Fetching user info...");
+          console.log("[Instagram OAuth] Has access_token:", !!tokens?.access_token);
+          
           const response = await fetch(
-            `https://graph.instagram.com/me?fields=id,username,account_type,name&access_token=${tokens.access_token}`
+            `https://graph.instagram.com/me?fields=id,username,account_type,name&access_token=${tokens?.access_token}`
           );
           const profile = await response.json();
           console.log("[Instagram OAuth] User profile:", { 
             id: profile.id, 
             username: profile.username,
+            accountType: profile.account_type,
             error: profile.error?.message 
           });
+          
+          if (profile.error) {
+            console.error("[Instagram OAuth] Profile error:", profile.error);
+            throw new Error(profile.error.message || "Failed to fetch Instagram profile");
+          }
+          
           return profile;
         },
       },
