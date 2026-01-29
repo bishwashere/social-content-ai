@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Projects as Project, ProjectChat } from "@prisma/client";
 import { editChatContent } from "@/server-actions/edit-chat-content";
 import { useQueryClient } from "@tanstack/react-query";
+import { ViewMedia } from "@/components/social/view-media";
+import { PLATFORM_IDS } from "@/constants/platforms";
 
 const ICONS = {
   x: "/x.svg",
@@ -88,7 +90,21 @@ export default function ChatPage() {
             <p>{chat.prompt}</p>
           </div>
           <div className="space-y-4 pb-10">
-            {Object.entries(chat.contents || {}).map(([platform, text]) => (
+            {/* Instagram Image Card - Instagram content is rendered as image, not text */}
+            {(chat.media as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] && (
+              <div className="border p-4 rounded-lg mb-4">
+                <div className="flex justify-between mb-2">
+                  <h3 className="font-bold capitalize">Instagram</h3>
+                </div>
+                <div className="aspect-square max-w-[400px] mx-auto">
+                  <ViewMedia 
+                    post={{ media: (chat.media as Record<string, string>)[PLATFORM_IDS.INSTAGRAM] }} 
+                    showMedia 
+                  />
+                </div>
+              </div>
+            )}
+            {Object.entries(chat.contents || {}).filter(([platform]) => platform !== PLATFORM_IDS.INSTAGRAM).map(([platform, text]) => (
               <div key={platform} className="border p-4 rounded-lg mb-4">
                 <div className="flex justify-between mb-2">
                   <h3 className="font-bold capitalize">{platform}</h3>

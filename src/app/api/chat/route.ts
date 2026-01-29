@@ -1,5 +1,7 @@
 import { INVITED_USER_ROLES } from "@/constants/common";
+import { PLATFORM_IDS } from "@/constants/platforms";
 import { prisma } from "@/lib/prisma";
+import { s3 } from "@/lib/s3";
 import { AI } from "@/lib/ai";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
@@ -9,6 +11,20 @@ import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
+import { generateTextCardImageForQuickGenerate } from "@/backend-apis/text-image/actions";
+
+/**
+ * Helper to convert media S3 keys to signed URLs
+ */
+async function getSignedMediaUrls(media: Record<string, string>): Promise<Record<string, string>> {
+  const signedMedia: Record<string, string> = {};
+  for (const [platform, s3Key] of Object.entries(media)) {
+    if (s3Key) {
+      signedMedia[platform] = await s3.getSignedUrlForVideoDownload(s3Key);
+    }
+  }
+  return signedMedia;
+}
 
 /**
  * Create a chat or update an existing chat
@@ -190,6 +206,24 @@ export const POST = applyMiddleware(
         }
       }
 
+      // Generate Instagram text card image if Instagram content exists
+      let mediaData: Record<string, string> = {};
+      if (cleanedContent[PLATFORM_IDS.INSTAGRAM]) {
+        console.log("[Chat API] Generating Instagram text card image...");
+        const textCardResult = await generateTextCardImageForQuickGenerate({
+          content: cleanedContent[PLATFORM_IDS.INSTAGRAM],
+          userId: user.id,
+          projectId: projectId,
+        });
+        
+        if (textCardResult.success && textCardResult.mediaKey) {
+          mediaData[PLATFORM_IDS.INSTAGRAM] = textCardResult.mediaKey;
+          console.log("[Chat API] Instagram text card image generated:", textCardResult.mediaKey);
+        } else {
+          console.warn("[Chat API] Failed to generate Instagram text card:", textCardResult.error);
+        }
+      }
+
       const chatName = await ai.generateChatName({
         content: JSON.stringify(cleanedContent),
         prompt: body.userPrompt || "",
@@ -204,6 +238,7 @@ export const POST = applyMiddleware(
           data: {
             updatedAt: new Date(),
             contents: cleanedContent,
+            media: Object.keys(mediaData).length > 0 ? mediaData : undefined,
             title: chatName || "Untitled",
             prompt: body.userPrompt || "",
           },
@@ -221,15 +256,24 @@ export const POST = applyMiddleware(
           data: { remainingChatGenerations: user.remainingChatGenerations - 1 },
         });
 
+        // Return with signed URLs for media
+        const signedMedia = Object.keys(mediaData).length > 0 
+          ? await getSignedMediaUrls(mediaData) 
+          : undefined;
+
         return sendNextResponse({
           status: 200,
           message: "Chat updated successfully",
-          data: chat,
+          data: {
+            ...chat,
+            media: signedMedia,
+          },
         });
       } else {
         const projectChat = await prisma.projectChat.create({
           data: {
             contents: cleanedContent,
+            media: Object.keys(mediaData).length > 0 ? mediaData : undefined,
             title: chatName || "Untitled",
             prompt: body.userPrompt || "",
             projectId: projectId,
@@ -241,10 +285,18 @@ export const POST = applyMiddleware(
           data: { remainingChatGenerations: user.remainingChatGenerations - 1 },
         });
 
+        // Return with signed URLs for media
+        const signedMedia = Object.keys(mediaData).length > 0 
+          ? await getSignedMediaUrls(mediaData) 
+          : undefined;
+
         return sendNextResponse({
           status: 200,
           message: "Chat created successfully",
-          data: projectChat,
+          data: {
+            ...projectChat,
+            media: signedMedia,
+          },
         });
       }
     }

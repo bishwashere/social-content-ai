@@ -66,6 +66,7 @@ import { ProjectLocationTour } from "@/components/common/project-location-tour";
 import { UploadMediaToCampaignChat } from "./upload-media-to-campaign-chat";
 import { ViewMedia } from "@/components/social/view-media";
 import { useGenerateAIImage } from "@/backend-apis/ai-image/hooks";
+import { useGenerateTextCardImage } from "@/backend-apis/text-image/hooks";
 import { useRewriteWithAI } from "@/backend-apis/ai-text/hooks";
 import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog";
 import { 
@@ -1449,6 +1450,7 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [editedMediaPreview, setEditedMediaPreview] = useState<Record<string, string>>({}); // Preview URLs for display
   const editContent = useEditChatContent();
   const generateAIImage = useGenerateAIImage();
+  const generateTextCardImage = useGenerateTextCardImage();
   const rewriteWithAI = useRewriteWithAI();
   const projectPlaceholders = useMemo(() => getProjectPlaceholders(project), [project]);
   const handleSave = async (campaignId: string, day: number, platform: string, scheduledPostId?: string) => {
@@ -2491,7 +2493,213 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 </CardContent>
                                               </Card>
                                             )}
-                                            {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit", string][]).map(([platform, text]) => {
+                                            {/* Instagram Image Card - Instagram content is rendered as image, not text */}
+                                            {campaign.platforms.includes('instagram') && (timeline.media as Record<string, string>)?.instagram && (() => {
+                                              const instagramScheduledInfo = (timeline.scheduledPlatforms as Record<string, { scheduledPostId: string; scheduledDate: Date; status: string }>)?.instagram;
+                                              const isInstagramScheduled = !!instagramScheduledInfo;
+                                              const instagramMedia = (timeline.media as Record<string, string>).instagram;
+                                              return (
+                                              <Card className={cn("rounded-lg border mb-5", isInstagramScheduled && "border-green-500/50")}>
+                                                <div className="flex flex-col gap-0">
+                                                  <CardHeader className="flex flex-col gap-2">
+                                                    <div className="flex flex-wrap items-center gap-1">
+                                                      <Button variant="ghost" size="icon"
+                                                        onClick={() => {
+                                                          const instagramText = (timeline.contents as Record<string, string>)?.instagram || "";
+                                                          setEditedContent({ ...editedContent, instagram: instagramText });
+                                                          setEditingPlatform('instagram');
+                                                        }}
+                                                      >
+                                                        <Pencil />
+                                                      </Button>
+                                                      <Button variant="ghost" size="icon" onClick={() => {
+                                                        navigator.clipboard.writeText(instagramMedia);
+                                                        toast.success("Instagram media URL copied");
+                                                      }}>
+                                                        <CopyIcon />
+                                                      </Button>
+                                                      <PostToWall
+                                                        content=""
+                                                        platform="instagram"
+                                                        projectId={project.id}
+                                                        prompt=""
+                                                      />
+                                                      {(() => {
+                                                        const platformUrl = project.platformUrls?.["instagram" as keyof typeof project.platformUrls];
+                                                        if (!platformUrl) return null;
+                                                        return (
+                                                          <Button variant="ghost" size="icon" asChild>
+                                                            <Link href={String(platformUrl)} target="_blank" rel="noopener noreferrer">
+                                                              <Image src={ICONS.instagram} alt="instagram" width={16} height={16} className="dark:brightness-0 dark:invert" />
+                                                            </Link>
+                                                          </Button>
+                                                        );
+                                                      })()}
+                                                      <SavePlatformCard
+                                                        platform="instagram"
+                                                        projectId={project.id}
+                                                        timelineDay={timeline.day}
+                                                      />
+                                                      <AutoPost platform="instagram" content="" projectId={project.id} mediaUrl={instagramMedia} />
+                                                      <Checkbox
+                                                        checked={(timeline.tickMark as Record<string, boolean>)?.instagram || false}
+                                                        onCheckedChange={async (checked) => {
+                                                          toggleTickMark.mutateAsync({
+                                                            campaignId: campaign.id,
+                                                            day: timeline.day,
+                                                            platform: "instagram",
+                                                            tick: Boolean(checked)
+                                                          })
+                                                        }}
+                                                        disabled={campaignPlannerData.isLoading || toggleTickMark.isPending}
+                                                      />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                      <CardTitle>Instagram</CardTitle>
+                                                      {isInstagramScheduled && (
+                                                        <Badge variant="outline" className="text-xs text-green-600 border-green-500/50 whitespace-nowrap">
+                                                          <Clock className="w-3 h-3 mr-1" />
+                                                          Scheduled
+                                                        </Badge>
+                                                      )}
+                                                    </div>
+                                                  </CardHeader>
+                                                </div>
+                                                <CardContent className="text-sm text-muted-foreground">
+                                                  {editingPlatform === 'instagram' ? (
+                                                    <div className="flex flex-col gap-4">
+                                                      {/* Text content editor */}
+                                                      <div className="flex flex-col gap-2">
+                                                        <label className="text-xs font-medium text-muted-foreground">Text Content (appears on image)</label>
+                                                        <textarea
+                                                          className="w-full border p-2 rounded text-black"
+                                                          rows={6}
+                                                          value={editedContent.instagram ?? ""}
+                                                          onChange={(e) => setEditedContent({ ...editedContent, instagram: e.target.value })}
+                                                          placeholder="Enter the text that will appear on the Instagram image..."
+                                                        />
+                                                        <div className="flex items-center gap-2">
+                                                          <RewriteWithAIDialog
+                                                            isPending={rewriteWithAI.isPending}
+                                                            disabled={!session?.user?.id}
+                                                            onRewrite={async (prompt) => {
+                                                              if (!session?.user?.id) {
+                                                                toast.error("Please log in to rewrite content");
+                                                                return;
+                                                              }
+                                                              const contentToRewrite = editedContent.instagram || (timeline.contents as Record<string, string>)?.instagram || "";
+                                                              if (!contentToRewrite) {
+                                                                toast.error("No content to rewrite");
+                                                                return;
+                                                              }
+                                                              const result = await rewriteWithAI.mutateAsync({
+                                                                userId: session.user.id,
+                                                                content: contentToRewrite,
+                                                                prompt: prompt || undefined,
+                                                              });
+                                                              if (result.success && result.rewrittenContent) {
+                                                                setEditedContent({ ...editedContent, instagram: result.rewrittenContent });
+                                                              }
+                                                            }}
+                                                          />
+                                                          <span className="text-xs text-muted-foreground">Rewrite with AI</span>
+                                                        </div>
+                                                      </div>
+                                                      
+                                                      {/* Image preview */}
+                                                      <div className="flex flex-col gap-2">
+                                                        <label className="text-xs font-medium text-muted-foreground">Image Preview</label>
+                                                        <div className="aspect-square max-w-[300px] mx-auto">
+                                                          <ViewMedia post={{ media: editedMedia.instagram || instagramMedia }} showMedia />
+                                                          {editedMediaPreview.instagram && (
+                                                            <p className="text-xs text-center mt-2 text-muted-foreground">Preview (unsaved)</p>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                      
+                                                      {/* Image options */}
+                                                      <div className="flex flex-col gap-3">
+                                                        <div className="flex items-center gap-2">
+                                                          <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            disabled={generateTextCardImage.isPending}
+                                                            loading={generateTextCardImage.isPending}
+                                                            onClick={async () => {
+                                                              if (!session?.user?.id) {
+                                                                toast.error("Please log in to regenerate images");
+                                                                return;
+                                                              }
+                                                              // Use the edited content (or saved content as fallback)
+                                                              const contentToUse = editedContent.instagram || (timeline.contents as Record<string, string>)?.instagram || project.description || project.name || "Instagram post";
+                                                              const result = await generateTextCardImage.mutateAsync({
+                                                                content: contentToUse,
+                                                                userId: session.user.id,
+                                                                campaignId: campaign.id,
+                                                                day: timeline.day,
+                                                              });
+                                                              if (result.success && result.mediaKey) {
+                                                                setEditedMedia({ ...editedMedia, instagram: result.mediaKey });
+                                                                if (result.previewUrl) {
+                                                                  setEditedMediaPreview({ ...editedMediaPreview, instagram: result.previewUrl });
+                                                                }
+                                                              }
+                                                            }}
+                                                            title="Regenerate Image (Free - new random style)"
+                                                          >
+                                                            <RefreshCw className="h-4 w-4 mr-2" />
+                                                            Regenerate Image
+                                                          </Button>
+                                                          <span className="text-xs text-muted-foreground">(Free - uses text above)</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                          <UploadMediaToCampaignChat
+                                                            campaignId={campaign.id}
+                                                            day={timeline.day}
+                                                            platform="instagram"
+                                                            media={editedMedia.instagram || instagramMedia}
+                                                            mediaPreviewUrl={editedMediaPreview.instagram}
+                                                            onMediaUploaded={(key) => {
+                                                              setEditedMedia({ ...editedMedia, instagram: key });
+                                                              setEditedMediaPreview({ ...editedMediaPreview, instagram: "" });
+                                                            }}
+                                                          />
+                                                          <span className="text-xs text-muted-foreground">Or upload custom image</span>
+                                                        </div>
+                                                      </div>
+                                                      
+                                                      <div className="flex gap-2 justify-end">
+                                                        <Button variant="secondary" size="sm" onClick={() => { setEditingPlatform(null); setEditedContent({}); setEditedMedia({}); setEditedMediaPreview({}); }}>
+                                                          Cancel
+                                                        </Button>
+                                                        <Button size="sm" onClick={() => handleSave(campaign.id, timeline.day, "instagram", instagramScheduledInfo?.scheduledPostId)} loading={editContent.isPending}>
+                                                          Save
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <Dialog>
+                                                      <DialogTrigger asChild>
+                                                        <div className="aspect-square max-w-[400px] mx-auto cursor-pointer hover:opacity-90 transition-opacity">
+                                                          <ViewMedia post={{ media: instagramMedia }} showMedia />
+                                                        </div>
+                                                      </DialogTrigger>
+                                                      <DialogContent className="max-w-3xl">
+                                                        <DialogHeader>
+                                                          <DialogTitle>Instagram Image</DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="flex justify-center">
+                                                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                          <img src={instagramMedia} alt="Instagram post" className="max-h-[70vh] w-auto rounded" />
+                                                        </div>
+                                                      </DialogContent>
+                                                    </Dialog>
+                                                  )}
+                                                </CardContent>
+                                              </Card>
+                                            );
+                                            })()}
+                                            {timeline.contents && (Object.entries(timeline.contents) as ["x" | "facebook" | "linkedin" | "threads" | "reddit" | "instagram", string][]).filter(([platform]) => platform !== 'instagram').map(([platform, text]) => {
                                               const resolvedText = applyPlaceholders(text, projectPlaceholders);
                                               const scheduledInfo = (timeline.scheduledPlatforms as Record<string, { scheduledPostId: string; scheduledDate: Date; status: string }>)?.[platform];
                                               const isScheduled = !!scheduledInfo;

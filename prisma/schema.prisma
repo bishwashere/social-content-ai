@@ -84,6 +84,7 @@ model ProjectChat {
   title     String
   prompt    String   @default("")
   contents  Json     @default("{}") // Map<string, string> → JSON
+  media     Json?    // Map<string, string> → JSON for platform media (e.g. instagram text card images)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

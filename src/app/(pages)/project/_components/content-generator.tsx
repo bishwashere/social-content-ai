@@ -22,6 +22,8 @@ import { useSession } from "@/backend-apis/auth/hooks";
 import { useGetFirstViewTooltip, useUpdateFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
 import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 import { PlatformIconsOnboarding } from "@/components/common/platform-icons-onboarding";
+import { ViewMedia } from "@/components/social/view-media";
+import { PLATFORM_IDS } from "@/constants/platforms";
 
 interface ContentGeneratorProps {
   project: Project;
@@ -158,7 +160,23 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
           )}
           <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
             <ScrollArea className="">
-              {Object.entries(generateProjectContent.data.contents || {}).slice(0, 4).map(
+              {/* Instagram Image Card - Instagram content is rendered as image, not text */}
+              {(generateProjectContent.data.media as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] && (
+                <Card className="rounded-lg border mb-5">
+                  <CardHeader className="flex justify-between items-center mb-2 flex-row">
+                    <CardTitle>Instagram</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="aspect-square max-w-[400px] mx-auto">
+                      <ViewMedia 
+                        post={{ media: (generateProjectContent.data.media as Record<string, string>)[PLATFORM_IDS.INSTAGRAM] }} 
+                        showMedia 
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {Object.entries(generateProjectContent.data.contents || {}).filter(([platform]) => platform !== PLATFORM_IDS.INSTAGRAM).slice(0, 4).map(
                 ([platform, text], index) => {
                   const isFirstPlatform = index === 0;
                   return (

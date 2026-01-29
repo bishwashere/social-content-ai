@@ -1,18 +1,15 @@
 import { ScheduledPost } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
-import EditableContent from "./editable-content";
 import { ViewMedia } from "./view-media";
 
 type Props = {
     post: ScheduledPost;
-    viewContentEdit: string[];
-    setViewContentEdit: React.Dispatch<React.SetStateAction<string[]>>;
+    viewContentEdit?: string[];
+    setViewContentEdit?: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
 const InstagramPostView = ({
     post,
-    viewContentEdit,
-    setViewContentEdit,
 }: Props) => {
     const HeartIcon = () => (
         <svg
@@ -79,15 +76,9 @@ const InstagramPostView = ({
                 </button>
             </div>
 
-            {/* Image/Media Section */}
+            {/* Image/Media Section - Text is embedded in the image */}
             <div className="relative bg-black aspect-square">
-                {viewContentEdit.includes(post.id) ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                        <p className="text-gray-400 text-sm">Media Preview</p>
-                    </div>
-                ) : (
-                    <ViewMedia post={post} showMedia={true} />
-                )}
+                <ViewMedia post={post} showMedia={true} />
             </div>
 
             {/* Action Buttons */}
@@ -116,40 +107,10 @@ const InstagramPostView = ({
                     </p>
                 </div>
 
-                {/* Caption */}
-                <div className="mb-2">
-                    <EditableContent
-                        id={post.id}
-                        media={post.media}
-                        content={post.content}
-                        viewContentEdit={viewContentEdit}
-                        setViewContentEdit={setViewContentEdit}
-                        showMedia={false}
-                    />
-                </div>
-
                 {/* View Comments */}
                 <button className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-1">
                     View all 432 comments
                 </button>
-
-                {/* Add Comment */}
-                <div className="flex items-center gap-2 pt-2 border-t dark:border-gray-700">
-                    <img
-                        src="https://randomuser.me/api/portraits/women/60.jpg"
-                        alt="Your Avatar"
-                        className="w-6 h-6 rounded-full"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Add a comment..."
-                        className="flex-1 text-sm bg-transparent outline-none dark:text-foreground placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                        disabled
-                    />
-                    <button className="text-sm font-semibold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 opacity-50">
-                        Post
-                    </button>
-                </div>
             </div>
         </div>
     );

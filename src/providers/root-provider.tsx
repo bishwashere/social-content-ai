@@ -28,7 +28,7 @@ const RootProvider = ({ children }: Props) => {
         <SessionProvider>
           {children}
 
-          {process.env.NODE_ENV === "development" && <ReactQueryDevtools buttonPosition="top-right" />}
+          {process.env.NODE_ENV === "development" && <ReactQueryDevtools buttonPosition="bottom-left" />}
         </SessionProvider>
       </GoogleOAuthProvider>
     </QueryClientProvider>

@@ -1,9 +1,18 @@
 export function detectMediaTypeFromUrl(
-  url: string
+  urlOrPath: string
 ): "img" | "video" | "unknown" {
   try {
-    const parsedUrl = new URL(url);
-    const pathname = parsedUrl.pathname;
+    let pathname: string;
+    
+    // Try to parse as URL first
+    try {
+      const parsedUrl = new URL(urlOrPath);
+      pathname = parsedUrl.pathname;
+    } catch {
+      // Not a valid URL, treat as a path/S3 key
+      pathname = urlOrPath;
+    }
+    
     const extension = pathname.split(".").pop()?.toLowerCase();
 
     if (!extension) return "unknown";
@@ -15,7 +24,7 @@ export function detectMediaTypeFromUrl(
     if (["mp4", "mov", "webm", "avi"].includes(extension)) {
       return "video";
     }
-    console.log(extension, pathname);
+    
     return "unknown";
   } catch {
     return "unknown";

@@ -739,12 +739,38 @@ export const generateCampaignChat = async (props: {
     };
   }
 
+  // For Instagram, auto-generate text card image from content
+  let mediaUpdate: Record<string, string> = {};
+  if (platforms.includes(PLATFORM_IDS.INSTAGRAM) && cleanedContent[PLATFORM_IDS.INSTAGRAM]) {
+    const { generateTextCardImage } = await import("@/backend-apis/text-image/actions");
+    
+    console.log("[Campaign Planner] Generating Instagram text card image...");
+    const textCardResult = await generateTextCardImage({
+      content: cleanedContent[PLATFORM_IDS.INSTAGRAM],
+      userId: props.userId,
+      campaignId: props.id,
+      day: props.day,
+    });
+    
+    if (textCardResult.success && textCardResult.mediaKey) {
+      mediaUpdate[PLATFORM_IDS.INSTAGRAM] = textCardResult.mediaKey;
+      console.log("[Campaign Planner] Instagram text card image generated:", textCardResult.mediaKey);
+    } else {
+      console.warn("[Campaign Planner] Failed to generate Instagram text card:", textCardResult.error);
+    }
+  }
+
+  // Get existing media from the chat
+  const existingMedia = (chatToUpdate.media as Record<string, string>) || {};
+  const mergedMedia = { ...existingMedia, ...mediaUpdate };
+
   await prisma.campaignChat.update({
     where: {
       id: chatToUpdate.id,
     },
     data: {
       contents: cleanedContent,
+      media: Object.keys(mergedMedia).length > 0 ? mergedMedia : undefined,
       status: "GENERATED",
       // subreddit: subreddit,
       referencePostContent: redditPopularPost?.slice(0, 50) || "",
