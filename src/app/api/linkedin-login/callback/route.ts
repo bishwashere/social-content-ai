@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
         expiresAt,
         pageName: page.name,
         pageProfilePhoto: page.logo,
-        isPersonal: true,
+        isStandalone: true,
     }));
 
     for (const item of pageData) {

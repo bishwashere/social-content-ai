@@ -190,10 +190,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 5: Update or create the oauth provider
+    // Check for existing provider with the SAME Instagram account (pageId)
+    // This allows users to connect multiple different Instagram accounts
     const existingProvider = await prisma.oauthProvider.findFirst({
       where: {
         userId: googleUser.id,
         platform: "instagram",
+        pageId: userData.id,
       },
     });
 
@@ -222,7 +225,7 @@ export async function GET(request: NextRequest) {
           pageId: userData.id,
           pageName: userData.username,
           pageProfilePhoto: profilePictureUrl,
-          isPersonal: true,
+          isStandalone: true,
         },
       });
       providerId = created.id;

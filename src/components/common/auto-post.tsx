@@ -30,7 +30,7 @@ const AutoPost = ({ platform, content, projectId, mediaUrl }: Props) => {
   const [isAlertOpen, setIsAlertOpen] = React.useState(false)
   const [isProviderSelectOpen, setIsProviderSelectOpen] = React.useState(false)
   const [selectedProvider, setSelectedProvider] = React.useState<string>('')
-  const [availableProviders, setAvailableProviders] = React.useState<Array<{ id: string; pageName?: string | null; pageId?: string | null; isPersonal?: boolean }> | undefined>()
+  const [availableProviders, setAvailableProviders] = React.useState<Array<{ id: string; pageName?: string | null; pageId?: string | null; isStandalone?: boolean }> | undefined>()
   const { data } = useSession()
 
   const onClick = async () => {
@@ -224,7 +224,7 @@ const AutoPost = ({ platform, content, projectId, mediaUrl }: Props) => {
             <SelectContent>
               {availableProviders?.map((provider) => (
                 <SelectItem key={provider.id} value={provider.id}>
-                  {provider.pageName || provider.pageId || 'Unnamed Account'} {provider.isPersonal ? ' (Personal)' : ''}
+                  {provider.pageName || provider.pageId || 'Unnamed Account'}
                 </SelectItem>
               ))}
             </SelectContent>

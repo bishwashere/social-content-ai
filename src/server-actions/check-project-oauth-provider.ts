@@ -10,13 +10,13 @@ type CheckProjectOAuthProviderResult = {
     id: string;
     pageName?: string | null;
     pageId?: string | null;
-    isPersonal?: boolean;
+    isStandalone?: boolean;
   }>;
   mappedProviders?: Array<{
     id: string;
     pageName?: string | null;
     pageId?: string | null;
-    isPersonal?: boolean;
+    isStandalone?: boolean;
   }>;
 };
 
@@ -131,14 +131,14 @@ export async function checkAllProjectOAuthProviders(
             id: p.id,
             pageName: p.pageName,
             pageId: p.pageId,
-            isPersonal: p.isPersonal,
+            isStandalone: p.isStandalone,
           }))
           : undefined,
         mappedProviders: platformProviders.map((p) => ({
           id: p.id,
           pageName: p.pageName,
           pageId: p.pageId,
-          isPersonal: p.isPersonal,
+          isStandalone: p.isStandalone,
         })),
       };
     });
@@ -185,7 +185,7 @@ export async function checkProjectOAuthProvider(
         id: true,
         pageName: true,
         pageId: true,
-        isPersonal: true,
+        isStandalone: true,
         projectToOAuthProviders: true,
       },
     });
@@ -208,7 +208,7 @@ export async function checkProjectOAuthProvider(
           id: p.id,
           pageName: p.pageName,
           pageId: p.pageId,
-          isPersonal: p.isPersonal,
+          isStandalone: p.isStandalone,
         }))
         : undefined,
     };

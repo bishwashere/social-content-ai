@@ -23,7 +23,7 @@ type AvailableProvider = {
   id: string
   pageName?: string | null
   pageId?: string | null
-  isPersonal?: boolean
+  isStandalone?: boolean
 }
 
 type PlatformState = {
@@ -352,7 +352,6 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
                       {state.providers.map((provider) => (
                         <SelectItem key={provider.id} value={provider.id}>
                           {provider.pageName || provider.pageId || 'Unnamed Account'}
-                          {provider.isPersonal ? ' (Personal)' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>

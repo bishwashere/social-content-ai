@@ -16,7 +16,7 @@ export type PlatformPostWithProvider = PlatformPost & {
         pageId?: string | null;
         pageName?: string | null;
         pageProfilePhoto?: string | null;
-        isPersonal?: boolean;
+        isStandalone?: boolean;
         pageFollowers?: number;
     } | null;
 };

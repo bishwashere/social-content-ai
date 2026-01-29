@@ -311,8 +311,7 @@ export function OAuthProvidersList() {
                         {provider.pageName || provider.pageId || "Unknown"}
                       </Link>
                       <p className="text-sm text-muted-foreground">
-                        {provider.isPersonal ? "Personal" : "Business"} account
-                        {" · "}Connected on{" "}
+                        Connected on{" "}
                         {new Date(provider.createdAt).toLocaleDateString()}{" "}
                         {provider.expiresAt &&
                           `· Expires on ${new Date(

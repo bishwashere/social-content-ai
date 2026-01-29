@@ -164,7 +164,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     expiresAt: account.expires_at || 0,
                     pageName: subreddit.title || "",
                     pageProfilePhoto: subreddit.icon_img || "",
-                    isPersonal: subreddit.is_personal,
+                    isStandalone: subreddit.is_personal,
                   });
                 }
               }
@@ -205,7 +205,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   expiresAt: null,
                   pageName: fbPage.name,
                   pageProfilePhoto: fbPage.picture,
-                  isPersonal: false,
+                  isStandalone: false,
                 });
 
                 // Check if this Facebook Page has a linked Instagram Business Account
@@ -224,7 +224,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                       expiresAt: null, // Page tokens don't expire
                       pageName: igAccount.username,
                       pageProfilePhoto: igAccount.profilePictureUrl || null,
-                      isPersonal: false, // Business account linked to Facebook Page
+                      isStandalone: false, // Business account linked to Facebook Page
                     });
                   }
                 } catch (igError: any) {
@@ -259,7 +259,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 expiresAt: twitterCred.expiresAt!,
                 pageName: profileData.username,
                 pageProfilePhoto: profileData.profile_image_url,
-                isPersonal: true, // twitter is always personal
+                isStandalone: true, // twitter is always personal
               });
 
               break;
@@ -274,7 +274,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 expiresAt: Number(account.expires_at) * 1000!,
                 pageName: user.name || "",
                 pageProfilePhoto: user.image || "",
-                isPersonal: true, // tiktok is always personal
+                isStandalone: true, // tiktok is always personal
               });
 
               break;
@@ -316,7 +316,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     expiresAt: authProvider.expiresAt,
                     pageName: authProvider.pageName,
                     pageProfilePhoto: authProvider.pageProfilePhoto,
-                    isPersonal: authProvider.isPersonal,
+                    isStandalone: authProvider.isStandalone,
                     pageId: authProvider.pageId,
                   },
                 });
