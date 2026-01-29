@@ -32,6 +32,8 @@ import {
   Bot,
   Brain,
   Lightbulb,
+  Menu,
+  Crown,
 } from "lucide-react";
 
 // Section titles for dynamic browser tab
@@ -43,9 +45,20 @@ const SECTION_TITLES: Record<string, string> = {
   testimonials: "Testimonials | NextPostAI",
   trust: "Mobile-Friendly Design | NextPostAI",
   benefits: "Who Can Benefit? | NextPostAI",
+  pricing: "Pricing | NextPostAI",
   cta: "Ready to Save 10+ Hours & Launch Smarter? | NextPostAI",
   faq: "Frequently Asked Questions | NextPostAI",
 };
+
+// Navigation menu items
+const NAV_ITEMS = [
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Why NextPostAI", href: "#features" },
+  { label: "Testimonials", href: "#testimonials" },
+  { label: "Who Can Benefit", href: "#benefits" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
+];
 
 interface UserAvatar {
   avatarUrl: string;
@@ -65,7 +78,17 @@ export default function ModernLanding() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
   const [avatarCount, setAvatarCount] = useState(35);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Handle smooth scroll to section and close menu
+  const scrollToSection = (href: string) => {
+    setIsMenuOpen(false);
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   // Handle responsive avatar count
   useEffect(() => {
@@ -315,6 +338,57 @@ export default function ModernLanding() {
       />
 
       <div className="landing-page min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
+        {/* Hamburger Menu Button - Fixed Position */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="fixed top-6 right-6 z-50 w-12 h-12 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+          aria-label="Toggle menu"
+          style={{ 
+            position: 'fixed', 
+            top: '1.5rem', 
+            right: '1.5rem',
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+          }}
+        >
+          <Menu className="w-6 h-6 text-white pointer-events-none" />
+        </button>
+
+        {/* Mobile Menu Overlay */}
+        {isMenuOpen && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm" 
+            onClick={() => setIsMenuOpen(false)}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div 
+              className="absolute top-0 right-0 w-80 max-w-[85vw] h-full bg-[#0a0a0f]/95 border-l border-white/10 p-8 pt-24"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <nav className="space-y-2">
+                {NAV_ITEMS.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => scrollToSection(item.href)}
+                    className="w-full text-left px-4 py-3 rounded-xl text-lg font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-3"
+                  >
+                    <ArrowRight className="w-4 h-4 text-purple-400" />
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+              <div className="mt-8 pt-8 border-t border-white/10">
+                <GoogleLoginButton 
+                  triggerClassName="w-full glow-button px-6 py-3 text-base font-semibold rounded-xl text-white flex items-center justify-center gap-2"
+                  buttonText="Get Started Free"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <section
           id="hero"
@@ -353,10 +427,15 @@ export default function ModernLanding() {
 
               {/* CTA Button */}
               <div className="flex flex-col items-center justify-center gap-11 pt-10">
-                <GoogleLoginButton 
-                  triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
-                  buttonText="Start Free · 100 Credits"
-                />
+                <div className="flex flex-col items-center">
+                  <GoogleLoginButton 
+                    triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
+                    buttonText="Start Free with 100 Credits"
+                  />
+                  <p className="text-gray-400 text-sm mt-2">
+                    No card required. Upgrade anytime.
+                  </p>
+                </div>
                 
                 {/* Avatars Section */}
                 <div className="flex flex-col items-center gap-4 opacity-90">
@@ -760,6 +839,100 @@ export default function ModernLanding() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section
+          id="pricing"
+          ref={(el) => { sectionRefs.current["pricing"] = el }}
+          className="relative py-24 lg:py-32"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent" />
+          
+          <div className={`relative z-10 max-w-5xl mx-auto px-6 reveal ${isVisible["pricing"] ? "visible" : ""}`}>
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-green-500/30 mb-6">
+                <Crown className="w-4 h-4 text-green-400" />
+                <span className="text-sm text-green-200">Simple Pricing</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                <span className="text-white">Choose Your </span>
+                <span className="gradient-text-accent">Plan</span>
+              </h2>
+              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                Start free, upgrade when you&apos;re ready
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {/* Free Plan */}
+              <div className="glass-card rounded-3xl p-8 border border-white/10 hover:border-purple-500/30 transition-colors">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-white mb-2">Free</h3>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-5xl font-bold text-white">$0</span>
+                    <span className="text-gray-400">/month</span>
+                  </div>
+                  <p className="text-purple-400 font-medium mt-3">100 Credits (One-Time)</p>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  {[
+                    "100 AI credits to get started",
+                    "AI-powered content generation",
+                    "Multi-platform support",
+                    "Basic campaign planning",
+                    "Content scheduling",
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-3 text-gray-300">
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <GoogleLoginButton 
+                  triggerClassName="w-full py-4 text-lg font-semibold rounded-xl text-white bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
+                  buttonText="Get Started Free"
+                />
+              </div>
+
+              {/* Pro Plan */}
+              <div className="glass-card rounded-3xl p-8 border-2 border-purple-500/50 animated-border relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-gradient-to-l from-purple-600 to-purple-500 text-white text-sm font-semibold px-4 py-1 rounded-bl-xl">
+                  POPULAR
+                </div>
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-5xl font-bold gradient-text-accent">$10</span>
+                    <span className="text-gray-400">/month</span>
+                  </div>
+                  <p className="text-purple-400 font-medium mt-3">100 Credits / Month</p>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  {[
+                    "100 AI credits every month",
+                    "Credits refresh monthly",
+                    "7-day free trial included",
+                    "Advanced campaign strategies",
+                    "Priority content generation",
+                    "Premium templates",
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-3 text-gray-200 font-medium">
+                      <Check className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <GoogleLoginButton 
+                  triggerClassName="w-full glow-button py-4 text-lg font-semibold rounded-xl text-white"
+                  buttonText="Start 7-Day Free Trial"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="section-divider" />
+
         {/* Final CTA Section */}
         <section
           id="cta"
@@ -782,7 +955,7 @@ export default function ModernLanding() {
               buttonText="Start Free with 100 Credits"
             />
             <p className="text-gray-400 text-sm mt-6">
-              No card required. Upgrade anytime for unlimited.
+              No card required. Upgrade anytime.
             </p>
           </div>
         </section>
@@ -796,7 +969,7 @@ export default function ModernLanding() {
           ref={(el) => { sectionRefs.current["faq"] = el }}
           className="relative py-24 lg:py-32"
         >
-          <div className={`max-w-3xl mx-auto px-6 reveal ${isVisible["faq"] ? "visible" : ""}`}>
+          <div className="max-w-3xl mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold mb-2">
                 <span className="text-white">Frequently </span>
