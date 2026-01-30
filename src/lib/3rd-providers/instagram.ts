@@ -170,32 +170,28 @@ class Instagram {
 
       console.log("✅ Instagram container created:", containerId);
 
-      // For videos, we need to wait for processing
+      // For videos, we need to wait longer for processing
       if (mediaType === "video") {
         console.log("🎬 Video detected, waiting for processing...");
         const publishResult = await this.waitAndPublishContainer(
           containerId,
-          igUserId
+          igUserId,
+          30, // max attempts
+          5000 // 5 seconds between attempts
         );
         return publishResult;
       }
 
-      // Step 2: Publish the container (for images, this is immediate)
-      const publishResponse = await this._client.post(
-        `/${igUserId}/media_publish`,
-        null,
-        {
-          params: {
-            creation_id: containerId,
-            access_token: this._accessToken,
-          },
-        }
+      // For images, Instagram may still need time to fetch and process from external URL
+      // Wait for container to be ready before publishing (shorter timeout for images)
+      console.log("🖼️ Image detected, waiting for container to be ready...");
+      const publishResult = await this.waitAndPublishContainer(
+        containerId,
+        igUserId,
+        10, // max 10 attempts for images (50 seconds max)
+        5000 // 5 seconds between attempts
       );
-
-      const publishData = publishResponse.data;
-      console.log("✅ Successfully posted to Instagram:", publishData);
-
-      return { success: true, data: publishData };
+      return publishResult;
     } catch (error: any) {
       console.error("❌ Error posting to Instagram:", error?.response?.data || error);
       const errorMessage = error?.response?.data?.error?.message 

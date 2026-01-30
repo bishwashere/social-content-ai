@@ -176,7 +176,7 @@ model OauthProvider {
   pageProfilePhoto String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  isStandalone     Boolean       @default(false) @map("isPersonal")
+  isStandalone     Boolean       @default(false)
   pageFollowers    Int           @default(0)
 
   user                    User?                    @relation(fields: [userId], references: [id])
