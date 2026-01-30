@@ -131,7 +131,7 @@ function generateSvg(text: string, style: TextCardStyle): string {
   
   const textElements = lines.map((line, index) => {
     const y = startY + index * lineHeightPx;
-    return `<text x="50%" y="${y}" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="${fontSize}" font-weight="600" fill="${style.textColor}">${escapeHtml(line)}</text>`;
+    return `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="600" fill="${style.textColor}">${escapeHtml(line)}</text>`;
   }).join("\n    ");
   
   return `<?xml version="1.0" encoding="UTF-8"?>

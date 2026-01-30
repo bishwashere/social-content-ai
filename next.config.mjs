@@ -14,6 +14,10 @@ const nextConfig = {
     // your project has ESLint errors/warnings.
     ignoreDuringBuilds: true,
   },
+  // Required for sharp to work properly in serverless/production environments
+  experimental: {
+    serverComponentsExternalPackages: ['sharp'],
+  },
 };
 
 export default nextConfig;
