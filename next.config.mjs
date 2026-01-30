@@ -14,9 +14,9 @@ const nextConfig = {
     // your project has ESLint errors/warnings.
     ignoreDuringBuilds: true,
   },
-  // Required for sharp to work properly in serverless/production environments
+  // Required for native modules to work properly in serverless/production environments
   experimental: {
-    serverComponentsExternalPackages: ['sharp'],
+    serverComponentsExternalPackages: ['@resvg/resvg-js'],
   },
 };
 

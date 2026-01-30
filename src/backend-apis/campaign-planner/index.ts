@@ -1218,6 +1218,14 @@ export const scheduleCampaignPosts = async ({
         
         // Get media for this platform (if any)
         const platformMedia = mediaRecord[platform];
+        
+        // Instagram requires media - skip scheduling if no media exists
+        if (platform === PLATFORM_IDS.INSTAGRAM && !platformMedia) {
+          errors.push(
+            `Skipped Instagram post for day ${chat.day}: No media found. Please generate or upload an image first.`
+          );
+          continue;
+        }
 
         // Schedule the post
         try {

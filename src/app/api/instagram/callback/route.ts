@@ -212,6 +212,7 @@ export async function GET(request: NextRequest) {
           pageName: userData.username,
           pageProfilePhoto: profilePictureUrl,
           expiresAt: new Date(Date.now() + finalExpiresIn * 1000).getTime(),
+          isStandalone: true, // Instagram Login always uses standalone API
         },
       });
       providerId = updated.id;

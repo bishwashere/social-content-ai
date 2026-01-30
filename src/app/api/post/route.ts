@@ -995,9 +995,30 @@ export const GET = applyMiddleware(
           // Use correct API endpoint based on auth flow:
           // - Standalone (Instagram Login): uses graph.instagram.com
           // - Via Facebook: uses graph.facebook.com
+          const isStandaloneValue = oauthProvider.isStandalone ?? false;
+          const expectedEndpoint = isStandaloneValue ? 'graph.instagram.com' : 'graph.facebook.com';
+          
+          console.log(`📸 Instagram OAuth Provider for post ${post.id}:`, {
+            providerId: oauthProvider.id,
+            pageId: oauthProvider.pageId,
+            pageName: oauthProvider.pageName,
+            isStandalone: oauthProvider.isStandalone,
+            isStandaloneRaw: typeof oauthProvider.isStandalone,
+            isStandaloneValue: isStandaloneValue,
+            expectedEndpoint: expectedEndpoint,
+            mediaKey: post.media,
+          });
+          
+          // Warn if isStandalone is null/undefined (might indicate data issue)
+          if (oauthProvider.isStandalone === null || oauthProvider.isStandalone === undefined) {
+            console.warn(`⚠️ Instagram post ${post.id}: isStandalone is ${oauthProvider.isStandalone}, defaulting to false (graph.facebook.com). This may be incorrect if account was connected via Instagram Login.`);
+          }
+          
+          console.log(`📸 Creating Instagram client with endpoint: ${expectedEndpoint}`);
+          
           const instagram = new Instagram({
             accessToken: oauthProvider.accessToken,
-            isStandalone: oauthProvider.isStandalone ?? false,
+            isStandalone: isStandaloneValue,
           });
 
           // Post to Instagram

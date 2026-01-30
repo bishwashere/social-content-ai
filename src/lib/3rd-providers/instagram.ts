@@ -35,15 +35,32 @@ class Instagram {
 
   constructor(args: ConstructorProps) {
     this._accessToken = decryptToken(args.accessToken);
-    // Use Instagram Graph API endpoint for standalone accounts (Instagram Login flow)
-    // Use Facebook Graph API endpoint for accounts linked via Facebook
-    this._baseUrl = args.isStandalone 
+    
+    // Auto-detect token type as a safeguard
+    // IGA... tokens = Instagram Login (standalone)
+    // EAA... tokens = Facebook Login (linked)
+    const isTokenStandalone = this._accessToken.startsWith("IGA");
+    const isTokenFacebook = this._accessToken.startsWith("EAA");
+    
+    // Warn if there's a mismatch between isStandalone flag and token type
+    if (args.isStandalone !== undefined) {
+      if (isTokenStandalone && !args.isStandalone) {
+        console.warn(`⚠️ Instagram token type mismatch: Token is IGA (standalone) but isStandalone=false. Auto-correcting to use graph.instagram.com`);
+      } else if (isTokenFacebook && args.isStandalone) {
+        console.warn(`⚠️ Instagram token type mismatch: Token is EAA (Facebook) but isStandalone=true. Auto-correcting to use graph.facebook.com`);
+      }
+    }
+    
+    // Use token type to determine the correct endpoint (auto-correct mismatches)
+    const shouldUseInstagramEndpoint = isTokenStandalone;
+    
+    this._baseUrl = shouldUseInstagramEndpoint 
       ? "https://graph.instagram.com/v23.0"
       : "https://graph.facebook.com/v23.0";
     this._client = axios.create({
       baseURL: this._baseUrl,
     });
-    console.log(`📸 Instagram client initialized with base URL: ${this._baseUrl}`);
+    console.log(`📸 Instagram client initialized with base URL: ${this._baseUrl} (token type: ${isTokenStandalone ? 'IGA' : isTokenFacebook ? 'EAA' : 'unknown'})`);
   }
 
   /**
@@ -60,6 +77,18 @@ class Instagram {
   ): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
       console.log("📸 Posting to Instagram API");
+      console.log("📸 Using API base URL:", this._baseUrl);
+      console.log("📸 igUserId (pageId):", igUserId);
+      console.log("📸 mediaUrl (S3 key):", mediaUrl);
+
+      // Validate igUserId
+      if (!igUserId || igUserId.trim() === "") {
+        console.error("❌ Instagram Business Account ID (pageId) is missing");
+        return {
+          success: false,
+          error: "Instagram Business Account ID (pageId) is required. Please reconnect your Instagram account.",
+        };
+      }
 
       if (!mediaUrl) {
         return {
@@ -69,8 +98,20 @@ class Instagram {
       }
 
       // Get signed URL for media (use external API method without Content-Disposition header)
-      const signedUrl = await s3.getSignedUrlForExternalApi(mediaUrl);
-      const mediaType = detectMediaTypeFromUrl(signedUrl);
+      let signedUrl: string;
+      try {
+        signedUrl = await s3.getSignedUrlForExternalApi(mediaUrl);
+        console.log("📸 Generated signed URL for Instagram");
+      } catch (s3Error) {
+        console.error("❌ Failed to generate signed URL:", s3Error);
+        return {
+          success: false,
+          error: `Failed to generate media URL: ${s3Error instanceof Error ? s3Error.message : 'Unknown S3 error'}`,
+        };
+      }
+
+      // Detect media type from the original S3 key (not the signed URL with query params)
+      const mediaType = detectMediaTypeFromUrl(mediaUrl);
 
       if (!mediaType || (mediaType !== "img" && mediaType !== "video")) {
         return {
@@ -99,6 +140,13 @@ class Instagram {
       }
 
       console.log("📸 Creating Instagram media container...");
+      console.log("📸 Media type detected:", mediaType);
+      console.log("📸 Full API URL:", `${this._baseUrl}/${igUserId}/media`);
+      console.log("📸 Request body (without access_token):", {
+        ...createBody,
+        access_token: "[REDACTED]",
+      });
+      
       const createResponse = await this._client.post(
         `/${igUserId}/media`,
         null,
@@ -109,10 +157,14 @@ class Instagram {
       const containerId = containerData?.id;
 
       if (!containerId) {
-        console.error("❌ Failed to create Instagram container:", containerData);
+        console.error("❌ Failed to create Instagram container:", JSON.stringify(containerData, null, 2));
+        const errorMessage = containerData?.error?.message 
+          || containerData?.error?.error_user_msg 
+          || containerData?.error?.error_subcode
+          || "Failed to create media container - Instagram could not process the image";
         return {
           success: false,
-          error: "Failed to create media container",
+          error: errorMessage,
         };
       }
 

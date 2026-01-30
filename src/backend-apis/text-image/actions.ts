@@ -1,103 +1,53 @@
 "use server";
 
-import sharp from "sharp";
+import satori from "satori";
+import { Resvg } from "@resvg/resvg-js";
 import { s3 } from "@/lib/s3";
 import { getRandomTextCardStyle, TextCardStyle } from "@/constants/text-card-styles";
 
 const IMAGE_SIZE = 1080; // Instagram square format
-const PADDING = 80;
-const MAX_WIDTH = IMAGE_SIZE - PADDING * 2;
-const LINE_HEIGHT = 1.4;
+
+// Fetch and cache the font for Satori
+let fontDataCache: ArrayBuffer | null = null;
+
+async function getFontData(): Promise<ArrayBuffer> {
+  if (fontDataCache) {
+    return fontDataCache;
+  }
+  
+  // Use Inter font from Google Fonts (works reliably in serverless)
+  const fontUrl = "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.woff";
+  
+  const response = await fetch(fontUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch font: ${response.statusText}`);
+  }
+  
+  fontDataCache = await response.arrayBuffer();
+  return fontDataCache;
+}
 
 /**
- * Parse CSS gradient to SVG gradient definition
+ * Parse gradient string to extract colors and angle
  */
-function parseGradientToSvg(background: string, gradientId: string): { defs: string; fill: string } {
-  // Check if it's a gradient
+function parseGradient(background: string): { isGradient: boolean; color1: string; color2: string; angle: number } {
   const gradientMatch = background.match(/linear-gradient\((\d+)deg,\s*([^,]+)\s+\d+%,\s*([^)]+)\s+\d+%\)/);
   
   if (gradientMatch) {
-    const angle = parseInt(gradientMatch[1]);
-    const color1 = gradientMatch[2].trim();
-    const color2 = gradientMatch[3].trim();
-    
-    // Convert angle to x1,y1,x2,y2 coordinates
-    const angleRad = (angle - 90) * (Math.PI / 180);
-    const x1 = 50 + Math.cos(angleRad + Math.PI) * 50;
-    const y1 = 50 + Math.sin(angleRad + Math.PI) * 50;
-    const x2 = 50 + Math.cos(angleRad) * 50;
-    const y2 = 50 + Math.sin(angleRad) * 50;
-    
-    const defs = `
-      <defs>
-        <linearGradient id="${gradientId}" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">
-          <stop offset="0%" style="stop-color:${color1}"/>
-          <stop offset="100%" style="stop-color:${color2}"/>
-        </linearGradient>
-      </defs>
-    `;
-    
-    return { defs, fill: `url(#${gradientId})` };
+    return {
+      isGradient: true,
+      angle: parseInt(gradientMatch[1]),
+      color1: gradientMatch[2].trim(),
+      color2: gradientMatch[3].trim(),
+    };
   }
   
-  // It's a solid color
-  return { defs: "", fill: background };
-}
-
-/**
- * Escape HTML special characters
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-/**
- * Word wrap text to fit within max width
- * Returns array of lines
- * Preserves explicit newlines in the text
- */
-function wrapText(text: string, maxCharsPerLine: number): string[] {
-  // First split by explicit newlines to preserve them
-  const paragraphs = text.split(/\r?\n/);
-  const allLines: string[] = [];
-  
-  for (const paragraph of paragraphs) {
-    // If paragraph is empty (from consecutive newlines), add empty line
-    if (paragraph.trim() === "") {
-      allLines.push("");
-      continue;
-    }
-    
-    // Word wrap within each paragraph
-    const words = paragraph.split(/[ \t]+/);
-    let currentLine = "";
-    
-    for (const word of words) {
-      if (!word) continue; // Skip empty words
-      
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      
-      if (testLine.length <= maxCharsPerLine) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          allLines.push(currentLine);
-        }
-        currentLine = word;
-      }
-    }
-    
-    if (currentLine) {
-      allLines.push(currentLine);
-    }
-  }
-  
-  return allLines;
+  return {
+    isGradient: false,
+    color1: background,
+    color2: background,
+    angle: 0,
+  };
 }
 
 /**
@@ -116,37 +66,79 @@ function calculateFontSize(text: string): number {
 }
 
 /**
- * Generate SVG from text and style
+ * Generate PNG image buffer using Satori + Resvg (serverless-compatible)
  */
-function generateSvg(text: string, style: TextCardStyle): string {
+async function generateImageBuffer(text: string, style: TextCardStyle): Promise<Buffer> {
   const fontSize = calculateFontSize(text);
-  const charsPerLine = Math.floor(MAX_WIDTH / (fontSize * 0.55)); // Approximate char width
-  const lines = wrapText(text, charsPerLine);
+  const fontData = await getFontData();
+  const gradient = parseGradient(style.background);
   
-  const { defs, fill } = parseGradientToSvg(style.background, "bgGradient");
+  // Create the React-like element structure for Satori
+  const element = {
+    type: "div",
+    props: {
+      style: {
+        width: IMAGE_SIZE,
+        height: IMAGE_SIZE,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 80,
+        background: gradient.isGradient 
+          ? `linear-gradient(${gradient.angle}deg, ${gradient.color1}, ${gradient.color2})`
+          : gradient.color1,
+      },
+      children: {
+        type: "div",
+        props: {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            fontSize: fontSize,
+            fontWeight: 600,
+            color: style.textColor,
+            lineHeight: 1.4,
+            wordBreak: "break-word",
+          },
+          children: text,
+        },
+      },
+    },
+  };
   
-  const lineHeightPx = fontSize * LINE_HEIGHT;
-  const totalTextHeight = lines.length * lineHeightPx;
-  const startY = (IMAGE_SIZE - totalTextHeight) / 2 + fontSize * 0.35; // Center vertically
+  // Generate SVG using Satori
+  const svg = await satori(element, {
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    fonts: [
+      {
+        name: "Inter",
+        data: fontData,
+        weight: 600,
+        style: "normal",
+      },
+    ],
+  });
   
-  const textElements = lines.map((line, index) => {
-    const y = startY + index * lineHeightPx;
-    return `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="600" fill="${style.textColor}">${escapeHtml(line)}</text>`;
-  }).join("\n    ");
+  // Convert SVG to PNG using Resvg
+  const resvg = new Resvg(svg, {
+    fitTo: {
+      mode: "width",
+      value: IMAGE_SIZE,
+    },
+  });
   
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${IMAGE_SIZE}" height="${IMAGE_SIZE}" viewBox="0 0 ${IMAGE_SIZE} ${IMAGE_SIZE}" xmlns="http://www.w3.org/2000/svg">
-  ${defs}
-  <rect width="100%" height="100%" fill="${fill}"/>
-  <g>
-    ${textElements}
-  </g>
-</svg>`;
+  const pngData = resvg.render();
+  return Buffer.from(pngData.asPng());
 }
 
 /**
  * Generate a text card image from content
  * This is FREE - no AI, no credits
+ * Uses Satori + Resvg for serverless-compatible image generation
  */
 export async function generateTextCardImage({
   content,
@@ -162,6 +154,11 @@ export async function generateTextCardImage({
   styleId?: string;
 }): Promise<{ success: boolean; mediaKey?: string; previewUrl?: string; error?: string }> {
   try {
+    // Validate content
+    if (!content || content.trim().length === 0) {
+      return { success: false, error: "Content cannot be empty" };
+    }
+    
     // Get style (random or specified)
     const style = styleId 
       ? (await import("@/constants/text-card-styles")).getTextCardStyleById(styleId) || getRandomTextCardStyle()
@@ -169,13 +166,8 @@ export async function generateTextCardImage({
     
     console.log("[Text Card] Generating image with style:", style.id);
     
-    // Generate SVG
-    const svg = generateSvg(content, style);
-    
-    // Convert SVG to PNG using sharp
-    const imageBuffer = await sharp(Buffer.from(svg))
-      .png({ quality: 90 })
-      .toBuffer();
+    // Generate image buffer using Satori
+    const imageBuffer = await generateImageBuffer(content, style);
     
     // Upload to S3
     const filename = `text-card-${Date.now()}.png`;
@@ -229,6 +221,11 @@ export async function generateTextCardImageForScheduledPost({
   styleId?: string;
 }): Promise<{ success: boolean; mediaKey?: string; previewUrl?: string; error?: string }> {
   try {
+    // Validate content
+    if (!content || content.trim().length === 0) {
+      return { success: false, error: "Content cannot be empty" };
+    }
+    
     const { prisma } = await import("@/lib/prisma");
     
     // Get style (random or specified)
@@ -238,13 +235,8 @@ export async function generateTextCardImageForScheduledPost({
     
     console.log("[Text Card for Scheduled Post] Generating image with style:", style.id);
     
-    // Generate SVG
-    const svg = generateSvg(content, style);
-    
-    // Convert SVG to PNG using sharp
-    const imageBuffer = await sharp(Buffer.from(svg))
-      .png({ quality: 90 })
-      .toBuffer();
+    // Generate image buffer using Satori
+    const imageBuffer = await generateImageBuffer(content, style);
     
     // Upload to S3
     const filename = `text-card-${Date.now()}.png`;
@@ -305,6 +297,11 @@ export async function generateTextCardImageForQuickGenerate({
   styleId?: string;
 }): Promise<{ success: boolean; mediaKey?: string; previewUrl?: string; error?: string }> {
   try {
+    // Validate content
+    if (!content || content.trim().length === 0) {
+      return { success: false, error: "Content cannot be empty" };
+    }
+    
     // Get style (random or specified)
     const style = styleId 
       ? (await import("@/constants/text-card-styles")).getTextCardStyleById(styleId) || getRandomTextCardStyle()
@@ -312,13 +309,8 @@ export async function generateTextCardImageForQuickGenerate({
     
     console.log("[Text Card for Quick Generate] Generating image with style:", style.id);
     
-    // Generate SVG
-    const svg = generateSvg(content, style);
-    
-    // Convert SVG to PNG using sharp
-    const imageBuffer = await sharp(Buffer.from(svg))
-      .png({ quality: 90 })
-      .toBuffer();
+    // Generate image buffer using Satori
+    const imageBuffer = await generateImageBuffer(content, style);
     
     // Upload to S3
     const filename = `text-card-${Date.now()}.png`;
