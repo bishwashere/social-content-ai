@@ -251,8 +251,8 @@ export default function ModernLanding() {
       answer: "Absolutely! You can edit and tailor the content to fit your brand voice, tone, and style.",
     },
     {
-      question: "Is there a free trial available?",
-      answer: "Yes, we offer a free trial with 100 credits so you can experience the benefits firsthand.",
+      question: "Do I get free credits to try it out?",
+      answer: "Yes, new users get 100 free credits to experience the platform before subscribing.",
     },
   ];
 

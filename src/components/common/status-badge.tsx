@@ -23,7 +23,7 @@ const StatusBadge = ({ children }: BadgeProps) => {
     case "trial":
       return (
         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-          Trial
+          Premium
         </Badge>
       );
     case "canceled":

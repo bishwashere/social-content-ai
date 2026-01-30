@@ -5,6 +5,7 @@ import {
   useUpgradeTrialToPro,
 } from "@/backend-apis/payment/hooks";
 import React, { useState } from "react";
+import { cn } from "@/lib/cn";
 import {
   Card,
   CardContent,
@@ -45,94 +46,7 @@ const Subscription = () => {
     const credits = data?.user?.remainingChatGenerations || 0;
     
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="text-left">
-              <CardTitle className="text-2xl font-bold leading-tight">
-                Turn ideas into ready-to-post content
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                7-day free trial · Cancel anytime
-              </p>
-            </div>
-
-            {/* Price - Quiet */}
-            <div className="text-center">
-              <div className="text-2xl text-muted-foreground">
-                $10 <span className="text-base font-normal">/ month after trial</span>
-              </div>
-            </div>
-
-            {/* Value - 3 bullets only */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🚀</span>
-                <div>
-                  <p className="font-semibold">Create faster</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Generate posts, campaigns, blogs, and videos
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🧠</span>
-                <div>
-                  <p className="font-semibold">Stay consistent</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Plan and schedule content in one place
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🔁</span>
-                <div>
-                  <p className="font-semibold">Reuse across platforms</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    One idea → multiple formats
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA */}
-            <div className="space-y-2">
-              <Button
-                loading={payment.isPending}
-                onClick={async () => {
-                  try {
-                    // Use existing purchase flow - same as pricing modal
-                    const res = await payment.mutateAsync("subscription");
-                    if (res?.data?.redirectUrl) {
-                      router.push(res.data.redirectUrl);
-                    }
-                  } catch (error) {
-                    console.error("Error creating checkout session:", error);
-                  }
-                }}
-                className="w-full text-base font-semibold py-6"
-                size="lg"
-              >
-                {payment.isSuccess ? "Redirecting..." : "Start 7-Day Free Trial"}
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Start creating today
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
-                <Lock className="h-3 w-3" />
-                No posting on your behalf · Content stays private
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SubscribeCard payment={payment} router={router} />
     );
   }
 
@@ -178,7 +92,7 @@ const Subscription = () => {
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">
               {activeSubscription?.status === "trial"
-                ? "Trial ends on"
+                ? "Premium ends on"
                 : "Next billing date"}
             </p>
             <p className="font-medium">
@@ -213,7 +127,7 @@ const Subscription = () => {
                 className="w-full sm:w-auto"
               >
                 <ArrowUpIcon className="mr-2 h-4 w-4" />
-                Upgrade Plan to Pro
+                Upgrade to Premium
               </Button>
             )}
             
@@ -253,5 +167,146 @@ const Subscription = () => {
     </Card>
   );
 };
+
+// Subscribe card component with billing toggle
+function SubscribeCard({ payment, router }: { payment: ReturnType<typeof useCreateCheckoutSession>, router: ReturnType<typeof useRouter> }) {
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="text-left">
+            <CardTitle className="text-2xl font-bold leading-tight">
+              Turn ideas into ready-to-post content
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cancel anytime
+            </p>
+          </div>
+
+          {/* Billing Toggle */}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center rounded-full bg-muted p-1">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                  billingPeriod === "monthly"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-1.5",
+                  billingPeriod === "yearly"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Yearly
+                <span className="text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full font-semibold">
+                  -20%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="text-center">
+            {billingPeriod === "monthly" ? (
+              <div className="text-2xl text-muted-foreground">
+                $49.99 <span className="text-base font-normal">/ month</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl text-muted-foreground">
+                  $39.99 <span className="text-base font-normal">/ month</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  $479.88 billed yearly <span className="line-through">$599.88</span>
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Value - 3 bullets only */}
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">🚀</span>
+              <div>
+                <p className="font-semibold">Create faster</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Generate posts, campaigns, blogs, and videos
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">🧠</span>
+              <div>
+                <p className="font-semibold">Stay consistent</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Plan and schedule content in one place
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">🔁</span>
+              <div>
+                <p className="font-semibold">Reuse across platforms</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  One idea → multiple formats
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="space-y-2">
+            <Button
+              loading={payment.isPending}
+              onClick={async () => {
+                try {
+                  const res = await payment.mutateAsync(billingPeriod);
+                  if (res?.data?.redirectUrl) {
+                    router.push(res.data.redirectUrl);
+                  }
+                } catch (error) {
+                  console.error("Error creating checkout session:", error);
+                }
+              }}
+              className="w-full text-base font-semibold py-6"
+              size="lg"
+            >
+              {payment.isSuccess 
+                ? "Redirecting..." 
+                : billingPeriod === "yearly" 
+                  ? "Subscribe Yearly (Save 20%)" 
+                  : "Subscribe Monthly"}
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Start creating today
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-4 border-t">
+            <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
+              <Lock className="h-3 w-3" />
+              No posting on your behalf · Content stays private
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default Subscription;

@@ -612,7 +612,7 @@ const MyVideosPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Start 7-Day Free Trial CTA */}
+      {/* Subscribe CTA */}
       <div className="mt-12 flex justify-center">
         <Button
           onClick={async () => {
@@ -629,7 +629,7 @@ const MyVideosPage = () => {
           size="lg"
           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-8 py-6 text-lg"
         >
-          {payment.isPending ? "Loading..." : "Start 7-Day Free Trial"}
+          {payment.isPending ? "Loading..." : "Start Premium"}
         </Button>
       </div>
 

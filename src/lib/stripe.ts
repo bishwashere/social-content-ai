@@ -1,14 +1,13 @@
 import {
   Package,
   PACKAGES_DATA,
-  TRIAL_PERIOD_IN_DAYS,
 } from "@/constants/packages";
 import { User } from "@prisma/client";
 import consola from "consola";
 import StripeNative from "stripe";
 import { prisma } from "./prisma";
 import { SUBSCRIPTION_STATUS } from "@/constants/subscription-status";
-import { CHAT_GENERATION_PER_MONTH, CHAT_GENERATION_PER_MONTH_WHILE_TRIAL } from "@/constants/common";
+import { CHAT_GENERATION_PER_MONTH } from "@/constants/common";
 class Stripe {
   stripe: StripeNative;
 
@@ -132,25 +131,25 @@ class Stripe {
     }
 
     // Update subscription status to active if payment was successful
-    if (stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing') {
+    if (stripeSubscription.status === 'active') {
       await prisma.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: stripeSubscription.status === 'trialing' ? 'trial' : 'active',
+          status: 'active',
           active: true,
         },
       });
 
       consola.success("✅ Subscription status updated to active after payment completion", {
         subscriptionId,
-        newStatus: stripeSubscription.status === 'trialing' ? 'trial' : 'active',
+        newStatus: 'active',
       });
     }
 
     return;
   }
 
-  async createSession(packageToBuy: Package, user: User, trial: boolean) {
+  async createSession(packageToBuy: Package, user: User) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [PACKAGES_DATA(user)[packageToBuy]],
@@ -161,7 +160,6 @@ class Stripe {
       cancel_url:
         process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/checkout/cancel",
       subscription_data: {
-        ...(trial ? { trial_period_days: TRIAL_PERIOD_IN_DAYS } : {}), // only give trial period if the user has not claimed the free trial
         metadata: {
           userId: user.id,
           name: user.name,
@@ -234,9 +232,7 @@ class Stripe {
 
     // Determine the correct status - handle 'incomplete' by setting to 'active' if subscription was created
     let subscriptionStatus: string;
-    if (event.data.object.status === "trialing") {
-      subscriptionStatus = "trial";
-    } else if (event.data.object.status === "incomplete" || event.data.object.status === "incomplete_expired") {
+    if (event.data.object.status === "incomplete" || event.data.object.status === "incomplete_expired") {
       // For incomplete subscriptions, we'll set them as active since the subscription was created
       // The payment completion webhook will update the status if needed
       subscriptionStatus = "active";
@@ -267,19 +263,12 @@ class Stripe {
       subscriptionId: event.data.object.id,
     });
 
-    // Update user chat generations and trial status based on subscription status
-    const updateData: any = {
-      remainingChatGenerations: subscriptionStatus === "trial" ? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL : CHAT_GENERATION_PER_MONTH,
-    };
-    
-    // Only mark trial as claimed when subscription is created (either trial or active)
-    if (subscriptionStatus === 'trial' || subscriptionStatus === 'active') {
-      updateData.hasClaimedFreeTrial = true;
-    }
-
+    // Update user chat generations when subscription is created
     await prisma.user.update({
       where: { id: user.id },
-      data: updateData,
+      data: {
+        remainingChatGenerations: CHAT_GENERATION_PER_MONTH,
+      },
     });
 
     return;
@@ -337,9 +326,7 @@ class Stripe {
     // Determine the correct status - handle 'incomplete' by setting to 'active'
     let updatedStatus: string;
     const stripeStatus = event.data.object.status?.toString() || subscriptionFromStripe.status;
-    if (stripeStatus === "trialing") {
-      updatedStatus = "trial";
-    } else if (stripeStatus === "incomplete" || stripeStatus === "incomplete_expired") {
+    if (stripeStatus === "incomplete" || stripeStatus === "incomplete_expired") {
       updatedStatus = "active";
     } else {
       updatedStatus = stripeStatus;
@@ -364,19 +351,12 @@ class Stripe {
       subscriptionId: subscription.subscriptionIdFromStripe,
     });
 
-    // Reset remaining chat generations for the user and handle trial status
-    const updateData: any = {
-      remainingChatGenerations: updatedStatus === "trial" ? CHAT_GENERATION_PER_MONTH_WHILE_TRIAL : CHAT_GENERATION_PER_MONTH,
-    };
-    
-    // If subscription is transitioning to active status (from trial), mark trial as claimed
-    if (subscriptionFromStripe.status === 'active') {
-      updateData.hasClaimedFreeTrial = true;
-    }
-
+    // Reset remaining chat generations for the user
     await prisma.user.update({
       where: { id: subscription.userId },
-      data: updateData,
+      data: {
+        remainingChatGenerations: CHAT_GENERATION_PER_MONTH,
+      },
     });
 
     return;

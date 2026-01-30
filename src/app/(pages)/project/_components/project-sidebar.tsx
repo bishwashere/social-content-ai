@@ -273,7 +273,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             </div>
           )}
 
-          {/* Start 7-Day Free Trial CTA */}
+          {/* Start Premium CTA */}
           <div className={cn("px-2 mt-6", !isOpen && "px-1")}>
             {isOpen ? (
               <Button
@@ -294,7 +294,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 text-white flex-shrink-0" />
                   <span className="text-white font-semibold text-sm">
-                    {payment.isPending ? "Loading..." : "Start 7-Day Free Trial"}
+                    {payment.isPending ? "Loading..." : "Start Premium"}
                   </span>
                 </div>
               </Button>
@@ -321,7 +321,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="font-medium">
-                    Start 7-Day Free Trial
+                    Start Premium
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

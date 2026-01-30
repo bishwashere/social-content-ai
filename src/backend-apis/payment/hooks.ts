@@ -6,7 +6,7 @@ import api from "../axios";
 
 export const useCreateCheckoutSession = () => {
   return useMutation({
-    mutationFn: async (type?: "subscription" | "coins") =>
+    mutationFn: async (type?: "subscription" | "coins" | "monthly" | "yearly") =>
       paymentService.createSession(type),
     onError: (error) => {
       toast.error(error.message);
@@ -56,7 +56,7 @@ export const useUpgradeTrialToPro = () => {
       return response.data
     },
     onSuccess: (data) => {
-      toast.success("Trial successfully upgraded to Pro plan!");
+      toast.success("Successfully upgraded to Premium!");
       // invalidate, session
       queryClient.invalidateQueries({
         queryKey: ["session"]

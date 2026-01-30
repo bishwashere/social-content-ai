@@ -6,7 +6,7 @@ import Stripe from "stripe";
 import { Subscription } from "@prisma/client";
 
 class PaymentService {
-  async createSession(type: "subscription" | "coins" = "subscription") {
+  async createSession(type: "subscription" | "coins" | "monthly" | "yearly" = "subscription") {
     const [err, res] = await tryCatchAsync<
       ApiError,
       ApiResponse<{

@@ -13,7 +13,7 @@ export default function WelcomeEmail({ name, activationLink }: { name: string; a
             We are glad to have you onboard.
           </Text>
           <Text style={{ fontSize: "14px", lineHeight: "1.5", marginBottom: "20px" }}>
-            You can activate your <strong>7-day free trial</strong> by clicking the button below.
+            You have <strong>100 free credits</strong> to get started. Click the button below to explore the platform.
           </Text>
           <Button
             href={activationLink}
@@ -28,7 +28,7 @@ export default function WelcomeEmail({ name, activationLink }: { name: string; a
               fontSize: "16px",
             }}
           >
-            Activate Trial
+            Get Started
           </Button>
 
           <Text style={{

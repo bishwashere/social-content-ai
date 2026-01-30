@@ -8,6 +8,7 @@ import { useAssignBasicTokens, useSession } from "@/backend-apis/auth/hooks";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { markFreeCreditsCongratsShown } from "@/server-actions/user-flags";
+import { PREMIUM_INTENT_KEY } from "@/components/common/auth/google-login-button";
 
 type PricingModalContextType = {
   open: boolean;
@@ -28,10 +29,12 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
   const [open, setOpen] = useState(false);
   const [coinsModalOpen, setCoinsModalOpen] = useState(false);
   const [freeCreditsCongratsOpen, setFreeCreditsCongratsOpen] = useState(false);
+  const [defaultBillingPeriod, setDefaultBillingPeriod] = useState<"monthly" | "yearly">("yearly");
   const freeCreditsCongratsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
   const firstProjectCongratsShownRef = useRef(false);
+  const premiumIntentCheckedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -40,6 +43,48 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
       }
     };
   }, []);
+
+  // Check for premium intent from landing page after login
+  useEffect(() => {
+    // Only check once per session and when user is logged in
+    if (premiumIntentCheckedRef.current) return;
+    if (!data?.user?.id) return;
+    
+    // Don't show pricing if user already has an active subscription
+    if (data?.subscription && !isSubscriptionExpired(data.subscription.endsAt).isExpired) {
+      localStorage.removeItem(PREMIUM_INTENT_KEY);
+      return;
+    }
+
+    try {
+      const intentStr = localStorage.getItem(PREMIUM_INTENT_KEY);
+      if (!intentStr) return;
+
+      const intent = JSON.parse(intentStr);
+      
+      // Check if intent is still valid (within 5 minutes)
+      const isValid = intent.showPricing && 
+        intent.timestamp && 
+        (Date.now() - intent.timestamp) < 5 * 60 * 1000;
+
+      if (isValid) {
+        premiumIntentCheckedRef.current = true;
+        // Set the billing period from intent
+        if (intent.billingPeriod) {
+          setDefaultBillingPeriod(intent.billingPeriod);
+        }
+        // Show pricing modal after a small delay to let the page load
+        setTimeout(() => {
+          setOpen(true);
+        }, 500);
+      }
+
+      // Clear the intent after checking
+      localStorage.removeItem(PREMIUM_INTENT_KEY);
+    } catch {
+      localStorage.removeItem(PREMIUM_INTENT_KEY);
+    }
+  }, [data?.user?.id, data?.subscription]);
 
   const showFreeCreditsCongratsWithDelay = (delayMs = 0) => {
     // Optional delay so it can appear after other UI transitions.
@@ -109,6 +154,7 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
         open={open}
         setOpen={setOpen}
         onSkippedPaywall={() => showFreeCreditsCongratsWithDelay(500)}
+        defaultBillingPeriod={defaultBillingPeriod}
       />
       <FreeCreditsCongratsModal open={freeCreditsCongratsOpen} setOpen={setFreeCreditsCongratsOpen} credits={100} />
       <CoinsModal open={coinsModalOpen} setOpen={setCoinsModalOpen} />

@@ -334,38 +334,38 @@ export function ScheduledPosts({ project }: Props) {
   };
 
   const renderPostCard = (post: ScheduledPost & { oauthProvider: OauthProvider }) => (
-    <Card key={post.id} className="w-full">
-      <CardHeader className="pb-3">
-        <div className="relative flex items-center">
-          <div className="flex items-center gap-3">
+    <Card key={post.id} className="w-full h-full flex flex-col">
+      <CardHeader className="pb-2 px-3 pt-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <div
-              className={`p-2 rounded-full text-white ${getPlatformColor(
+              className={`p-1.5 rounded-full text-white shrink-0 ${getPlatformColor(
                 post.platform
               )}`}
             >
               {getPlatformIcon(post.platform)}
             </div>
-            <div className="flex-1">
-              <CardTitle className="text-lg capitalize flex flex-row gap-2">
-                {post.platform}
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(post.status)}
-                </div>
-              </CardTitle>
-              <CardDescription className="flex items-center gap-2">
-                <Calendar className="h-3 w-3" />
-                Scheduled For: {formatDate(post.date, (post.meta as any)?.timezone, (post.meta as any)?.localTime, post.meta, viewerTimezone)}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm font-medium capitalize">{post.platform}</span>
+                {getStatusBadge(post.status)}
+              </div>
+              <CardDescription className="flex items-center gap-1 text-xs mt-0.5">
+                <Calendar className="h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {formatDate(post.date, (post.meta as any)?.timezone, (post.meta as any)?.localTime, post.meta, viewerTimezone)}
+                </span>
               </CardDescription>
-              {getStepBadges(post.meta as any)}
             </div>
           </div>
-          <div className="absolute -top-3 right-0 flex gap-2">
+          <div className="flex items-center gap-1 shrink-0">
             <ToggleGroup
               variant={"outline"}
               value={
                 viewContentEdit.includes(post.id) ? "edit" : "preview"
               }
               type="single"
+              size="sm"
               onValueChange={() => {
                 setViewContentEdit((prev) =>
                   viewContentEdit.includes(post.id)
@@ -374,45 +374,41 @@ export function ScheduledPosts({ project }: Props) {
                 );
               }}
             >
-              <ToggleGroupItem value="preview">
-                <Eye className="size-4" />
+              <ToggleGroupItem value="preview" className="h-7 w-7 p-0">
+                <Eye className="size-3" />
               </ToggleGroupItem>
-              <ToggleGroupItem value="edit">
-                <Pencil className="size-4" />
+              <ToggleGroupItem value="edit" className="h-7 w-7 p-0">
+                <Pencil className="size-3" />
               </ToggleGroupItem>
             </ToggleGroup>
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7"
               onClick={() => onDeleteScheduledPost(post.id)}
               loading={deleteScheduledPost.isPending}
             >
-              <Trash className="stroke-red-500 size-5" />
+              <Trash className="stroke-red-500 size-3.5" />
             </Button>
           </div>
         </div>
+        {getStepBadges(post.meta as any)}
         {post.error && (post.status === "error" || post.status === "failed") && (
-          <div className="px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-md">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+          <div className="px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md mt-2">
+            <div className="flex items-start gap-1.5">
+              <AlertCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-destructive mb-1">Error Details</p>
-                <p className="text-sm text-destructive/90 break-words whitespace-pre-wrap">
+                <p className="text-xs text-destructive/90 break-words line-clamp-2">
                   {post.error}
                 </p>
-                {post.processedAt && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Failed at: {formatDate(post.processedAt, (post.meta as any)?.timezone, undefined, post.meta, viewerTimezone)}
-                  </p>
-                )}
               </div>
             </div>
           </div>
         )}
       </CardHeader>
 
-      <CardContent className="space-y-4 p-1">
-        <div className="flex w-full items-center justify-center ">
+      <CardContent className="flex-1 p-1 pt-0 overflow-hidden">
+        <div className="flex w-full items-center justify-center h-full">
           {post.platform === PLATFORM_IDS.FACEBOOK ? (
             <FacebookPostView
               post={post}
@@ -451,7 +447,7 @@ export function ScheduledPosts({ project }: Props) {
             />
           ) : (
             <div
-              className="text-sm text-muted-foreground w-full"
+              className="text-sm text-muted-foreground w-full line-clamp-6"
               style={{ whiteSpace: "pre-wrap" }}
             >
               <Md>
@@ -653,26 +649,30 @@ export function ScheduledPosts({ project }: Props) {
                       </div>
                     )}
 
-                    {/* Past Posts (collapsible) */}
+                    {/* Past Posts (collapsible) - Grid Layout */}
                     {shouldShowPast && pastPosts.length > 0 && (
-                      <div className="space-y-4 pb-4 border-b border-dashed">
-                        <div className="text-sm text-muted-foreground font-medium mb-2">
+                      <div className="pb-4 border-b border-dashed">
+                        <div className="text-sm text-muted-foreground font-medium mb-3">
                           Past Posts ({pastPosts.length})
                         </div>
-                        {pastPosts.map((post) => renderPostCard(post))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {pastPosts.map((post) => renderPostCard(post))}
+                        </div>
                       </div>
                     )}
 
-                    {/* Today and Future Posts */}
-                    <div className="space-y-4">
+                    {/* Today and Future Posts - Grid Layout */}
+                    <div>
                       {futureAndTodayPosts.length > 0 && (
                         <>
                           {pastPosts.length > 0 && (
-                            <div className="text-sm text-muted-foreground font-medium mb-2">
+                            <div className="text-sm text-muted-foreground font-medium mb-3">
                               Upcoming & Today ({futureAndTodayPosts.length})
                             </div>
                           )}
-                          {futureAndTodayPosts.map((post) => renderPostCard(post))}
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {futureAndTodayPosts.map((post) => renderPostCard(post))}
+                          </div>
                         </>
                       )}
                       {futureAndTodayPosts.length === 0 && pastPosts.length === 0 && (

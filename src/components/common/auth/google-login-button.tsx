@@ -22,18 +22,39 @@ type Props = {
   trigger?: React.ReactNode;
   gotoDashboard?: React.ReactNode;
   buttonText?: string;
+  /** If true, will show pricing modal after login */
+  showPricingAfterLogin?: boolean;
+  /** Preferred billing period to pre-select in pricing modal */
+  billingPeriod?: "monthly" | "yearly";
 };
+
+// Storage key for premium intent
+export const PREMIUM_INTENT_KEY = "nextpostai_premium_intent";
 
 const GoogleLoginButton = ({
   triggerClassName,
   trigger,
   gotoDashboard,
   buttonText = "Start with 100 free credits",
+  showPricingAfterLogin = false,
+  billingPeriod,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const continueWithGoogle = useContinueWithGoogle();
   const router = useRouter();
   const { isLoading, isError } = useSession();
+  
+  // Store premium intent before login
+  const storePremiumIntent = () => {
+    if (showPricingAfterLogin) {
+      localStorage.setItem(PREMIUM_INTENT_KEY, JSON.stringify({
+        showPricing: true,
+        billingPeriod: billingPeriod || "yearly",
+        timestamp: Date.now(),
+      }));
+    }
+  };
+
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -62,7 +83,10 @@ const GoogleLoginButton = ({
       open={open}
       onOpenChange={(val) => {
         setOpen(val);
-        if (!val) {
+        if (val) {
+          // Store premium intent when dialog opens
+          storePremiumIntent();
+        } else {
           setTab("google");
         }
       }}

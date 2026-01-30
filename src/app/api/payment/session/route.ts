@@ -17,10 +17,10 @@ export const POST = applyMiddleware(
   catchApiAsyncError(async (req) => {
     // @ts-expect-error: user is not defined
     const user = req.parsed.user;
-    const { type = "subscription" } = await req.json();
+    const { type = "subscription", billingPeriod = "monthly" } = await req.json();
 
     // Only check subscription status for subscription purchases
-    if (type === "subscription") {
+    if (type === "subscription" || type === "monthly" || type === "yearly") {
       const subscriptions = await prisma.subscription.findFirst({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
@@ -40,13 +40,17 @@ export const POST = applyMiddleware(
     }
 
     try {
+      // Determine which package to use
+      const packageType = type === "yearly" || billingPeriod === "yearly" 
+        ? PACKAGES.YEARLY 
+        : PACKAGES.MONTHLY;
+
       const session =
         type === "coins"
           ? await stripe.createCoinsSession(user as unknown as User)
           : await stripe.createSession(
-              PACKAGES.BASIC,
-              user as unknown as User,
-              !user.hasClaimedFreeTrial // Give trial if user hasn't claimed it yet
+              packageType,
+              user as unknown as User
             );
 
       // delete old subscription

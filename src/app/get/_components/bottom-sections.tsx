@@ -17,9 +17,9 @@ const BottomSections = () => {
         "Absolutely! You can edit and tailor the content to fit your brand voice",
     },
     {
-      question: "Is there a free trial available?",
+      question: "Do I get free credits to try it out?",
       answer:
-        "A: Yes, we offer a free trial so you can experience the benefits firsthand.",
+        "A: Yes, new users get 100 free credits to experience the platform before subscribing.",
     },
   ];
   return (

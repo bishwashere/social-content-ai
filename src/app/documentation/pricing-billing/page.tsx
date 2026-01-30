@@ -12,7 +12,7 @@ export default function PricingBillingPage() {
           <h1 className="text-4xl font-bold">Pricing & Billing</h1>
         </div>
         <p className="text-muted-foreground text-lg">
-          Subscription plans, free trial, and billing management
+          Subscription plans, free credits, and billing management
         </p>
       </div>
 
@@ -23,7 +23,7 @@ export default function PricingBillingPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Pro Plan includes:
+              Premium Plan includes:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
               <li>Unlimited projects</li>
@@ -37,17 +37,17 @@ export default function PricingBillingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>7-Day Free Trial</CardTitle>
+            <CardTitle>Free Credits to Start</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              New users get a 7-day free trial to explore all features:
+              New users get 100 free credits to explore the platform:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
-              <li>Full access to all features during trial</li>
+              <li>Full access to all features</li>
               <li>No credit card required to start</li>
-              <li>Upgrade to Pro anytime during or after trial</li>
-              <li>Automatic conversion to paid plan after trial</li>
+              <li>Subscribe anytime for more credits</li>
+              <li>100 credits refresh monthly with subscription</li>
             </ul>
           </CardContent>
         </Card>
@@ -80,7 +80,7 @@ export default function PricingBillingPage() {
               <li>Update payment method</li>
               <li>View invoices</li>
               <li>Cancel subscription</li>
-              <li>Upgrade from trial to Pro</li>
+              <li>Subscribe or upgrade plan</li>
             </ul>
           </CardContent>
         </Card>

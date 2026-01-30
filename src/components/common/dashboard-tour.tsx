@@ -45,7 +45,7 @@ const TOUR_STEPS = {
   },
   subscribe: {
     name: "Subscribe",
-    description: "Upgrade to Pro to unlock unlimited content generation, advanced features, and priority support.",
+    description: "Upgrade to Premium to unlock unlimited content generation, advanced features, and priority support.",
     icon: Coins,
   },
 };

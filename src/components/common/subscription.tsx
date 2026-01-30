@@ -38,19 +38,6 @@ const Subscription = () => {
     fullSubscription: subscription
   }, null, 2));
 
-  // Calculate trial day number (Day X of 7)
-  const getTrialDayNumber = () => {
-    if (!subscription?.startedAt || !isTrial) return 0;
-    const now = new Date();
-    const startedAt = new Date(subscription.startedAt);
-    const daysSinceStart = Math.floor(
-      (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    // Day 1 is the first day, so add 1
-    return Math.min(7, Math.max(1, daysSinceStart + 1));
-  };
-
-  const trialDayNumber = getTrialDayNumber();
 
   // Hide pill if user is paid (active subscription, not trial)
   if (isActive && !isTrial) {
@@ -66,8 +53,8 @@ const Subscription = () => {
 
   // Determine status
   if (isTrial) {
-    // Trial mode
-    statusText = `Trial · Day ${trialDayNumber} of 7`;
+    // Premium mode
+    statusText = "Premium";
     statusColor = "🟣";
     bgColor = "bg-purple-50 dark:bg-purple-950/20";
     textColor = "text-purple-700 dark:text-purple-400";

@@ -159,7 +159,7 @@ export default function DocumentationPage() {
                     <CardTitle>Pricing & Billing</CardTitle>
                   </div>
                   <CardDescription>
-                    Subscription plans, free trial, and billing management
+                    Subscription plans, free credits, and billing management
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
