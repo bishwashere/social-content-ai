@@ -31,6 +31,7 @@ interface InstagramLongLivedTokenResponse {
   expires_in: number;
 }
 
+// Force redeploy: 2026-01-30T14:25
 export async function GET(request: NextRequest) {
   // Get the current user from your custom JWT token
   const cookieStore = cookies();
@@ -202,6 +203,7 @@ export async function GET(request: NextRequest) {
 
     let providerId: string;
     if (existingProvider) {
+      console.log(`📸 [Instagram Callback v2] Updating existing provider ${existingProvider.id} with isStandalone=true`);
       const updated = await prisma.oauthProvider.update({
         where: {
           id: existingProvider.id,
@@ -216,7 +218,9 @@ export async function GET(request: NextRequest) {
         },
       });
       providerId = updated.id;
+      console.log(`📸 [Instagram Callback v2] Updated provider ${providerId}, isStandalone should be true`);
     } else {
+      console.log(`📸 [Instagram Callback v2] Creating new provider with isStandalone=true`);
       const created = await prisma.oauthProvider.create({
         data: {
           userId: googleUser.id,
@@ -230,6 +234,7 @@ export async function GET(request: NextRequest) {
         },
       });
       providerId = created.id;
+      console.log(`📸 [Instagram Callback v2] Created provider ${providerId}, isStandalone should be true`);
     }
 
     // Auto-link this provider to matching projects (background operation)
