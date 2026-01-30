@@ -4,6 +4,7 @@ import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import { s3 } from "@/lib/s3";
 import { getRandomTextCardStyle, TextCardStyle } from "@/constants/text-card-styles";
+import type { ReactNode } from "react";
 
 const IMAGE_SIZE = 1080; // Instagram square format
 
@@ -109,8 +110,8 @@ async function generateImageBuffer(text: string, style: TextCardStyle): Promise<
     },
   };
   
-  // Generate SVG using Satori
-  const svg = await satori(element, {
+  // Generate SVG using Satori (cast element to ReactNode for TypeScript)
+  const svg = await satori(element as unknown as ReactNode, {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     fonts: [
