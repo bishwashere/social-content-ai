@@ -44,7 +44,7 @@ const SECTION_TITLES: Record<string, string> = {
   "how-it-works": "How It Works | NextPostAI",
   comparison: "Stop Wasting Hours. Get This Instead | NextPostAI",
   features: "Why Choose NextPostAI?",
-  testimonials: "Testimonials | NextPostAI",
+  // testimonials: "Testimonials | NextPostAI",
   trust: "Mobile-Friendly Design | NextPostAI",
   benefits: "Who Can Benefit? | NextPostAI",
   pricing: "Pricing | NextPostAI",
@@ -56,7 +56,7 @@ const SECTION_TITLES: Record<string, string> = {
 const NAV_ITEMS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Why NextPostAI", href: "#features" },
-  { label: "Testimonials", href: "#testimonials" },
+  // { label: "Testimonials", href: "#testimonials" },
   { label: "Who Can Benefit", href: "#benefits" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
@@ -266,26 +266,26 @@ export default function ModernLanding() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: "Alex R",
-      role: "Digital Marketer",
-      image: "/tmpdj5rdrob.webp",
-      quote: "NextPostAI transformed how I market my product. It's like having a mini CMO in my pocket!",
-    },
-    {
-      name: "Jamie L",
-      role: "Small Business Owner",
-      image: "/tmp6gymd1vw.webp",
-      quote: "I stopped overthinking and just followed the AI's plan. It works.",
-    },
-    {
-      name: "Morgan K",
-      role: "Content Creator",
-      image: "/tmph6iuxe9k.webp",
-      quote: "The campaign timelines helped me organize my entire product launch.",
-    },
-  ];
+  // const testimonials = [
+  //   {
+  //     name: "Alex R",
+  //     role: "Digital Marketer",
+  //     image: "/tmpdj5rdrob.webp",
+  //     quote: "NextPostAI transformed how I market my product. It's like having a mini CMO in my pocket!",
+  //   },
+  //   {
+  //     name: "Jamie L",
+  //     role: "Small Business Owner",
+  //     image: "/tmp6gymd1vw.webp",
+  //     quote: "I stopped overthinking and just followed the AI's plan. It works.",
+  //   },
+  //   {
+  //     name: "Morgan K",
+  //     role: "Content Creator",
+  //     image: "/tmph6iuxe9k.webp",
+  //     quote: "The campaign timelines helped me organize my entire product launch.",
+  //   },
+  // ];
 
   const faqs = [
     {
@@ -795,10 +795,10 @@ export default function ModernLanding() {
           </div>
         </section>
 
-        {/* Divider */}
-        <div className="section-divider" />
+        {/* Divider - commented out with testimonials */}
+        {/* <div className="section-divider" /> */}
 
-        {/* Testimonials Section */}
+        {/* Testimonials Section - commented out
         <section
           id="testimonials"
           ref={(el) => { sectionRefs.current["testimonials"] = el }}
@@ -854,6 +854,7 @@ export default function ModernLanding() {
             </div>
           </div>
         </section>
+        */}
 
         {/* Mobile & Privacy Section */}
         <section
