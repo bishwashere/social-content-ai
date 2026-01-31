@@ -186,11 +186,22 @@ export const fetchHackerNewsPosts = async (
 
 export const getFacebookMetrics = async (userId: string, projectId: string | null) => {
   try {
-    // Step 1: Find OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findMany({
+    if (!projectId) {
+      return {
+        success: false,
+        message: "No project selected",
+      };
+    }
+
+    // Step 1: Find OAuth providers linked to this project (regardless of who owns them)
+    const projectOauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        userId,
         platform: "facebook",
+        projectToOAuthProviders: {
+          some: {
+            projectId: projectId,
+          },
+        },
       },
       include: {
         pagePosts: true,
@@ -200,19 +211,8 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
         createdAt: 'desc'
       }
     });
-
-    if (!oauthProvider.length) {
-      return {
-        success: false,
-        message: "Facebook page not found",
-      };
-    }
-
-    // Step 2: Return from DB if posts already exist
-    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
     
     console.log(`[getFacebookMetrics] User: ${userId}, Project: ${projectId}`);
-    console.log(`[getFacebookMetrics] Total OAuth providers: ${oauthProvider.length}`);
     console.log(`[getFacebookMetrics] Providers linked to project: ${projectOauthProvider.length}`);
     
     if (projectOauthProvider.length === 0) {
@@ -223,6 +223,7 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
       };
     }
     
+    // Step 2: Return from DB if posts already exist
     const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
     if (posts.length) {
       console.log(`[getFacebookMetrics] Returning ${posts.length} posts from database`);
@@ -374,10 +375,22 @@ export const getFacebookMetrics = async (userId: string, projectId: string | nul
 
 export const getLinkedinMetrics = async (userId: string, projectId: string | null) => {
   try {
-    const oauthProvider = await prisma.oauthProvider.findMany({
+    if (!projectId) {
+      return {
+        success: false,
+        message: "No project selected",
+      };
+    }
+
+    // Find OAuth providers linked to this project (regardless of who owns them)
+    const projectOauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        userId,
         platform: "linkedin",
+        projectToOAuthProviders: {
+          some: {
+            projectId: projectId,
+          },
+        },
       },
       include: {
         pagePosts: true,
@@ -387,10 +400,8 @@ export const getLinkedinMetrics = async (userId: string, projectId: string | nul
         createdAt: 'desc'
       }
     });
-    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
     console.log(`[getLinkedinMetrics] User: ${userId}, Project: ${projectId}`);
-    console.log(`[getLinkedinMetrics] Total OAuth providers: ${oauthProvider.length}`);
     console.log(`[getLinkedinMetrics] Providers linked to project: ${projectOauthProvider.length}`);
 
     if (!projectOauthProvider.length) {
@@ -473,11 +484,22 @@ export const getLinkedinMetrics = async (userId: string, projectId: string | nul
 
 export const getThreadsMetrics = async (userId: string, projectId: string | null) => {
   try {
-    // Step 1: Find the Threads OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findMany({
+    if (!projectId) {
+      return {
+        success: false,
+        message: "No project selected",
+      };
+    }
+
+    // Step 1: Find OAuth providers linked to this project (regardless of who owns them)
+    const projectOauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        userId,
         platform: "threads",
+        projectToOAuthProviders: {
+          some: {
+            projectId: projectId,
+          },
+        },
       },
       include: {
         pagePosts: true,
@@ -487,12 +509,11 @@ export const getThreadsMetrics = async (userId: string, projectId: string | null
         createdAt: 'desc'
       }
     });
-    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
-    if (!oauthProvider.length) {
+    if (!projectOauthProvider.length) {
       return {
         success: false,
-        message: "Threads account not found",
+        message: "No Threads account linked to this project. Please link a Threads account in project settings.",
       };
     }
 
@@ -548,11 +569,22 @@ export const getThreadsMetrics = async (userId: string, projectId: string | null
 
 export const getInstagramMetrics = async (userId: string, projectId: string | null) => {
   try {
-    // Step 1: Find the Instagram OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findMany({
+    if (!projectId) {
+      return {
+        success: false,
+        message: "No project selected",
+      };
+    }
+
+    // Step 1: Find OAuth providers linked to this project (regardless of who owns them)
+    const projectOauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        userId,
         platform: "instagram",
+        projectToOAuthProviders: {
+          some: {
+            projectId: projectId,
+          },
+        },
       },
       include: {
         pagePosts: true,
@@ -562,14 +594,6 @@ export const getInstagramMetrics = async (userId: string, projectId: string | nu
         createdAt: 'desc'
       }
     });
-    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId));
-
-    if (!oauthProvider.length) {
-      return {
-        success: false,
-        message: "Instagram account not found",
-      };
-    }
 
     if (!projectOauthProvider.length) {
       console.log(`[getInstagramMetrics] No Instagram providers linked to project ${projectId}`);
@@ -648,11 +672,22 @@ export const getInstagramMetrics = async (userId: string, projectId: string | nu
 export const getTiktokMetrics = async (userId: string, projectId: string | null) => {
   // TODO: Make this function work like other functions after getting tiktok production api
   try {
-    // Step 1: Find the Tiktok OAuth provider and existing posts
-    const oauthProvider = await prisma.oauthProvider.findMany({
+    if (!projectId) {
+      return {
+        success: false,
+        message: "No project selected",
+      };
+    }
+
+    // Step 1: Find OAuth providers linked to this project (regardless of who owns them)
+    const projectOauthProvider = await prisma.oauthProvider.findMany({
       where: {
-        userId,
         platform: "tiktok",
+        projectToOAuthProviders: {
+          some: {
+            projectId: projectId,
+          },
+        },
       },
       include: {
         // pagePosts: true,
@@ -662,12 +697,11 @@ export const getTiktokMetrics = async (userId: string, projectId: string | null)
         createdAt: 'desc'
       }
     });
-    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId))
 
-    if (!oauthProvider.length) {
+    if (!projectOauthProvider.length) {
       return {
         success: false,
-        message: "Threads account not found",
+        message: "No TikTok account linked to this project. Please link a TikTok account in project settings.",
       };
     }
 
