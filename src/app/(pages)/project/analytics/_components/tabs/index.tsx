@@ -177,14 +177,14 @@ const AnalyticsTabs = () => {
 
   useEffect(() => {
     if (projects.data && projects.data.length > 0) {
-      const adminProjects = projects.data.filter(project => project.userRole === "admin");
-      if (adminProjects.length > 0 && adminProjects[0]?.id) {
-        setSelectedProject(adminProjects[0].id);
+      const accessibleProjects = projects.data.filter(project => project.userRole === "admin" || project.userRole === "editor");
+      if (accessibleProjects.length > 0 && accessibleProjects[0]?.id) {
+        setSelectedProject(accessibleProjects[0].id);
       }
     }
   }, [projects.data])
 
-  const adminProjects = projects.data?.filter(project => project.userRole === "admin") || [];
+  const accessibleProjects = projects.data?.filter(project => project.userRole === "admin" || project.userRole === "editor") || [];
 
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
@@ -200,9 +200,9 @@ const AnalyticsTabs = () => {
 
       {/* Project Selector Cards - Below platform tabs */}
       <div className="w-full mt-4 mb-4">
-        {adminProjects.length > 0 && (
+        {accessibleProjects.length > 0 && (
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            {adminProjects.map((project) => {
+            {accessibleProjects.map((project) => {
               const isSelected = selectedProject === project.id;
               return (
                 <Card
