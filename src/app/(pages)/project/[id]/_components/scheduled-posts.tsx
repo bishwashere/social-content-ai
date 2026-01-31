@@ -564,23 +564,29 @@ export function ScheduledPosts({ project }: Props) {
 
   return (
     <div className="space-y-4 -mx-4 sm:mx-0">
-      {/* Stats - Right aligned */}
+      {/* Stats - Right aligned, responsive */}
       {!isLoading && posts.length > 0 && (
-        <div className="flex justify-end">
-          <div className="text-sm text-muted-foreground">
-            {posts.length} posts •{" "}
-            {
-              posts.filter(
-                (p) => p.status === "success" || p.status === "published"
-              ).length
-            }{" "}
-            published •{" "}
-            {
-              posts.filter(
-                (p) => p.status === "pending" || p.status === "scheduled"
-              ).length
-            }{" "}
-            pending
+        <div className="flex justify-end px-4 sm:px-0">
+          <div className="flex flex-wrap justify-end gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <span>{posts.length} posts</span>
+            <span className="hidden sm:inline">•</span>
+            <span>
+              {
+                posts.filter(
+                  (p) => p.status === "success" || p.status === "published"
+                ).length
+              }{" "}
+              published
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span>
+              {
+                posts.filter(
+                  (p) => p.status === "pending" || p.status === "scheduled"
+                ).length
+              }{" "}
+              pending
+            </span>
           </div>
         </div>
       )}
