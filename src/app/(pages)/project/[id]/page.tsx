@@ -167,9 +167,9 @@ function ProjectPage() {
     );
 
   return (
-    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5">
+    <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5 overflow-x-hidden">
       <ProjectSocialConnectionAlert projectId={id as string} />
-      <Tabs value={currentTab} className="w-full">
+      <Tabs value={currentTab} className="w-full max-w-full overflow-hidden">
         <TabsList className="flex flex-wrap w-full h-fit">
           <TabsTrigger value="campaign" onClick={() => handleTabChange("campaign")}>
             Campaign Planner
@@ -213,7 +213,7 @@ function ProjectPage() {
         <TabsContent value="media">
           <Media project={project} />
         </TabsContent>
-        <TabsContent value="scheduled">
+        <TabsContent value="scheduled" className="w-full max-w-full overflow-hidden">
           <ScheduledPosts project={project} />
         </TabsContent>
       </Tabs>

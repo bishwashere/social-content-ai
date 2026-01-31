@@ -218,7 +218,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
         onFoldersTourStart={handleFoldersTourStart}
         onProjectsTourStart={handleProjectsTourStart}
       />
-      <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative">
+      <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-x-hidden">
         {/* Decorative background elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 rounded-full blur-3xl" />
@@ -231,7 +231,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
             subscribeRef={subscribeRef}
           />
         </div>
-        <main className="relative">
+        <main className="relative overflow-x-hidden">
           {children}
         </main>
         <Footer />

@@ -40,7 +40,7 @@ import XPostView from "@/components/social/x-post-view";
 import { Button } from "@/components/ui/button";
 import { confirm } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
 import InstagramPostView from "@/components/social/instagram-post-view";
@@ -239,16 +239,16 @@ export function ScheduledPosts({ project }: Props) {
   const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showPastPosts, setShowPastPosts] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState<boolean | null>(null); // null = not checked yet
 
-  // Track screen size for mobile sheet
+  // Track screen size for responsive behavior
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    const checkScreenSize = () => {
+      setIsLargeScreen(window.innerWidth >= 1024); // lg breakpoint
     };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   // Get viewer's timezone
@@ -355,9 +355,10 @@ export function ScheduledPosts({ project }: Props) {
     0
   );
 
-  // Auto-select first upcoming post on large screens
+  // Auto-select first upcoming post only on large screens
   useEffect(() => {
-    if (isMobile || isLoading || posts.length === 0) return;
+    // Wait until screen size is determined, and only auto-select on large screens
+    if (isLargeScreen === null || !isLargeScreen || isLoading || posts.length === 0) return;
     if (selectedPost) return; // Don't override user selection
 
     // Sort posts by date and find the first upcoming post
@@ -381,7 +382,64 @@ export function ScheduledPosts({ project }: Props) {
       // If no upcoming posts, select the most recent past post
       setSelectedPost(sortedPosts[sortedPosts.length - 1]);
     }
-  }, [isMobile, isLoading, posts, selectedPost]);
+  }, [isLargeScreen, isLoading, posts, selectedPost]);
+
+  // Create flat sorted list for keyboard navigation (matches display order)
+  const sortedPostsList = useMemo(() => {
+    const allPosts: PostWithProvider[] = [];
+    
+    // Add past posts if they're shown
+    if (showPastPosts) {
+      pastDays.forEach((day) => {
+        allPosts.push(...groupedPosts[day]);
+      });
+    }
+    
+    // Add future posts
+    futureDays.forEach((day) => {
+      allPosts.push(...groupedPosts[day]);
+    });
+    
+    return allPosts;
+  }, [showPastPosts, pastDays, futureDays, groupedPosts]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if a post is selected and not in edit mode
+      if (!selectedPost || isEditMode) return;
+      
+      // Don't interfere with input fields
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        
+        const currentIndex = sortedPostsList.findIndex((p) => p.id === selectedPost.id);
+        if (currentIndex === -1) return;
+
+        let newIndex: number;
+        if (e.key === "ArrowDown") {
+          newIndex = Math.min(currentIndex + 1, sortedPostsList.length - 1);
+        } else {
+          newIndex = Math.max(currentIndex - 1, 0);
+        }
+
+        if (newIndex !== currentIndex) {
+          setSelectedPost(sortedPostsList[newIndex]);
+          setIsEditMode(false);
+        }
+      } else if (e.key === "Escape") {
+        setSelectedPost(null);
+        setIsEditMode(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPost, isEditMode, sortedPostsList]);
 
   const handleRowClick = (post: PostWithProvider) => {
     setSelectedPost(post);
@@ -428,8 +486,8 @@ export function ScheduledPosts({ project }: Props) {
       default:
         return (
           <div
-            className="text-sm text-muted-foreground w-full"
-            style={{ whiteSpace: "pre-wrap" }}
+            className="text-sm text-muted-foreground w-full break-words overflow-hidden"
+            style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
           >
             {post.content}
           </div>
@@ -451,14 +509,14 @@ export function ScheduledPosts({ project }: Props) {
         key={post.id}
         onClick={() => handleRowClick(post)}
         className={cn(
-          "group flex items-center gap-3 py-3 cursor-pointer transition-all -my-0.5",
+          "group flex items-center gap-2 md:gap-3 py-3 cursor-pointer transition-all -my-0.5 overflow-hidden",
           "hover:bg-muted/50 rounded-r-lg",
           selectedPost?.id === post.id && "bg-muted"
         )}
       >
-        {/* Date Column - Timeline style, hidden on very small screens */}
+        {/* Date Column - Timeline style, hidden on small/medium screens to prevent overflow */}
         {showDateColumn && (
-          <div className="hidden sm:flex w-20 shrink-0 items-center justify-end pr-3 border-r border-muted-foreground/20">
+          <div className="hidden lg:flex w-20 shrink-0 items-center justify-end pr-3 border-r border-muted-foreground/20">
             {dateLabel ? (
               <span
                 className={cn(
@@ -485,18 +543,18 @@ export function ScheduledPosts({ project }: Props) {
         </div>
 
         {/* Time */}
-        <div className="text-sm text-muted-foreground w-16 shrink-0">
+        <div className="text-xs md:text-sm text-muted-foreground w-14 md:w-16 shrink-0">
           {formatTime(post.date, viewerTimezone)}
         </div>
 
         {/* Status */}
         <div className="shrink-0">{getStatusBadge(post.status, true)}</div>
 
-        {/* Campaign Tag - Hidden on small screens */}
+        {/* Campaign Tag - Only visible on large screens to prevent overflow */}
         {hasCampaign && (
           <Badge
             variant="outline"
-            className="hidden sm:flex shrink-0 text-xs gap-1 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
+            className="hidden lg:flex shrink-0 text-xs gap-1 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
           >
             <FolderOpen className="h-3 w-3" />
             {campaignName
@@ -505,41 +563,43 @@ export function ScheduledPosts({ project }: Props) {
           </Badge>
         )}
 
-        {/* Content Preview */}
-        <div className="flex-1 min-w-0 text-sm text-foreground truncate">
-          {truncateText(post.content, 50)}
-        </div>
+        {/* Content Preview with overlaid hover actions */}
+        <div className="flex-1 min-w-0 relative overflow-hidden">
+          <div className="text-sm text-foreground truncate">
+            {post.content}
+          </div>
 
-        {/* Hover Actions - Hidden on mobile (use click to open sheet instead) */}
-        <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pr-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={(e) => handlePreviewClick(post, e)}
-            title="Preview"
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={(e) => handleEditClick(post, e)}
-            title="Edit"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={(e) => onDeleteScheduledPost(post.id, e)}
-            loading={deleteScheduledPost.isPending}
-            title="Delete"
-          >
-            <Trash className="h-3.5 w-3.5 text-red-500" />
-          </Button>
+          {/* Hover Actions - Overlay on content, hidden on mobile */}
+          <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background to-transparent pl-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => handlePreviewClick(post, e)}
+              title="Preview"
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => handleEditClick(post, e)}
+              title="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => onDeleteScheduledPost(post.id, e)}
+              loading={deleteScheduledPost.isPending}
+              title="Delete"
+            >
+              <Trash className="h-3.5 w-3.5 text-red-500" />
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -563,13 +623,13 @@ export function ScheduledPosts({ project }: Props) {
   }
 
   return (
-    <div className="space-y-4 -mx-4 sm:mx-0">
+    <div className="space-y-4 w-full max-w-full overflow-hidden">
       {/* Stats - Right aligned, responsive */}
       {!isLoading && posts.length > 0 && (
-        <div className="flex justify-end px-4 sm:px-0">
-          <div className="flex flex-wrap justify-end gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <span>{posts.length} posts</span>
-            <span className="hidden sm:inline">•</span>
+        <div className="flex justify-end">
+          <div className="text-sm text-muted-foreground">
+            <span>{posts.length}</span>
+            <span className="mx-1.5">•</span>
             <span>
               {
                 posts.filter(
@@ -578,7 +638,7 @@ export function ScheduledPosts({ project }: Props) {
               }{" "}
               published
             </span>
-            <span className="hidden sm:inline">•</span>
+            <span className="mx-1.5">•</span>
             <span>
               {
                 posts.filter(
@@ -592,11 +652,11 @@ export function ScheduledPosts({ project }: Props) {
       )}
 
       {/* Main Content */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 w-full max-w-full overflow-hidden">
         {/* Schedule List */}
         <div
           className={cn(
-            "flex-1 min-w-0 transition-all",
+            "flex-1 min-w-0 transition-all overflow-hidden",
             selectedPost && "lg:max-w-[70%]"
           )}
         >
@@ -697,7 +757,7 @@ export function ScheduledPosts({ project }: Props) {
         {selectedPost && (
           <>
             {/* Desktop: Inline Preview Panel */}
-            <div className="hidden lg:block w-[30%] min-w-[350px] sticky top-4 self-start">
+            <div className="hidden lg:block w-[30%] max-w-[400px] sticky top-4 self-start shrink-0">
               <Card className="h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 <CardHeader className="pb-3 shrink-0">
                   <div className="flex items-center justify-between">
@@ -785,8 +845,8 @@ export function ScheduledPosts({ project }: Props) {
               </Card>
             </div>
 
-            {/* Mobile: Sheet - Only render on mobile to avoid overlay on desktop */}
-            {isMobile && (
+            {/* Mobile/Medium: Sheet - Only render on non-large screens to avoid overlay on desktop */}
+            {isLargeScreen === false && (
               <Sheet
                 open={!!selectedPost}
                 onOpenChange={(open) => !open && setSelectedPost(null)}
@@ -835,7 +895,7 @@ export function ScheduledPosts({ project }: Props) {
                       </div>
                     </div>
                   )}
-                  <div className="border rounded-lg p-2">
+                  <div className="border rounded-lg p-2 overflow-hidden">
                     {renderPostPreview(selectedPost)}
                   </div>
                   <div className="flex gap-2">
