@@ -9,6 +9,7 @@ import { All } from "./all"
 import { Facebook } from "./facebook"
 import { Linkedin } from "./linkedin"
 import { Threads } from "./threads"
+import { Instagram } from "./instagram"
 import { useGetAllProjects } from "@/backend-apis/projects/hooks"
 import { useGetAllPlatformMetrics } from '@/backend-apis/metrics/hooks'
 import { useSession } from '@/backend-apis/auth/hooks'
@@ -191,6 +192,7 @@ const AnalyticsTabs = () => {
       <TabsList>
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="Facebook">Facebook</TabsTrigger>
+        <TabsTrigger value="Instagram">Instagram</TabsTrigger>
         <TabsTrigger value="Linkedin">Linkedin</TabsTrigger>
         <TabsTrigger value="Threads">Threads</TabsTrigger>
         <TabsTrigger value="Tiktok">Tiktok</TabsTrigger>
@@ -268,6 +270,9 @@ const AnalyticsTabs = () => {
       </TabsContent>
       <TabsContent value="Facebook">
         <Facebook timerange={timerange} selectedProject={selectedProject} />
+      </TabsContent>
+      <TabsContent value="Instagram">
+        <Instagram timerange={timerange} selectedProject={selectedProject} />
       </TabsContent>
       <TabsContent value="Linkedin">
         <Linkedin timerange={timerange} selectedProject={selectedProject} />

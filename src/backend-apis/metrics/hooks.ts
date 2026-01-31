@@ -7,6 +7,7 @@ import {
   getFacebookMetrics,
   getLinkedinMetrics,
   getThreadsMetrics,
+  getInstagramMetrics,
   getTiktokMetrics,
 } from "./actions";
 
@@ -87,6 +88,15 @@ export const useGetThreadsMetrics = (userId: string, projectId: string | null) =
     queryKey: ["threads-metrics", projectId],
     queryFn: () => getThreadsMetrics(userId, projectId),
     enabled: !!userId && !!projectId,
+  });
+};
+
+export const useGetInstagramMetrics = (userId: string, projectId: string | null) => {
+  return useQuery({
+    queryKey: ["instagram-metrics", projectId],
+    queryFn: () => getInstagramMetrics(userId, projectId),
+    enabled: !!userId && !!projectId,
+    refetchOnWindowFocus: false,
   });
 };
 

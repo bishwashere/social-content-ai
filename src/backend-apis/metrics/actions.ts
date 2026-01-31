@@ -7,6 +7,7 @@ import { Linkedin } from "@/lib/3rd-providers/linkedin";
 import axios from "axios";
 import { Threads } from "@/lib/3rd-providers/threads";
 import { TikTok } from "@/lib/3rd-providers/tiktok";
+import { Instagram } from "@/lib/3rd-providers/instagram";
 
 export const fetchRedditPostsData = async (
   urls: string[]
@@ -542,6 +543,105 @@ export const getThreadsMetrics = async (userId: string, projectId: string | null
   } catch (error) {
     console.error("Error fetching Threads metrics:", error);
     throw new Error("Could not load Threads data!");
+  }
+};
+
+export const getInstagramMetrics = async (userId: string, projectId: string | null) => {
+  try {
+    // Step 1: Find the Instagram OAuth provider and existing posts
+    const oauthProvider = await prisma.oauthProvider.findMany({
+      where: {
+        userId,
+        platform: "instagram",
+      },
+      include: {
+        pagePosts: true,
+        projectToOAuthProviders: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    const projectOauthProvider = oauthProvider.filter(provider => provider.projectToOAuthProviders.some(data => data.projectId === projectId));
+
+    if (!oauthProvider.length) {
+      return {
+        success: false,
+        message: "Instagram account not found",
+      };
+    }
+
+    if (!projectOauthProvider.length) {
+      console.log(`[getInstagramMetrics] No Instagram providers linked to project ${projectId}`);
+      return {
+        success: false,
+        message: "No Instagram account linked to this project. Please link an Instagram account in project settings.",
+      };
+    }
+
+    // Step 2: Return from DB if posts already exist
+    const posts = projectOauthProvider.flatMap(provider => provider.pagePosts || []);
+    if (posts.length) {
+      return {
+        success: true,
+        data: posts,
+      };
+    }
+
+    // Step 3: Fetch from Instagram API if not in DB
+    const igUserId = projectOauthProvider[0].pageId;
+    if (!igUserId) {
+      return {
+        success: false,
+        message: "Instagram user ID not found",
+      };
+    }
+
+    const ig = new Instagram({ 
+      accessToken: projectOauthProvider[0].accessToken,
+      isStandalone: projectOauthProvider[0].accessToken.startsWith("IGA"),
+    });
+    
+    // Fetch user's media posts
+    const media = await ig.fetchUserMedia(igUserId, 50);
+    
+    // Fetch insights for each post
+    const postsWithInsights = await Promise.all(
+      media.map(async (post) => {
+        const insights = await ig.fetchMediaInsights(post.id);
+        return {
+          postId: post.id,
+          content: post.caption || "",
+          likes: insights.likesCount,
+          comments: insights.commentsCount,
+          shares: insights.sharesCount,
+          impressions: insights.impressions,
+          uniqueImpressions: insights.reach,
+          date: new Date(post.timestamp),
+        };
+      })
+    );
+
+    // Step 4: Save to DB
+    const data = await prisma.oauthProvider.update({
+      where: { id: projectOauthProvider[0].id },
+      data: {
+        pagePosts: {
+          create: postsWithInsights,
+        },
+      },
+      include: {
+        pagePosts: true,
+      },
+    });
+
+    return {
+      success: true,
+      data: data.pagePosts,
+    };
+  } catch (error) {
+    console.error("Error fetching Instagram metrics:", error);
+    throw new Error("Could not load Instagram data!");
   }
 };
 
