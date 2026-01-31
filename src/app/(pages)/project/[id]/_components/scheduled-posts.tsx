@@ -26,50 +26,81 @@ import {
   Trash,
   Pencil,
   Eye,
+  Instagram,
+  X,
+  FolderOpen,
   ChevronDown,
   ChevronRight,
-  FolderOpen,
-  Instagram,
+  History,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Md from "react-markdown";
 import LinkedinPostView from "@/components/social/linkedin-post-view";
 import FacebookPostView from "@/components/social/facebook-post-view";
 import XPostView from "@/components/social/x-post-view";
 import { Button } from "@/components/ui/button";
 import { confirm } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useState } from "react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import ThreadsPost from "@/components/social/threads-post-view";
+import { useState, useEffect } from "react";
 import ThreadsPostView from "@/components/social/threads-post-view";
 import RedditPostView from "@/components/social/reddit-post-view";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronsUpDown } from "lucide-react";
 import InstagramPostView from "@/components/social/instagram-post-view";
 import { PLATFORM_IDS, PLATFORM_ICONS } from "@/constants/platforms";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/cn";
 
 interface Props {
   project: Project;
 }
 
-const getPlatformIcon = (platform: string) => {
+type PostWithProvider = ScheduledPost & { oauthProvider: OauthProvider };
+
+const getPlatformIcon = (platform: string, size: "sm" | "md" = "sm") => {
+  const sizeClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const imgSize = size === "sm" ? 16 : 20;
+
   switch (platform.toLowerCase()) {
     case PLATFORM_IDS.FACEBOOK:
-      return <Facebook className="h-4 w-4" />;
+      return <Facebook className={sizeClass} />;
     case "twitter":
     case PLATFORM_IDS.X:
-      return <Twitter className="h-4 w-4" />;
+      return <Twitter className={sizeClass} />;
     case PLATFORM_IDS.LINKEDIN:
-      return <Linkedin className="h-4 w-4" />;
+      return <Linkedin className={sizeClass} />;
     case PLATFORM_IDS.INSTAGRAM:
-      return <Instagram className="h-4 w-4" />;
+      return <Instagram className={sizeClass} />;
     case PLATFORM_IDS.THREADS:
-      return <Image src={PLATFORM_ICONS[PLATFORM_IDS.THREADS]} alt="Threads" width={24} height={24} />;
+      return (
+        <Image
+          src={PLATFORM_ICONS[PLATFORM_IDS.THREADS]}
+          alt="Threads"
+          width={imgSize}
+          height={imgSize}
+        />
+      );
     case PLATFORM_IDS.REDDIT:
-      return <Image src={PLATFORM_ICONS[PLATFORM_IDS.REDDIT]} alt="Reddit" width={24} height={24} />;
+      return (
+        <Image
+          src={PLATFORM_ICONS[PLATFORM_IDS.REDDIT]}
+          alt="Reddit"
+          width={imgSize}
+          height={imgSize}
+        />
+      );
     case PLATFORM_IDS.TIKTOK:
-      return <Image src={PLATFORM_ICONS[PLATFORM_IDS.TIKTOK]} alt="TikTok" width={24} height={24} />;
+      return (
+        <Image
+          src={PLATFORM_ICONS[PLATFORM_IDS.TIKTOK]}
+          alt="TikTok"
+          width={imgSize}
+          height={imgSize}
+        />
+      );
     default:
       return null;
   }
@@ -97,176 +128,141 @@ const getPlatformColor = (platform: string) => {
   }
 };
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, compact = false) => {
+  const baseClasses = compact ? "text-xs px-1.5 py-0.5" : "";
+
   switch (status.toLowerCase()) {
     case "success":
     case "published":
     case "completed":
       return (
-        <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+        <Badge
+          variant="default"
+          className={cn("bg-green-500 hover:bg-green-600", baseClasses)}
+        >
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          {status}
+          {compact ? "Published" : status}
         </Badge>
       );
     case "failed":
     case "error":
       return (
-        <Badge variant="destructive">
+        <Badge variant="destructive" className={baseClasses}>
           <AlertCircle className="h-3 w-3 mr-1" />
-          {status}
+          {compact ? "Failed" : status}
         </Badge>
       );
     case "pending":
     case "scheduled":
       return (
-        <Badge variant="secondary">
+        <Badge variant="secondary" className={baseClasses}>
           <Clock className="h-3 w-3 mr-1" />
-          {status}
+          {compact ? "Pending" : status}
         </Badge>
       );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return (
+        <Badge variant="outline" className={baseClasses}>
+          {status}
+        </Badge>
+      );
   }
 };
 
-const formatStepTimestamp = (timestamp: string | undefined): string => {
-  if (!timestamp) return "";
-  try {
-    const date = new Date(timestamp);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return "";
-  }
-};
-
-const getStepBadges = (meta: any) => {
-  if (!meta || meta.type !== "blog-news") {
-    return null;
-  }
-
-  const steps = [
-    { key: "step1Completed", label: "Step 1", description: "Fetch Article", completedAtKey: "step1CompletedAt", startedAtKey: "step1StartedAt" },
-    { key: "step2Completed", label: "Step 2", description: "Generate Blog", completedAtKey: "step2CompletedAt", startedAtKey: "step2StartedAt" },
-    { key: "step3Completed", label: "Step 3", description: "Send Webhook", completedAtKey: "step3CompletedAt", startedAtKey: "step3StartedAt" },
-    { key: "step4Completed", label: "Step 4", description: "Finalize", completedAtKey: "step4CompletedAt", startedAtKey: "step4StartedAt" },
-  ];
-
-  return (
-    <div className="flex flex-wrap gap-2 mt-2">
-      {steps.map((step) => {
-        const isCompleted = meta[step.key] === true;
-        const isInProgress = meta[`${step.key.replace("Completed", "InProgress")}`] === true;
-        const hasError = meta[`${step.key.replace("Completed", "Error")}`];
-        const completedAt = meta[step.completedAtKey];
-        const startedAt = meta[step.startedAtKey];
-        
-        // Determine tooltip text
-        let tooltipText = step.description;
-        if (isCompleted) {
-          if (completedAt) {
-            const formattedTime = formatStepTimestamp(completedAt);
-            tooltipText = formattedTime ? `Completed at ${formattedTime}` : "Completed";
-          } else {
-            tooltipText = "Completed";
-          }
-        } else if (isInProgress) {
-          if (startedAt) {
-            const formattedTime = formatStepTimestamp(startedAt);
-            tooltipText = formattedTime ? `Started at ${formattedTime}` : "In progress";
-          } else {
-            tooltipText = "In progress";
-          }
-        } else if (hasError) {
-          tooltipText = `Error: ${hasError}`;
-        } else {
-          tooltipText = "Not started yet";
-        }
-        
-        let badgeContent;
-        if (isCompleted) {
-          badgeContent = (
-            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              {step.label}
-            </Badge>
-          );
-        } else if (isInProgress) {
-          badgeContent = (
-            <Badge variant="secondary" className="text-xs">
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              {step.label}
-            </Badge>
-          );
-        } else if (hasError) {
-          badgeContent = (
-            <Badge variant="destructive" className="text-xs">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              {step.label}
-            </Badge>
-          );
-        } else {
-          badgeContent = (
-            <Badge variant="outline" className="text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              {step.label}
-            </Badge>
-          );
-        }
-        
-        return (
-          <Tooltip key={step.key}>
-            <TooltipTrigger asChild>
-              <span className="inline-block">{badgeContent}</span>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="z-50">
-              <p className="text-xs">{tooltipText}</p>
-            </TooltipContent>
-          </Tooltip>
-        );
-      })}
-    </div>
-  );
-};
-
-const formatDate = (date: Date | string, timezone?: string, localTime?: string, meta?: any, viewerTimezone?: string) => {
+const formatTime = (
+  date: Date | string,
+  viewerTimezone?: string
+) => {
   const dateObj = new Date(date);
-  
-  // Use viewer's timezone if provided, otherwise fall back to stored timezone
-  const timezoneToUse = viewerTimezone || timezone || "America/New_York";
-  
-  // Always convert from UTC to the target timezone (viewer's or stored)
+  const timezoneToUse = viewerTimezone || "America/New_York";
+
   return dateObj.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    hour12: true, // Use 12-hour format (AM/PM)
+    hour12: true,
     timeZone: timezoneToUse,
   });
 };
 
+const formatDateHeader = (date: Date | string, viewerTimezone?: string) => {
+  const dateObj = new Date(date);
+  const timezoneToUse = viewerTimezone || "America/New_York";
+
+  return dateObj.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: timezoneToUse,
+  });
+};
+
+const formatFullDate = (
+  date: Date | string,
+  viewerTimezone?: string
+) => {
+  const dateObj = new Date(date);
+  const timezoneToUse = viewerTimezone || "America/New_York";
+
+  return dateObj.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: timezoneToUse,
+  });
+};
+
+const getDateKey = (date: Date | string, viewerTimezone?: string) => {
+  const dateObj = new Date(date);
+  const timezoneToUse = viewerTimezone || "America/New_York";
+
+  return dateObj.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezoneToUse,
+  });
+};
+
+const truncateText = (text: string, maxLength = 50) => {
+  const firstLine = text.split("\n")[0].trim();
+  if (firstLine.length <= maxLength) return firstLine;
+  return firstLine.slice(0, maxLength) + "…";
+};
+
 export function ScheduledPosts({ project }: Props) {
+  const [selectedPost, setSelectedPost] = useState<PostWithProvider | null>(
+    null
+  );
   const [viewContentEdit, setViewContentEdit] = useState<string[]>([]);
-  const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set());
-  const [showPastPosts, setShowPastPosts] = useState<Set<string>>(new Set());
-  
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showPastPosts, setShowPastPosts] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track screen size for mobile sheet
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   // Get viewer's timezone
-  const viewerTimezone = typeof window !== 'undefined' 
-    ? Intl.DateTimeFormat().resolvedOptions().timeZone 
-    : undefined;
+  const viewerTimezone =
+    typeof window !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : undefined;
 
   const queryClient = useQueryClient();
   const {
     data: posts = [],
     isLoading,
     error,
-  } = useQuery<(ScheduledPost & { oauthProvider: OauthProvider })[]>({
+  } = useQuery<PostWithProvider[]>({
     queryKey: ["scheduledPosts", project.id],
     queryFn: async () => {
       const response = await fetch(
@@ -294,194 +290,260 @@ export function ScheduledPosts({ project }: Props) {
       queryClient.invalidateQueries({
         queryKey: ["scheduledPosts", project.id],
       });
+      setSelectedPost(null);
     },
     onError: () => {
       toast.error("Failed to delete scheduled post");
     },
   });
 
-  const onDeleteScheduledPost = async (id: string) => {
+  const onDeleteScheduledPost = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const yes = await confirm({
-      title: "Do you want to delete this scheduled post ?",
+      title: "Do you want to delete this scheduled post?",
       description: "",
     });
     if (!yes) return;
     deleteScheduledPost.mutate(id);
   };
 
-  const toggleCampaign = (campaignId: string) => {
-    setExpandedCampaigns((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(campaignId)) {
-        newSet.delete(campaignId);
-      } else {
-        newSet.add(campaignId);
+  // Get today's date key for comparison
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = getDateKey(today, viewerTimezone);
+
+  // Group posts by day
+  const groupedPosts = posts.reduce(
+    (acc, post) => {
+      const key = getDateKey(post.date, viewerTimezone);
+      if (!acc[key]) {
+        acc[key] = [];
       }
-      return newSet;
-    });
-  };
-
-  const toggleShowPastPosts = (campaignId: string) => {
-    setShowPastPosts((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(campaignId)) {
-        newSet.delete(campaignId);
-      } else {
-        newSet.add(campaignId);
-      }
-      return newSet;
-    });
-  };
-
-  const renderPostCard = (post: ScheduledPost & { oauthProvider: OauthProvider }) => (
-    <Card key={post.id} className="w-full h-full flex flex-col">
-      <CardHeader className="pb-2 px-3 pt-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div
-              className={`p-1.5 rounded-full text-white shrink-0 ${getPlatformColor(
-                post.platform
-              )}`}
-            >
-              {getPlatformIcon(post.platform)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-sm font-medium capitalize">{post.platform}</span>
-                {getStatusBadge(post.status)}
-              </div>
-              <CardDescription className="flex items-center gap-1 text-xs mt-0.5">
-                <Calendar className="h-3 w-3 shrink-0" />
-                <span className="truncate">
-                  {formatDate(post.date, (post.meta as any)?.timezone, (post.meta as any)?.localTime, post.meta, viewerTimezone)}
-                </span>
-              </CardDescription>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <ToggleGroup
-              variant={"outline"}
-              value={
-                viewContentEdit.includes(post.id) ? "edit" : "preview"
-              }
-              type="single"
-              size="sm"
-              onValueChange={() => {
-                setViewContentEdit((prev) =>
-                  viewContentEdit.includes(post.id)
-                    ? prev.filter((item) => item !== post.id)
-                    : [...prev, post.id]
-                );
-              }}
-            >
-              <ToggleGroupItem value="preview" className="h-7 w-7 p-0">
-                <Eye className="size-3" />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="edit" className="h-7 w-7 p-0">
-                <Pencil className="size-3" />
-              </ToggleGroupItem>
-            </ToggleGroup>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => onDeleteScheduledPost(post.id)}
-              loading={deleteScheduledPost.isPending}
-            >
-              <Trash className="stroke-red-500 size-3.5" />
-            </Button>
-          </div>
-        </div>
-        {getStepBadges(post.meta as any)}
-        {post.error && (post.status === "error" || post.status === "failed") && (
-          <div className="px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md mt-2">
-            <div className="flex items-start gap-1.5">
-              <AlertCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-destructive/90 break-words line-clamp-2">
-                  {post.error}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </CardHeader>
-
-      <CardContent className="flex-1 p-1 pt-0 overflow-hidden">
-        <div className="flex w-full items-center justify-center h-full">
-          {post.platform === PLATFORM_IDS.FACEBOOK ? (
-            <FacebookPostView
-              post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit}
-            />
-          ) : post.platform === PLATFORM_IDS.LINKEDIN ? (
-            <LinkedinPostView
-              post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit}
-            />
-          ) : post.platform === "twitter" || post.platform === PLATFORM_IDS.X ? (
-            <XPostView
-              post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit}
-            />
-          ) : post.platform === PLATFORM_IDS.THREADS ? (
-            <ThreadsPostView
-              post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit}
-            />
-          ) : post.platform === PLATFORM_IDS.REDDIT ? (
-            <RedditPostView
-              post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit}
-            />
-          ) : post.platform === PLATFORM_IDS.INSTAGRAM ? (
-            <InstagramPostView
-              post={post}
-              viewContentEdit={viewContentEdit}
-              setViewContentEdit={setViewContentEdit}
-            />
-          ) : (
-            <div
-              className="text-sm text-muted-foreground w-full line-clamp-6"
-              style={{ whiteSpace: "pre-wrap" }}
-            >
-              <Md>
-                {post.content
-                  .split("\n")
-                  .map((line) => line.trim())
-                  .filter((line) => line.length > 0)
-                  .join("\n\n")}
-              </Md>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      acc[key].push(post);
+      return acc;
+    },
+    {} as Record<string, PostWithProvider[]>
   );
 
-  // Separate posts into regular and campaign posts
-  const regularPosts = posts.filter((post) => {
-    const meta = post.meta as any;
-    return !meta || !meta.campaignId;
+  // Sort days and posts within each day
+  const sortedDays = Object.keys(groupedPosts).sort((a, b) => {
+    return new Date(a).getTime() - new Date(b).getTime();
   });
 
-  // Group campaign posts by campaignId
-  const campaignPostsMap = new Map<string, typeof posts>();
-  posts.forEach((post) => {
-    const meta = post.meta as any;
-    if (meta && meta.campaignId) {
-      const campaignId = meta.campaignId;
-      if (!campaignPostsMap.has(campaignId)) {
-        campaignPostsMap.set(campaignId, []);
-      }
-      campaignPostsMap.get(campaignId)!.push(post);
-    }
+  sortedDays.forEach((day) => {
+    groupedPosts[day].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
   });
+
+  // Separate past days from today/future days
+  const pastDays = sortedDays.filter((day) => {
+    const dayDate = new Date(day);
+    dayDate.setHours(0, 0, 0, 0);
+    return dayDate < today;
+  });
+
+  const futureDays = sortedDays.filter((day) => {
+    const dayDate = new Date(day);
+    dayDate.setHours(0, 0, 0, 0);
+    return dayDate >= today;
+  });
+
+  // Count past posts
+  const pastPostsCount = pastDays.reduce(
+    (count, day) => count + groupedPosts[day].length,
+    0
+  );
+
+  // Auto-select first upcoming post on large screens
+  useEffect(() => {
+    if (isMobile || isLoading || posts.length === 0) return;
+    if (selectedPost) return; // Don't override user selection
+
+    // Sort posts by date and find the first upcoming post
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const sortedPosts = [...posts].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Find first post that's today or in the future
+    const firstUpcoming = sortedPosts.find((post) => {
+      const postDate = new Date(post.date);
+      postDate.setHours(0, 0, 0, 0);
+      return postDate >= now;
+    });
+    
+    if (firstUpcoming) {
+      setSelectedPost(firstUpcoming);
+    } else if (sortedPosts.length > 0) {
+      // If no upcoming posts, select the most recent past post
+      setSelectedPost(sortedPosts[sortedPosts.length - 1]);
+    }
+  }, [isMobile, isLoading, posts, selectedPost]);
+
+  const handleRowClick = (post: PostWithProvider) => {
+    setSelectedPost(post);
+    setIsEditMode(false);
+  };
+
+  const handleEditClick = (post: PostWithProvider, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedPost(post);
+    setIsEditMode(true);
+    if (!viewContentEdit.includes(post.id)) {
+      setViewContentEdit((prev) => [...prev, post.id]);
+    }
+  };
+
+  const handlePreviewClick = (post: PostWithProvider, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedPost(post);
+    setIsEditMode(false);
+    setViewContentEdit((prev) => prev.filter((id) => id !== post.id));
+  };
+
+  const renderPostPreview = (post: PostWithProvider) => {
+    const commonProps = {
+      post,
+      viewContentEdit,
+      setViewContentEdit,
+    };
+
+    switch (post.platform) {
+      case PLATFORM_IDS.FACEBOOK:
+        return <FacebookPostView {...commonProps} />;
+      case PLATFORM_IDS.LINKEDIN:
+        return <LinkedinPostView {...commonProps} />;
+      case "twitter":
+      case PLATFORM_IDS.X:
+        return <XPostView {...commonProps} />;
+      case PLATFORM_IDS.THREADS:
+        return <ThreadsPostView {...commonProps} />;
+      case PLATFORM_IDS.REDDIT:
+        return <RedditPostView {...commonProps} />;
+      case PLATFORM_IDS.INSTAGRAM:
+        return <InstagramPostView {...commonProps} />;
+      default:
+        return (
+          <div
+            className="text-sm text-muted-foreground w-full"
+            style={{ whiteSpace: "pre-wrap" }}
+          >
+            {post.content}
+          </div>
+        );
+    }
+  };
+
+  const renderScheduleRow = (
+    post: PostWithProvider,
+    options?: { dateLabel?: string; isToday?: boolean; showDateColumn?: boolean }
+  ) => {
+    const meta = post.meta as any;
+    const hasCampaign = meta?.campaignId;
+    const campaignName = meta?.campaignName;
+    const { dateLabel, isToday, showDateColumn = true } = options || {};
+
+    return (
+      <div
+        key={post.id}
+        onClick={() => handleRowClick(post)}
+        className={cn(
+          "group flex items-center gap-3 py-3 cursor-pointer transition-all -my-0.5",
+          "hover:bg-muted/50 rounded-r-lg",
+          selectedPost?.id === post.id && "bg-muted"
+        )}
+      >
+        {/* Date Column - Timeline style, hidden on very small screens */}
+        {showDateColumn && (
+          <div className="hidden sm:flex w-20 shrink-0 items-center justify-end pr-3 border-r border-muted-foreground/20">
+            {dateLabel ? (
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isToday ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {dateLabel}
+              </span>
+            ) : (
+              <span className="w-full" />
+            )}
+          </div>
+        )}
+
+        {/* Platform Icon */}
+        <div
+          className={cn(
+            "p-1.5 rounded-md text-white shrink-0",
+            getPlatformColor(post.platform)
+          )}
+        >
+          {getPlatformIcon(post.platform)}
+        </div>
+
+        {/* Time */}
+        <div className="text-sm text-muted-foreground w-16 shrink-0">
+          {formatTime(post.date, viewerTimezone)}
+        </div>
+
+        {/* Status */}
+        <div className="shrink-0">{getStatusBadge(post.status, true)}</div>
+
+        {/* Campaign Tag - Hidden on small screens */}
+        {hasCampaign && (
+          <Badge
+            variant="outline"
+            className="hidden sm:flex shrink-0 text-xs gap-1 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
+          >
+            <FolderOpen className="h-3 w-3" />
+            {campaignName
+              ? truncateText(campaignName, 15)
+              : "Campaign"}
+          </Badge>
+        )}
+
+        {/* Content Preview */}
+        <div className="flex-1 min-w-0 text-sm text-foreground truncate">
+          {truncateText(post.content, 50)}
+        </div>
+
+        {/* Hover Actions - Hidden on mobile (use click to open sheet instead) */}
+        <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pr-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => handlePreviewClick(post, e)}
+            title="Preview"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => handleEditClick(post, e)}
+            title="Edit"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => onDeleteScheduledPost(post.id, e)}
+            loading={deleteScheduledPost.isPending}
+            title="Delete"
+          >
+            <Trash className="h-3.5 w-3.5 text-red-500" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   if (error) {
     return (
@@ -501,20 +563,12 @@ export function ScheduledPosts({ project }: Props) {
   }
 
   return (
-    <div className="space-y-6 -mx-4 sm:mx-0">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Scheduled Posts</h2>
-          <p className="text-muted-foreground">
-            {project.name
-              ? `Posts for ${project.name}`
-              : "Manage your scheduled social media posts"}
-          </p>
-        </div>
-        {!isLoading && posts.length > 0 && (
+    <div className="space-y-4 -mx-4 sm:mx-0">
+      {/* Stats - Right aligned */}
+      {!isLoading && posts.length > 0 && (
+        <div className="flex justify-end">
           <div className="text-sm text-muted-foreground">
             {posts.length} posts •{" "}
-            {campaignPostsMap.size > 0 && `${campaignPostsMap.size} campaigns • `}
             {
               posts.filter(
                 (p) => p.status === "success" || p.status === "published"
@@ -526,171 +580,293 @@ export function ScheduledPosts({ project }: Props) {
                 (p) => p.status === "pending" || p.status === "scheduled"
               ).length
             }{" "}
-            scheduled
+            pending
           </div>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="ml-2 text-muted-foreground">
-            Loading scheduled posts...
-          </p>
         </div>
-      ) : posts.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-lg font-medium">No scheduled posts found</p>
-            <p className="text-muted-foreground mt-2">
-              Create your first scheduled post to get started
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {/* Campaign Posts - Grouped */}
-          {Array.from(campaignPostsMap.entries()).map(([campaignId, campaignPosts]) => {
-            const firstPost = campaignPosts[0];
-            const meta = firstPost.meta as any;
-            const campaignName = meta?.campaignName || `Campaign (${campaignId.slice(-6)})`;
-            const isExpanded = expandedCampaigns.has(campaignId);
-            const sortedPosts = [...campaignPosts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            const earliestDate = sortedPosts[0]?.date;
-            const latestDate = sortedPosts[sortedPosts.length - 1]?.date;
-            const statuses = campaignPosts.map(p => p.status);
-            const pendingCount = statuses.filter(s => s === "pending" || s === "scheduled").length;
-            const successCount = statuses.filter(s => s === "success" || s === "published").length;
-            const failedCount = statuses.filter(s => s === "failed" || s === "error").length;
+      )}
 
-            // Separate posts into past and future/today
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const futureAndTodayPosts = sortedPosts.filter((post) => {
-              const postDate = new Date(post.date);
-              postDate.setHours(0, 0, 0, 0);
-              return postDate >= today;
-            });
-            const pastPosts = sortedPosts.filter((post) => {
-              const postDate = new Date(post.date);
-              postDate.setHours(0, 0, 0, 0);
-              return postDate < today;
-            });
-            const shouldShowPast = showPastPosts.has(campaignId);
-
-            return (
-              <Card key={campaignId} className="w-full">
-                <CardHeader className="pb-3">
+      {/* Main Content */}
+      <div className="flex gap-4">
+        {/* Schedule List */}
+        <div
+          className={cn(
+            "flex-1 min-w-0 transition-all",
+            selectedPost && "lg:max-w-[70%]"
+          )}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="ml-2 text-muted-foreground">
+                Loading scheduled posts...
+              </p>
+            </div>
+          ) : posts.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-lg font-medium">No scheduled posts found</p>
+                <p className="text-muted-foreground mt-2">
+                  Create your first scheduled post to get started
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {/* Past Posts Collapse Toggle */}
+              {pastDays.length > 0 && (
+                <div className="space-y-2">
                   <button
-                    onClick={() => toggleCampaign(campaignId)}
-                    className="w-full relative flex items-center cursor-pointer hover:bg-muted/50 -m-4 p-4 rounded-lg transition-colors"
+                    onClick={() => setShowPastPosts(!showPastPosts)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 bg-muted/50 hover:bg-muted rounded-lg transition-colors border border-dashed border-muted-foreground/30"
                   >
-                    <div className="flex items-center gap-3 flex-1">
-                      {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      )}
-                      <FolderOpen className="h-5 w-5 text-blue-500" />
-                      <div className="flex-1 text-left">
-                        <CardTitle className="text-lg flex flex-row gap-2 items-center">
-                          {campaignName}
-                          <Badge variant="outline" className="text-xs">
-                            Campaign
-                          </Badge>
+                    {showPastPosts ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {showPastPosts ? "Hide" : "Show"} Past Posts
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {pastPostsCount}
+                    </Badge>
+                  </button>
+
+                  {/* Past Posts List - Timeline style */}
+                  {showPastPosts && (
+                    <div className="opacity-70">
+                      {pastDays.map((day) => {
+                        const dayPosts = groupedPosts[day];
+                        const firstPost = dayPosts[0];
+                        const dateLabel = formatDateHeader(firstPost.date, viewerTimezone);
+
+                        return dayPosts.map((post, index) =>
+                          renderScheduleRow(post, {
+                            dateLabel: index === 0 ? dateLabel : undefined,
+                            isToday: false,
+                            showDateColumn: true,
+                          })
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Today & Future Posts - Timeline style */}
+              {futureDays.map((day) => {
+                const dayPosts = groupedPosts[day];
+                const firstPost = dayPosts[0];
+                const isToday = day === todayKey;
+                const dateLabel = isToday ? "Today" : formatDateHeader(firstPost.date, viewerTimezone);
+
+                return dayPosts.map((post, index) =>
+                  renderScheduleRow(post, {
+                    dateLabel: index === 0 ? dateLabel : undefined,
+                    isToday,
+                    showDateColumn: true,
+                  })
+                );
+              })}
+
+              {/* Empty state for no future posts */}
+              {futureDays.length === 0 && pastDays.length > 0 && (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="font-medium">No upcoming posts</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      All {pastPostsCount} posts are in the past
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Preview Drawer - Desktop inline, Mobile sheet */}
+        {selectedPost && (
+          <>
+            {/* Desktop: Inline Preview Panel */}
+            <div className="hidden lg:block w-[30%] min-w-[350px] sticky top-4 self-start">
+              <Card className="h-[calc(100vh-200px)] overflow-hidden flex flex-col">
+                <CardHeader className="pb-3 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={cn(
+                          "p-1.5 rounded-md text-white",
+                          getPlatformColor(selectedPost.platform)
+                        )}
+                      >
+                        {getPlatformIcon(selectedPost.platform, "md")}
+                      </div>
+                      <div>
+                        <CardTitle className="text-base capitalize">
+                          {selectedPost.platform}
                         </CardTitle>
-                        <CardDescription className="flex items-center gap-4 mt-1">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {campaignPosts.length} posts
-                          </span>
-                          {earliestDate && latestDate && (
-                            <span className="text-xs">
-                              {formatDate(earliestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta, viewerTimezone)} - {formatDate(latestDate, (firstPost.meta as any)?.timezone, (firstPost.meta as any)?.localTime, firstPost.meta, viewerTimezone)}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-2">
-                            {pendingCount > 0 && (
-                              <Badge variant="secondary" className="text-xs">
-                                {pendingCount} pending
-                              </Badge>
-                            )}
-                            {successCount > 0 && (
-                              <Badge variant="default" className="bg-green-500 text-xs">
-                                {successCount} published
-                              </Badge>
-                            )}
-                            {failedCount > 0 && (
-                              <Badge variant="destructive" className="text-xs">
-                                {failedCount} failed
-                              </Badge>
-                            )}
-                          </div>
+                        <CardDescription className="text-xs">
+                          {formatFullDate(selectedPost.date, viewerTimezone)}
                         </CardDescription>
                       </div>
                     </div>
-                  </button>
-                </CardHeader>
-                {isExpanded && (
-                  <CardContent className="pt-0 space-y-4">
-                    {/* Show Past Posts Button */}
-                    {pastPosts.length > 0 && (
-                      <div className="flex justify-center mb-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleShowPastPosts(campaignId)}
-                          className="w-full rounded-lg border"
-                        >
-                          {shouldShowPast ? "Hide Past Posts" : "Show Past Posts"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Past Posts (collapsible) - Grid Layout */}
-                    {shouldShowPast && pastPosts.length > 0 && (
-                      <div className="pb-4 border-b border-dashed">
-                        <div className="text-sm text-muted-foreground font-medium mb-3">
-                          Past Posts ({pastPosts.length})
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {pastPosts.map((post) => renderPostCard(post))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Today and Future Posts - Grid Layout */}
-                    <div>
-                      {futureAndTodayPosts.length > 0 && (
-                        <>
-                          {pastPosts.length > 0 && (
-                            <div className="text-sm text-muted-foreground font-medium mb-3">
-                              Upcoming & Today ({futureAndTodayPosts.length})
-                            </div>
-                          )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {futureAndTodayPosts.map((post) => renderPostCard(post))}
-                          </div>
-                        </>
-                      )}
-                      {futureAndTodayPosts.length === 0 && pastPosts.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No posts found
-                        </p>
-                      )}
+                    <div className="flex items-center gap-1">
+                      {getStatusBadge(selectedPost.status)}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setSelectedPost(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </CardContent>
-                )}
+                  </div>
+                  {(selectedPost.meta as any)?.campaignName && (
+                    <Badge
+                      variant="outline"
+                      className="w-fit mt-2 gap-1 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                    >
+                      <FolderOpen className="h-3 w-3" />
+                      {(selectedPost.meta as any).campaignName}
+                    </Badge>
+                  )}
+                  {selectedPost.error && (
+                    <div className="px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md mt-2">
+                      <div className="flex items-start gap-1.5">
+                        <AlertCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-destructive/90 line-clamp-2">
+                          {selectedPost.error}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="flex-1 overflow-auto p-3 pt-0">
+                  {renderPostPreview(selectedPost)}
+                </CardContent>
+                <div className="p-3 border-t shrink-0 flex gap-2">
+                  <Button
+                    variant={isEditMode ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      setIsEditMode(true);
+                      if (!viewContentEdit.includes(selectedPost.id)) {
+                        setViewContentEdit((prev) => [
+                          ...prev,
+                          selectedPost.id,
+                        ]);
+                      }
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onDeleteScheduledPost(selectedPost.id)}
+                    loading={deleteScheduledPost.isPending}
+                  >
+                    <Trash className="h-3.5 w-3.5 mr-1.5" />
+                    Delete
+                  </Button>
+                </div>
               </Card>
-            );
-          })}
+            </div>
 
-          {/* Regular Posts */}
-          {regularPosts.map((post) => renderPostCard(post))}
-        </div>
-      )}
+            {/* Mobile: Sheet - Only render on mobile to avoid overlay on desktop */}
+            {isMobile && (
+              <Sheet
+                open={!!selectedPost}
+                onOpenChange={(open) => !open && setSelectedPost(null)}
+              >
+                <SheetContent className="w-full sm:max-w-md overflow-auto">
+                <SheetHeader>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "p-1.5 rounded-md text-white",
+                        getPlatformColor(selectedPost.platform)
+                      )}
+                    >
+                      {getPlatformIcon(selectedPost.platform, "md")}
+                    </div>
+                    <div>
+                      <SheetTitle className="text-base capitalize">
+                        {selectedPost.platform}
+                      </SheetTitle>
+                      <SheetDescription className="text-xs">
+                        {formatFullDate(selectedPost.date, viewerTimezone)}
+                      </SheetDescription>
+                    </div>
+                  </div>
+                </SheetHeader>
+                <div className="mt-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(selectedPost.status)}
+                    {(selectedPost.meta as any)?.campaignName && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                      >
+                        <FolderOpen className="h-3 w-3" />
+                        {(selectedPost.meta as any).campaignName}
+                      </Badge>
+                    )}
+                  </div>
+                  {selectedPost.error && (
+                    <div className="px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md">
+                      <div className="flex items-start gap-1.5">
+                        <AlertCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-destructive/90">
+                          {selectedPost.error}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="border rounded-lg p-2">
+                    {renderPostPreview(selectedPost)}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={isEditMode ? "default" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setIsEditMode(true);
+                        if (!viewContentEdit.includes(selectedPost.id)) {
+                          setViewContentEdit((prev) => [
+                            ...prev,
+                            selectedPost.id,
+                          ]);
+                        }
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDeleteScheduledPost(selectedPost.id)}
+                      loading={deleteScheduledPost.isPending}
+                    >
+                      <Trash className="h-3.5 w-3.5 mr-1.5" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+                </SheetContent>
+              </Sheet>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

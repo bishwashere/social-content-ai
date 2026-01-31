@@ -169,9 +169,6 @@ function ProjectPage() {
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5">
       <ProjectSocialConnectionAlert projectId={id as string} />
-      {!isProjectLessThanOneDayOld && (
-        <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
-      )}
       <Tabs value={currentTab} className="w-full">
         <TabsList className="flex flex-wrap w-full h-fit">
           <TabsTrigger value="campaign" onClick={() => handleTabChange("campaign")}>
@@ -189,6 +186,10 @@ function ProjectPage() {
         </TabsList>
 
         <TabsContent value="campaign">
+          {/* Pulse metrics only shown in Campaign Planner */}
+          {!isProjectLessThanOneDayOld && (
+            <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
+          )}
           <CampaignPlannerPage project={project} />
         </TabsContent>
         <TabsContent value="generate">
