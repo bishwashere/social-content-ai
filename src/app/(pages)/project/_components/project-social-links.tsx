@@ -90,8 +90,8 @@ function constructProfileUrl(provider: LinkedOAuthProvider): string | null {
       return pageName ? `https://www.tiktok.com/@${pageName.replace(/\s+/g, '')}` : null;
     
     case "instagram":
-      // Instagram is connected via Facebook, we don't have direct Instagram data yet
-      return null;
+      // Instagram stores username in pageName
+      return pageName ? `https://www.instagram.com/${pageName}` : null;
     
     default:
       return null;
