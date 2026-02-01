@@ -24,7 +24,31 @@ type MyEvent = {
   day?: number;
 }
 
-function EventInfo({ event }: { event: MyEvent }) {
+// Stable color per project – 12 vivid hues (orange/red style, no grays)
+const PROJECT_COLORS = [
+  "bg-red-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-emerald-500",
+  "bg-cyan-500",
+  "bg-blue-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
+  "bg-rose-500",
+  "bg-pink-500",
+] as const;
+
+function hashToColorIndex(str: string): number {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h) % PROJECT_COLORS.length;
+}
+
+function EventInfo({ event, compact = false }: { event: MyEvent; compact?: boolean }) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -34,19 +58,10 @@ function EventInfo({ event }: { event: MyEvent }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const getEventColor = () => {
-    if (event.type === 'scheduled') {
-      switch (event.status) {
-        case 'pending': return 'bg-blue-500';
-        case 'success': return 'bg-green-500';
-        case 'failed': return 'bg-red-500';
-        case 'processing': return 'bg-yellow-500';
-        default: return 'bg-blue-500';
-      }
-    } else if (event.type === 'planned') {
-      return 'bg-purple-500';
-    }
-    return 'bg-gray-500';
+  // One consistent color per project across all days (based on project name)
+  const getProjectColor = () => {
+    const key = event.projectName ?? event.title ?? "";
+    return PROJECT_COLORS[hashToColorIndex(key)] ?? "bg-gray-500";
   };
 
   const getEventIcon = () => {
@@ -58,15 +73,84 @@ function EventInfo({ event }: { event: MyEvent }) {
     return '📊';
   };
 
+  const displayName = event.projectName ?? event.title;
+
+  // Compact: small square tile for month view overflow (hoverable)
+  const compactTrigger = (
+    <div
+      className={`w-4 h-4 min-w-4 min-h-4 rounded-sm cursor-pointer shrink-0 hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 dark:hover:ring-gray-500 ${getProjectColor()}`}
+      title={displayName}
+    />
+  );
+
+  const sharedPopoverContent = (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{getEventIcon()}</span>
+        <div>
+          <p className="text-sm font-medium text-white">{displayName}</p>
+          {event.projectName && event.title !== event.projectName && (
+            <p className="text-xs text-white">{event.title}</p>
+          )}
+          {event.campaignName && (
+            <p className="text-xs text-white">Campaign: {event.campaignName}</p>
+          )}
+          {event.day && (
+            <p className="text-xs text-white">Day {event.day}</p>
+          )}
+        </div>
+      </div>
+      {event.type === 'scheduled' && (
+        <div className="space-y-1">
+          <Badge variant={event.status === 'success' ? 'default' : event.status === 'failed' ? 'destructive' : 'secondary'}>
+            {event.status}
+          </Badge>
+          {event.content && (
+            <p className="text-xs text-white line-clamp-3">{event.content}</p>
+          )}
+        </div>
+      )}
+      {event.type === 'planned' && (
+        <div className="space-y-1">
+          <Badge variant="secondary">Planned</Badge>
+          {event.content && (
+            <p className="text-xs text-white line-clamp-3">{event.content}</p>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-white font-medium">
+        {event.platforms?.join(', ')}
+      </p>
+    </div>
+  );
+
+  if (compact) {
+    return isMobile ? (
+      <Popover>
+        <PopoverTrigger asChild>{compactTrigger}</PopoverTrigger>
+        <PopoverContent className="w-50 bg-primary dark:bg-[hsl(215,44%,22%)]">
+          {sharedPopoverContent}
+        </PopoverContent>
+      </Popover>
+    ) : (
+      <Tooltip>
+        <TooltipTrigger asChild>{compactTrigger}</TooltipTrigger>
+        <TooltipContent className="w-80 dark:bg-[hsl(215,44%,22%)]">
+          {sharedPopoverContent}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
   if (isMobile) {
     // Mobile: Popover (click to open)
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className={`text-white text-[10px] rounded cursor-pointer truncate flex gap-2 items-center p-1 overflow-hidden ${getEventColor()}`}>
+          <div className={`text-white text-[10px] rounded cursor-pointer truncate flex gap-2 items-center p-1 overflow-hidden ${getProjectColor()}`}>
             <span>{getEventIcon()}</span>
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-              {event.title}
+              {displayName}
             </span>
             <div className="flex gap-1 flex-shrink-0">
               {event.platforms?.map((p: string) => (
@@ -82,9 +166,9 @@ function EventInfo({ event }: { event: MyEvent }) {
             <div className="flex items-center gap-2">
               <span className="text-lg">{getEventIcon()}</span>
               <div>
-                <p className="text-sm font-medium text-white">{event.title}</p>
-                {event.projectName && (
-                  <p className="text-xs text-white">{event.projectName}</p>
+                <p className="text-sm font-medium text-white">{displayName}</p>
+                {event.projectName && event.title !== event.projectName && (
+                  <p className="text-xs text-white">{event.title}</p>
                 )}
                 {event.campaignName && (
                   <p className="text-xs text-white">Campaign: {event.campaignName}</p>
@@ -125,10 +209,10 @@ function EventInfo({ event }: { event: MyEvent }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className={`text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center ${getEventColor()}`}>
+        <div className={`text-white text-xs p-1 rounded cursor-pointer truncate flex gap-2 items-center ${getProjectColor()}`}>
           <span>{getEventIcon()}</span>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-            {event.title}
+            {displayName}
           </span>
           <div className="flex gap-1">
             {event.platforms?.map((p: string) => (
@@ -144,9 +228,9 @@ function EventInfo({ event }: { event: MyEvent }) {
           <div className="flex items-center gap-2">
             <span className="text-lg">{getEventIcon()}</span>
             <div>
-              <p className="text-sm font-medium text-white">{event.title}</p>
-              {event.projectName && (
-                <p className="text-xs text-white">{event.projectName}</p>
+              <p className="text-sm font-medium text-white">{displayName}</p>
+              {event.projectName && event.title !== event.projectName && (
+                <p className="text-xs text-white">{event.title}</p>
               )}
               {event.campaignName && (
                 <p className="text-xs text-white">Campaign: {event.campaignName}</p>
@@ -367,7 +451,8 @@ function UnifiedCalendarView({
   
   // Calculate min height based on view
   const cellMinHeight = viewType === 'month' ? 'min-h-[100px]' : 'min-h-[120px]';
-  const maxEventsToShow = viewType === 'month' ? 2 : 3;
+  // Focus & week: show up to 7 tiles (no "+X more"); month: keep 2 + overflow text
+  const maxEventsToShow = viewType === 'month' ? 2 : 7;
   
   return (
     <div className="unified-calendar-view">
@@ -455,9 +540,11 @@ function UnifiedCalendarView({
                     {dayEvents.slice(0, maxEventsToShow).map((event, eventIndex) => (
                       <EventInfo key={eventIndex} event={event} />
                     ))}
-                    {dayEvents.length > maxEventsToShow && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
-                        +{dayEvents.length - maxEventsToShow} more
+                    {viewType === 'month' && dayEvents.length > maxEventsToShow && (
+                      <div className="flex flex-wrap gap-0.5 mt-0.5">
+                        {dayEvents.slice(maxEventsToShow).map((event, eventIndex) => (
+                          <EventInfo key={eventIndex} event={event} compact />
+                        ))}
                       </div>
                     )}
                   </div>
