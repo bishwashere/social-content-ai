@@ -10,7 +10,7 @@ import { Facebook } from "./facebook"
 import { Linkedin } from "./linkedin"
 import { Threads } from "./threads"
 import { Instagram } from "./instagram"
-import { useGetAllProjects } from "@/backend-apis/projects/hooks"
+import { useGetAllProjects, useGetProjectActivityScores } from "@/backend-apis/projects/hooks"
 import { useGetAllPlatformMetrics } from '@/backend-apis/metrics/hooks'
 import { useSession } from '@/backend-apis/auth/hooks'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -173,18 +173,23 @@ const AnalyticsTabs = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [timerange, setTimerange] = useState<number>(timeRangeOptions[0].value);
   const projects = useGetAllProjects();
+  const { data: activityScores } = useGetProjectActivityScores();
   const { data: session } = useSession();
 
-  useEffect(() => {
-    if (projects.data && projects.data.length > 0) {
-      const accessibleProjects = projects.data.filter(project => project.userRole === "admin" || project.userRole === "editor");
-      if (accessibleProjects.length > 0 && accessibleProjects[0]?.id) {
-        setSelectedProject(accessibleProjects[0].id);
-      }
-    }
-  }, [projects.data])
+  // Sort projects by recent activity (highest score first); fallback to original order
+  const accessibleProjects = useMemo(() => {
+    const list = projects.data?.filter(project => project.userRole === "admin" || project.userRole === "editor") || [];
+    const scores = Array.isArray(activityScores) ? activityScores : [];
+    if (!scores.length) return list;
+    const scoreMap = new Map(scores.map((s) => [s.projectId, s.score]));
+    return [...list].sort((a, b) => (scoreMap.get(b.id) ?? 0) - (scoreMap.get(a.id) ?? 0));
+  }, [projects.data, activityScores]);
 
-  const accessibleProjects = projects.data?.filter(project => project.userRole === "admin" || project.userRole === "editor") || [];
+  useEffect(() => {
+    if (accessibleProjects.length > 0 && accessibleProjects[0]?.id) {
+      setSelectedProject((current) => (current && accessibleProjects.some((p) => p.id === current) ? current : accessibleProjects[0].id));
+    }
+  }, [accessibleProjects])
 
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">

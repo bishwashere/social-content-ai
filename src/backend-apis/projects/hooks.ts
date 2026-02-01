@@ -13,8 +13,11 @@ import { useRouter } from "next/navigation";
 import { getAllDayProjectPulse, getProjectPulse, getWebsiteDescription } from "./actions";
 import tryCatchAsync from "@/lib/try-catch-async";
 import api from "../axios";
+import { apiRoutes } from "../routes";
 import { ApiError, ApiResponse } from "../types";
 import { useSession } from "../auth/hooks";
+
+export type ProjectActivityScore = { projectId: string; score: number };
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -48,6 +51,20 @@ export const useGetAllProjects = () => {
     queryKey: ["projects"],
     enabled: !sessionLoading && !sessionError && !!session, // Only fetch when authenticated
     retry: 0, // Don't retry on auth errors
+  });
+};
+
+export const useGetProjectActivityScores = () => {
+  const { data: session, isLoading: sessionLoading, isError: sessionError } = useSession();
+
+  return useQuery<ProjectActivityScore[]>({
+    queryKey: ["projects", "activity-scores"],
+    queryFn: async (): Promise<ProjectActivityScore[]> => {
+      const res = await api.get(apiRoutes.PROJECTS.ACTIVITY_SCORES());
+      const body = res.data as { data?: ProjectActivityScore[] };
+      return body.data ?? [];
+    },
+    enabled: !sessionLoading && !sessionError && !!session,
   });
 };
 

@@ -17,6 +17,7 @@ class ApiRoutes {
     TRACK: (id: string) => `/projects/${id}/track`,
     SUMMARY: () => "/projects/summary",
     INVITE: (id: string) => `/projects/${id}/invite`,
+    ACTIVITY_SCORES: () => "/projects/activity-scores",
   });
 
   PROJECT_FOLDERS = () => "/api/project-folders";
