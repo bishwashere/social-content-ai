@@ -999,7 +999,7 @@ export const editChatContent = async ({
   content: string;
   media?: string;
   scheduledPostId?: string; // If provided, update the scheduled post directly
-}): Promise<string | null> => {
+}): Promise<{ projectId: string; campaignId: string } | null> => {
   // Convert platform name for database (x -> twitter)
   const dbPlatform = platform === PLATFORM_IDS.X ? "twitter" : platform;
 
@@ -1019,8 +1019,8 @@ export const editChatContent = async ({
       },
     });
 
-    // Get the projectId to return for cache invalidation
-    return scheduledPost.projectId;
+    // Get the projectId and campaignId to return for cache invalidation
+    return { projectId: scheduledPost.projectId, campaignId };
   }
 
   // Otherwise, check if there's a scheduled post for this campaign/day/platform
@@ -1047,7 +1047,7 @@ export const editChatContent = async ({
       },
     });
 
-    return existingScheduledPost.projectId;
+    return { projectId: existingScheduledPost.projectId, campaignId };
   }
 
   // No scheduled post found, update the campaign chat
@@ -1081,7 +1081,7 @@ export const editChatContent = async ({
     },
   });
 
-  return updated.planner?.projectId || "";
+  return { projectId: updated.planner?.projectId || "", campaignId };
 };
 
 export const scheduleCampaignPosts = async ({
@@ -1206,6 +1206,8 @@ export const scheduleCampaignPosts = async ({
       const contents = (chat.contents as Record<string, string>) || {};
       const mediaRecord = (chat.media as Record<string, string>) || {};
 
+      console.log(`[scheduleCampaignPosts] Day ${chat.day} media:`, mediaRecord);
+
       // For each platform
       for (const platform of platforms) {
         const content = contents[platform];
@@ -1218,6 +1220,8 @@ export const scheduleCampaignPosts = async ({
         
         // Get media for this platform (if any)
         const platformMedia = mediaRecord[platform];
+        
+        console.log(`[scheduleCampaignPosts] Day ${chat.day}, Platform ${platform}: media =`, platformMedia);
         
         // Instagram requires media - skip scheduling if no media exists
         if (platform === PLATFORM_IDS.INSTAGRAM && !platformMedia) {

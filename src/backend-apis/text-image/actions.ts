@@ -8,24 +8,46 @@ import type { ReactNode } from "react";
 
 const IMAGE_SIZE = 1080; // Instagram square format
 
-// Fetch and cache the font for Satori
+// Fetch and cache font for Satori
 let fontDataCache: ArrayBuffer | null = null;
 
 async function getFontData(): Promise<ArrayBuffer> {
   if (fontDataCache) {
     return fontDataCache;
   }
-  
   // Use Inter font from Google Fonts (works reliably in serverless)
-  const fontUrl = "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.woff";
-  
+  const fontUrl =
+    "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.woff";
   const response = await fetch(fontUrl);
   if (!response.ok) {
     throw new Error(`Failed to fetch font: ${response.statusText}`);
   }
-  
   fontDataCache = await response.arrayBuffer();
   return fontDataCache;
+}
+
+/**
+ * Strip emoji and symbols that Inter doesn't support.
+ * Noto Color Emoji uses COLR/CPAL (no TrueType outlines), so opentype.js throws
+ * "Font doesn't contain TrueType or CFF outlines" if we load it. Strip these
+ * characters so the image generates with the rest of the text.
+ */
+function stripUnsupportedEmojiAndSymbols(text: string): string {
+  return (
+    text
+      // Use only newlines for line breaks; treat tabs as space
+      .replace(/\t/g, " ")
+      // Emoji & symbol blocks: pictographs, emoticons, symbols, dingbats, flags, variation selectors, ZWJ
+      .replace(
+        /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F1E0}-\u{1F1FF}\u{2300}-\u{23FF}\u{2B50}\u{203C}\u{2049}\u{2122}\u{2139}\u{2194}-\u{21AA}\u{231A}\u{231B}\u{23E9}-\u{23FA}\u{24C2}\u{25AA}-\u{25FE}\u{2614}\u{2615}\u{2618}\u{261D}\u{2620}\u{2622}\u{2623}\u{2626}\u{262A}\u{262E}\u{262F}\u{2638}-\u{263A}\u{2640}\u{2642}\u{2648}-\u{2653}\u{2660}\u{2663}\u{2665}\u{2666}\u{2668}\u{267B}\u{267E}\u{267F}\u{2692}-\u{2697}\u{2699}\u{269B}\u{269C}\u{26A0}\u{26A1}\u{26A7}\u{26AA}\u{26AB}\u{26B0}\u{26B1}\u{26BD}\u{26BE}\u{26C4}\u{26C5}\u{26C8}\u{26CE}\u{26CF}\u{26D1}\u{26D3}\u{26D4}\u{26E9}\u{26EA}\u{26F0}-\u{26FD}\u{2702}\u{2705}\u{2708}-\u{270D}\u{270F}\u{2712}\u{2714}\u{2716}\u{271D}\u{2721}\u{2728}\u{2733}\u{2734}\u{2744}\u{2747}\u{274C}\u{274E}\u{2753}-\u{2757}\u{2763}\u{2764}\u{2795}-\u{2797}\u{27A1}\u{27B0}\u{27B1}\u{27BF}\u{2934}\u{2935}\u{2B05}-\u{2B07}\u{2B1B}\u{2B1C}\u{3030}\u{303D}\u{3297}\u{3299}\u{FE0F}\u{200D}]/gu,
+        ""
+      )
+      // Collapse multiple spaces and trim each line
+      .replace(/  +/g, " ")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .join("\n")
+  );
 }
 
 /**
@@ -68,12 +90,41 @@ function calculateFontSize(text: string): number {
 
 /**
  * Generate PNG image buffer using Satori + Resvg (serverless-compatible)
+ * Splits text by newlines so each line is rendered on its own line.
  */
 async function generateImageBuffer(text: string, style: TextCardStyle): Promise<Buffer> {
-  const fontSize = calculateFontSize(text);
+  // Strip emoji/symbols that Inter can't render (avoids "Font doesn't contain TrueType or CFF outlines")
+  const safeText = stripUnsupportedEmojiAndSymbols(text);
+  const fontSize = calculateFontSize(safeText);
   const fontData = await getFontData();
   const gradient = parseGradient(style.background);
-  
+
+  // Split by newlines only – keep empty lines (do not filter) so blank lines show in the image
+  const lines = safeText.split(/\r?\n/).map((line) => line.trim());
+  // lines may contain "" for blank lines; we render them as nbsp below
+
+  // Content width: card minus padding 80 each side
+  const contentWidth = IMAGE_SIZE - 160;
+
+  const lineStyle = {
+    display: "block" as const,
+    textAlign: "center" as const,
+    maxWidth: contentWidth,
+    wordBreak: "break-word" as const,
+    fontSize,
+    fontWeight: 600,
+    color: style.textColor,
+  };
+
+  // Preserve empty lines: use non-breaking space so the line has height and isn't collapsed
+  const lineElements = lines.map((line) => ({
+    type: "div",
+    props: {
+      style: lineStyle,
+      children: line.length > 0 ? line : "\u00A0", // \u00A0 = nbsp, keeps empty line visible
+    },
+  }));
+
   // Create the React-like element structure for Satori
   const element = {
     type: "div",
@@ -85,7 +136,7 @@ async function generateImageBuffer(text: string, style: TextCardStyle): Promise<
         alignItems: "center",
         justifyContent: "center",
         padding: 80,
-        background: gradient.isGradient 
+        background: gradient.isGradient
           ? `linear-gradient(${gradient.angle}deg, ${gradient.color1}, ${gradient.color2})`
           : gradient.color1,
       },
@@ -98,13 +149,14 @@ async function generateImageBuffer(text: string, style: TextCardStyle): Promise<
             alignItems: "center",
             justifyContent: "center",
             textAlign: "center",
+            width: contentWidth, // fixed width so every line div is same width and centers
             fontSize: fontSize,
             fontWeight: 600,
             color: style.textColor,
             lineHeight: 1.4,
             wordBreak: "break-word",
           },
-          children: text,
+          children: lineElements,
         },
       },
     },
@@ -115,12 +167,7 @@ async function generateImageBuffer(text: string, style: TextCardStyle): Promise<
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     fonts: [
-      {
-        name: "Inter",
-        data: fontData,
-        weight: 600,
-        style: "normal",
-      },
+      { name: "Inter", data: fontData, weight: 600, style: "normal" },
     ],
   });
   

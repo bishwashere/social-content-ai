@@ -27,11 +27,21 @@ export async function GET(request: Request) {
       },
     });
 
+    console.log(`📊 [GET /api/scheduled-posts] Found ${scheduledPosts.length} posts for project ${projectId}`);
+    scheduledPosts.forEach((post, idx) => {
+      console.log(`   Post ${idx + 1}: platform=${post.platform}, media=${post.media ? 'YES (S3 key)' : 'NO'}, content=${post.content.substring(0, 30)}...`);
+    });
+
     // generate signed url for each post
     const withSignedUrl = await Promise.all(
       scheduledPosts.map(async (p) => {
-        if (!p.media) return p;
+        if (!p.media) {
+          console.log(`   No media for post ${p.id}, returning as-is`);
+          return p;
+        }
+        console.log(`   Converting S3 key to signed URL for post ${p.id}: ${p.media.substring(0, 50)}...`);
         const signedUrl = await s3.getSignedUrlForVideoDownload(p.media);
+        console.log(`   Signed URL generated: ${signedUrl.substring(0, 50)}...`);
         return {
           ...p,
           media: signedUrl,

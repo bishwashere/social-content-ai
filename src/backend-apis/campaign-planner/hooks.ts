@@ -473,10 +473,16 @@ export const useEditChatContent = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: editChatContent,
-    onSuccess: (projectId) => {
-      if (projectId) {
+    onSuccess: (result) => {
+      if (result) {
+        const { projectId, campaignId } = result;
+        // Invalidate campaign planner query
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner", projectId],
+        });
+        // Invalidate campaign chats query - this is crucial for showing the media after save
+        queryClient.invalidateQueries({
+          queryKey: ["campaignChats", campaignId],
         });
         // Also invalidate scheduled posts since we might be editing a scheduled post
         queryClient.invalidateQueries({

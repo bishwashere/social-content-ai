@@ -50,7 +50,7 @@ export const schedulePost = async (props: Props) => {
     }
 
     console.log(
-      `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${scheduledDate.toISOString()}`
+      `🔍 Scheduling post for projectId: ${props.projectId}, platform: ${props.platform}, date: ${scheduledDate.toISOString()}, media: ${props.media || 'NO MEDIA'}`
     );
 
     // Final database-level guardrail: Double-check date is not in the past before saving
@@ -75,6 +75,10 @@ export const schedulePost = async (props: Props) => {
         ...(props.meta && { meta: props.meta })
       },
     });
+
+    console.log(
+      `✅ Scheduled post created with ID: ${data.id}, media: ${data.media || 'NO MEDIA'}`
+    );
 
     if (!data) {
       console.log(

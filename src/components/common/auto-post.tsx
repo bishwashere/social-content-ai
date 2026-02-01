@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { useSession } from '@/backend-apis/auth/hooks'
 import { schedulePost } from '@/server-actions/schedule-post'
 import { DateTimePickerDialog } from './date-picker'
-import { Share2Icon } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { mapProjectToOAuthProvider } from '@/server-actions/map-project-oauth-provider'
@@ -245,7 +245,7 @@ const AutoPost = ({ platform, content, projectId, mediaUrl }: Props) => {
             <Button
               onClick={onClick}
               variant={"ghost"} size={"sm"}>
-              <Share2Icon />
+              <Send />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

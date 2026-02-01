@@ -2782,6 +2782,8 @@ export default function CampaignPlannerPage({ project }: Props) {
                                               const resolvedText = applyPlaceholders(text, projectPlaceholders);
                                               const scheduledInfo = (timeline.scheduledPlatforms as Record<string, { scheduledPostId: string; scheduledDate: Date; status: string }>)?.[platform];
                                               const isScheduled = !!scheduledInfo;
+                                              // Get media for this platform (S3 key for scheduling)
+                                              const platformMediaKey = (timeline.mediaKeys as Record<string, string>)?.[platform] || (timeline.media as Record<string, string>)?.[platform];
                                               return (
                                           <Card key={platform} className={cn("rounded-lg border mb-5", isScheduled && "border-green-500/50")}>
                                             <div className="flex flex-col gap-0">
@@ -2822,7 +2824,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                     projectId={project.id}
                                                     timelineDay={timeline.day}
                                                   />
-                                                  <AutoPost platform={platform} content={resolvedText} projectId={project.id} />
+                                                  <AutoPost platform={platform} content={resolvedText} projectId={project.id} mediaUrl={platformMediaKey} />
                                                   <Checkbox
                                                     key={platform}
                                                     checked={(timeline.tickMark as Record<string, boolean>)?.[platform] || false}
