@@ -168,32 +168,60 @@ const MiniProjectChart = ({ projectId, userId, timeRange = 30 }: { projectId: st
   );
 };
 
+// Map tab value to OAuth platform (lowercase) for filtering
+const TAB_TO_PLATFORM: Record<string, string> = {
+  Facebook: "facebook",
+  Instagram: "instagram",
+  Linkedin: "linkedin",
+  Threads: "threads",
+  Tiktok: "tiktok",
+};
+
 const AnalyticsTabs = () => {
 
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [timerange, setTimerange] = useState<number>(timeRangeOptions[0].value);
+  const [activeTab, setActiveTab] = useState<string>("all");
   const projects = useGetAllProjects();
   const { data: activityScores } = useGetProjectActivityScores();
   const { data: session } = useSession();
 
-  // Sort projects by recent activity (highest score first); fallback to original order
+  // Base list: projects user can access (admin or editor)
+  const baseAccessibleProjects = useMemo(() => {
+    return projects.data?.filter(project => project.userRole === "admin" || project.userRole === "editor") || [];
+  }, [projects.data]);
+
+  // On "All" show all accessible projects; on a platform tab show only projects that have that platform linked
   const accessibleProjects = useMemo(() => {
-    const list = projects.data?.filter(project => project.userRole === "admin" || project.userRole === "editor") || [];
+    let list = baseAccessibleProjects;
+    const platform = activeTab !== "all" ? TAB_TO_PLATFORM[activeTab] : null;
+    if (platform) {
+      list = list.filter((project) =>
+        project.projectToOAuthProviders?.some(
+          (p) => p.oauthProvider?.platform === platform
+        )
+      );
+    }
     const scores = Array.isArray(activityScores) ? activityScores : [];
     if (!scores.length) return list;
     const scoreMap = new Map(scores.map((s) => [s.projectId, s.score]));
     return [...list].sort((a, b) => (scoreMap.get(b.id) ?? 0) - (scoreMap.get(a.id) ?? 0));
-  }, [projects.data, activityScores]);
+  }, [baseAccessibleProjects, activityScores, activeTab]);
 
+  // When tab or filtered list changes, keep selectedProject in the list or pick first
   useEffect(() => {
     if (accessibleProjects.length > 0 && accessibleProjects[0]?.id) {
-      setSelectedProject((current) => (current && accessibleProjects.some((p) => p.id === current) ? current : accessibleProjects[0].id));
+      setSelectedProject((current) =>
+        current && accessibleProjects.some((p) => p.id === current) ? current : accessibleProjects[0].id
+      );
+    } else {
+      setSelectedProject(null);
     }
-  }, [accessibleProjects])
+  }, [accessibleProjects]);
 
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList>
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="Facebook">Facebook</TabsTrigger>
