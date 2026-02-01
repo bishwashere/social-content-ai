@@ -1920,9 +1920,15 @@ export default function CampaignPlannerPage({ project }: Props) {
                   date.setHours(0, 0, 0, 0);
                   return date >= today;
                 });
-                const firstUpcomingDay = firstUpcomingTimeline?.day;
+                                const firstUpcomingDay = firstUpcomingTimeline?.day;
 
-                // Calculate Loading and real progress bar
+                                // Campaign has scheduled posts if any loaded chat has scheduledPlatforms (from Schedule / shared)
+                                const hasScheduledPosts = (campaign.chats || []).some((chat: any) => {
+                                  const sp = chat.scheduledPlatforms as Record<string, unknown> | undefined;
+                                  return sp && Object.keys(sp).length > 0;
+                                });
+
+                                // Calculate Loading and real progress bar
                 const totalChats = campaign.chats.length;
                 // const loadedChats = campaign.chats.filter(chat =>
                 //   chat.contents && Object.keys(chat.contents).length > 0
@@ -2017,7 +2023,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                 className="z-30 flex items-center gap-2 border rounded-md px-3 py-1.5"
                               >
                                 <Switch
-                                  checked={campaign.autoPostEnabled || false}
+                                  checked={campaign.autoPostEnabled || hasScheduledPosts || false}
                                   onCheckedChange={async (checked) => {
                                     if (checked && !campaign.startDate) {
                                       toast.error("Please set a start date first");
