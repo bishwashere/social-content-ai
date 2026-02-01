@@ -441,8 +441,8 @@ export default function ModernLanding() {
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-32">
             <div className="text-center space-y-4">
               {/* Main heading */}
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white">
-                NextPostAI
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white">
+                NextPostAI<span className="text-xl md:text-2xl lg:text-3xl font-normal align-baseline opacity-80">.com</span>
               </h1>
 
               {/* Tagline */}
@@ -496,7 +496,7 @@ export default function ModernLanding() {
                     )}
                   </div>
                   <p className="text-sm md:text-base font-medium text-gray-300 px-4">
-                    <span className="text-white font-semibold">{stats?.totalUsers || 147}+</span> indie builders using NextPostAI
+                    <span className="text-white font-semibold">{stats?.totalUsers || 147}+</span> indie builders using NextPostAI<span className="text-xs opacity-90">.com</span>
                   </p>
                 </div>
               </div>
@@ -717,7 +717,7 @@ export default function ModernLanding() {
                   <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
                     <Check className="w-5 h-5 text-green-400" />
                   </div>
-                  With NextPostAI
+                  With NextPostAI<span className="text-sm font-normal opacity-90">.com</span>
                 </h3>
                 <ul className="space-y-4">
                   {[
@@ -755,7 +755,7 @@ export default function ModernLanding() {
               <div className="lg:w-1/2">
                 <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
                   <span className="text-white">Why Choose </span>
-                  <span className="gradient-text-accent">NextPostAI</span>
+                  <span className="gradient-text-accent">NextPostAI</span><span className="text-base md:text-lg lg:text-xl font-normal opacity-90">.com</span>
                   <span className="text-white">?</span>
                 </h2>
                 <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full mb-6" />
@@ -874,7 +874,7 @@ export default function ModernLanding() {
                     Mobile-Friendly <span className="gradient-text-accent">Design</span>
                   </h3>
                   <p className="text-gray-400 leading-relaxed">
-                    Access NextPostAI on any device. Whether you&apos;re on the go or at your desk, 
+                    Access NextPostAI<span className="text-sm opacity-90">.com</span> on any device. Whether you&apos;re on the go or at your desk, 
                     your marketing tools are always within reach.
                   </p>
                 </div>
@@ -1157,7 +1157,7 @@ export default function ModernLanding() {
                 <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
               </div>
               <p className="text-sm text-gray-500">
-                Copyright © 2026. All rights reserved. NextPostAI
+                Copyright © 2026. All rights reserved. NextPostAI<span className="text-xs opacity-90">.com</span>
               </p>
             </div>
           </div>

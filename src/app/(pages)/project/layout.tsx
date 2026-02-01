@@ -56,7 +56,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sidebarElementRef = useRef<HTMLElement | null>(null);
 
-  // Auto-minimize sidebar after 5 seconds of inactivity
+  // Auto-minimize sidebar after 50 seconds of inactivity
   useEffect(() => {
     // Don't auto-minimize during tours
     const isTourActive = showTour || showNavigationTour || showFoldersTour || showProjectsTour;
@@ -83,13 +83,13 @@ const Main = ({ children }: { children: React.ReactNode }) => {
         clearTimeout(inactivityTimerRef.current);
       }
 
-      // Set new timer to close sidebar after 5 seconds
+      // Set new timer to close sidebar after 50 seconds
       inactivityTimerRef.current = setTimeout(() => {
         // Double-check no tour is active before closing
         if (sidebar.open && !sidebar.isMobile && !isTourActive && !hasActiveTourOverlay()) {
           sidebar.setOpen(false);
         }
-      }, 5000); // 5 seconds
+      }, 50000); // 50 seconds
     };
 
     // Track user interactions
