@@ -771,10 +771,35 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
         data: [],
       };
     }
-    
-    const oauthProvider = await prisma.oauthProvider.findMany({
+
+    // Verify the user has access to the project (owner or invited editor)
+    const project = await prisma.projects.findUnique({
+      where: { id: projectId },
+      include: { invitedUsers: true },
+    });
+    if (!project) {
+      return {
+        success: false,
+        message: "Project not found",
+        data: [],
+      };
+    }
+    const isOwner = project.userId === userId;
+    const isInvited = project.invitedUsers.some((invite) => invite.userId === userId);
+    if (!isOwner && !isInvited) {
+      return {
+        success: false,
+        message: "You do not have permission to view this project",
+        data: [],
+      };
+    }
+
+    // Fetch all OAuth providers linked to this project (so both owner and editors see the same analytics)
+    const linkedProviders = await prisma.oauthProvider.findMany({
       where: {
-        userId,
+        projectToOAuthProviders: {
+          some: { projectId },
+        },
       },
       include: {
         pagePosts: true,
@@ -782,22 +807,6 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
       },
     });
 
-    console.log(`[getAllPlatformMetrics] Total OAuth providers: ${oauthProvider.length}`);
-
-    if (!oauthProvider || oauthProvider.length === 0) {
-      console.log(`[getAllPlatformMetrics] No OAuth providers found for user`);
-      return {
-        success: false,
-        message: "No social media accounts connected",
-        data: [],
-      };
-    }
-
-    // Filter providers linked to the selected project
-    const linkedProviders = oauthProvider.filter(provider => 
-      provider.projectToOAuthProviders.some(data => data.projectId === projectId)
-    );
-    
     console.log(`[getAllPlatformMetrics] Providers linked to project: ${linkedProviders.length}`);
     linkedProviders.forEach(p => {
       console.log(`  - ${p.platform} (${p.pageName}): ${p.pagePosts.length} posts`);
