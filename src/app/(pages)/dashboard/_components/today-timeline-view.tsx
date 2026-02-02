@@ -160,135 +160,13 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
       key: `scheduled-${post.id}`,
     })) || [];
     
-    // Get campaign planner content for today (only if not already scheduled)
-    const todayCampaignItems: Array<{
-      type: string;
-      projectName: string;
-      campaignName: string;
-      day: number;
-      key: string;
-      scheduledTime: Date | null;
-      platforms: string[];
-    }> = [];
-    
-    // Create a set of scheduled campaign keys to avoid duplicates
-    const todayScheduledCampaignKeys = new Set(
-      todayPosts
-        .filter(p => p.campaignName && p.day)
-        .map(p => `campaign-${p.projectName}-${p.campaignName}-${p.day}`)
-    );
-    
-    projects.data?.forEach((project) => {
-      (project.campaignPlanners || []).forEach((planner: any) => {
-        if (!planner.startDate) return;
-        const startDate = new Date(planner.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-        const todayChat = (planner.chats || []).find((chat: any) => chat.day === daysSinceStart + 1);
-        if (todayChat) {
-          const campaignKey = `campaign-${project.name}-${planner.name || 'Campaign'}-${todayChat.day}`;
-          // Only add if not already scheduled as a post
-          if (!todayScheduledCampaignKeys.has(campaignKey)) {
-            // Calculate scheduled time from autoPostTime if available
-            let scheduledTime: Date | null = null;
-            if (planner.autoPostTime && planner.autoPostEnabled) {
-              try {
-                const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
-                const targetDate = new Date(today);
-                targetDate.setHours(hours, minutes, 0, 0);
-                scheduledTime = targetDate;
-              } catch (e) {
-                // Invalid time format
-              }
-            }
-            
-            // Get platforms from autoPostPlatforms or fallback to platforms
-            const platforms = planner.autoPostPlatforms && planner.autoPostPlatforms.length > 0
-              ? planner.autoPostPlatforms
-              : (planner.platforms || []);
-            
-            todayCampaignItems.push({
-              type: 'campaign',
-              projectName: project.name,
-              campaignName: planner.name || 'Campaign',
-              day: todayChat.day,
-              key: campaignKey,
-              scheduledTime,
-              platforms,
-            });
-          }
-        }
-      });
-    });
-    
-    // Get campaign planner content for tomorrow (only if not already scheduled)
-    const tomorrowCampaignItems: Array<{
-      type: string;
-      projectName: string;
-      campaignName: string;
-      day: number;
-      key: string;
-      scheduledTime: Date | null;
-      platforms: string[];
-    }> = [];
-    
-    // Create a set of scheduled campaign keys to avoid duplicates
-    const tomorrowScheduledCampaignKeys = new Set(
-      tomorrowPosts
-        .filter(p => p.campaignName && p.day)
-        .map(p => `campaign-${p.projectName}-${p.campaignName}-${p.day}`)
-    );
-    
-    projects.data?.forEach((project) => {
-      (project.campaignPlanners || []).forEach((planner: any) => {
-        if (!planner.startDate) return;
-        const startDate = new Date(planner.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-        const tomorrowChat = (planner.chats || []).find((chat: any) => chat.day === daysSinceStart + 2);
-        if (tomorrowChat) {
-          const campaignKey = `campaign-${project.name}-${planner.name || 'Campaign'}-${tomorrowChat.day}`;
-          // Only add if not already scheduled as a post
-          if (!tomorrowScheduledCampaignKeys.has(campaignKey)) {
-            // Calculate scheduled time from autoPostTime if available
-            let scheduledTime: Date | null = null;
-            if (planner.autoPostTime && planner.autoPostEnabled) {
-              try {
-                const [hours, minutes] = planner.autoPostTime.split(":").map(Number);
-                const targetDate = new Date(tomorrow);
-                targetDate.setHours(hours, minutes, 0, 0);
-                scheduledTime = targetDate;
-              } catch (e) {
-                // Invalid time format
-              }
-            }
-            
-            // Get platforms from autoPostPlatforms or fallback to platforms
-            const platforms = planner.autoPostPlatforms && planner.autoPostPlatforms.length > 0
-              ? planner.autoPostPlatforms
-              : (planner.platforms || []);
-            
-            tomorrowCampaignItems.push({
-              type: 'campaign',
-              projectName: project.name,
-              campaignName: planner.name || 'Campaign',
-              day: tomorrowChat.day,
-              key: campaignKey,
-              scheduledTime,
-              platforms,
-            });
-          }
-        }
-      });
-    });
-    
     // Deduplicate items by key (in case same post appears multiple times)
     const deduplicatedToday = Array.from(
-      new Map([...todayPosts, ...todayCampaignItems].map(item => [item.key, item])).values()
+      new Map(todayPosts.map(item => [item.key, item])).values()
     );
     
     const deduplicatedTomorrow = Array.from(
-      new Map([...tomorrowPosts, ...tomorrowCampaignItems].map(item => [item.key, item])).values()
+      new Map(tomorrowPosts.map(item => [item.key, item])).values()
     );
     
     // Get scheduled times for today - extract from the already filtered todayPosts
@@ -353,7 +231,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
       todayScheduledTimes,
       tomorrowScheduledTimes
     };
-  }, [scheduledPosts.data, projects.data, today]);
+  }, [scheduledPosts.data, today]);
   
   // Extract trending projects (50+ recent impressions from last 3 days)
   const trendingProjects = useMemo(() => {
