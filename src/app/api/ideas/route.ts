@@ -6,6 +6,7 @@ import { validateIdeasAdminAuth } from "@/middlewares/validate-ideas-admin-auth"
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { prisma } from "@/lib/prisma";
+import { cleanDashes } from "@/lib/idea-content-cleaner";
 
 /**
  * GET /api/ideas
@@ -96,6 +97,9 @@ export const POST = applyMiddleware(
       });
     }
 
+    // Clean content before save (same as other cleaners, applied before publish)
+    const cleanedContent = cleanDashes(content);
+
     // Generate slug from title (used in URL: /api/ideas/title-of-post)
     const slug = title
       .toLowerCase()
@@ -121,7 +125,7 @@ export const POST = applyMiddleware(
         slug,
         title,
         summary: summary || "",
-        content,
+        content: cleanedContent,
         tags: tags || [],
         thumbnail: thumbnail || null,
         status: (status === "published" ? "published" : "draft") as "draft" | "published",

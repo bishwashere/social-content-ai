@@ -10,6 +10,7 @@ import {
   getAllIdeas,
 } from "@/lib/blogs"
 import { isIdeasAdminRequest } from "@/lib/ideas-admin-server"
+import { cleanDashes } from "@/lib/idea-content-cleaner"
 import { ArrowLeft, Calendar, Clock, ArrowRight, Eye } from "lucide-react"
 import { MDXRemote } from "next-mdx-remote/rsc"
 import remarkGfm from "remark-gfm"
@@ -142,9 +143,10 @@ export default async function IdeaPage({
     return processedLines.join('\n')
   }
 
-  // Process content: remove Quick Take, then process subheadings
+  // Process content: remove Quick Take, clean dashes, then process subheadings
   const contentWithoutQuickTake = removeQuickTake(idea.content)
-  const processedContent = processSubheadings(contentWithoutQuickTake)
+  const contentWithCleanDashes = cleanDashes(contentWithoutQuickTake)
+  const processedContent = processSubheadings(contentWithCleanDashes)
 
   return (
     <div className="min-h-screen bg-background">

@@ -7,6 +7,7 @@ import { CALL_NEXT_FUNCTION } from "@/middlewares/apply-middleware";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { prisma } from "@/lib/prisma";
+import { cleanDashes } from "@/lib/idea-content-cleaner";
 
 /**
  * Helper function to check if a string is a valid MongoDB ObjectID
@@ -86,7 +87,10 @@ export const PUT = applyMiddleware(
   catchApiAsyncError(async (req: NextRequest, params) => {
     const { id } = (params?.params || {}) as { id: string };
     const body = await req.json();
-    const { title, summary, content, tags, thumbnail, status, publishedAt, authorId } = body;
+    let { title, summary, content, tags, thumbnail, status, publishedAt, authorId } = body;
+
+    // Clean content before save (same as other cleaners, applied before publish)
+    if (content !== undefined) content = cleanDashes(content);
 
     // Find the idea - only check by id if it's a valid ObjectID, otherwise check by slug
     const existingIdea = await prisma.idea.findFirst({

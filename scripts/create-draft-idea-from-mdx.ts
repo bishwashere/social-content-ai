@@ -4,6 +4,7 @@
  * Example: npx tsx scripts/create-draft-idea-from-mdx.ts nextpostai-vs-buffer-2026.mdx
  */
 import { prisma } from "../src/lib/prisma";
+import { cleanDashes } from "../src/lib/idea-content-cleaner";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
@@ -48,6 +49,8 @@ async function main() {
     throw new Error("No users found in database. Create a user first.");
   }
 
+  const cleanedContent = cleanDashes(content.trim());
+
   const existing = await prisma.idea.findUnique({
     where: { slug },
   });
@@ -58,7 +61,7 @@ async function main() {
       data: {
         title,
         summary,
-        content: content.trim(),
+        content: cleanedContent,
         tags,
         thumbnail,
         status: status as "draft" | "published",
@@ -72,7 +75,7 @@ async function main() {
         slug,
         title,
         summary,
-        content: content.trim(),
+        content: cleanedContent,
         tags,
         thumbnail,
         status: status as "draft" | "published",
