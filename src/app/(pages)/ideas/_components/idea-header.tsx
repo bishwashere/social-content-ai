@@ -40,7 +40,7 @@ export function IdeaHeader({ slug: _slug, title }: IdeaHeaderProps) {
         </div>
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="sm">
-            <Link href="/project">Go to Dashboard</Link>
+            <Link href="/dashboard">Go to Dashboard</Link>
           </Button>
           <ThemeToggle />
         </div>

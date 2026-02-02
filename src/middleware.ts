@@ -19,6 +19,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
     pathname.includes(".") || // Skip files with extensions
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/project") ||
     (pathname.startsWith("/ideas") && !pathname.startsWith("/ideas/admin")) ||
     pathname.startsWith("/referral") ||

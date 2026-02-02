@@ -50,12 +50,12 @@ const SELECTED_PROJECT_KEY = "selectedProjectId";
 
 // Navigation items with accent colors (hrefs are base paths; project id is prepended when we have a selected project)
 const navItems = [
-  { href: "/project", label: "Today", icon: Home, accent: "from-violet-500 to-purple-600", exact: true },
-  { href: "/project/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", exact: false, discoverRoutes: ["/project/wall", "/project/templates"] },
-  { href: "/project/content-planner", label: "Content Planner", icon: Calendar, accent: "from-blue-500 to-cyan-500", exact: true },
-  { href: "/project/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", exact: false },
-  { href: "/project/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", exact: true },
-  { href: "/project/my-videos", label: "My Videos", icon: PlaySquare, accent: "from-fuchsia-500 to-pink-500", exact: true },
+  { href: "/dashboard", label: "Today", icon: Home, accent: "from-violet-500 to-purple-600", exact: true },
+  { href: "/dashboard/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", exact: false, discoverRoutes: ["/dashboard/wall", "/dashboard/templates"] },
+  { href: "/dashboard/content-planner", label: "Content Planner", icon: Calendar, accent: "from-blue-500 to-cyan-500", exact: true },
+  { href: "/dashboard/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", exact: false },
+  { href: "/dashboard/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", exact: true },
+  { href: "/dashboard/my-videos", label: "My Videos", icon: PlaySquare, accent: "from-fuchsia-500 to-pink-500", exact: true },
 ];
 
 interface ProjectSidebarProps {
@@ -82,7 +82,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
   // Get current project from URL (exclude section segments like wall, content-planner, etc.)
   const urlProjectId = React.useMemo(() => {
-    const match = pathname?.match(/\/project\/([^/?]+)/);
+    const match = pathname?.match(/\/project\/([^/?]+)/); // project detail pages stay at /project/[id]
     const segment = match ? match[1] : null;
     if (!segment || PROJECT_SECTION_SEGMENTS.has(segment)) return null;
     return segment;
@@ -117,9 +117,9 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
     if (item.discoverRoutes) {
       return item.discoverRoutes.some(route => pathname?.startsWith(route));
     }
-    if (item.href === "/project") {
-      // Today: active on /project or /project/{id} (when id is a project, not a section)
-      if (pathname === "/project") return true;
+    if (item.href === "/dashboard") {
+      // Today: active on /dashboard or /project/{id} (when id is a project, not a section)
+      if (pathname === "/dashboard") return true;
       const match = pathname?.match(/^\/project\/([^/?]+)/);
       return match ? !PROJECT_SECTION_SEGMENTS.has(match[1]) : false;
     }
@@ -469,10 +469,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
               const active = isNavActive(item);
               const Icon = item.icon;
               const refKey = getNavRef(item.label);
-              // Today: use selected project when we have one so the box stays in context
-              const href = item.href === "/project" && displayProjectId
-                ? `/project/${displayProjectId}`
-                : item.href;
+              const href = item.href;
 
               return (
                 <div

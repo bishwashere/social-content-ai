@@ -439,18 +439,18 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
   const ActionButtons = () => (
     <div className="flex flex-wrap gap-3">
       <Button asChild className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
-        <Link href="/project/video-maker">
+        <Link href="/dashboard/video-maker">
           <Sparkles className="w-4 h-4 mr-2" />
           Create Video
         </Link>
       </Button>
       <Button variant="outline" asChild>
-        <Link href="/project/wall">
+        <Link href="/dashboard/wall">
           Get Inspired
         </Link>
       </Button>
       <Button variant="outline" asChild>
-        <Link href="/project/content-planner">
+        <Link href="/dashboard/content-planner">
           <Calendar className="w-4 h-4 mr-2" />
           View Content Planner
         </Link>

@@ -223,7 +223,7 @@ const MyVideosPage = () => {
                 Create your first video using Create a Viral Video!
               </p>
               <Button
-                onClick={() => window.location.href = '/project/video-maker'}
+                onClick={() => window.location.href = '/dashboard/video-maker'}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
                 Create Video

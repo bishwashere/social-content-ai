@@ -165,14 +165,14 @@ export function GetStartedGuide() {
 
   const handleConnectSocials = () => {
     // Navigate to settings page to connect social accounts
-    router.push("/project/settings");
+    router.push("/dashboard/settings");
   };
 
   const handleCreatePost = () => {
     if (projects.data && projects.data.length > 0) {
       router.push(`/project/${projects.data[0].id}?tab=generate`);
     } else {
-      router.push("/project");
+      router.push("/dashboard");
     }
   };
 
@@ -180,7 +180,7 @@ export function GetStartedGuide() {
     if (projects.data && projects.data.length > 0) {
       router.push(`/project/${projects.data[0].id}?tab=campaign`);
     } else {
-      router.push("/project");
+      router.push("/dashboard");
     }
   };
 

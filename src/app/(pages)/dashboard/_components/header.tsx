@@ -66,7 +66,7 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
           </Button>
           {!sidebar.open && (
             <button
-              onClick={() => router.push("/project")}
+              onClick={() => router.push("/dashboard")}
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
               <Image
@@ -80,7 +80,7 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
           )}
           <div className="flex items-center gap-1">
             <button
-              onClick={() => router.push("/project")}
+              onClick={() => router.push("/dashboard")}
               className="truncate cursor-pointer hover:opacity-80 transition-opacity text-left"
             >
               {projects?.data?.find((project) => project.id === id)?.name ||
@@ -147,13 +147,13 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
                     <span>Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => router.push("/project/billing")}
+                    onClick={() => router.push("/dashboard/billing")}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Billing</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => router.push("/project/settings")}
+                    onClick={() => router.push("/dashboard/settings")}
                   >
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>

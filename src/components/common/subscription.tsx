@@ -11,7 +11,7 @@ const Subscription = () => {
   
   const handleClick = () => {
     // Navigate to billing page or open pricing modal
-    router.push("/project/billing");
+    router.push("/dashboard/billing");
   };
 
   // Calculate subscription status

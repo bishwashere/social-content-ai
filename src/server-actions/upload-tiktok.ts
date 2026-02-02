@@ -39,7 +39,7 @@ export const uploadToTiktok = async (id: string, providerId: string) => {
             where: { id: video.id },
             data: { isPublised: true }
         });
-        revalidatePath("/project/my-videos");
+        revalidatePath("/dashboard/my-videos");
         return { success: true, message: "Video Posted in Tiktok" };
     }
     else {

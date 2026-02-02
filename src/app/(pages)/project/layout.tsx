@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
-import { ProjectSidebar } from "./_components/project-sidebar";
-import { Header } from "./_components/header";
+import { ProjectSidebar } from "@/app/(pages)/dashboard/_components/project-sidebar";
+import { Header } from "@/app/(pages)/dashboard/_components/header";
 import { TooltipManagerProvider } from "@/providers/first-view-tooltip-manager";
 import { PricingModalProvider } from "@/providers/pricing-modal-provider";
 import { FocusProvider } from "@/providers/focus-provider";
@@ -12,7 +12,7 @@ import { DashboardTour } from "@/components/common/dashboard-tour";
 import { NavigationTour } from "@/components/common/navigation-tour";
 import { FoldersTour } from "@/components/common/folders-tour";
 import { ProjectsTour } from "@/components/common/projects-tour";
-import { Footer } from "./_components/footer";
+import { Footer } from "@/app/(pages)/dashboard/_components/footer";
 
 export default function ProjectLayout({
   children,
@@ -154,9 +154,9 @@ const Main = ({ children }: { children: React.ReactNode }) => {
   }, [sidebar.open, sidebar.isMobile, sidebar.setOpen, showTour, showNavigationTour, showFoldersTour, showProjectsTour]);
 
   const handleTourStart = () => {
-    // Navigate to /project first if not already there
-    if (pathname !== '/project') {
-      router.push('/project');
+    // Navigate to /dashboard first if not already there
+    if (pathname !== '/dashboard') {
+      router.push('/dashboard');
       // Wait for navigation to complete before starting tour
       setTimeout(() => {
         startTour();

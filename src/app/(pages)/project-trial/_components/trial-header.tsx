@@ -127,7 +127,7 @@ export function TrialHeader() {
 
             {/* Upgrade button */}
             <Button
-              onClick={() => router.push("/project/billing")}
+              onClick={() => router.push("/dashboard/billing")}
               className="hidden sm:inline-flex h-9 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-200"
             >
               Upgrade
@@ -173,14 +173,14 @@ export function TrialHeader() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="my-2 bg-slate-100 dark:bg-slate-800" />
                   <DropdownMenuItem 
-                    onClick={() => router.push("/project/billing")}
+                    onClick={() => router.push("/dashboard/billing")}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <CreditCard className="h-4 w-4 text-slate-500" />
                     <span>Billing</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => router.push("/project/settings")}
+                    onClick={() => router.push("/dashboard/settings")}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Settings className="h-4 w-4 text-slate-500" />

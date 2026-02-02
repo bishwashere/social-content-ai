@@ -10,7 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { viewWall } from "@/server-actions/view-wall";
 import Image from "next/image";
 import { Facebook, Twitter, Linkedin } from "lucide-react";
-import { NewsTrendingSection } from "@/app/(pages)/project/_components/news-trending";
+import { NewsTrendingSection } from "@/app/(pages)/dashboard/_components/news-trending";
 
 // Social media engagement icons - Subtle, non-interactive styling
 const LikeIcon = () => (

@@ -39,7 +39,7 @@ const EmailLogin = ({ onBackClick }: { onBackClick: () => void }) => {
         localStorage.setItem("nextpostai_token", res.data.bearerToken);
       }
 
-      router.replace("/project");
+      router.replace("/dashboard");
     } catch {}
   };
 

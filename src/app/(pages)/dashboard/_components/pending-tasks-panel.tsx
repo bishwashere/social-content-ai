@@ -58,7 +58,7 @@ export function PendingTasksPanel() {
         }
         break;
       case "assign_templates":
-        router.push("/project/templates");
+        router.push("/dashboard/templates");
         break;
     }
   };

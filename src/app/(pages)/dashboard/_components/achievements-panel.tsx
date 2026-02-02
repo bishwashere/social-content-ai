@@ -163,24 +163,24 @@ export function AchievementsPanel() {
         if (firstProjectId) {
           router.push(`/project/${firstProjectId}?tab=campaign`);
         } else {
-          router.push("/project");
+          router.push("/dashboard");
         }
         break;
       case "projectsWithScheduledPosts":
         if (firstProjectId) {
           router.push(`/project/${firstProjectId}?tab=scheduled`);
         } else {
-          router.push("/project");
+          router.push("/dashboard");
         }
         break;
       case "projectsWithVideos":
-        router.push("/project/my-videos");
+        router.push("/dashboard/my-videos");
         break;
       case "projectsWithTracking":
         if (firstProjectId) {
           router.push(`/project/${firstProjectId}?tab=analytics`);
         } else {
-          router.push("/project/analytics");
+          router.push("/dashboard/analytics");
         }
         break;
     }

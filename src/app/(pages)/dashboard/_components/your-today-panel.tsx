@@ -179,7 +179,7 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
         } else if (projects.data && projects.data.length > 0) {
           router.push(`/project/${projects.data[0].id}?tab=campaign`);
         } else {
-          router.push("/project");
+          router.push("/dashboard");
         }
         break;
       case "schedule_post":
@@ -188,11 +188,11 @@ export function YourTodayPanel({ achievements }: YourTodayPanelProps) {
         } else if (projects.data && projects.data.length > 0) {
           router.push(`/project/${projects.data[0].id}?tab=scheduled`);
         } else {
-          router.push("/project");
+          router.push("/dashboard");
         }
         break;
       case "open_project_videos":
-        router.push("/project/my-videos");
+        router.push("/dashboard/my-videos");
         break;
     }
   };

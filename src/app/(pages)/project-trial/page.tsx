@@ -32,7 +32,7 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import Loading from "@/components/common/loading";
 import { cn } from "@/lib/cn";
 import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
-import { NewsTrendingSection } from "@/app/(pages)/project/_components/news-trending";
+import { NewsTrendingSection } from "@/app/(pages)/dashboard/_components/news-trending";
 
 export default function ProjectTrialPage() {
   const router = useRouter();
@@ -97,10 +97,10 @@ export default function ProjectTrialPage() {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2">
-            <QuickAction href="/project/video-maker" icon={<Video className="h-4 w-4" />} label="Create Video" />
-            <QuickAction href="/project/templates" icon={<Sparkles className="h-4 w-4" />} label="Use Template" />
-            <QuickAction href="/project/content-planner" icon={<Calendar className="h-4 w-4" />} label="Content Planner" />
-            <QuickAction href="/project/analytics" icon={<BarChart3 className="h-4 w-4" />} label="Analytics" />
+            <QuickAction href="/dashboard/video-maker" icon={<Video className="h-4 w-4" />} label="Create Video" />
+            <QuickAction href="/dashboard/templates" icon={<Sparkles className="h-4 w-4" />} label="Use Template" />
+            <QuickAction href="/dashboard/content-planner" icon={<Calendar className="h-4 w-4" />} label="Content Planner" />
+            <QuickAction href="/dashboard/analytics" icon={<BarChart3 className="h-4 w-4" />} label="Analytics" />
           </div>
         </header>
 
@@ -249,7 +249,7 @@ export default function ProjectTrialPage() {
                     ))}
                     {projects.data.length > 5 && (
                       <Link
-                        href="/project"
+                        href="/dashboard"
                         className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors font-medium"
                       >
                         View all projects
@@ -507,7 +507,7 @@ function EmptyState() {
             asChild
             className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
           >
-            <Link href="/project/video-maker">
+            <Link href="/dashboard/video-maker">
               <Plus className="h-4 w-4 mr-2" />
               Create Content
             </Link>
@@ -517,7 +517,7 @@ function EmptyState() {
             variant="outline"
             className="rounded-xl border-slate-300 dark:border-slate-600"
           >
-            <Link href="/project/templates">
+            <Link href="/dashboard/templates">
               <Sparkles className="h-4 w-4 mr-2" />
               Browse Templates
             </Link>

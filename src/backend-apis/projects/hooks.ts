@@ -159,7 +159,7 @@ export const useDeleteProject = () => {
     },
     onSuccess: (message) => {
       toast.success(message);
-      router.push("/project");
+      router.push("/dashboard");
     },
     onError: (error) => {
       toast.error(error.message);

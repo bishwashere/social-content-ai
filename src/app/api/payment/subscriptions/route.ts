@@ -53,7 +53,7 @@ export const PUT = applyMiddleware(
     const portal = await stripe.stripe.billingPortal.sessions.create({
       customer: subscription.customerId || "",
       return_url:
-        process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/project/billing",
+        process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL + "/dashboard/billing",
     });
 
     return sendNextResponse({

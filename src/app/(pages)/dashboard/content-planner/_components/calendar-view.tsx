@@ -5,7 +5,7 @@ import { format, startOfWeek, addDays, subWeeks, endOfWeek, addWeeks, isSameDay,
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useGetAllProjects, useGetAllScheduledPosts } from "@/backend-apis/projects/hooks";
-import { PLATFORMS } from "../../[id]/_components/campaign-planner";
+import { PLATFORMS } from "@/app/(pages)/project/[id]/_components/campaign-planner";
 import { Badge } from "@/components/ui/badge";
 import { Filter, Check } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -820,8 +820,8 @@ export default function CalendarView() {
 
   // Reset to today when navigating back to calendar page
   useEffect(() => {
-    const isCalendarPage = pathname === "/project/content-planner";
-    const wasNotCalendarPage = previousPathnameRef.current && previousPathnameRef.current !== "/project/content-planner";
+    const isCalendarPage = pathname === "/dashboard/content-planner";
+    const wasNotCalendarPage = previousPathnameRef.current && previousPathnameRef.current !== "/dashboard/content-planner";
     
     // If we navigated from a different page to the calendar page, reset to today
     if (isCalendarPage && wasNotCalendarPage) {
@@ -835,7 +835,7 @@ export default function CalendarView() {
   // Reset to today when page becomes visible again (user switches back to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && pathname === "/project/content-planner") {
+      if (document.visibilityState === "visible" && pathname === "/dashboard/content-planner") {
         setDate(new Date());
       }
     };

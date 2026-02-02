@@ -150,7 +150,7 @@ export function QuickStatsCards() {
       color: "text-orange-600",
       bgColor: "bg-orange-50",
       description: "Total posts scheduled",
-      href: "/project/content-planner"
+      href: "/dashboard/content-planner"
     },
     {
       title: "Upcoming (7 days)",

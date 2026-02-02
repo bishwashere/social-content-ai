@@ -66,7 +66,7 @@ const GoogleLoginButton = ({
           localStorage.setItem("nextpostai_token", res.data.bearerToken);
         }
 
-        router.replace("/project");
+        router.replace("/dashboard");
       } catch {}
     },
     scope: "profile email",
@@ -95,7 +95,7 @@ const GoogleLoginButton = ({
         gotoDashboard ?? (
           <Button
             className={triggerClassName}
-            onClick={() => router.push("/project")}
+            onClick={() => router.push("/dashboard")}
           >
             {buttonText}
             <MoveRight className="scale-125" />

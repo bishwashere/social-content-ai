@@ -22,10 +22,10 @@ export default function CheckoutCanceled() {
 
         <div className="mt-6 flex gap-3">
           <Button asChild className="flex-1">
-            <Link href="/project">Continue</Link>
+            <Link href="/dashboard">Continue</Link>
           </Button>
           <Button asChild variant="outline" className="flex-1">
-            <Link href="/project/billing">View plans</Link>
+            <Link href="/dashboard/billing">View plans</Link>
           </Button>
         </div>
       </div>

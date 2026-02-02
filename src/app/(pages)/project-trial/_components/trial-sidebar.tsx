@@ -28,10 +28,10 @@ import {
 
 const nav = [
   { href: "/project-trial", label: "Today", icon: Home, accent: "from-violet-500 to-purple-600", discoverRoutes: undefined },
-  { href: "/project/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", discoverRoutes: ["/project/wall", "/project/templates"] },
-  { href: "/project/content-planner", label: "Content Planner", icon: Calendar, accent: "from-blue-500 to-cyan-500", discoverRoutes: undefined },
-  { href: "/project/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", discoverRoutes: undefined },
-  { href: "/project/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", discoverRoutes: undefined },
+  { href: "/dashboard/wall", label: "Discover", icon: Compass, accent: "from-amber-500 to-orange-500", discoverRoutes: ["/dashboard/wall", "/dashboard/templates"] },
+  { href: "/dashboard/content-planner", label: "Content Planner", icon: Calendar, accent: "from-blue-500 to-cyan-500", discoverRoutes: undefined },
+  { href: "/dashboard/analytics", label: "Analytics", icon: TrendingUp, accent: "from-emerald-500 to-teal-500", discoverRoutes: undefined },
+  { href: "/dashboard/video-maker", label: "Video Maker", icon: Video, accent: "from-indigo-500 to-violet-500", discoverRoutes: undefined },
 ];
 
 export function TrialSidebar() {
@@ -131,7 +131,7 @@ export function TrialSidebar() {
           isOpen ? "opacity-100" : "opacity-0"
         )}>
           <Link
-            href="/project/billing"
+            href="/dashboard/billing"
             className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200/50 dark:border-amber-800/30 group hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300"
           >
             <div className="p-2 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/25">

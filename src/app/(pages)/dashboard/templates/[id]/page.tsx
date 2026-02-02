@@ -87,7 +87,7 @@ export default function TemplateDetailPage() {
       <main className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-8 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
         <div className="text-center py-12">
           <p className="text-gray-500">Template not found</p>
-          <Button onClick={() => router.push("/project/templates")} className="mt-4">
+          <Button onClick={() => router.push("/dashboard/templates")} className="mt-4">
             Back to Templates
           </Button>
         </div>
@@ -101,7 +101,7 @@ export default function TemplateDetailPage() {
     <main className="flex-grow max-w-4xl mx-auto py-8 px-6 md:px-14 xl:px-20">
       <Button
         variant="ghost"
-        onClick={() => router.push("/project/templates")}
+        onClick={() => router.push("/dashboard/templates")}
         className="mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />

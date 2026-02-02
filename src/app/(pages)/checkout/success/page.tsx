@@ -208,7 +208,7 @@ export default function PaymentSuccess() {
               setIsMockLoading(true);
               setTimeout(() => {
                 setIsMockLoading(false);
-                router.push("/project");
+                router.push("/dashboard");
               }, 2000);
             }}
           >

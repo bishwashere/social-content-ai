@@ -502,11 +502,11 @@ function getActionHref(action: string, projectId?: string): string {
     case "generate_weekly_plan":
     case "manage_campaign":
     case "create_mini_campaign":
-      return projectId ? `/project/${projectId}?tab=campaign` : "/project";
+      return projectId ? `/project/${projectId}?tab=campaign` : "/dashboard";
     case "assign_templates":
-      return "/project/templates";
+      return "/dashboard/templates";
     default:
-      return projectId ? `/project/${projectId}` : "/project";
+      return projectId ? `/project/${projectId}` : "/dashboard";
   }
 }
 

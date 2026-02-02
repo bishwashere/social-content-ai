@@ -14,7 +14,7 @@ import { encryptTokenFields } from "@/backend-apis/encryption";
 export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
-    const redirectTo = url.searchParams.get("redirectTo") || `${process.env.NEXTAUTH_URL}/project`;
+    const redirectTo = url.searchParams.get("redirectTo") || `${process.env.NEXTAUTH_URL}/dashboard`;
 
     if (!code) {
         return NextResponse.redirect(redirectTo);

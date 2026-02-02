@@ -198,7 +198,7 @@ export default function LandingPage() {
               trigger={<Button className="rounded-2xl">Get Started</Button>}
               gotoDashboard={
                 <Button
-                  onClick={() => router.push("/project")}
+                  onClick={() => router.push("/dashboard")}
                   className="rounded-2xl"
                 >
                   Dashboard

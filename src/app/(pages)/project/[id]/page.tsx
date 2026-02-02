@@ -20,7 +20,7 @@ import { Media } from "./_components/media";
 import { ScheduledPosts } from "./_components/scheduled-posts";
 import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
-import AdvanceCustomization from "../_components/advance-customization";
+import AdvanceCustomization from "@/app/(pages)/dashboard/_components/advance-customization";
 
 const TAB_VALUES = ["generate", "campaign", "media", "scheduled"] as const;
 const STORAGE_KEY = "lastProjectTab";

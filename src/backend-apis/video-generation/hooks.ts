@@ -109,7 +109,7 @@ export const useGenerateVideo = () => {
       if (result.hasProjectContext) {
         router.back();
       } else {
-        router.push("/project/my-videos");
+        router.push("/dashboard/my-videos");
       }
     },
   });

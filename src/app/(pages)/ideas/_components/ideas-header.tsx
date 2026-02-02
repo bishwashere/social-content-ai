@@ -28,7 +28,7 @@ export function IdeasHeader() {
         </div>
         <div className="flex items-center gap-3 self-end md:self-auto">
           <Button asChild variant="outline" size="sm">
-            <Link href="/project">Go to Dashboard</Link>
+            <Link href="/dashboard">Go to Dashboard</Link>
           </Button>
           <ThemeToggle />
         </div>
