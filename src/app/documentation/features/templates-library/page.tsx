@@ -23,7 +23,10 @@ export default function TemplatesLibraryPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Access a library of proven content templates organized by category.
+              Access a library of proven content templates organized by category, all curated from the top performing posts on major platforms and displayed in Discover → Templates for easy exploration. Each template includes engagement context from the original post so you can see why it worked, which makes it easier to choose a format that fits your goals, audience, and channel. This library is not just a static catalog; it is the same pool of patterns our system can draw from when generating posts for campaigns, helping you publish content that is more likely to increase impressions after it goes live on your platform.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              When creating or refining a campaign, you can select any template as a starting point, swap in a custom template that matches your voice, and adjust the structure to your needs before publishing. Use the engagement signals, categories, and your own objectives to make a confident pick, then personalize the placeholders to align with your brand, message, and call-to-action.
             </p>
           </CardContent>
         </Card>
