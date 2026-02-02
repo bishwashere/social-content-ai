@@ -7,8 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/cn";
 import api from "@/backend-apis/axios";
 import { toast } from "sonner";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 export function FeatureRequestWidget() {
+  const { data: session, isLoading } = useSession();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +46,11 @@ export function FeatureRequestWidget() {
       setSubmitting(false);
     }
   };
+
+  // Only show feature request widget when user is logged in
+  if (isLoading || !session?.user) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">
