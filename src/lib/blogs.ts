@@ -64,6 +64,40 @@ export async function getIdeaBySlug(slug: string): Promise<IdeaPost | null> {
   }
 }
 
+/** Same as IdeaPost but publishedAt can be null for drafts (preview mode); id for admin edit link. */
+export type IdeaPostWithDraft = Omit<IdeaPost, "publishedAt"> & {
+  publishedAt: string | null;
+  id?: string;
+};
+
+/** Get idea by slug regardless of status (for admin preview). */
+export async function getIdeaBySlugIncludingDraft(
+  slug: string
+): Promise<IdeaPostWithDraft | null> {
+  try {
+    const idea = await prisma.idea.findFirst({
+      where: { slug },
+    });
+
+    if (!idea) {
+      return null;
+    }
+
+    return {
+      id: idea.id,
+      slug: idea.slug,
+      title: idea.title,
+      summary: idea.summary,
+      publishedAt: idea.publishedAt?.toISOString() ?? null,
+      tags: idea.tags,
+      thumbnail: idea.thumbnail || undefined,
+      content: idea.content,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getAllIdeas(): Promise<IdeaPost[]> {
   try {
     const ideas = await prisma.idea.findMany({

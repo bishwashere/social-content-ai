@@ -3,9 +3,16 @@ import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { getIdeaBySlug, getAllIdeaSlugs, getAllIdeas } from "@/lib/blogs"
-import { ArrowLeft, Calendar, Clock, ArrowRight } from "lucide-react"
+import {
+  getIdeaBySlug,
+  getIdeaBySlugIncludingDraft,
+  getAllIdeaSlugs,
+  getAllIdeas,
+} from "@/lib/blogs"
+import { isIdeasAdminRequest } from "@/lib/ideas-admin-server"
+import { ArrowLeft, Calendar, Clock, ArrowRight, Eye } from "lucide-react"
 import { MDXRemote } from "next-mdx-remote/rsc"
+import remarkGfm from "remark-gfm"
 import { IdeaCard } from "@/components/idea-card"
 import { IdeaHeader } from "../_components/idea-header"
 import { ShareButton } from "../_components/share-button"
@@ -20,9 +27,8 @@ const inter = Inter({
 })
 
 interface IdeaPageProps {
-  params: {
-    slug: string
-  }
+  params: { slug: string }
+  searchParams?: { preview?: string }
 }
 
 // Force dynamic rendering to always fetch fresh data from database
@@ -36,12 +42,24 @@ export async function generateStaticParams() {
   }))
 }
 
-export default async function IdeaPage({ params }: IdeaPageProps) {
-  const idea = await getIdeaBySlug(params.slug)
+export default async function IdeaPage({
+  params,
+  searchParams,
+}: IdeaPageProps) {
+  const { slug } = params
+  const isPreview =
+    searchParams?.preview === "true" && (await isIdeasAdminRequest())
+
+  const idea = isPreview
+    ? await getIdeaBySlugIncludingDraft(slug)
+    : await getIdeaBySlug(slug)
 
   if (!idea) {
     notFound()
   }
+
+  const isDraft = idea.publishedAt === null
+  const displayDate = idea.publishedAt ?? new Date().toISOString()
 
   // Get related posts (exclude current post, show 3 most recent)
   const allIdeas = await getAllIdeas()
@@ -131,6 +149,18 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <ReadingProgressBar />
+      {/* Preview banner for drafts */}
+      {isDraft && (
+        <div className="sticky top-0 z-50 flex items-center justify-center gap-2 bg-amber-500/90 text-amber-950 px-4 py-2 text-sm font-medium">
+          <Eye className="h-4 w-4 shrink-0" />
+          <span>Preview — This is a draft. Only you can see this.</span>
+          {"id" in idea && idea.id && (
+            <Button asChild variant="outline" size="sm" className="ml-2 border-amber-800 text-amber-950 hover:bg-amber-600/90">
+              <Link href={`/ideas/admin/${idea.id}/edit`}>Edit in Admin</Link>
+            </Button>
+          )}
+        </div>
+      )}
       {/* Header similar to /ideas */}
       <IdeaHeader slug={idea.slug} title={idea.title} />
 
@@ -138,9 +168,9 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
         <article className="max-w-4xl mx-auto">
           {/* Navigation */}
           <Button asChild variant="ghost" className="mb-8 -ml-4">
-            <Link href="/ideas">
+            <Link href={isDraft ? "/ideas/admin" : "/ideas"}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to All Posts
+              {isDraft ? "Back to Admin" : "Back to All Posts"}
             </Link>
           </Button>
 
@@ -152,27 +182,30 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
                 <div className="flex items-center gap-4">
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(idea.publishedAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}{" "}
-                    {new Date(idea.publishedAt).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                    {isDraft
+                      ? "Draft"
+                      : `${new Date(displayDate).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })} ${new Date(displayDate).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}`}
                   </Badge>
                   <Badge variant="outline" className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
                     <Clock className="w-3 h-3" />
                     {readingTime} min read
                   </Badge>
                 </div>
-                <ShareButton
-                  title={idea.title}
-                  url={`/ideas/${idea.slug}`}
-                  summary={idea.summary}
-                />
+                {!isDraft && (
+                  <ShareButton
+                    title={idea.title}
+                    url={`/ideas/${idea.slug}`}
+                    summary={idea.summary}
+                  />
+                )}
               </div>
               {idea.tags && idea.tags.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
@@ -207,24 +240,31 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
                        prose-table:my-6 prose-th:border prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:font-semibold
                        prose-td:border prose-td:px-4 prose-td:py-2
                        prose-img:rounded-lg prose-img:shadow-md`}>
-            <MDXRemote source={processedContent} />
+            <MDXRemote
+            source={processedContent}
+            options={{
+              mdxOptions: {
+                remarkPlugins: [remarkGfm],
+              },
+            }}
+          />
           </div>
 
           {/* Article Footer */}
           <footer className="mt-16 pt-8 border-t">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-muted-foreground">
-                Published on{" "}
-                {new Date(idea.publishedAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}{" "}
-                {new Date(idea.publishedAt).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                {isDraft
+                  ? "Draft — not published yet"
+                  : `Published on ${new Date(displayDate).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })} ${new Date(displayDate).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}`}
               </div>
               <div className="flex gap-2">
                 <Button asChild variant="outline">

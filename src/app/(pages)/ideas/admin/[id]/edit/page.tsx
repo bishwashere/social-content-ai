@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { X, Save, Send, Loader2 } from "lucide-react";
+import { X, Save, Send, Loader2, Eye } from "lucide-react";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -327,6 +328,14 @@ export default function EditIdeaPage() {
           </Card>
 
           <div className="flex justify-end gap-4">
+            {idea?.slug && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/ideas/${idea.slug}?preview=true`} target="_blank">
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview
+                </Link>
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"

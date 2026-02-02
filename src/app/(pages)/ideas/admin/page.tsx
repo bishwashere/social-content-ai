@@ -182,6 +182,30 @@ export default function AdminIdeasPage() {
     },
   });
 
+  // Publish mutation (draft → published from list)
+  const publishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const token = Cookies.get(IDEAS_ADMIN_TOKEN_COOKIE_NAME) || localStorage.getItem("nextpostai_ideas_admin_token") || "";
+      const response = await fetch(`/api/ideas/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "published" }),
+      });
+      if (!response.ok) throw new Error("Failed to publish idea");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-ideas"] });
+      toast.success("Published!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to publish");
+    },
+  });
+
   // Create idea mutation
   const createIdeaMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -441,27 +465,45 @@ export default function AdminIdeasPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {idea.status === "draft" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => publishMutation.mutate(idea.id)}
+                        disabled={publishMutation.isPending}
+                        title="Publish this draft"
+                      >
+                        {publishMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-1" />
+                            Publish
+                          </>
+                        )}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
                       asChild
+                      title="Edit"
                     >
                     <Link href={`/ideas/admin/${idea.id}/edit`}>
                       <Edit className="h-4 w-4" />
                     </Link>
                     </Button>
-                    {idea.status === "published" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                      >
-                        <Link href={`/ideas/${idea.slug}`} target="_blank">
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      title="Preview (draft or published)"
+                    >
+                      <Link href={`/ideas/${idea.slug}?preview=true`} target="_blank">
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
