@@ -3,10 +3,12 @@
  * Used before publish and when rendering, same as other cleaners (e.g. removeQuickTake).
  */
 
-/** Replace em dash (—), en dash (–), and double dash (--) with single hyphen with spaces. */
+/** All Unicode dash-like characters to normalize to " - " */
+const DASH_CHARS = /[\u2014\u2013\u2212\u2010\u2011]/g; // em dash, en dash, minus sign, hyphen, non-breaking hyphen
+
+/** Replace em dash (—), en dash (–), other dash chars, and double dash (--) with single hyphen with spaces. */
 export function cleanDashes(content: string): string {
   return content
-    .replace(/—/g, " - ")   // em dash
-    .replace(/–/g, " - ")   // en dash
-    .replace(/\s*--\s*/g, " - ");  // double dash (with optional surrounding spaces)
+    .replace(DASH_CHARS, " - ")           // all Unicode dash variants
+    .replace(/\s*--+\s*/g, " - ");       // two or more ASCII hyphens (with optional surrounding spaces)
 }

@@ -101,6 +101,13 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
     setStoredProjectId(window.localStorage.getItem(SELECTED_PROJECT_KEY));
   }, [pathname, urlProjectId]);
 
+  // Close project selector when requested (e.g. by campaign planner demo before campaign creation)
+  React.useEffect(() => {
+    const handler = () => setProjectSelectorOpen(false);
+    window.addEventListener("nextpostai:close-project-selector", handler);
+    return () => window.removeEventListener("nextpostai:close-project-selector", handler);
+  }, []);
+
   // Display project: from URL first, then from localStorage so the box shows project name on Today/Discover/etc.
   const displayProjectId = urlProjectId ?? storedProjectId;
 
@@ -253,6 +260,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                           </div>
                           <button
                             type="button"
+                            data-project-item="true"
+                            data-project-id={currentProject.id}
                             onClick={(e) => {
                               e.stopPropagation();
                               setProjectSelectorOpen(false);
@@ -383,6 +392,8 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                         </div>
                         <button
                           type="button"
+                          data-project-item="true"
+                          data-project-id={currentProject.id}
                           onClick={(e) => {
                             e.stopPropagation();
                             setProjectSelectorOpen(false);

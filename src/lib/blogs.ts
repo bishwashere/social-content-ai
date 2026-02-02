@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { cleanDashes } from "@/lib/idea-content-cleaner";
 
 // Convert title to URL-friendly slug
 function titleToSlug(title: string): string {
@@ -57,7 +58,7 @@ export async function getIdeaBySlug(slug: string): Promise<IdeaPost | null> {
       publishedAt: idea.publishedAt?.toISOString() || new Date().toISOString(),
       tags: idea.tags,
       thumbnail: idea.thumbnail || undefined,
-      content: idea.content, // Raw MDX/Markdown content
+      content: cleanDashes(idea.content), // clean dashes at read time so all consumers get consistent content
     };
   } catch {
     return null;
@@ -91,7 +92,7 @@ export async function getIdeaBySlugIncludingDraft(
       publishedAt: idea.publishedAt?.toISOString() ?? null,
       tags: idea.tags,
       thumbnail: idea.thumbnail || undefined,
-      content: idea.content,
+      content: cleanDashes(idea.content), // clean dashes at read time
     };
   } catch {
     return null;
@@ -116,7 +117,7 @@ export async function getAllIdeas(): Promise<IdeaPost[]> {
       publishedAt: idea.publishedAt?.toISOString() || new Date().toISOString(),
       tags: idea.tags,
       thumbnail: idea.thumbnail || undefined,
-      content: idea.content, // Raw MDX/Markdown content
+      content: cleanDashes(idea.content),
     }));
   } catch {
     return [];

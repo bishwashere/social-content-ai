@@ -12,6 +12,7 @@ import { requestValidator } from "@/middlewares/request-validator";
 import { validateUserAuth } from "@/middlewares/validate-auth";
 import { projectValidator, ProjectValidatorType } from "@/validators/projects";
 import { generateTextCardImageForQuickGenerate } from "@/backend-apis/text-image/actions";
+import { cleanAIGeneratedText } from "@/lib/clean-ai-text";
 
 /**
  * Helper to convert media S3 keys to signed URLs
@@ -94,11 +95,11 @@ export const POST = applyMiddleware(
         });
       }
 
-      // Clean up content: remove ** (markdown bold markers) from all platform content
+      // Clean up AI-generated content (bold, em/en dash, spacing, etc.)
       const cleanedContent: Record<string, string> = {};
       for (const [platform, content] of Object.entries(chatFromAI)) {
         if (typeof content === 'string') {
-          cleanedContent[platform] = content.replace(/\*\*/g, '');
+          cleanedContent[platform] = cleanAIGeneratedText(content);
         } else {
           cleanedContent[platform] = content;
         }
@@ -196,11 +197,11 @@ export const POST = applyMiddleware(
         });
       }
 
-      // Clean up content: remove ** (markdown bold markers) from all platform content
+      // Clean up AI-generated content (bold, em/en dash, spacing, etc.)
       const cleanedContent: Record<string, string> = {};
       for (const [platform, content] of Object.entries(chatFromAI)) {
         if (typeof content === 'string') {
-          cleanedContent[platform] = content.replace(/\*\*/g, '');
+          cleanedContent[platform] = cleanAIGeneratedText(content);
         } else {
           cleanedContent[platform] = content;
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "./_components/project-sidebar";
 import { Header } from "./_components/header";
@@ -53,6 +53,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
   const sidebar = useSidebar();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sidebarElementRef = useRef<HTMLElement | null>(null);
 
@@ -153,17 +154,25 @@ const Main = ({ children }: { children: React.ReactNode }) => {
     };
   }, [sidebar.open, sidebar.isMobile, sidebar.setOpen, showTour, showNavigationTour, showFoldersTour, showProjectsTour]);
 
-  const handleTourStart = () => {
-    // Navigate to /dashboard first if not already there
-    if (pathname !== '/dashboard') {
-      router.push('/dashboard');
-      // Wait for navigation to complete before starting tour
+  // When landing from project page with ?tour=dashboard, start tour after nav completes
+  useEffect(() => {
+    if (searchParams.get("tour") === "dashboard") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("tour");
+      const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+      router.replace(newUrl, { scroll: false });
+      sidebar.setOpen(true);
       setTimeout(() => {
-        startTour();
-      }, 500);
-    } else {
-      startTour();
+        if (subscribeRef.current) {
+          elementRefs.current.subscribe = subscribeRef.current;
+        }
+        setShowTour(true);
+      }, 400);
     }
+  }, [searchParams, pathname, router]);
+
+  const handleTourStart = () => {
+    startTour();
   };
 
   const startTour = () => {

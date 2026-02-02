@@ -154,16 +154,12 @@ const Main = ({ children }: { children: React.ReactNode }) => {
   }, [sidebar.open, sidebar.isMobile, sidebar.setOpen, showTour, showNavigationTour, showFoldersTour, showProjectsTour]);
 
   const handleTourStart = () => {
-    // Navigate to /dashboard first if not already there
-    if (pathname !== '/dashboard') {
-      router.push('/dashboard');
-      // Wait for navigation to complete before starting tour
-      setTimeout(() => {
-        startTour();
-      }, 500);
-    } else {
-      startTour();
+    // Navigate to /dashboard first if not already there (tour runs on dashboard after nav)
+    if (!pathname.startsWith('/dashboard')) {
+      router.push('/dashboard?tour=dashboard');
+      return;
     }
+    startTour();
   };
 
   const startTour = () => {

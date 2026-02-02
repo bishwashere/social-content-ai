@@ -282,6 +282,81 @@ type Props = {
   project: Projects;
 };
 
+function DemoChoiceDialog({
+  open,
+  onCountdownZero,
+  onSkip,
+}: {
+  open: boolean;
+  onCountdownZero: () => void;
+  onSkip: () => void;
+}) {
+  const [countdown, setCountdown] = useState(10);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setCountdown(10);
+    intervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          onCountdownZero();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- only run when open changes; onCountdownZero/onSkip are stable via ref
+
+  if (!open) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[70] bg-black/40" />
+      <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border px-6 py-5 shadow-lg">
+          <div className="text-base sm:text-lg font-semibold mb-1">
+            Plan your first campaign
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+            See how the campaign planner works in a few seconds.
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-slate-100 dark:bg-slate-800">
+              <span className="text-lg font-medium">
+                Watch demo ({countdown}s)
+              </span>
+            </div>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                if (intervalRef.current) {
+                  clearInterval(intervalRef.current);
+                  intervalRef.current = null;
+                }
+                onSkip();
+              }}
+            >
+              Skip and start creating
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function CampaignAutoplayOverlay({
   active,
   cursor,
@@ -655,8 +730,10 @@ export default function CampaignPlannerPage({ project }: Props) {
   const [demoHighlight, setDemoHighlight] = useState<DOMRect | null>(null);
   const [demoLabel, setDemoLabel] = useState<string>("");
   const [showPreDemoMessage, setShowPreDemoMessage] = useState(false); // New state for centered message BEFORE demo
+  const [showDemoChoiceDialog, setShowDemoChoiceDialog] = useState(false);
   const [showProjectLocationTour, setShowProjectLocationTour] = useState(false);
   const projectLocationTourShownRef = useRef(false);
+  const demoChoiceResolveRef = useRef<((choice: "watch" | "skip") => void) | null>(null);
   const showCampaignFormRef = useRef(showCampaignForm);
 
   useEffect(() => {
@@ -765,6 +842,13 @@ export default function CampaignPlannerPage({ project }: Props) {
 
     let cancelled = false;
     (async () => {
+      // When coming from onboarding, give FreeCreditsCongratsModal time to render.
+      // It's shown by PricingModalProvider when first project exists; without this
+      // delay the demo can start before the modal is in the DOM and blocks.
+      if (fromOnboarding) {
+        await sleep(600);
+      }
+
       console.log('[DEMO] Starting demo flow - waiting for blockers to clear');
       // IMPORTANT: Don't "start" the demo at all until blockers are gone.
       while (!cancelled && !demoCancelledRef.current && document.querySelector("[data-autoplay-blocker]")) {
@@ -791,22 +875,33 @@ export default function CampaignPlannerPage({ project }: Props) {
         console.error('[DEMO] Error parsing URL:', err);
       }
 
-      // If coming from onboarding, show project selection demo first
+      // Show demo choice dialog FIRST (Watch demo 10s or Skip) - before project selection
+      console.log('[DEMO] Showing demo choice dialog');
+      flushSync(() => {
+        setShowDemoChoiceDialog(true);
+      });
+      const choicePromise = new Promise<"watch" | "skip">((resolve) => {
+        demoChoiceResolveRef.current = (choice) => {
+          demoChoiceResolveRef.current = null;
+          resolve(choice);
+        };
+      });
+      const choice = await choicePromise;
+      flushSync(() => {
+        setShowDemoChoiceDialog(false);
+      });
+      if (demoCancelledRef.current) return;
+      if (choice === "skip") {
+        console.log('[DEMO] User skipped demo');
+        return;
+      }
+
+      // If coming from onboarding, show project selection demo
       if (shouldShowProjectSelection) {
         console.log('[DEMO] Coming from onboarding, showing project selection demo');
         
-        // Show welcome message
+        // Start animated demo (no "Creating your first campaign" message - user already chose to watch)
         flushSync(() => {
-          setShowPreDemoMessage(true);
-        });
-        
-        await sleep(2000);
-        
-        if (demoCancelledRef.current) return;
-        
-        // Hide message and start animated demo
-        flushSync(() => {
-          setShowPreDemoMessage(false);
           setDemoActive(true);
         });
         
@@ -837,14 +932,13 @@ export default function CampaignPlannerPage({ project }: Props) {
         
         if (!projectSelector) {
           console.error('[DEMO] Project selector not found');
-          setDemoActive(false);
         } else {
           await clickEl(projectSelector, "This is where you switch projects");
           await sleep(1500);
           
           if (demoCancelledRef.current) return;
           
-          // Step 3: Show the project in the list (but don't click it, just highlight)
+          // Step 3: Show the project in the list (Active Project or Switch list)
           console.log('[DEMO] Highlighting current project in list');
           const currentProjectButton = await waitFor(
             () => document.querySelector(`[data-project-item="true"][data-project-id="${projectId}"]`) as HTMLElement | null,
@@ -854,15 +948,15 @@ export default function CampaignPlannerPage({ project }: Props) {
           if (currentProjectButton) {
             await moveTo(currentProjectButton, `"${project?.name}" is your current project`);
             await sleep(2000);
-            
             if (demoCancelledRef.current) return;
-            
-            // Close the popover by clicking outside or pressing escape
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
-            await sleep(500);
           }
         }
+        
+        // Always close the project selector before continuing (works for 1 project or many)
+        const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+        document.dispatchEvent(escapeEvent);
+        window.dispatchEvent(new CustomEvent('nextpostai:close-project-selector'));
+        await sleep(500);
         
         // Stop the animated demo
         setDemoActive(false);
@@ -904,18 +998,9 @@ export default function CampaignPlannerPage({ project }: Props) {
 
       if (demoCancelledRef.current) return;
 
-      // Show centered message BEFORE starting demo
-      console.log('Setting showPreDemoMessage to true');
-      flushSync(() => {
-        setShowPreDemoMessage(true);
-      });
-      await sleep(3500); // Show centered message for 3.5 seconds
-      console.log('Hiding pre-demo message, starting actual demo');
-      flushSync(() => {
-        setShowPreDemoMessage(false);
-      });
-      
-      if (demoCancelledRef.current) return;
+      // Ensure project selector is closed before campaign creation demo
+      window.dispatchEvent(new CustomEvent('nextpostai:close-project-selector'));
+      await sleep(300);
 
       // NOW start the actual demo
       setDemoActive(true);
@@ -1476,6 +1561,11 @@ export default function CampaignPlannerPage({ project }: Props) {
 
   return (
     <div className="flex flex-col gap-2 items-center justify-center">
+      <DemoChoiceDialog
+        open={showDemoChoiceDialog}
+        onCountdownZero={() => demoChoiceResolveRef.current?.("watch")}
+        onSkip={() => demoChoiceResolveRef.current?.("skip")}
+      />
       {/* Pre-demo centered message - shows BEFORE demo starts */}
       {showPreDemoMessage && (
         <>

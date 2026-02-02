@@ -23,6 +23,7 @@
     "migrate:onboarding-settings": "npx tsx scripts/add-onboarding-settings-fields.ts",
     "migrate:ideas": "npx tsx scripts/migrate-ideas-to-db.ts",
     "idea:draft": "npx tsx scripts/create-draft-idea-from-mdx.ts",
+    "idea:clean-dashes": "npx tsx scripts/clean-idea-dashes.ts",
     "generate:ideas-admin": "npx tsx scripts/generate-ideas-admin-credentials.ts"
   },
   "dependencies": {
