@@ -34,6 +34,7 @@ model User {
   referralSignup    ReferralSignup?
   ideas             Idea[]
   newsPreferences   UserNewsPreferences?
+  featureRequests   FeatureRequest[]
 
   @@map("users")
 }
@@ -534,4 +535,16 @@ model UserNewsPreferences {
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user-news-preferences")
+}
+
+model FeatureRequest {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId
+  message   String
+  email     String?  // optional for anonymous submitters
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("feature-requests")
 }
