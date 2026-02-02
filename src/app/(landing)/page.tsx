@@ -12,6 +12,11 @@ const GoogleLoginButton = dynamic(
   { ssr: false }
 );
 
+const NewsletterPopup = dynamic(
+  () => import("@/components/common/newsletter-popup").then((m) => ({ default: m.NewsletterPopup })),
+  { ssr: false }
+);
+
 import {
   Sparkles,
   Zap,
@@ -323,6 +328,7 @@ export default function ModernLanding() {
 
   return (
     <>
+      <NewsletterPopup />
       <Script
         src="https://link.msgsndr.com/js/am.js"
         strategy="afterInteractive"

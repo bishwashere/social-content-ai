@@ -548,3 +548,12 @@ model FeatureRequest {
 
   @@map("feature-requests")
 }
+
+model NewsletterSubscription {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  source    String?  @default("landing") // landing, widget, etc.
+  createdAt DateTime @default(now())
+
+  @@map("newsletter-subscriptions")
+}

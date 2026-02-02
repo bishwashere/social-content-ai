@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import SessionProvider from "./session-provider";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { FeatureRequestWidget } from "@/components/common/feature-request-widget";
+import { NewsletterWidget } from "@/components/common/newsletter-widget";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ const RootProvider = ({ children }: Props) => {
         <SessionProvider>
           {children}
           <FeatureRequestWidget />
+          <NewsletterWidget />
           {process.env.NODE_ENV === "development" && <ReactQueryDevtools buttonPosition="bottom-left" />}
         </SessionProvider>
       </GoogleOAuthProvider>
