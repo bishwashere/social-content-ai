@@ -255,8 +255,8 @@ export default function ModernLanding() {
     },
     {
       step: "03",
-      title: "Generate Content",
-      description: "30 days of posts created instantly for all platforms.",
+      title: "Run on Autopilot",
+      description: "Posts go out every day on a planned schedule no reminders, no manual posting, no missed days.",
       image: "/how-it-works-step-3.png",
       tag: "AI does this",
       tagColor: "green",
