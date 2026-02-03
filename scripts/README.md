@@ -1,5 +1,19 @@
 # Test Scripts
 
+## Stripe Webhook Listener (Local Testing)
+
+Use this when Stripe CLI isn't installed via Homebrew (e.g. `stripe: command not found`).
+
+```bash
+./scripts/stripe-listen.sh
+```
+
+The script downloads Stripe CLI to `.stripe-cli/` on first run. On first use, you'll be prompted to log in via browser. Then it forwards webhooks to `localhost:3000/api/payment/stripe-webhook`.
+
+**Important:** Add the webhook signing secret (shown when the script runs) to your `.env` as `STRIPE_WEBHOOK_SECRET`.
+
+---
+
 ## Set all users to 100 tokens
 
 Tokens in this app are stored on the user record as `remainingChatGenerations`.

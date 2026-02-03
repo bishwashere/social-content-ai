@@ -407,9 +407,6 @@ export default function ModernLanding() {
                 <span className="text-white">How It </span>
                 <span className="gradient-text-accent">Works</span>
               </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                From idea to viral content in minutes, not hours
-              </p>
             </div>
 
             {/* Steps grid */}

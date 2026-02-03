@@ -17,6 +17,8 @@ const NewsletterPopup = dynamic(
   { ssr: false }
 );
 
+import { CircularFlowDiagram } from "@/components/circular-flow-diagram";
+
 import {
   Sparkles,
   Zap,
@@ -28,8 +30,6 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight,
   Check,
   X,
   MessageSquare,
@@ -87,7 +87,6 @@ export default function ModernLanding() {
   const [avatarCount, setAvatarCount] = useState(10);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
-  const [currentStep, setCurrentStep] = useState(0);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // Handle smooth scroll to section and close menu
@@ -233,41 +232,6 @@ export default function ModernLanding() {
       icon: Target,
       title: "Multi-Platform",
       description: "Create content for X, LinkedIn, Instagram, Facebook, and more.",
-    },
-  ];
-
-  const howItWorks = [
-    {
-      step: "01",
-      title: "Describe Your Product",
-      description: "Tell us what you're building and who it's for.",
-      image: "/how-it-works-step-1.png",
-      tag: "You do this",
-      tagColor: "blue",
-    },
-    {
-      step: "02",
-      title: "Get Your Strategy",
-      description: "AI generates a complete campaign plan with milestones.",
-      image: "/how-it-works-step-2.png",
-      tag: "AI does this",
-      tagColor: "green",
-    },
-    {
-      step: "03",
-      title: "Run on Autopilot",
-      description: "Posts go out every day on a planned schedule no reminders, no manual posting, no missed days.",
-      image: "/how-it-works-step-3.png",
-      tag: "AI does this",
-      tagColor: "green",
-    },
-    {
-      step: "04",
-      title: "Launch & Grow",
-      description: "Schedule, post, and watch your audience grow.",
-      image: "/how-it-works-step-4.png",
-      tag: "You do this",
-      tagColor: "blue",
     },
   ];
 
@@ -458,7 +422,7 @@ export default function ModernLanding() {
 
               {/* Subheading */}
               <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto leading-relaxed opacity-90 px-4">
-                Campaigns planned. Content scheduled. All done for you.
+                Create, publish, analyze, and improve → automatically.
               </p>
 
               {/* CTA Button */}
@@ -567,103 +531,11 @@ export default function ModernLanding() {
                 <span className="text-white">How It </span>
                 <span className="gradient-text-accent">Works</span>
               </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                From idea to viral content in minutes, not hours
-              </p>
             </div>
 
-            {/* Carousel - Show 2 at a time */}
+            {/* Circular flow diagram */}
             <div className="max-w-6xl mx-auto">
-              {/* Carousel with arrows */}
-              <div className="flex items-center gap-4">
-                {/* Left Arrow */}
-                <button
-                  onClick={() => setCurrentStep((prev) => (prev === 0 ? 1 : 0))}
-                  className="flex-shrink-0 w-12 h-12 rounded-full glass-card border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors group"
-                  aria-label="Previous step"
-                >
-                  <ChevronLeft className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
-                </button>
-
-                {/* Carousel Container */}
-                <div className="flex-1 overflow-hidden rounded-3xl">
-                  <div 
-                    className="flex transition-transform duration-500 ease-out"
-                    style={{ transform: `translateX(-${currentStep * 50}%)` }}
-                  >
-                    {howItWorks.map((item, index) => (
-                      <div
-                        key={index}
-                        className="w-1/2 flex-shrink-0 px-2"
-                      >
-                        <div className="glass-card rounded-3xl p-5 md:p-6 h-full">
-                          {/* Image */}
-                          <div className="relative rounded-2xl overflow-hidden mb-4">
-                            <Image
-                              src={item.image}
-                              width={500}
-                              height={400}
-                              alt={item.title}
-                              className="w-full h-40 md:h-48 object-cover"
-                            />
-                            <div className="absolute top-3 left-3 w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center text-lg font-bold shadow-lg">
-                              {item.step}
-                            </div>
-                          </div>
-                          
-                          {/* Content */}
-                          <div className="text-center">
-                            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-                              <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-medium">
-                                Step {item.step}
-                              </span>
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                item.tagColor === "blue" 
-                                  ? "bg-blue-500/20 text-blue-300" 
-                                  : "bg-green-500/20 text-green-300"
-                              }`}>
-                                {item.tag}
-                              </span>
-                            </div>
-                            <h3 className="text-lg md:text-xl font-bold text-white mb-2">{item.title}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed">{item.description}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right Arrow */}
-                <button
-                  onClick={() => setCurrentStep((prev) => (prev === 0 ? 1 : 0))}
-                  className="flex-shrink-0 w-12 h-12 rounded-full glass-card border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors group"
-                  aria-label="Next step"
-                >
-                  <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
-                </button>
-              </div>
-
-              {/* Dot Indicators - 2 positions for 4 items showing 2 at a time */}
-              <div className="flex justify-center gap-3 mt-8">
-                {[0, 1].map((index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentStep(index)}
-                    className={`h-3 rounded-full transition-all duration-300 ${
-                      currentStep === index 
-                        ? "bg-gradient-to-r from-purple-500 to-cyan-500 w-10" 
-                        : "bg-white/20 hover:bg-white/40 w-3"
-                    }`}
-                    aria-label={`View steps ${index * 2 + 1}-${index * 2 + 2}`}
-                  />
-                ))}
-              </div>
-
-              {/* Step indicator */}
-              <p className="text-center text-gray-500 mt-4 text-sm">
-                Showing steps <span className="text-purple-400 font-semibold">{currentStep * 2 + 1}-{currentStep * 2 + 2}</span> of 4
-              </p>
+              <CircularFlowDiagram />
             </div>
 
             {/* CTA */}

@@ -28,6 +28,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# Stripe CLI (downloaded by scripts/stripe-listen.sh)
+.stripe-cli
+
 # vercel
 .vercel
 
