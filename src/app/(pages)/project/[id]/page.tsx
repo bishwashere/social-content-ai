@@ -21,6 +21,7 @@ import { ScheduledPosts } from "./_components/scheduled-posts";
 import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
 import AdvanceCustomization from "@/app/(pages)/dashboard/_components/advance-customization";
+import { ProjectAnalyticsDashboard } from "./_components/project-analytics-dashboard";
 
 const TAB_VALUES = ["generate", "campaign", "media", "scheduled"] as const;
 const STORAGE_KEY = "lastProjectTab";
@@ -190,6 +191,10 @@ function ProjectPage() {
           {!isProjectLessThanOneDayOld && (
             <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
           )}
+          {/* Project Analytics Dashboard */}
+          <div className="mb-6">
+            <ProjectAnalyticsDashboard projectId={id as string} />
+          </div>
           <CampaignPlannerPage project={project} />
         </TabsContent>
         <TabsContent value="generate">

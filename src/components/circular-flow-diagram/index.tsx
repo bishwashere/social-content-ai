@@ -34,7 +34,7 @@ export function CircularFlowDiagram() {
   const entryGradientId = `entry-gradient-${id.replace(/:/g, "")}`;
 
   return (
-    <div className="circular-flow-diagram w-full min-w-0 max-w-[90vw] sm:max-w-md md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-auto px-2 sm:px-4 [&_svg]:text-[clamp(1.25rem,3vw,1.45rem)] sm:[&_svg]:text-[clamp(0.65rem,2.5vw,1.15rem)]">
+    <div className="circular-flow-diagram w-full min-w-0 max-w-[90vw] sm:max-w-md md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-auto px-2 sm:px-4 [&_svg]:text-[clamp(0.65rem,2.5vw,1.15rem)] sm:[&_svg]:text-[clamp(0.9rem,2.5vw,1.25rem)] md:[&_svg]:text-[clamp(1rem,2.5vw,1.35rem)] lg:[&_svg]:text-[clamp(1.1rem,2.5vw,1.45rem)]">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-auto min-h-[280px] sm:min-h-[320px] md:min-h-[360px]"
@@ -214,6 +214,7 @@ export function CircularFlowDiagram() {
           const isBottom = angle === 90;
           const isStep2 = angle === 270; // Primary highlight — the engine (top)
           const lineHeight = isStep2 ? 20 : 14;
+          const lineGap = "1.15em";
           const badgeHeight = 16;
           const badgeWidth = 72;
           const stepNumWidth = 48;
@@ -294,22 +295,22 @@ export function CircularFlowDiagram() {
                   textRendering: "optimizeLegibility",
                 }}
               >
-                {isStep2 ? (
-                  <>
-                    <tspan x={pos.x} dy={0} fill={`url(#${step2GradientId})`}>
-                      NextPost AI generates
-                    </tspan>
-                    <tspan x={pos.x} dy={lineHeight} fill={`url(#${step2GradientId})`}>
-                      your campaign
-                    </tspan>
-                  </>
-                ) : (
-                  lines.map((line, i) => (
-                    <tspan key={i} x={pos.x} dy={i === 0 ? 0 : lineHeight} fill="#cbd5e1">
-                      {line}
-                    </tspan>
-                  ))
-                )}
+                  {isStep2 ? (
+                    <>
+                      <tspan x={pos.x} dy={0} fill={`url(#${step2GradientId})`}>
+                        NextPost AI generates
+                      </tspan>
+                      <tspan x={pos.x} dy={lineGap} fill={`url(#${step2GradientId})`}>
+                        your campaign
+                      </tspan>
+                    </>
+                  ) : (
+                    lines.map((line, i) => (
+                      <tspan key={i} x={pos.x} dy={i === 0 ? 0 : lineGap} fill="#cbd5e1">
+                        {line}
+                      </tspan>
+                    ))
+                  )}
               </text>
             </g>
           );

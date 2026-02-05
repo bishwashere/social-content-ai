@@ -61,6 +61,7 @@ model Projects {
   scheduledPosts          ScheduledPost[]
   pulseMetrics            ProjectPulse[]
   projectFolderItems      ProjectFolderItem[]
+  analytics               ProjectAnalytics[]
 
   @@map("projects")
 }
@@ -122,6 +123,7 @@ model CampaignPlanner {
   blogNewsMetadata  Json? // Store Blog News metadata (topics, angles, webhook) at campaign level
   totalDays         Int? // Total number of days in the campaign (calculated from chats)
   chats             CampaignChat[] @relation("PlannerChats")
+  analytics         CampaignAnalytics[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -556,4 +558,75 @@ model NewsletterSubscription {
   createdAt DateTime @default(now())
 
   @@map("newsletter-subscriptions")
+}
+
+model CampaignAnalytics {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  campaignId          String   @db.ObjectId
+  projectId           String   @db.ObjectId
+  
+  // Time period
+  periodStart         DateTime
+  periodEnd           DateTime
+  calculatedAt        DateTime @default(now())
+  
+  // Overall metrics
+  totalPosts          Int      @default(0)
+  totalLikes          Int      @default(0)
+  totalComments       Int      @default(0)
+  totalShares         Int      @default(0)
+  totalImpressions    Int      @default(0)
+  avgEngagementRate   Float    @default(0)
+  
+  // Best performers
+  bestPostingHour     Int?     // 0-23
+  bestDayOfWeek       Int?     // 0-6 (Sunday-Saturday)
+  bestPlatform        String?
+  
+  // Platform breakdown (JSON)
+  platformMetrics     Json     @default("{}") // { "twitter": { likes: 100, ... }, "linkedin": {...} }
+  
+  // Content insights (JSON)
+  contentPatterns     Json     @default("{}") // { "questionsPerformBetter": true, "optimalLength": 280, ... }
+  
+  createdAt           DateTime @default(now())
+  
+  campaign CampaignPlanner? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@map("campaign-analytics")
+  @@index([campaignId])
+  @@index([projectId])
+}
+
+model ProjectAnalytics {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId           String   @db.ObjectId
+  
+  // Time period
+  periodStart         DateTime
+  periodEnd           DateTime
+  calculatedAt        DateTime @default(now())
+  
+  // Aggregated metrics
+  totalPosts          Int      @default(0)
+  totalCampaigns      Int      @default(0)
+  avgEngagementRate   Float    @default(0)
+  
+  // Insights for new campaigns
+  recommendedTime     String?  // "14:00"
+  recommendedPlatforms String[] @default([])
+  contentSuggestions  Json     @default("{}") // { "useQuestions": true, "optimalLength": 280, ... }
+  
+  // Trend analysis
+  engagementTrend     String?  // "improving", "stable", "declining"
+  
+  // Campaign suggestions (JSON array)
+  campaignSuggestions Json     @default("[]") // AI-generated campaign ideas
+  
+  createdAt           DateTime @default(now())
+  
+  project Projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("project-analytics")
+  @@index([projectId])
 }

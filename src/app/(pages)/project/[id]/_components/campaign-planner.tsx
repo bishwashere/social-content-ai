@@ -79,6 +79,7 @@ import {
   PLATFORMS_WITH_MEDIA_SUPPORT,
   type PlatformId 
 } from "@/constants/platforms";
+import { CampaignAnalyticsSummary } from "./campaign-analytics-summary";
 
 // Component to display blog from ScheduledPost (where Python saves it)
 function BlogNewsDayContent({ 
@@ -2408,6 +2409,11 @@ export default function CampaignPlannerPage({ project }: Props) {
                     <div>
                       {isOpen && (
                         <>
+                          {/* Campaign Analytics Summary */}
+                          <div className="ml-0 md:ml-32 px-4 mb-6">
+                            <CampaignAnalyticsSummary campaignId={campaign.id} />
+                          </div>
+
                           <div className="flex ml-0 md:ml-32 px-4">
                             <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="w-full rounded-lg border mb-5">
                               {showPast ? "Hide Past Days" : "Show Past Days"}
