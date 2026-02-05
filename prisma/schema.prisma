@@ -630,3 +630,69 @@ model ProjectAnalytics {
   @@map("project-analytics")
   @@index([projectId])
 }
+
+model BrandDiscovery {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId             String   @db.ObjectId
+  
+  // Product Information
+  brandName             String
+  productDescription    String
+  features              String[] @default([])
+  heroPersona           String?
+  benefits              String[] @default([])
+  buyerQuestions        String[] @default([])
+  
+  // Competition
+  competitors           String[] @default([])
+  competitiveDiff       String?
+  
+  // Social Proof
+  testimonials          String[] @default([])
+  proofPoints           String[] @default([])
+  
+  // Customer Insights
+  customerDescription   String?
+  dreamOutcome          String?
+  jobsToBeDone          String[] @default([])
+  challenges            String[] @default([])
+  emotionalBenefits     String[] @default([])
+  transformations       String[] @default([])
+  perceptions           String[] @default([])
+  alternatives          String[] @default([])
+  alternativesDiff      String?
+  lifeEvents            String[] @default([])
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  adCreatives           AdCreative[]
+  
+  @@map("brand-discoveries")
+  @@index([projectId])
+}
+
+model AdCreative {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  brandDiscoveryId      String   @db.ObjectId
+  
+  // Ad Details
+  angle                 String   // e.g., "Social Proof", "Problem/Solution", etc.
+  imageDescription      String
+  imageCopy             String
+  headline              String
+  primaryText           String
+  
+  // Metadata
+  platform              String   @default("facebook")
+  status                String   @default("draft") // draft, active, paused
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  brandDiscovery        BrandDiscovery @relation(fields: [brandDiscoveryId], references: [id], onDelete: Cascade)
+  
+  @@map("ad-creatives")
+  @@index([brandDiscoveryId])
+  @@index([angle])
+}

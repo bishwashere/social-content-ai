@@ -34,7 +34,6 @@ import {
   X,
   MessageSquare,
   Shield,
-  Smartphone,
   ArrowRight,
   Bot,
   Brain,
@@ -54,7 +53,6 @@ const SECTION_TITLES: Record<string, string> = {
   benefits: "Who Can Benefit? | NextPostAI",
   pricing: "Pricing | NextPostAI",
   cta: "Ready to Save 10+ Hours & Launch Smarter? | NextPostAI",
-  faq: "Frequently Asked Questions | NextPostAI",
 };
 
 // Navigation menu items
@@ -64,7 +62,6 @@ const NAV_ITEMS = [
   // { label: "Testimonials", href: "#testimonials" },
   { label: "Who Can Benefit", href: "#benefits" },
   { label: "Pricing", href: "#pricing" },
-  { label: "FAQ", href: "#faq" },
 ];
 
 interface UserAvatar {
@@ -80,7 +77,6 @@ interface LandingStats {
 }
 
 export default function ModernLanding() {
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [stats, setStats] = useState<LandingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
@@ -185,33 +181,6 @@ export default function ModernLanding() {
     return () => titleObserver.disconnect();
   }, []);
 
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M+";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K+";
-    return num.toString() + "+";
-  };
-
-  const statData = [
-    {
-      title: "Creators on the Platform",
-      value: loadingStats ? "146+" : formatNumber(stats?.totalUsers || 146),
-      description: "Indie devs & founders",
-      icon: Users,
-    },
-    {
-      title: "Campaigns Launched",
-      value: loadingStats ? "47+" : formatNumber(stats?.totalCampaigns || 47),
-      description: "Full marketing strategies",
-      icon: BarChart3,
-    },
-    {
-      title: "Posts Generated",
-      value: loadingStats ? "1.2K+" : formatNumber(stats?.totalContentCreated || 1200),
-      description: "AI-powered content in seconds",
-      icon: Rocket,
-    },
-  ];
-
   const features = [
     {
       icon: Brain,
@@ -255,21 +224,6 @@ export default function ModernLanding() {
   //     quote: "The campaign timelines helped me organize my entire product launch.",
   //   },
   // ];
-
-  const faqs = [
-    {
-      question: "Is NextPostAI suitable for all social media platforms?",
-      answer: "Yes, it supports Facebook, LinkedIn, X, Instagram, Reddit, and Threads with platform-specific optimization.",
-    },
-    {
-      question: "Can I customize the AI-generated content?",
-      answer: "Absolutely! You can edit and tailor the content to fit your brand voice, tone, and style.",
-    },
-    {
-      question: "Do I get free posts to try it out?",
-      answer: "Yes, new users get 100 free posts to experience the platform before subscribing.",
-    },
-  ];
 
   const benefits = [
     {
@@ -471,38 +425,6 @@ export default function ModernLanding() {
                 </div>
               </div>
 
-              {/* Stats Section */}
-              <div className="pt-16">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                  {statData.map((stat, index) => {
-                    const Icon = stat.icon;
-                    
-                    return (
-                      <div
-                        key={index}
-                        className="glass-card rounded-2xl p-6 text-center cursor-pointer group"
-                      >
-                        <div className="flex justify-center mb-4">
-                          <div className="icon-glow w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                            <Icon className="w-6 h-6 text-purple-400 group-hover:text-purple-300 transition-colors" />
-                          </div>
-                        </div>
-                        <div className="stat-value text-3xl lg:text-4xl font-bold text-white mb-2">
-                          {stat.value}
-                        </div>
-                        <p className="text-purple-300 font-medium mb-1">{stat.title}</p>
-                        <p className="text-gray-400 text-sm">{stat.description}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full pulse-live" />
-                  <p className="text-xs text-gray-500">
-                    <span className="text-green-400 font-semibold">Live.</span> Real numbers from real users - updated live.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -619,60 +541,6 @@ export default function ModernLanding() {
           </div>
         </section>
 
-        {/* Divider */}
-        <div className="section-divider" />
-
-        {/* Features Section */}
-        <section
-          id="features"
-          ref={(el) => { sectionRefs.current["features"] = el }}
-          className="relative py-24 lg:py-32"
-        >
-          <div className={`max-w-7xl mx-auto px-6 reveal ${isVisible["features"] ? "visible" : ""}`}>
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="lg:w-1/2">
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-                  <span className="text-white">Why Choose </span>
-                  <span className="gradient-text-accent">NextPostAI</span><span className="text-base md:text-lg lg:text-xl font-normal opacity-90">.com</span>
-                  <span className="text-white">?</span>
-                </h2>
-                <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full mb-6" />
-                <p className="text-gray-400 text-lg mb-8">
-                  Everything you need to launch and grow your product with consistent, 
-                  engaging content - without the marketing headache.
-                </p>
-                <Image
-                  src="/tmp0u5_noks.webp"
-                  width={400}
-                  height={400}
-                  alt="AI Marketing"
-                  className="hidden lg:block max-w-sm"
-                />
-              </div>
-
-              <div className="lg:w-1/2 grid gap-6">
-                {features.map((feature, idx) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div
-                      key={idx}
-                      className="feature-card glass-card rounded-2xl p-6 flex gap-5"
-                    >
-                      <div className="icon-glow w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-7 h-7 text-purple-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
-                        <p className="text-gray-400">{feature.description}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Divider - commented out with testimonials */}
         {/* <div className="section-divider" /> */}
 
@@ -734,51 +602,33 @@ export default function ModernLanding() {
         </section>
         */}
 
-        {/* Mobile & Privacy Section */}
+        {/* Privacy Section */}
         <section
           id="trust"
           ref={(el) => { sectionRefs.current["trust"] = el }}
           className="relative py-24 lg:py-32"
         >
-          <div className={`max-w-7xl mx-auto px-6 reveal ${isVisible["trust"] ? "visible" : ""}`}>
-            <div className="grid md:grid-cols-2 gap-16">
-              {/* Mobile Friendly */}
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
-                  <Smartphone className="w-12 h-12 text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="text-3xl font-bold text-white mb-3">
-                    Mobile-Friendly <span className="gradient-text-accent">Design</span>
-                  </h3>
-                  <p className="text-gray-400 leading-relaxed">
-                    Access NextPostAI<span className="text-sm opacity-90">.com</span> on any device. Whether you&apos;re on the go or at your desk, 
-                    your marketing tools are always within reach.
-                  </p>
-                </div>
-              </div>
-
+          <div className={`max-w-4xl mx-auto px-6 reveal ${isVisible["trust"] ? "visible" : ""}`}>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8">
               {/* Privacy */}
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-12 h-12 text-green-400" />
-                </div>
-                <div>
-                  <h3 className="text-3xl font-bold gradient-text-accent mb-3">
-                    Privacy <span className="text-white">& Security</span>
-                  </h3>
-                  <ul className="text-gray-400 space-y-2">
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-400" /> 100% free to start
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-400" /> Upgrade later for pro features
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-400" /> 30-second signup
-                    </li>
-                  </ul>
-                </div>
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
+                <Shield className="w-12 h-12 text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-3xl font-bold gradient-text-accent mb-3">
+                  Privacy <span className="text-white">& Security</span>
+                </h3>
+                <ul className="text-gray-400 space-y-2">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-400" /> 100% free to start
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-400" /> Upgrade later for pro features
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-400" /> 30-second signup
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
@@ -976,51 +826,6 @@ export default function ModernLanding() {
             <p className="text-gray-400 text-sm mt-6">
               No card required. Upgrade anytime.
             </p>
-          </div>
-        </section>
-
-        {/* Divider */}
-        <div className="section-divider" />
-
-        {/* FAQ Section */}
-        <section
-          id="faq"
-          ref={(el) => { sectionRefs.current["faq"] = el }}
-          className="relative py-24 lg:py-32"
-        >
-          <div className="max-w-3xl mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold mb-2">
-                <span className="text-white">Frequently </span>
-                <span className="gradient-text-accent">Asked Questions</span>
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {faqs.map((faq, idx) => (
-                <div
-                  key={idx}
-                  className={`faq-item rounded-2xl overflow-hidden ${openFaq === idx ? "open" : ""}`}
-                >
-                  <button
-                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                    className="w-full p-6 text-left flex items-center justify-between gap-4 bg-white/5 hover:bg-white/10 transition-colors"
-                  >
-                    <span className="font-semibold text-white">{faq.question}</span>
-                    {openFaq === idx ? (
-                      <ChevronUp className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    )}
-                  </button>
-                  {openFaq === idx && (
-                    <div className="px-6 pb-6 text-gray-300">
-                      {faq.answer}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
