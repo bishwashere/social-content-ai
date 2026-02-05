@@ -22,7 +22,7 @@ import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
 import AdvanceCustomization from "@/app/(pages)/dashboard/_components/advance-customization";
 import { ProjectAnalyticsDashboard } from "./_components/project-analytics-dashboard";
-import { ProjectTools } from "./_components/project-tools";
+import { ProjectTools } from "./_components/project-tools-stepbystep";
 
 const TAB_VALUES = ["generate", "campaign", "media", "scheduled", "tools"] as const;
 const STORAGE_KEY = "lastProjectTab";

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Sparkles, Loader2, CheckCircle } from "lucide-react";
+import { Search, Sparkles, Loader2, CheckCircle, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProjectToolsProps {
@@ -48,6 +48,7 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAds, setGeneratedAds] = useState<AdCreative[]>([]);
   const [showAdsDialog, setShowAdsDialog] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const [formData, setFormData] = useState<FormData>({
     brandName: "",
@@ -77,6 +78,196 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
     const newArray = [...currentArray];
     newArray[index] = value;
     setFormData({ ...formData, [field]: newArray });
+  };
+
+  // Define all questions in order
+  const questions = [
+    {
+      id: "brandName",
+      section: "📦 YOUR PRODUCT",
+      question: "What is your brand name?",
+      required: true,
+      type: "text",
+      placeholder: "Enter your brand name"
+    },
+    {
+      id: "productDescription",
+      section: "📦 YOUR PRODUCT",
+      question: "Describe the product or service in one sentence:",
+      required: true,
+      type: "text",
+      placeholder: "One sentence description"
+    },
+    {
+      id: "features",
+      section: "📦 YOUR PRODUCT",
+      question: "What are the product's main features?",
+      type: "array",
+      count: 3,
+      placeholder: "Feature"
+    },
+    {
+      id: "heroPersona",
+      section: "📦 YOUR PRODUCT",
+      question: "Who is your Hero Persona (what specific persona are you marketing to)?",
+      type: "textarea",
+      placeholder: "Describe your target persona..."
+    },
+    {
+      id: "benefits",
+      section: "📦 YOUR PRODUCT",
+      question: "What are the product's main benefits?",
+      type: "array",
+      count: 3,
+      placeholder: "Benefit"
+    },
+    {
+      id: "buyerQuestions",
+      section: "📦 YOUR PRODUCT",
+      question: "What are the main questions someone might ask about the product?",
+      type: "array",
+      count: 3,
+      placeholder: "Question"
+    },
+    {
+      id: "competitors",
+      section: "🎯 COMPETITION",
+      question: "List your top 3 competitors",
+      type: "array",
+      count: 3,
+      placeholder: "Competitor"
+    },
+    {
+      id: "competitiveDiff",
+      section: "🎯 COMPETITION",
+      question: "How is your product different or better than your competitors?",
+      type: "textarea",
+      placeholder: "Explain your unique advantages..."
+    },
+    {
+      id: "testimonials",
+      section: "⭐ SOCIAL PROOF",
+      question: "Paste 3 Testimonials Here",
+      type: "array",
+      count: 3,
+      placeholder: "Testimonial",
+      isTextarea: true
+    },
+    {
+      id: "proofPoints",
+      section: "⭐ SOCIAL PROOF",
+      question: "What proof do you have that your product works?",
+      type: "array",
+      count: 3,
+      placeholder: "Proof point (e.g., 10,000+ users)"
+    },
+    {
+      id: "customerDescription",
+      section: "👥 YOUR CUSTOMERS",
+      question: "How would you describe your customer?",
+      type: "textarea",
+      placeholder: "Describe your ideal customer..."
+    },
+    {
+      id: "dreamOutcome",
+      section: "👥 YOUR CUSTOMERS",
+      question: "What is their dream outcome once they buy your product?",
+      type: "text",
+      placeholder: "I wish that I could __ so that __"
+    },
+    {
+      id: "jobsToBeDone",
+      section: "👥 YOUR CUSTOMERS",
+      question: "What job(s) are they hiring the product to do?",
+      type: "array",
+      count: 3,
+      placeholder: "Job"
+    },
+    {
+      id: "challenges",
+      section: "👥 YOUR CUSTOMERS",
+      question: "What problems will the product solve for them?",
+      type: "array",
+      count: 3,
+      placeholder: "Challenge"
+    },
+    {
+      id: "emotionalBenefits",
+      section: "👥 YOUR CUSTOMERS",
+      question: "What 3 emotional benefits does the product give them?",
+      type: "array",
+      count: 3,
+      placeholder: "Emotional benefit (e.g., confidence)"
+    },
+    {
+      id: "transformations",
+      section: "👥 YOUR CUSTOMERS",
+      question: "How will their life change once they buy the product?",
+      type: "array",
+      count: 3,
+      placeholder: "Transformation"
+    },
+    {
+      id: "perceptions",
+      section: "👥 YOUR CUSTOMERS",
+      question: "How will others perceive them once they have the product?",
+      type: "array",
+      count: 3,
+      placeholder: "Perception"
+    },
+    {
+      id: "alternatives",
+      section: "👥 YOUR CUSTOMERS",
+      question: "What other solutions have they tried?",
+      type: "array",
+      count: 3,
+      placeholder: "Alternative"
+    },
+    {
+      id: "alternativesDiff",
+      section: "👥 YOUR CUSTOMERS",
+      question: "How is your product better than the alternatives?",
+      type: "textarea",
+      placeholder: "Explain how you're better..."
+    },
+    {
+      id: "lifeEvents",
+      section: "👥 YOUR CUSTOMERS",
+      question: "Are there specific life events that typically trigger a purchase?",
+      type: "array",
+      count: 3,
+      placeholder: "Life event"
+    },
+  ];
+
+  const currentQuestion = questions[currentStep];
+  const totalSteps = questions.length;
+  const isLastStep = currentStep === totalSteps - 1;
+
+  const handleNext = () => {
+    if (isLastStep) {
+      handleSubmit();
+    } else {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const canProceed = () => {
+    const question = currentQuestion;
+    const value = formData[question.id as keyof FormData];
+    
+    if (question.required) {
+      if (typeof value === 'string') {
+        return value.trim() !== '';
+      }
+    }
+    return true;
   };
 
   const handleSubmit = async () => {

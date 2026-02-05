@@ -146,27 +146,30 @@ const GoogleLoginButton = ({
               </Button>
 
               <div className="mt-6 flex flex-col gap-3">
-                <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5" />
                     <span>Encrypted Connection</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <Link 
+                    href="/privacy" 
+                    className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                  >
                     <Shield className="w-3.5 h-3.5" />
                     <span>Privacy Protected</span>
+                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>No credit card required</span>
                   </div>
+                  <Link 
+                    href="/terms" 
+                    className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Terms</span>
+                  </Link>
                 </div>
-                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>No credit card required</span>
-                </div>
-              </div>
-
-              <div className="mt-2 text-xs text-muted-foreground text-center">
-                By continuing, you agree to our{" "}
-                <Link href={"/privacy"} className="underline">
-                  Terms of Service and Privacy Policy.
-                </Link>
               </div>
             </div>
           </>

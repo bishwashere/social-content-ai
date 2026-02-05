@@ -24,10 +24,6 @@ import {
   Zap,
   Calendar,
   Target,
-  TrendingUp,
-  Users,
-  Rocket,
-  BarChart3,
   ChevronDown,
   ChevronUp,
   Check,
@@ -50,7 +46,6 @@ const SECTION_TITLES: Record<string, string> = {
   features: "Why Choose NextPostAI?",
   // testimonials: "Testimonials | NextPostAI",
   trust: "Mobile-Friendly Design | NextPostAI",
-  benefits: "Who Can Benefit? | NextPostAI",
   pricing: "Pricing | NextPostAI",
   cta: "Ready to Save 10+ Hours & Launch Smarter? | NextPostAI",
 };
@@ -60,7 +55,6 @@ const NAV_ITEMS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Why NextPostAI", href: "#features" },
   // { label: "Testimonials", href: "#testimonials" },
-  { label: "Who Can Benefit", href: "#benefits" },
   { label: "Pricing", href: "#pricing" },
 ];
 
@@ -80,7 +74,7 @@ export default function ModernLanding() {
   const [stats, setStats] = useState<LandingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
-  const [avatarCount, setAvatarCount] = useState(10);
+  const [avatarCount, setAvatarCount] = useState(15);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -98,11 +92,11 @@ export default function ModernLanding() {
   useEffect(() => {
     const updateAvatarCount = () => {
       if (window.innerWidth < 640) {
-        setAvatarCount(6);
+        setAvatarCount(11);
       } else if (window.innerWidth < 768) {
-        setAvatarCount(8);
+        setAvatarCount(13);
       } else {
-        setAvatarCount(10);
+        setAvatarCount(15);
       }
     };
 
@@ -224,25 +218,6 @@ export default function ModernLanding() {
   //     quote: "The campaign timelines helped me organize my entire product launch.",
   //   },
   // ];
-
-  const benefits = [
-    {
-      audience: "Entrepreneurs",
-      description: "Launch with confidence using AI-backed strategies",
-    },
-    {
-      audience: "Marketers",
-      description: "Plan campaigns, not just posts",
-    },
-    {
-      audience: "Influencers",
-      description: "Promote offers, collabs, or content drops",
-    },
-    {
-      audience: "Small Businesses",
-      description: "Build brand presence with structured promotion",
-    },
-  ];
 
   return (
     <>
@@ -381,14 +356,27 @@ export default function ModernLanding() {
 
               {/* CTA Button */}
               <div className="flex flex-col items-center justify-center gap-11 pt-10">
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center gap-4">
                   <GoogleLoginButton 
                     triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
                     buttonText="Start Free with 100 Posts"
                   />
-                  <p className="text-gray-400 text-sm mt-2">
-                    No card required. Upgrade anytime.
-                  </p>
+                  
+                  {/* Trust Badges */}
+                  <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                      <Shield className="w-4 h-4 text-green-400" />
+                      <span>Encrypted Connection</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                      <Shield className="w-4 h-4 text-green-400" />
+                      <span>Privacy Protected</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span>No credit card required</span>
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Avatars Section */}
@@ -606,7 +594,7 @@ export default function ModernLanding() {
         <section
           id="trust"
           ref={(el) => { sectionRefs.current["trust"] = el }}
-          className="relative py-24 lg:py-32"
+          className="relative py-12 lg:py-16"
         >
           <div className={`max-w-4xl mx-auto px-6 reveal ${isVisible["trust"] ? "visible" : ""}`}>
             <div className="flex flex-col md:flex-row items-center justify-center gap-8">
@@ -634,39 +622,6 @@ export default function ModernLanding() {
           </div>
         </section>
 
-        {/* Divider */}
-        <div className="section-divider" />
-
-        {/* Who Can Benefit */}
-        <section
-          id="benefits"
-          ref={(el) => { sectionRefs.current["benefits"] = el }}
-          className="relative py-24 lg:py-32"
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-transparent to-transparent" />
-          
-          <div className={`relative z-10 max-w-4xl mx-auto px-6 text-center reveal ${isVisible["benefits"] ? "visible" : ""}`}>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-12">
-              <span className="text-white">Who Can </span>
-              <span className="gradient-text-accent">Benefit?</span>
-            </h2>
-
-            <div className="grid sm:grid-cols-2 gap-6">
-              {benefits.map((benefit, idx) => (
-                <div key={idx} className="glass-card rounded-2xl p-6 text-left flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                    <TrendingUp className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-lg">{benefit.audience}</p>
-                    <p className="text-gray-400">{benefit.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Pricing Section */}
         <section
           id="pricing"
@@ -689,31 +644,40 @@ export default function ModernLanding() {
                 Start free, upgrade when you&apos;re ready
               </p>
               
-              {/* Billing Toggle */}
-              <div className="inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20">
-                <button
-                  onClick={() => setBillingPeriod("monthly")}
-                  className={`rounded-full px-6 py-2.5 text-sm font-medium transition-all ${
-                    billingPeriod === "monthly"
-                      ? "bg-white text-gray-900 shadow-lg"
-                      : "text-gray-300 hover:text-white"
-                  }`}
-                >
-                  Monthly
-                </button>
-                <button
-                  onClick={() => setBillingPeriod("yearly")}
-                  className={`rounded-full px-6 py-2.5 text-sm font-medium transition-all flex items-center gap-2 ${
-                    billingPeriod === "yearly"
-                      ? "bg-white text-gray-900 shadow-lg"
-                      : "text-gray-300 hover:text-white"
-                  }`}
-                >
-                  Yearly
-                  <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-semibold">
+              {/* Billing Toggle with Save Badge */}
+              <div className="relative inline-block">
+                {/* Save 20% Alert Badge - Top right, half outside/inside */}
+                <div className="absolute -top-3 -right-12 z-10">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-1.5 rounded-full shadow-lg border-2 border-white/20 flex items-center gap-0.5 whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
                     Save 20%
-                  </span>
-                </button>
+                  </div>
+                </div>
+                
+                <div className="inline-flex items-center rounded-full bg-white/10 p-1 border border-white/20 mt-2">
+                  <button
+                    onClick={() => setBillingPeriod("monthly")}
+                    className={`rounded-full px-6 py-2.5 text-sm font-medium transition-all ${
+                      billingPeriod === "monthly"
+                        ? "bg-white text-gray-900 shadow-lg"
+                        : "text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    onClick={() => setBillingPeriod("yearly")}
+                    className={`rounded-full px-6 py-2.5 text-sm font-medium transition-all ${
+                      billingPeriod === "yearly"
+                        ? "bg-white text-gray-900 shadow-lg"
+                        : "text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    Yearly
+                  </button>
+                </div>
               </div>
             </div>
 
