@@ -15,11 +15,11 @@ export async function calculateCampaignAnalytics(campaignId: string) {
 
   if (!campaign) throw new Error("Campaign not found");
 
-  // Get all scheduled posts for this campaign
+  // Get all scheduled posts for this campaign (any status - pending, success, failed)
   const allScheduledPosts = await prisma.scheduledPost.findMany({
     where: {
       projectId: campaign.projectId,
-      status: "success",
+      // Don't filter by status - we want to count all scheduled posts
     },
   });
 
@@ -31,8 +31,20 @@ export async function calculateCampaignAnalytics(campaignId: string) {
 
   console.log(`[Analytics] Found ${scheduledPosts.length} scheduled posts for campaign ${campaignId}`);
 
-  // Get corresponding platform posts (actual published data)
-  const oauthProviderIds = scheduledPosts
+  // Get campaign date range
+  const campaignStartDate = campaign.startDate || subDays(new Date(), 30);
+  const campaignEndDate = campaign.chats && campaign.chats.length > 0
+    ? new Date(campaignStartDate.getTime() + (campaign.chats.length * 86400000)) // days * ms per day
+    : new Date();
+
+  console.log(`[Analytics] Campaign date range: ${campaignStartDate.toISOString()} to ${campaignEndDate.toISOString()}`);
+
+  // Get corresponding platform posts (actual published data with engagement metrics)
+  // Filter by:
+  // 1. OAuth providers used in this campaign
+  // 2. Date range of the campaign (to avoid counting posts from other campaigns)
+  const successfulScheduledPosts = scheduledPosts.filter(p => p.status === "success");
+  const oauthProviderIds = successfulScheduledPosts
     .map((p) => p.oauthProviderId)
     .filter(Boolean) as string[];
 
@@ -41,15 +53,22 @@ export async function calculateCampaignAnalytics(campaignId: string) {
       oauthProviderId: {
         in: oauthProviderIds,
       },
+      // Filter by campaign date range (with some buffer for scheduling delays)
+      date: {
+        gte: new Date(campaignStartDate.getTime() - 86400000), // 1 day before start
+        lte: new Date(campaignEndDate.getTime() + 86400000), // 1 day after end
+      },
     },
     include: { oauthProvider: true },
   });
 
-  console.log(`[Analytics] Found ${platformPosts.length} platform posts for campaign ${campaignId}`);
+  console.log(`[Analytics] Found ${platformPosts.length} platform posts for campaign ${campaignId} within date range`);
 
   // Calculate metrics
+  // Use scheduled posts count for total posts (since that's what was actually created)
+  // Use platform posts for engagement metrics (likes, comments, etc - only available after publishing)
   const metrics = {
-    totalPosts: platformPosts.length,
+    totalPosts: scheduledPosts.length, // Count all scheduled posts (whether published or not)
     totalLikes: platformPosts.reduce((sum, p) => sum + (p.likes || 0), 0),
     totalComments: platformPosts.reduce((sum, p) => sum + (p.comments || 0), 0),
     totalShares: platformPosts.reduce((sum, p) => sum + (p.shares || 0), 0),
