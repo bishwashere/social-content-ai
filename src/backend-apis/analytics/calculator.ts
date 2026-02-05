@@ -39,21 +39,27 @@ export async function calculateCampaignAnalytics(campaignId: string) {
 
   console.log(`[Analytics] Campaign date range: ${campaignStartDate.toISOString()} to ${campaignEndDate.toISOString()}`);
 
-  // Get corresponding platform posts (actual published data with engagement metrics)
-  // Filter by:
-  // 1. OAuth providers used in this campaign
-  // 2. Date range of the campaign (to avoid counting posts from other campaigns)
-  const successfulScheduledPosts = scheduledPosts.filter(p => p.status === "success");
-  const oauthProviderIds = successfulScheduledPosts
-    .map((p) => p.oauthProviderId)
-    .filter(Boolean) as string[];
+  // Get successful scheduled posts with content
+  const successfulScheduledPosts = scheduledPosts.filter(
+    p => p.status === "success" && p.content && p.content.trim().length > 0
+  );
+  
+  console.log(`[Analytics] Found ${successfulScheduledPosts.length} successful scheduled posts with content`);
 
-  const platformPosts = await prisma.platformPost.findMany({
+  // Get all platform posts from the project's OAuth providers within campaign date range
+  const projectOAuthProviders = await prisma.projectToOAuthProvider.findMany({
+    where: { projectId: campaign.projectId },
+    select: { oauthProviderId: true },
+  });
+  
+  const oauthProviderIds = projectOAuthProviders.map(p => p.oauthProviderId);
+
+  const allPlatformPosts = await prisma.platformPost.findMany({
     where: {
       oauthProviderId: {
         in: oauthProviderIds,
       },
-      // Filter by campaign date range (with some buffer for scheduling delays)
+      // Filter by campaign date range (with buffer for scheduling delays)
       date: {
         gte: new Date(campaignStartDate.getTime() - 86400000), // 1 day before start
         lte: new Date(campaignEndDate.getTime() + 86400000), // 1 day after end
@@ -62,11 +68,45 @@ export async function calculateCampaignAnalytics(campaignId: string) {
     include: { oauthProvider: true },
   });
 
-  console.log(`[Analytics] Found ${platformPosts.length} platform posts for campaign ${campaignId} within date range`);
+  console.log(`[Analytics] Found ${allPlatformPosts.length} platform posts within campaign date range`);
+
+  // Match scheduled posts to platform posts by content similarity
+  const matchedPlatformPosts: any[] = [];
+  let matchedCount = 0;
+  
+  for (const scheduled of successfulScheduledPosts) {
+    const scheduledContent = scheduled.content.trim();
+    const scheduledPreview = scheduledContent.substring(0, 100);
+    
+    // Find matching platform post by content
+    const match = allPlatformPosts.find(pp => {
+      if (!pp.content) return false;
+      const ppContent = pp.content.trim();
+      
+      // Try exact match on first 100 chars
+      if (ppContent.substring(0, 100) === scheduledPreview) return true;
+      
+      // Try exact match on first 50 chars (more forgiving)
+      if (ppContent.substring(0, 50) === scheduledContent.substring(0, 50)) return true;
+      
+      // Try fuzzy match on first 80 chars (case insensitive)
+      const scheduledStart = scheduledContent.substring(0, 80).toLowerCase();
+      const ppStart = ppContent.substring(0, 80).toLowerCase();
+      return scheduledStart === ppStart;
+    });
+    
+    if (match && !matchedPlatformPosts.find(p => p.id === match.id)) {
+      matchedPlatformPosts.push(match);
+      matchedCount++;
+    }
+  }
+
+  console.log(`[Analytics] Matched ${matchedCount} scheduled posts to platform posts by content (${(matchedCount / successfulScheduledPosts.length * 100).toFixed(1)}% match rate)`);
+
+  // Use matched platform posts for engagement metrics
+  const platformPosts = matchedPlatformPosts;
 
   // Calculate metrics
-  // Use scheduled posts count for total posts (since that's what was actually created)
-  // Use platform posts for engagement metrics (likes, comments, etc - only available after publishing)
   const metrics = {
     totalPosts: scheduledPosts.length, // Count all scheduled posts (whether published or not)
     totalLikes: platformPosts.reduce((sum, p) => sum + (p.likes || 0), 0),
