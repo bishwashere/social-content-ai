@@ -22,8 +22,9 @@ import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
 import AdvanceCustomization from "@/app/(pages)/dashboard/_components/advance-customization";
 import { ProjectAnalyticsDashboard } from "./_components/project-analytics-dashboard";
+import { ProjectTools } from "./_components/project-tools";
 
-const TAB_VALUES = ["generate", "campaign", "media", "scheduled"] as const;
+const TAB_VALUES = ["generate", "campaign", "media", "scheduled", "tools"] as const;
 const STORAGE_KEY = "lastProjectTab";
 
 function ProjectPage() {
@@ -178,6 +179,9 @@ function ProjectPage() {
           <TabsTrigger value="generate" onClick={() => handleTabChange("generate")}>
             Quick Generate
           </TabsTrigger>
+          <TabsTrigger value="tools" onClick={() => handleTabChange("tools")}>
+            Tools
+          </TabsTrigger>
           <TabsTrigger value="media" onClick={() => handleTabChange("media")}>
             Media
           </TabsTrigger>
@@ -220,6 +224,9 @@ function ProjectPage() {
         </TabsContent>
         <TabsContent value="scheduled" className="w-full max-w-full overflow-hidden">
           <ScheduledPosts project={project} />
+        </TabsContent>
+        <TabsContent value="tools" className="w-full max-w-full overflow-hidden">
+          <ProjectTools projectId={id as string} />
         </TabsContent>
       </Tabs>
     </div>
