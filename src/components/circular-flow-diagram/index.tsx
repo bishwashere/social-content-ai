@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
 import { STEPS, COLORS } from "./constants";
 import { polarToCartesian, describeArc } from "./utils";
 
@@ -10,7 +10,16 @@ import { polarToCartesian, describeArc } from "./utils";
  * Responsive, SVG-based, minimal colors (brand + neutral).
  */
 export function CircularFlowDiagram() {
-  const padding = 120;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const padding = isMobile ? 170 : 120;
   const width = 360 + padding * 2;
   const height = 520;
   const cx = width / 2;
@@ -23,6 +32,9 @@ export function CircularFlowDiagram() {
   const labelRadius = r + 48;
   const step2Pos = polarToCartesian(cx, cy, labelRadius, 270);
   const step2TopY = step2Pos.y - 47;
+  const step1ConnectorTopY = 72;
+  const step1ConnectorBottomY = step2TopY;
+  const step1ConnectorMidY = step1ConnectorTopY + (step1ConnectorBottomY - step1ConnectorTopY) * 0.7;
 
   const id = useId();
   const markerId = `circular-flow-arrow-${id.replace(/:/g, "")}`;
@@ -34,7 +46,7 @@ export function CircularFlowDiagram() {
   const entryGradientId = `entry-gradient-${id.replace(/:/g, "")}`;
 
   return (
-    <div className="circular-flow-diagram w-full min-w-0 max-w-[90vw] sm:max-w-md md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-auto px-2 sm:px-4 [&_svg]:text-[clamp(0.65rem,2.5vw,1.15rem)] sm:[&_svg]:text-[clamp(0.9rem,2.5vw,1.25rem)] md:[&_svg]:text-[clamp(1rem,2.5vw,1.35rem)] lg:[&_svg]:text-[clamp(1.1rem,2.5vw,1.45rem)]">
+    <div className="circular-flow-diagram w-full min-w-0 max-w-full sm:max-w-md md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-0 sm:mx-auto px-[1px] sm:px-4 [&_svg]:text-[32px] sm:[&_svg]:text-[32px] md:[&_svg]:text-[16px] lg:[&_svg]:text-[17px] xl:[&_svg]:text-[18px]">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-auto min-h-[280px] sm:min-h-[320px] md:min-h-[360px]"
@@ -102,7 +114,13 @@ export function CircularFlowDiagram() {
             y={34}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ fontSize: "0.7em", fill: "#64748b", fontWeight: 500, textRendering: "optimizeLegibility" }}
+            style={{
+              fontSize: "0.95em",
+              fill: "#a78bfa",
+              fontWeight: 700,
+              fontFamily: "inherit",
+              textRendering: "optimizeLegibility",
+            }}
           >
             Step 1
           </text>
@@ -121,7 +139,7 @@ export function CircularFlowDiagram() {
             y={33}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ fontSize: "0.6em", fill: "#64748b", fontWeight: 500, textRendering: "optimizeLegibility" }}
+            style={{ fontSize: "0.65em", fill: "#64748b", fontWeight: 500, textRendering: "optimizeLegibility" }}
           >
             You do this
           </text>
@@ -130,18 +148,31 @@ export function CircularFlowDiagram() {
             y={56}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ fontSize: "0.85em", fill: "#64748b", fontWeight: 400, textRendering: "optimizeLegibility" }}
+            fill="#cbd5e1" 
+            style={{ fontSize: "0.9em" }}
           >
             Describe your product
           </text>
           <path
-            d={`M ${cx} 72 L ${cx} ${step2TopY}`}
+            d={`M ${cx} ${step1ConnectorTopY} L ${cx} ${step1ConnectorMidY - 8}`}
             fill="none"
-            stroke={`url(#${entryGradientId})`}
-            strokeWidth="5"
-            strokeLinecap="butt"
-            markerEnd={`url(#${markerThickId})`}
+            stroke={COLORS.primary}
+            strokeWidth="4"
+            strokeLinecap="round"
+            opacity={0.9}
+          />
+          <polygon
+            points={`${cx - 7},${step1ConnectorMidY - 3} ${cx + 7},${step1ConnectorMidY - 3} ${cx},${step1ConnectorMidY + 9}`}
+            fill={`url(#${entryGradientId})`}
             filter={`url(#${step2GlowFilterId})`}
+          />
+          <path
+            d={`M ${cx} ${step1ConnectorMidY + 16} L ${cx} ${step1ConnectorBottomY}`}
+            fill="none"
+            stroke={COLORS.primary}
+            strokeWidth="4"
+            strokeLinecap="round"
+            opacity={0.9}
           />
         </g>
 
@@ -228,9 +259,9 @@ export function CircularFlowDiagram() {
           const badgeX =
             badgeSide === "right"
               ? stepNumX +
-                (isRight ? stepNumWidth : stepNumWidth / 2) +
-                gap +
-                badgeWidth / 2
+              (isRight ? stepNumWidth : stepNumWidth / 2) +
+              gap +
+              badgeWidth / 2
               : stepNumX - stepNumWidth - gap - badgeWidth / 2;
           const badgeColor = (badge as string) === "You do this" ? COLORS.badgeYou : COLORS.badgeAi;
           const badgeBg = (badge as string) === "You do this" ? COLORS.badgeYouBg : COLORS.badgeAiBg;
@@ -246,9 +277,9 @@ export function CircularFlowDiagram() {
                 }
                 dominantBaseline="middle"
                 style={{
-                  fontSize: isStep2 ? "1em" : "0.72em",
-                  fill: isStep2 ? "#a78bfa" : "#64748b",
-                  fontWeight: isStep2 ? 700 : 500,
+                  fontSize: "0.95em",
+                  fill: "#a78bfa",
+                  fontWeight: 700,
                   fontFamily: "inherit",
                   textRendering: "optimizeLegibility",
                 }}
@@ -256,24 +287,24 @@ export function CircularFlowDiagram() {
                 Step {step}
               </text>
               <rect
-                x={badgeX - badgeWidth / 2}
+                x={isLeft ? badgeX - badgeWidth : badgeX - 20}
                 y={lineY - 8}
-                width={badgeWidth}
+                width={badgeWidth + 20}
                 height={badgeHeight}
                 rx={badgeHeight / 2}
-                fill={isAutomationStep ? "rgba(34, 197, 94, 0.12)" : badgeBg}
-                stroke={isAutomationStep ? "rgba(34, 197, 94, 0.35)" : badgeColor}
+                fill={"rgba(34, 197, 94, 0.12)"}
+                stroke={"rgba(34, 197, 94, 0.35)"}
                 strokeWidth="1"
                 opacity={isAutomationStep ? 0.9 : 1}
               />
               <text
-                x={badgeX}
+                x={isLeft ? badgeX - 20 : badgeX + 25}
                 y={lineY}
                 textAnchor="middle"
                 dominantBaseline="middle"
+                className="text-[15px] sm:text-[15px] md:text-[14px] lg:text-[12px] xl:text-[12px]"
                 style={{
-                  fontSize: "0.6em",
-                  fill: isAutomationStep ? "#94a3b8" : badgeTextColor,
+                  fill: badgeTextColor,
                   fontWeight: isStep2 ? 600 : 500,
                   fontFamily: "inherit",
                   textRendering: "optimizeLegibility",
@@ -289,13 +320,13 @@ export function CircularFlowDiagram() {
                 }
                 dominantBaseline={isBottom ? "hanging" : "middle"}
                 style={{
-                  fontSize: isStep2 ? "1.55em" : "0.95em",
-                  fontWeight: isStep2 ? 700 : 500,
+                  fontSize: "0.95em",
+                  fontWeight: 500,
                   fontFamily: "inherit",
                   textRendering: "optimizeLegibility",
                 }}
               >
-                  {isStep2 ? (
+                {/* {isStep2 ? (
                     <>
                       <tspan x={pos.x} dy={0} fill={`url(#${step2GradientId})`}>
                         NextPost AI generates
@@ -304,13 +335,19 @@ export function CircularFlowDiagram() {
                         your campaign
                       </tspan>
                     </>
-                  ) : (
-                    lines.map((line, i) => (
-                      <tspan key={i} x={pos.x} dy={i === 0 ? 0 : lineGap} fill="#cbd5e1">
-                        {line}
-                      </tspan>
-                    ))
-                  )}
+                  ) : ( */}
+                {/* ))
+                  )} */}
+                {lines.map((line, i) => (
+                  <tspan
+                    key={i}
+                    x={pos.x}
+                    dy={i === 0 ? 0 : lineGap}
+                    fill="#cbd5e1"
+                    style={{ fontSize: "0.9em" }}
+                  >
+                    {line}
+                  </tspan>))}
               </text>
             </g>
           );
