@@ -212,26 +212,26 @@ Return the response as a JSON array with NO additional text or markdown formatti
   try {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    
+
     // Try to extract JSON from the response
     let jsonText = responseText.trim();
-    
+
     // Remove markdown code blocks if present
     if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
     }
-    
+
     const adCreatives = JSON.parse(jsonText);
-    
+
     // Validate the structure
     if (!Array.isArray(adCreatives)) {
       throw new Error("Response is not an array");
     }
-    
+
     return adCreatives;
   } catch (error) {
     console.error("Error generating ad creatives:", error);
-    
+
     // Return fallback ad creatives if AI generation fails
     return [
       {
@@ -272,7 +272,11 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ discoveries });
+    const allAdCreatives = discoveries.flatMap(
+      discovery => discovery.adCreatives
+    );
+
+    return NextResponse.json({ discoveries, adCreatives: allAdCreatives });
   } catch (error) {
     console.error("Error fetching brand discoveries:", error);
     return NextResponse.json(
