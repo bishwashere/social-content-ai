@@ -22,7 +22,7 @@ import ProjectPulseMetrics from "./_components/project-pulse-metrics";
 import { ProjectSocialConnectionAlert } from "./_components/project-social-connection-alert";
 import AdvanceCustomization from "@/app/(pages)/dashboard/_components/advance-customization";
 import { ProjectAnalyticsDashboard } from "./_components/project-analytics-dashboard";
-import { ProjectTools } from "./_components/project-tools-stepbystep";
+import { ProjectTools } from "./_components/project-tools";
 
 const TAB_VALUES = ["generate", "campaign", "media", "scheduled", "tools"] as const;
 const STORAGE_KEY = "lastProjectTab";
@@ -58,10 +58,10 @@ function ProjectPage() {
     loadChats: false,
     limit: 3,
   });
-  
+
   // Only enable project pulse after campaign planner has completed
-  const campaignPlannerCompleted = 
-    campaignPlannerQuery.status === "success" || 
+  const campaignPlannerCompleted =
+    campaignPlannerQuery.status === "success" ||
     campaignPlannerQuery.status === "error";
 
   // Handle "history" and "analytics" tab redirects (history is now part of generate tab, analytics removed)
@@ -77,7 +77,7 @@ function ProjectPage() {
   // Restore last visited tab from localStorage if no tab in URL
   useEffect(() => {
     if (isInitialized) return;
-    
+
     const urlTab = searchParams.get("tab");
     if (!urlTab) {
       const savedTab = localStorage.getItem(STORAGE_KEY);

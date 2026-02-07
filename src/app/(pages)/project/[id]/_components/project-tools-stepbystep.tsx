@@ -9,6 +9,8 @@ import { toast } from "sonner";
 
 interface ProjectToolsProps {
   projectId: string;
+  buttonText: string;
+  setGeneratedAds: React.Dispatch<React.SetStateAction<AdCreative[]>>;
 }
 
 interface FormData {
@@ -43,11 +45,9 @@ interface AdCreative {
   primaryText: string;
 }
 
-export function ProjectTools({ projectId }: ProjectToolsProps) {
+export function ProjectToolsStepByStep({ projectId, buttonText, setGeneratedAds }: ProjectToolsProps) {
   const [isDiscoveryDialogOpen, setIsDiscoveryDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAds, setGeneratedAds] = useState<AdCreative[]>([]);
-  const [showAdsDialog, setShowAdsDialog] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
   const [formData, setFormData] = useState<FormData>({
@@ -270,14 +270,14 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
       }
 
       const data = await response.json();
-      
+
       toast.success("Success!", {
         description: `Generated ${data.adCreatives.length} ad creatives for your brand.`,
       });
 
       setGeneratedAds(data.adCreatives);
+      setIsGenerating(false);
       setIsDiscoveryDialogOpen(false);
-      setShowAdsDialog(true);
       setCurrentStep(0);
     } catch (error) {
       console.error("Error:", error);
@@ -306,7 +306,7 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
   const canProceed = () => {
     const question = currentQuestion;
     const value = formData[question.id as keyof FormData];
-    
+
     if (question.required) {
       if (typeof value === 'string') {
         return value.trim() !== '';
@@ -316,35 +316,10 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>🛠️ Project Tools</CardTitle>
-          <CardDescription>
-            Powerful tools to enhance your content creation workflow
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Add Discovery Tool */}
-            <ToolCard
-              icon={<Search className="h-8 w-8 text-blue-600" />}
-              title="Ad Discovery"
-              description="Discover trending content and ideas for your project"
-              onClick={() => setIsDiscoveryDialogOpen(true)}
-            />
-
-            {/* Placeholder for future tools */}
-            <ToolCard
-              icon={<Sparkles className="h-8 w-8 text-purple-600" />}
-              title="Coming Soon"
-              description="More tools will be added here"
-              disabled
-            />
-          </div>
-        </CardContent>
-      </Card>
-
+    <div>
+      <Button variant="secondary" onClick={() => setIsDiscoveryDialogOpen(true)}>
+        {buttonText}
+      </Button>
       {/* Add Discovery Dialog - Step by Step */}
       <Dialog open={isDiscoveryDialogOpen} onOpenChange={(open) => {
         setIsDiscoveryDialogOpen(open);
@@ -371,13 +346,12 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                   {questions.slice(0, 6).map((_, index) => (
                     <div key={index} className="flex items-center">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                          index < currentStep
-                            ? "bg-green-500 text-white"
-                            : index === currentStep
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${index < currentStep
+                          ? "bg-green-500 text-white"
+                          : index === currentStep
                             ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
                             : "bg-gray-200 text-gray-400"
-                        }`}
+                          }`}
                       >
                         {index < currentStep ? (
                           <Check className="w-4 h-4" />
@@ -387,9 +361,8 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                       </div>
                       {index < 5 && (
                         <div
-                          className={`w-3 h-0.5 mx-0.5 transition-all ${
-                            index < currentStep ? "bg-green-500" : "bg-gray-200"
-                          }`}
+                          className={`w-3 h-0.5 mx-0.5 transition-all ${index < currentStep ? "bg-green-500" : "bg-gray-200"
+                            }`}
                         />
                       )}
                     </div>
@@ -406,13 +379,12 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                     return (
                       <div key={actualIndex} className="flex items-center">
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                            actualIndex < currentStep
-                              ? "bg-green-500 text-white"
-                              : actualIndex === currentStep
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${actualIndex < currentStep
+                            ? "bg-green-500 text-white"
+                            : actualIndex === currentStep
                               ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
                               : "bg-gray-200 text-gray-400"
-                          }`}
+                            }`}
                         >
                           {actualIndex < currentStep ? (
                             <Check className="w-4 h-4" />
@@ -422,9 +394,8 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                         </div>
                         {index < 1 && (
                           <div
-                            className={`w-3 h-0.5 mx-0.5 transition-all ${
-                              actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
-                            }`}
+                            className={`w-3 h-0.5 mx-0.5 transition-all ${actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
+                              }`}
                           />
                         )}
                       </div>
@@ -442,13 +413,12 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                     return (
                       <div key={actualIndex} className="flex items-center">
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                            actualIndex < currentStep
-                              ? "bg-green-500 text-white"
-                              : actualIndex === currentStep
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${actualIndex < currentStep
+                            ? "bg-green-500 text-white"
+                            : actualIndex === currentStep
                               ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
                               : "bg-gray-200 text-gray-400"
-                          }`}
+                            }`}
                         >
                           {actualIndex < currentStep ? (
                             <Check className="w-4 h-4" />
@@ -458,9 +428,8 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                         </div>
                         {index < 1 && (
                           <div
-                            className={`w-3 h-0.5 mx-0.5 transition-all ${
-                              actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
-                            }`}
+                            className={`w-3 h-0.5 mx-0.5 transition-all ${actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
+                              }`}
                           />
                         )}
                       </div>
@@ -478,13 +447,12 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                     return (
                       <div key={actualIndex} className="flex items-center">
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                            actualIndex < currentStep
-                              ? "bg-green-500 text-white"
-                              : actualIndex === currentStep
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${actualIndex < currentStep
+                            ? "bg-green-500 text-white"
+                            : actualIndex === currentStep
                               ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
                               : "bg-gray-200 text-gray-400"
-                          }`}
+                            }`}
                         >
                           {actualIndex < currentStep ? (
                             <Check className="w-4 h-4" />
@@ -494,9 +462,8 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
                         </div>
                         {index < 9 && (
                           <div
-                            className={`w-3 h-0.5 mx-0.5 transition-all ${
-                              actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
-                            }`}
+                            className={`w-3 h-0.5 mx-0.5 transition-all ${actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
+                              }`}
                           />
                         )}
                       </div>
@@ -605,87 +572,6 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Generated Ads Dialog */}
-      <Dialog open={showAdsDialog} onOpenChange={setShowAdsDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              Generated Facebook Ad Creatives
-            </DialogTitle>
-            <DialogDescription>
-              {generatedAds.length} ad concepts based on your brand discovery
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-6 space-y-6">
-            {generatedAds.map((ad, index) => (
-              <Card key={ad.id || index} className="border-2">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {ad.angle}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-600 mb-1">📸 Image Description</h4>
-                    <p className="text-sm bg-gray-50 p-3 rounded">{ad.imageDescription}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-600 mb-1">🖼️ Image Copy</h4>
-                    <p className="text-sm bg-gray-50 p-3 rounded font-medium">{ad.imageCopy}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-600 mb-1">📰 Headline</h4>
-                    <p className="text-base font-bold">{ad.headline}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-gray-600 mb-1">📝 Primary Text</h4>
-                    <p className="text-sm leading-relaxed">{ad.primaryText}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={() => setShowAdsDialog(false)}>Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
-  );
-}
-
-interface ToolCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick?: () => void;
-  disabled?: boolean;
-}
-
-function ToolCard({ icon, title, description, onClick, disabled }: ToolCardProps) {
-  return (
-    <Card 
-      className={`hover:shadow-lg transition-shadow ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-      onClick={disabled ? undefined : onClick}
-    >
-      <CardHeader>
-        <div className="flex items-center gap-3 mb-2">
-          {icon}
-        </div>
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      {!disabled && (
-        <CardContent>
-          <Button variant="outline" size="sm" className="w-full">
-            Open Tool
-          </Button>
-        </CardContent>
-      )}
-    </Card>
   );
 }
