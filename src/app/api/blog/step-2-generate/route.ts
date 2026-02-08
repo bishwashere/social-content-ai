@@ -275,17 +275,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Deduct coins (3 coins per blog generation)
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        remainingChatGenerations: {
-          decrement: requiredCoins,
-        },
-      },
-    });
-    logger.log(`[Step 2] Deducted ${requiredCoins} coins from user ${user.id}`);
-
     // 6. Store blog in CampaignChat contents
     await prisma.campaignChat.update({
       where: { id: chat.id },

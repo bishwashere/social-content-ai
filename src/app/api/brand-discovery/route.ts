@@ -14,16 +14,36 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get project details including URL
+    // Get project details including URL and userId
     const project = await prisma.projects.findUnique({
       where: { id: projectId },
-      select: { url: true, name: true },
+      select: { url: true, name: true, userId: true },
     });
 
     if (!project) {
       return NextResponse.json(
         { error: "Project not found" },
         { status: 404 }
+      );
+    }
+
+    // Check user credits (2 credits per ad discovery generation)
+    const CREDITS_PER_AD_DISCOVERY = 2;
+    const user = await prisma.user.findUnique({
+      where: { id: project.userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.remainingChatGenerations < CREDITS_PER_AD_DISCOVERY) {
+      return NextResponse.json(
+        { error: `You need ${CREDITS_PER_AD_DISCOVERY} credits to generate ad creatives. You have ${user.remainingChatGenerations} credits.` },
+        { status: 400 }
       );
     }
 
@@ -74,6 +94,16 @@ export async function POST(req: Request) {
         })
       )
     );
+
+    // Deduct credits after successful generation
+    await prisma.user.update({
+      where: { id: project.userId },
+      data: {
+        remainingChatGenerations: {
+          decrement: CREDITS_PER_AD_DISCOVERY,
+        },
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -427,11 +457,33 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Get project URL
+    // Get project URL and userId
     const project = await prisma.projects.findUnique({
       where: { id: projectId },
-      select: { url: true },
+      select: { url: true, userId: true },
     });
+
+    // Check user credits (2 credits per ad discovery regeneration)
+    const CREDITS_PER_AD_DISCOVERY = 2;
+    if (project) {
+      const user = await prisma.user.findUnique({
+        where: { id: project.userId },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      if (user.remainingChatGenerations < CREDITS_PER_AD_DISCOVERY) {
+        return NextResponse.json(
+          { error: `You need ${CREDITS_PER_AD_DISCOVERY} credits to regenerate ad creatives. You have ${user.remainingChatGenerations} credits.` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Delete old ad creatives for this discovery so we get a fresh set
     await prisma.adCreative.deleteMany({
@@ -461,6 +513,18 @@ export async function PUT(req: Request) {
         })
       )
     );
+
+    // Deduct credits after successful regeneration
+    if (project) {
+      await prisma.user.update({
+        where: { id: project.userId },
+        data: {
+          remainingChatGenerations: {
+            decrement: CREDITS_PER_AD_DISCOVERY,
+          },
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

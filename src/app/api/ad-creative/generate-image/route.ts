@@ -14,6 +14,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const CREDITS_PER_IMAGE = 5;
+
     // Get the ad creative
     const adCreative = await prisma.adCreative.findUnique({
       where: { id: adCreativeId },
@@ -28,6 +30,38 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Ad creative not found" },
         { status: 404 }
+      );
+    }
+
+    // Get project to find user
+    const project = await prisma.projects.findUnique({
+      where: { id: adCreative.brandDiscovery.projectId },
+      select: { userId: true },
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check user credits
+    const user = await prisma.user.findUnique({
+      where: { id: project.userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.remainingChatGenerations < CREDITS_PER_IMAGE) {
+      return NextResponse.json(
+        { error: `You need ${CREDITS_PER_IMAGE} credits to generate an ad image. You have ${user.remainingChatGenerations} credits.` },
+        { status: 400 }
       );
     }
 
@@ -124,6 +158,16 @@ Style: Professional, high-quality social media advertisement. Clean layout with 
     await prisma.adCreative.update({
       where: { id: adCreativeId },
       data: { imageKey: s3Key },
+    });
+
+    // Deduct credits after successful generation
+    await prisma.user.update({
+      where: { id: project.userId },
+      data: {
+        remainingChatGenerations: {
+          decrement: CREDITS_PER_IMAGE,
+        },
+      },
     });
 
     // Get a signed URL for preview
