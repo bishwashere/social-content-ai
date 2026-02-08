@@ -7,6 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ProjectToolsStepByStep } from "../_components/project-tools-stepbystep";
 import { cn } from "@/lib/cn";
+import { confirm } from "@/components/ui/alert-dialog";
+import { useSession } from "@/backend-apis/auth/hooks";
+import { usePricingModal } from "@/providers/pricing-modal-provider";
 
 interface AdCreative {
     id: string;
@@ -21,6 +24,9 @@ interface AdCreative {
 
 const ALL_ANGLES_KEY = "__all__";
 
+const CREDITS_PER_AD_DISCOVERY = 2;
+const CREDITS_PER_IMAGE = 5;
+
 export default function ChatPage() {
     const { id } = useParams() as { id: string };
     const [generatedAds, setGeneratedAds] = useState<AdCreative[]>([]);
@@ -28,6 +34,8 @@ export default function ChatPage() {
     const [selectedAngle, setSelectedAngle] = useState<string>(ALL_ANGLES_KEY);
     const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
     const [expandedImageDetails, setExpandedImageDetails] = useState<Set<string>>(new Set());
+    const { data: session } = useSession();
+    const { handleCoinsFinished } = usePricingModal();
 
     const fetchAds = async () => {
         if (!id) return;
@@ -46,6 +54,19 @@ export default function ChatPage() {
     };
 
     const handleGenerateImage = async (adCreativeId: string) => {
+        const userCoins = session?.user?.remainingChatGenerations || 0;
+        if (userCoins < CREDITS_PER_IMAGE) {
+            toast.error(`You need ${CREDITS_PER_IMAGE} credits to generate an ad image. You have ${userCoins} credits.`);
+            handleCoinsFinished();
+            return;
+        }
+
+        const yes = await confirm({
+            title: "Generate ad image?",
+            description: `This will use ${CREDITS_PER_IMAGE} credits. You have ${userCoins} credits remaining.`,
+        });
+        if (!yes) return;
+
         setGeneratingImageFor(adCreativeId);
         try {
             const response = await fetch("/api/ad-creative/generate-image", {
@@ -56,6 +77,9 @@ export default function ChatPage() {
 
             if (!response.ok) {
                 const errorData = await response.json();
+                if (errorData.error?.includes("credits") || errorData.error?.includes("need")) {
+                    handleCoinsFinished();
+                }
                 throw new Error(errorData.error || "Failed to generate image");
             }
 
@@ -85,6 +109,20 @@ export default function ChatPage() {
 
     const handleRegenerateAds = async () => {
         if (!id) return;
+
+        const userCoins = session?.user?.remainingChatGenerations || 0;
+        if (userCoins < CREDITS_PER_AD_DISCOVERY) {
+            toast.error(`You need ${CREDITS_PER_AD_DISCOVERY} credits to regenerate ad creatives. You have ${userCoins} credits.`);
+            handleCoinsFinished();
+            return;
+        }
+
+        const yes = await confirm({
+            title: "Regenerate all ad creatives?",
+            description: `This will use ${CREDITS_PER_AD_DISCOVERY} credits. You have ${userCoins} credits remaining.`,
+        });
+        if (!yes) return;
+
         setIsRegenerating(true);
         try {
             const response = await fetch("/api/brand-discovery", {
@@ -95,6 +133,9 @@ export default function ChatPage() {
 
             if (!response.ok) {
                 const errorData = await response.json();
+                if (errorData.error?.includes("credits") || errorData.error?.includes("need")) {
+                    handleCoinsFinished();
+                }
                 throw new Error(errorData.error || "Failed to regenerate ads");
             }
 
