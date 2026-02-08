@@ -27,6 +27,7 @@ export function CampaignAnalyticsSummary({ campaignId }: { campaignId: string })
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasScheduledPosts, setHasScheduledPosts] = useState<boolean | null>(null);
 
   const loadAnalytics = async () => {
     setLoading(true);
@@ -35,14 +36,17 @@ export function CampaignAnalyticsSummary({ campaignId }: { campaignId: string })
       const response = await fetch(`/api/campaigns/${campaignId}/analytics`);
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && data.analytics) {
         setAnalytics(data.analytics);
+        setHasScheduledPosts(data.analytics.totalPosts > 0);
       } else {
         setAnalytics(null);
+        setHasScheduledPosts(false);
       }
     } catch (error) {
       console.error("Failed to load analytics:", error);
       setError("Failed to load analytics");
+      setHasScheduledPosts(false);
     }
     setLoading(false);
   };
@@ -58,6 +62,7 @@ export function CampaignAnalyticsSummary({ campaignId }: { campaignId: string })
       
       if (data.success) {
         setAnalytics(data.analytics);
+        setHasScheduledPosts(data.analytics.totalPosts > 0);
       } else {
         setError(data.error || "Failed to calculate analytics");
       }
@@ -71,6 +76,9 @@ export function CampaignAnalyticsSummary({ campaignId }: { campaignId: string })
   useEffect(() => {
     loadAnalytics();
   }, [campaignId]);
+
+  // Don't show if no scheduled posts for this campaign
+  if (hasScheduledPosts === false) return null;
 
   if (loading) {
     return (

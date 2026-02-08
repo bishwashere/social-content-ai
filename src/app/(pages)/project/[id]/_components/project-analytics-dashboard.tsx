@@ -24,6 +24,25 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasScheduledPosts, setHasScheduledPosts] = useState<boolean | null>(null);
+
+  // Check if project has any scheduled posts
+  useEffect(() => {
+    const checkScheduledPosts = async () => {
+      try {
+        const response = await fetch(`/api/scheduled-posts?projectId=${projectId}`);
+        if (response.ok) {
+          const posts = await response.json();
+          setHasScheduledPosts(Array.isArray(posts) && posts.length > 0);
+        } else {
+          setHasScheduledPosts(false);
+        }
+      } catch {
+        setHasScheduledPosts(false);
+      }
+    };
+    checkScheduledPosts();
+  }, [projectId]);
 
   const loadAnalytics = async () => {
     setLoading(true);
@@ -66,8 +85,13 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
   };
 
   useEffect(() => {
-    loadAnalytics();
-  }, [projectId]);
+    if (hasScheduledPosts) {
+      loadAnalytics();
+    }
+  }, [projectId, hasScheduledPosts]);
+
+  // Don't show if no scheduled posts for this project
+  if (hasScheduledPosts === null || hasScheduledPosts === false) return null;
 
   if (loading) {
     return (

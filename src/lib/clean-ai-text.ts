@@ -25,10 +25,18 @@ export function cleanAIGeneratedText(text: string): string {
   // Step 6: Remove multiple consecutive commas
   cleaned = cleaned.replace(/,+/g, ",");
 
-  // Step 7: Trim whitespace from each line
+  // Step 7: Remove "Day: X Title: ..." lines entirely
+  cleaned = cleaned.replace(/^Day:\s*\d+\s*Title:.*$/gm, "");
+
+  // Step 8: Trim whitespace from each line and remove blank lines left behind
   cleaned = cleaned
     .split("\n")
     .map((line) => line.trim())
+    .filter((line, idx, arr) => {
+      // Remove consecutive blank lines (keep at most one)
+      if (line === "" && idx > 0 && arr[idx - 1] === "") return false;
+      return true;
+    })
     .join("\n");
 
   return cleaned.trim();

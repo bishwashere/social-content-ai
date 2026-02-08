@@ -17,6 +17,16 @@ const NewsletterPopup = dynamic(
   { ssr: false }
 );
 
+const WelcomeOfferPopup = dynamic(
+  () => import("@/components/common/welcome-offer-popup").then((m) => ({ default: m.WelcomeOfferPopup })),
+  { ssr: false }
+);
+
+const CtaTimer = dynamic(
+  () => import("@/components/common/cta-timer").then((m) => ({ default: m.CtaTimer })),
+  { ssr: false }
+);
+
 import { CircularFlowDiagram } from "@/components/circular-flow-diagram";
 
 import {
@@ -77,6 +87,7 @@ export default function ModernLanding() {
   const [avatarCount, setAvatarCount] = useState(15);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
+  const [showOfferPopup, setShowOfferPopup] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // Handle smooth scroll to section and close menu
@@ -221,6 +232,7 @@ export default function ModernLanding() {
 
   return (
     <>
+      <WelcomeOfferPopup externalOpen={showOfferPopup} onExternalOpenChange={setShowOfferPopup} />
       <NewsletterPopup />
       <Script
         src="https://link.msgsndr.com/js/am.js"
@@ -357,10 +369,13 @@ export default function ModernLanding() {
               {/* CTA Button */}
               <div className="flex flex-col items-center justify-center gap-11 pt-10">
                 <div className="flex flex-col items-center gap-4">
-                  <GoogleLoginButton 
-                    triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
-                    buttonText="Start Free with 100 Posts"
-                  />
+                  <div className="flex items-center gap-3">
+                    <GoogleLoginButton 
+                      triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
+                      buttonText="Start Free with 100 Posts"
+                    />
+                    <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                  </div>
                   
                   {/* Trust Badges */}
                   <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
@@ -450,10 +465,13 @@ export default function ModernLanding() {
 
             {/* CTA */}
             <div className="text-center mt-12">
-              <GoogleLoginButton 
-                triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white"
-                buttonText="Start Free with 100 Posts"
-              />
+              <div className="inline-flex items-center gap-3">
+                <GoogleLoginButton 
+                  triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white"
+                  buttonText="Start Free with 100 Posts"
+                />
+                <CtaTimer onClick={() => setShowOfferPopup(true)} />
+              </div>
             </div>
           </div>
         </section>
@@ -706,10 +724,13 @@ export default function ModernLanding() {
                     </li>
                   ))}
                 </ul>
-                <GoogleLoginButton 
-                  triggerClassName="w-full py-4 text-lg font-semibold rounded-xl text-white bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
-                  buttonText="Get Started Free"
-                />
+                <div className="flex items-center gap-3">
+                  <GoogleLoginButton 
+                    triggerClassName="w-full py-4 text-lg font-semibold rounded-xl text-white bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
+                    buttonText="Get Started Free"
+                  />
+                  <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                </div>
               </div>
 
               {/* Premium Plan */}
@@ -752,12 +773,15 @@ export default function ModernLanding() {
                     </li>
                   ))}
                 </ul>
-                <GoogleLoginButton 
-                  triggerClassName="w-full glow-button py-4 text-lg font-semibold rounded-xl text-white"
-                  buttonText={billingPeriod === "yearly" ? "Start Premium (Save 20%)" : "Start Premium"}
-                  showPricingAfterLogin={true}
-                  billingPeriod={billingPeriod}
-                />
+                <div className="flex items-center gap-3">
+                  <GoogleLoginButton 
+                    triggerClassName="w-full glow-button py-4 text-lg font-semibold rounded-xl text-white"
+                    buttonText={billingPeriod === "yearly" ? "Start Premium (Save 20%)" : "Start Premium"}
+                    showPricingAfterLogin={true}
+                    billingPeriod={billingPeriod}
+                  />
+                  <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                </div>
               </div>
             </div>
           </div>
@@ -783,10 +807,13 @@ export default function ModernLanding() {
             <p className="text-gray-300 text-lg mb-10 max-w-2xl mx-auto">
               Join 146+ creators using AI to plan, post, and grow - free to start.
             </p>
-            <GoogleLoginButton 
-              triggerClassName="glow-button px-10 py-5 text-xl font-bold rounded-2xl text-white inline-flex items-center gap-3"
-              buttonText="Start Free with 100 Posts"
-            />
+            <div className="inline-flex items-center gap-3">
+              <GoogleLoginButton 
+                triggerClassName="glow-button px-10 py-5 text-xl font-bold rounded-2xl text-white inline-flex items-center gap-3"
+                buttonText="Start Free with 100 Posts"
+              />
+              <CtaTimer onClick={() => setShowOfferPopup(true)} />
+            </div>
             <p className="text-gray-400 text-sm mt-6">
               No card required. Upgrade anytime.
             </p>
