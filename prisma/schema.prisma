@@ -683,6 +683,9 @@ model AdCreative {
   headline              String
   primaryText           String
   
+  // Generated Image
+  imageKey              String?  // R2 storage key for the generated ad image
+  
   // Metadata
   platform              String   @default("facebook")
   status                String   @default("draft") // draft, active, paused
