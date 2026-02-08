@@ -251,9 +251,41 @@ export default function ChatPage() {
             </Card>
 
             {hasAds && (
-                <div className="flex gap-6">
-                    {/* Angle Sidebar Menu */}
-                    <div className="w-64 shrink-0">
+                <div className="flex flex-col md:flex-row gap-6">
+                    {/* Mobile: Horizontal scrollable angle filter */}
+                    <div className="md:hidden overflow-x-auto -mx-2 px-2 pb-2">
+                        <div className="flex gap-2 min-w-max">
+                            <button
+                                onClick={() => setSelectedAngle(ALL_ANGLES_KEY)}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
+                                    selectedAngle === ALL_ANGLES_KEY
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-800 text-gray-300 hover:text-white"
+                                )}
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                                All ({generatedAds.length})
+                            </button>
+                            {angles.map((angle) => (
+                                <button
+                                    key={angle}
+                                    onClick={() => setSelectedAngle(angle)}
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors whitespace-nowrap",
+                                        selectedAngle === angle
+                                            ? "bg-blue-600 text-white font-medium"
+                                            : "bg-gray-800 text-gray-300 hover:text-white"
+                                    )}
+                                >
+                                    {angle} ({angleCounts[angle]})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Desktop: Angle Sidebar Menu */}
+                    <div className="hidden md:block w-64 shrink-0">
                         <div className="sticky top-4 space-y-1">
                             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">
                                 Angles
@@ -313,7 +345,7 @@ export default function ChatPage() {
                     {/* Ad Cards */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-white">
+                            <h2 className="text-lg font-semibold text-gray-400">
                                 {selectedAngle === ALL_ANGLES_KEY
                                     ? "All Ads"
                                     : selectedAngle}

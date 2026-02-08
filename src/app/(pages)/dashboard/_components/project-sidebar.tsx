@@ -248,7 +248,7 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                 {projectSelectorOpen && (
                   <div
                     data-project-dropdown
-                    className="absolute bottom-full left-0 right-0 mb-2 w-full min-w-[var(--sidebar-width)] max-h-[min(256px,calc(50vh-100px))] rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 shadow-xl overflow-hidden z-[60]"
+                    className="absolute top-full left-0 right-0 mt-2 w-full min-w-[var(--sidebar-width)] max-h-[min(256px,calc(50vh-100px))] rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 shadow-xl overflow-hidden z-[60]"
                   >
                     <div className="p-2 pb-0">
                       {currentProject && (

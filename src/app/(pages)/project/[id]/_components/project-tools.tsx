@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 interface ProjectToolsProps {
@@ -25,12 +25,19 @@ export function ProjectTools({ projectId }: ProjectToolsProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Add Discovery Tool */}
+            {/* Ad Discovery Tool */}
             <ToolCard
               icon={<Search className="h-8 w-8 text-blue-600" />}
               title="Ad Discovery"
               description="Discover trending content and ideas for your project"
               onClick={() => router.push(`${pathname}/ads`)}
+            />
+            {/* Persona Finder Tool */}
+            <ToolCard
+              icon={<Users className="h-8 w-8 text-purple-600" />}
+              title="Persona Finder"
+              description="Find the right buyer personas for your product"
+              onClick={() => router.push(`${pathname}/personas`)}
             />
           </div>
         </CardContent>

@@ -65,17 +65,28 @@ export const GET = applyMiddleware(
       },
     });
 
+    // Sort users by their most recent video attempt (newest first)
+    const sortedUsers = [...users].sort((a, b) => {
+      const aLatest = a.uploadedVideos.length > 0
+        ? new Date(a.uploadedVideos[0].createdAt).getTime()
+        : 0;
+      const bLatest = b.uploadedVideos.length > 0
+        ? new Date(b.uploadedVideos[0].createdAt).getTime()
+        : 0;
+      return bLatest - aLatest;
+    });
+
     // Calculate stats
     const stats = {
-      totalUsers: users.length,
-      totalVideos: users.reduce((acc, user) => acc + user.uploadedVideos.length, 0),
-      totalProjects: users.reduce((acc, user) => acc + user.projects.length, 0),
-      pendingVideos: users.reduce(
+      totalUsers: sortedUsers.length,
+      totalVideos: sortedUsers.reduce((acc, user) => acc + user.uploadedVideos.length, 0),
+      totalProjects: sortedUsers.reduce((acc, user) => acc + user.projects.length, 0),
+      pendingVideos: sortedUsers.reduce(
         (acc, user) =>
           acc + user.uploadedVideos.filter((v) => v.status === "pending").length,
         0
       ),
-      completedVideos: users.reduce(
+      completedVideos: sortedUsers.reduce(
         (acc, user) =>
           acc + user.uploadedVideos.filter((v) => v.status === "completed").length,
         0
@@ -86,7 +97,7 @@ export const GET = applyMiddleware(
       status: 200,
       message: "Users fetched successfully",
       data: {
-        users,
+        users: sortedUsers,
         stats,
       },
     });

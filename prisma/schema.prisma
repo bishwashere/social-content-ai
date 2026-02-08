@@ -699,3 +699,89 @@ model AdCreative {
   @@index([brandDiscoveryId])
   @@index([angle])
 }
+
+model PersonaDiscovery {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId             String   @db.ObjectId
+
+  // Product / Service
+  productName           String
+  productDescription    String
+  productCategory       String?
+  priceRange            String?
+  uniqueValue           String?
+
+  // Current Customers
+  currentCustomers      String?
+  ageGroups             String[] @default([])
+  genderSplit           String?
+  topLocations          String[] @default([])
+  occupations           String[] @default([])
+
+  // Buying Behavior
+  discoveryChannels     String[] @default([])
+  purchaseTriggers      String[] @default([])
+  commonObjections      String[] @default([])
+  buyingCycleLength     String?
+
+  // Goals & Pain Points
+  customerGoals         String[] @default([])
+  frustrations          String[] @default([])
+  motivations           String[] @default([])
+  fears                 String[] @default([])
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  personaResults        PersonaResult[]
+
+  @@map("persona-discoveries")
+  @@index([projectId])
+}
+
+model PersonaResult {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  personaDiscoveryId    String   @db.ObjectId
+
+  // Persona Identity
+  personaName           String   // e.g., "The Busy Professional"
+  tagline               String   // Short one-liner description
+  avatar                String?  // Emoji or icon identifier
+
+  // Demographics
+  ageRange              String
+  gender                String
+  location              String
+  incomeLevel           String
+  education             String
+  occupation            String
+
+  // Psychographics
+  values                String[] @default([])
+  interests             String[] @default([])
+  lifestyle             String
+
+  // Behavioral
+  goals                 String[] @default([])
+  painPoints            String[] @default([])
+  buyingMotivations     String[] @default([])
+  preferredChannels     String[] @default([])
+  contentPreferences    String[] @default([])
+
+  // Messaging
+  messagingAngles       String[] @default([])
+  toneOfVoice           String
+  keyMessages           String[] @default([])
+
+  // Narrative
+  dayInTheLife          String   // A narrative paragraph
+  howProductFits        String   // How the product fits their life
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  personaDiscovery      PersonaDiscovery @relation(fields: [personaDiscoveryId], references: [id], onDelete: Cascade)
+
+  @@map("persona-results")
+  @@index([personaDiscoveryId])
+}
