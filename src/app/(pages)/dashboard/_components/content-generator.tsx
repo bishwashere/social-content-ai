@@ -24,6 +24,11 @@ import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 import { PlatformIconsOnboarding } from "@/components/common/platform-icons-onboarding";
 import { ViewMedia } from "@/components/social/view-media";
 import { PLATFORM_IDS } from "@/constants/platforms";
+import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog";
+import { NewImageButton } from "@/components/common/new-image-button";
+import { useRewriteWithAI } from "@/backend-apis/ai-text/hooks";
+import { useGenerateAIImageForQuickGenerate } from "@/backend-apis/ai-image/hooks";
+import { useGenerateTextCardImageForQuickGenerate } from "@/backend-apis/text-image/hooks";
 
 interface ContentGeneratorProps {
   project: Project;
@@ -43,8 +48,12 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
   const generateProjectContent = useGenerateProjectContent();
   const [isSaving, setIsSaving] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [generatedMedia, setGeneratedMedia] = useState<Record<string, string>>({});
   const platformCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const iconRefs = useRef<Record<string, HTMLElement | null>>({});
+  const rewriteWithAI = useRewriteWithAI();
+  const generateAIImage = useGenerateAIImageForQuickGenerate();
+  const generateTextCardImage = useGenerateTextCardImageForQuickGenerate();
 
   const handleShowOnboarding = () => {
     // Small delay to ensure cards and icons are rendered
@@ -194,7 +203,120 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                       {platform.charAt(0).toUpperCase() + platform.slice(1)}
                     </CardTitle>
                     <div className="flex flex-col gap-1 items-center">
-                      <div className="flex flex-row gap-2">
+                      <div className="flex flex-row gap-2 flex-wrap items-center">
+                        <div
+                          ref={(el) => {
+                            if (el && isFirstPlatform) {
+                              iconRefs.current['rewriteWithAI'] = el;
+                            }
+                          }}
+                        >
+                          <RewriteWithAIDialog
+                            isPending={rewriteWithAI.isPending}
+                            disabled={!session?.user?.id}
+                            onRewrite={async (rewritePrompt) => {
+                              if (!session?.user?.id) {
+                                toast.error("Please log in to rewrite content");
+                                return;
+                              }
+                              const contentToUse = editedContent[platform] || text;
+                              if (!contentToUse) {
+                                toast.error("No content to rewrite");
+                                return;
+                              }
+                              const result = await rewriteWithAI.mutateAsync({
+                                userId: session.user.id,
+                                content: contentToUse,
+                                prompt: rewritePrompt || undefined,
+                              });
+                              if (result.success && result.rewrittenContent) {
+                                // Save to database
+                                await editChatContent({
+                                  chatId: generateProjectContent.data?.id || '',
+                                  platform,
+                                  content: result.rewrittenContent,
+                                });
+                                // Update local state
+                                const updatedContents = { ...generateProjectContent.data?.contents as any, [platform]: result.rewrittenContent };
+                                generateProjectContent.data.contents = updatedContents;
+                                setEditedContent({ ...editedContent, [platform]: result.rewrittenContent });
+                                queryClient.invalidateQueries({
+                                  queryKey: ["project-chats", { projectId: project.id }]
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div
+                          ref={(el) => {
+                            if (el && isFirstPlatform) {
+                              iconRefs.current['createImage'] = el;
+                            }
+                          }}
+                        >
+                          <NewImageButton
+                            isTextCardPending={generateTextCardImage.isPending}
+                            isAIImagePending={generateAIImage.isPending}
+                            disabled={!session?.user?.id}
+                            hasExistingImage={!!generatedMedia[platform] || !!(generateProjectContent.data?.media as Record<string, string>)?.[platform]}
+                            fullWidth={false}
+                            onTextCard={async () => {
+                            if (!session?.user?.id) {
+                              toast.error("Please log in to generate images");
+                              return;
+                            }
+                            const contentToUse = editedContent[platform] || text;
+                            const result = await generateTextCardImage.mutateAsync({
+                              content: contentToUse,
+                              userId: session.user.id,
+                              projectId: project.id,
+                            });
+                            if (result.success && result.mediaKey) {
+                              // Save to database
+                              await editChatContent({
+                                chatId: generateProjectContent.data?.id || '',
+                                platform,
+                                media: result.mediaKey,
+                              });
+                              // Update local state for immediate display
+                              const updatedMedia = { ...(generateProjectContent.data?.media as Record<string, string>) || {}, [platform]: result.mediaKey };
+                              generateProjectContent.data.media = updatedMedia;
+                              setGeneratedMedia(prev => ({ ...prev, [platform]: result.previewUrl || result.mediaKey! }));
+                              queryClient.invalidateQueries({
+                                queryKey: ["project-chats", { projectId: project.id }]
+                              });
+                            }
+                          }}
+                          onAIImage={async () => {
+                            if (!session?.user?.id) {
+                              toast.error("Please log in to generate images");
+                              return;
+                            }
+                            const contentToUse = editedContent[platform] || text;
+                            const result = await generateAIImage.mutateAsync({
+                              content: contentToUse,
+                              userId: session.user.id,
+                              projectId: project.id,
+                              platform,
+                            });
+                            if (result.success && result.mediaKey) {
+                              // Save to database
+                              await editChatContent({
+                                chatId: generateProjectContent.data?.id || '',
+                                platform,
+                                media: result.mediaKey,
+                              });
+                              // Update local state for immediate display
+                              const updatedMedia = { ...(generateProjectContent.data?.media as Record<string, string>) || {}, [platform]: result.mediaKey };
+                              generateProjectContent.data.media = updatedMedia;
+                              setGeneratedMedia(prev => ({ ...prev, [platform]: result.previewUrl || result.mediaKey! }));
+                              queryClient.invalidateQueries({
+                                queryKey: ["project-chats", { projectId: project.id }]
+                              });
+                            }
+                          }}
+                        />
+                        </div>
                         {isFirstPlatform ? (
                           <>
                             <Button
@@ -296,8 +418,27 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      {editingPlatform === platform ? (
+                    {/* Generated image display */}
+                    {(generatedMedia[platform] || (generateProjectContent.data?.media as Record<string, string>)?.[platform]) && (
+                      <div className="mb-4">
+                        <div className="aspect-square max-w-[400px] mx-auto">
+                          {generatedMedia[platform] ? (
+                            <img
+                              src={generatedMedia[platform]}
+                              alt={`Generated image for ${platform}`}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <ViewMedia
+                              post={{ media: (generateProjectContent.data.media as Record<string, string>)[platform] }}
+                              showMedia
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {editingPlatform === platform ? (
+                      <div className="text-sm text-muted-foreground">
                         <div className="flex flex-col gap-2">
                           <textarea
                             className="w-full border p-2 rounded text-black"
@@ -338,7 +479,9 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                             </Button>
                           </div>
                         </div>
-                      ) : (
+                      </div>
+                    ) : !(generatedMedia[platform] || (generateProjectContent.data?.media as Record<string, string>)?.[platform]) ? (
+                      <div className="text-sm text-muted-foreground">
                         <Markdown>
                           {(text as string)
                             .split("\n")
@@ -346,8 +489,8 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                             .filter((line) => line.length > 0)
                             .join("\n\n")}
                         </Markdown>
-                      )}
-                    </div>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               );

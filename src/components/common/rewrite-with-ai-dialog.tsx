@@ -48,7 +48,7 @@ export function RewriteWithAIDialog({
           className={fullWidth ? "w-full justify-center" : ""}
         >
           <Sparkles className="h-4 w-4" />
-          {fullWidth && <span className="ml-2">Rewrite with AI</span>}
+          <span className={fullWidth ? "ml-2" : "ml-1"}>Rewrite with AI</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

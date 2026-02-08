@@ -931,11 +931,11 @@ export default function CampaignsAdminPage() {
                                           <p className="text-sm text-muted-foreground mt-0.5 break-words">
                                             {activity.detail}
                                           </p>
-                                          {activity.meta?.platforms &&
-                                            Array.isArray(activity.meta.platforms) &&
-                                            activity.meta.platforms.length > 0 && (
+                                          {(activity.meta as any)?.platforms &&
+                                            Array.isArray((activity.meta as any).platforms) &&
+                                            (activity.meta as any).platforms.length > 0 && (
                                               <div className="flex flex-wrap gap-1 mt-1.5">
-                                                {(activity.meta.platforms as string[]).map((p) => (
+                                                {((activity.meta as any).platforms as string[]).map((p) => (
                                                   <Badge key={p} variant="secondary" className="text-[10px] capitalize py-0">
                                                     {p}
                                                   </Badge>

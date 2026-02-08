@@ -6,10 +6,12 @@ export async function editChatContent({
   chatId,
   platform,
   content,
+  media,
 }: {
   chatId: string;
   platform: string;
-  content: string;
+  content?: string;
+  media?: string;
 }) {
   try {
     const chat = await prisma.projectChat.findFirst({
@@ -20,15 +22,25 @@ export async function editChatContent({
 
     if (!chat) return null;
 
-    // Update the contents JSON
-    const currentContents = (chat.contents as Record<string, string>) || {};
-    currentContents[platform] = content;
+    const updateData: Record<string, any> = {};
+
+    // Update the contents JSON if content is provided
+    if (content !== undefined) {
+      const currentContents = (chat.contents as Record<string, string>) || {};
+      currentContents[platform] = content;
+      updateData.contents = currentContents;
+    }
+
+    // Update the media JSON if media is provided
+    if (media !== undefined) {
+      const currentMedia = (chat.media as Record<string, string>) || {};
+      currentMedia[platform] = media;
+      updateData.media = currentMedia;
+    }
 
     const updated = await prisma.projectChat.update({
       where: { id: chat.id },
-      data: {
-        contents: currentContents,
-      },
+      data: updateData,
     });
 
     return updated;

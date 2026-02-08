@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Pencil, CopyIcon, UploadCloudIcon, Share2Icon } from "lucide-react";
+import { Pencil, CopyIcon, UploadCloudIcon, Share2Icon, Sparkles, ImagePlus } from "lucide-react";
 import { useUpdateFirstViewTooltip } from "@/server-actions/first-view-tooltip/hooks";
 import { useSession } from "@/backend-apis/auth/hooks";
 
@@ -13,6 +13,16 @@ interface PlatformIconsOnboardingProps {
 }
 
 const ICON_INFO = {
+  rewriteWithAI: {
+    name: "Rewrite with AI",
+    description: "Click to rewrite and improve your content using AI. You can enter a custom prompt or let AI enhance it automatically. Costs 1 credit.",
+    icon: Sparkles,
+  },
+  createImage: {
+    name: "Create Image",
+    description: "Generate an image for your post. Choose between a free Text Card (styled text overlay) or an AI-generated image (1 credit).",
+    icon: ImagePlus,
+  },
   edit: {
     name: "Edit",
     description: "Click the pencil icon to edit and customize your generated content. Make it perfect for your brand voice and messaging.",
@@ -35,7 +45,7 @@ const ICON_INFO = {
   },
 };
 
-const ICON_ORDER = ["postToWall", "autoPost"];
+const ICON_ORDER = ["rewriteWithAI", "createImage", "edit", "copy", "postToWall", "autoPost"];
 
 export function PlatformIconsOnboarding({
   isOpen,

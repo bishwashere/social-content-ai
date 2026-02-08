@@ -18,6 +18,8 @@ interface NewImageButtonProps {
   disabled?: boolean;
   /** If true, shows "Regenerate Image" instead of "New Image" */
   hasExistingImage?: boolean;
+  /** If true, button spans full width */
+  fullWidth?: boolean;
 }
 
 export function NewImageButton({
@@ -27,6 +29,7 @@ export function NewImageButton({
   isAIImagePending,
   disabled,
   hasExistingImage = false,
+  fullWidth = true,
 }: NewImageButtonProps) {
   const [open, setOpen] = useState(false);
   const isPending = isTextCardPending || isAIImagePending;
@@ -42,7 +45,7 @@ export function NewImageButton({
   };
 
   const Icon = hasExistingImage ? RefreshCw : ImagePlus;
-  const label = hasExistingImage ? "Regenerate Image" : "New Image";
+  const label = hasExistingImage ? "Regenerate Image" : "Create Image";
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -51,10 +54,10 @@ export function NewImageButton({
           variant="outline"
           size="sm"
           disabled={disabled || isPending}
-          className="w-full justify-center"
-          title={hasExistingImage ? "Regenerate image" : "Generate new image"}
+          className={fullWidth ? "w-full justify-center" : ""}
+          title={hasExistingImage ? "Regenerate image" : "Create image"}
         >
-          <Icon className="h-4 w-4 mr-2" />
+          <Icon className="h-4 w-4 mr-1" />
           {label}
         </Button>
       </DropdownMenuTrigger>

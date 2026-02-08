@@ -16,6 +16,12 @@ import { editChatContent } from "@/server-actions/edit-chat-content";
 import { useQueryClient } from "@tanstack/react-query";
 import { ViewMedia } from "@/components/social/view-media";
 import { PLATFORM_IDS } from "@/constants/platforms";
+import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog";
+import { NewImageButton } from "@/components/common/new-image-button";
+import { useRewriteWithAI } from "@/backend-apis/ai-text/hooks";
+import { useGenerateAIImageForQuickGenerate } from "@/backend-apis/ai-image/hooks";
+import { useGenerateTextCardImageForQuickGenerate } from "@/backend-apis/text-image/hooks";
+import { useSession } from "@/backend-apis/auth/hooks";
 
 const ICONS = {
   x: "/x.svg",
@@ -35,10 +41,15 @@ export default function ChatPage() {
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [generatedMedia, setGeneratedMedia] = useState<Record<string, string>>({});
   const projectChats = useGetAllProjectChats({ projectId: id });
   const projects = useGetAllProjects();
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const rewriteWithAI = useRewriteWithAI();
+  const generateAIImage = useGenerateAIImageForQuickGenerate();
+  const generateTextCardImage = useGenerateTextCardImageForQuickGenerate();
 
   useEffect(() => {
     const fetchProject = () => {
@@ -108,7 +119,91 @@ export default function ChatPage() {
               <div key={platform} className="border p-4 rounded-lg mb-4">
                 <div className="flex justify-between mb-2">
                   <h3 className="font-bold capitalize">{platform}</h3>
-                  <div className="flex flex-row gap-2">
+                  <div className="flex flex-row gap-2 flex-wrap items-center">
+                    <RewriteWithAIDialog
+                      isPending={rewriteWithAI.isPending}
+                      disabled={!session?.user?.id}
+                      onRewrite={async (rewritePrompt) => {
+                        if (!session?.user?.id) {
+                          toast.error("Please log in to rewrite content");
+                          return;
+                        }
+                        const contentToUse = editedContent[platform] || text;
+                        if (!contentToUse) {
+                          toast.error("No content to rewrite");
+                          return;
+                        }
+                        const result = await rewriteWithAI.mutateAsync({
+                          userId: session.user.id,
+                          content: contentToUse,
+                          prompt: rewritePrompt || undefined,
+                        });
+                        if (result.success && result.rewrittenContent) {
+                          const updated = await editChatContent({
+                            chatId,
+                            platform,
+                            content: result.rewrittenContent,
+                          });
+                          if (updated) {
+                            setChat({ ...chat, contents: updated.contents });
+                            setEditedContent({ ...editedContent, [platform]: result.rewrittenContent });
+                            await queryClient.invalidateQueries({ queryKey: ['projectChats'] });
+                          }
+                        }
+                      }}
+                    />
+                    <NewImageButton
+                      isTextCardPending={generateTextCardImage.isPending}
+                      isAIImagePending={generateAIImage.isPending}
+                      disabled={!session?.user?.id}
+                      hasExistingImage={!!generatedMedia[platform] || !!(chat.media as Record<string, string>)?.[platform]}
+                      fullWidth={false}
+                      onTextCard={async () => {
+                        if (!session?.user?.id) {
+                          toast.error("Please log in to generate images");
+                          return;
+                        }
+                        const contentToUse = editedContent[platform] || text;
+                        const result = await generateTextCardImage.mutateAsync({
+                          content: contentToUse,
+                          userId: session.user.id,
+                          projectId: id,
+                        });
+                        if (result.success && result.mediaKey) {
+                          await editChatContent({
+                            chatId,
+                            platform,
+                            media: result.mediaKey,
+                          });
+                          const updatedMedia = { ...(chat.media as Record<string, string>) || {}, [platform]: result.mediaKey };
+                          setChat({ ...chat, media: updatedMedia });
+                          setGeneratedMedia(prev => ({ ...prev, [platform]: result.previewUrl || result.mediaKey! }));
+                        }
+                      }}
+                      onAIImage={async () => {
+                        if (!session?.user?.id) {
+                          toast.error("Please log in to generate images");
+                          return;
+                        }
+                        const contentToUse = editedContent[platform] || text;
+                        const result = await generateAIImage.mutateAsync({
+                          content: contentToUse,
+                          userId: session.user.id,
+                          projectId: id,
+                          platform,
+                        });
+                        if (result.success && result.mediaKey) {
+                          await editChatContent({
+                            chatId,
+                            platform,
+                            media: result.mediaKey,
+                          });
+                          const updatedMedia = { ...(chat.media as Record<string, string>) || {}, [platform]: result.mediaKey };
+                          setChat({ ...chat, media: updatedMedia });
+                          setGeneratedMedia(prev => ({ ...prev, [platform]: result.previewUrl || result.mediaKey! }));
+                        }
+                      }}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -135,11 +230,27 @@ export default function ChatPage() {
                     />
                   </div>
                 </div>
-                <div
-                  className="text-sm text-muted-foreground w-full"
-                  style={{ whiteSpace: "pre-wrap" }}
-                >
-                  {editingPlatform === platform ? (
+                {/* Generated image display */}
+                {(generatedMedia[platform] || (chat.media as Record<string, string>)?.[platform]) && (
+                  <div className="mb-4">
+                    <div className="aspect-square max-w-[400px] mx-auto">
+                      {generatedMedia[platform] ? (
+                        <img
+                          src={generatedMedia[platform]}
+                          alt={`Generated image for ${platform}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <ViewMedia
+                          post={{ media: (chat.media as Record<string, string>)[platform] }}
+                          showMedia
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+                {editingPlatform === platform ? (
+                  <div className="text-sm text-muted-foreground w-full" style={{ whiteSpace: "pre-wrap" }}>
                     <div className="flex flex-col gap-2">
                       <textarea
                         className="w-full border p-2 rounded text-black"
@@ -162,9 +273,7 @@ export default function ChatPage() {
                                 platform,
                                 content: editedContent[platform] ?? text
                               });
-                              console.log("updated", updated);
                               if (updated) {
-
                                 const updatedChat = { ...chat, contents: updated.contents };
                                 setChat(updatedChat);
                                 setEditingPlatform(null);
@@ -185,7 +294,9 @@ export default function ChatPage() {
                         </Button>
                       </div>
                     </div>
-                  ) : (
+                  </div>
+                ) : !(generatedMedia[platform] || (chat.media as Record<string, string>)?.[platform]) ? (
+                  <div className="text-sm text-muted-foreground w-full" style={{ whiteSpace: "pre-wrap" }}>
                     <Markdown>
                       {(text as string)
                         .split("\n")
@@ -193,8 +304,8 @@ export default function ChatPage() {
                         .filter((line) => line.length > 0)
                         .join("\n\n")}
                     </Markdown>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
