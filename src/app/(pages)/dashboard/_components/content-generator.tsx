@@ -170,17 +170,198 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
           <div className="mt-4 flex flex-row flex-wrap gap-4 overflow-y-auto">
             <ScrollArea className="">
               {/* Instagram Image Card - Instagram content is rendered as image, not text */}
-              {(generateProjectContent.data.media as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] && (
+              {((generateProjectContent.data.media as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || generatedMedia[PLATFORM_IDS.INSTAGRAM]) && (
                 <Card className="rounded-lg border mb-5">
                   <CardHeader className="flex justify-between items-center mb-2 flex-row">
                     <CardTitle>Instagram</CardTitle>
+                    <div className="flex flex-row gap-2 flex-wrap items-center">
+                      <RewriteWithAIDialog
+                        isPending={rewriteWithAI.isPending}
+                        disabled={!session?.user?.id}
+                        onRewrite={async (rewritePrompt) => {
+                          if (!session?.user?.id) {
+                            toast.error("Please log in to rewrite content");
+                            return;
+                          }
+                          const instagramContent = (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || "";
+                          const contentToUse = editedContent[PLATFORM_IDS.INSTAGRAM] || instagramContent;
+                          if (!contentToUse) {
+                            toast.error("No content to rewrite");
+                            return;
+                          }
+                          const result = await rewriteWithAI.mutateAsync({
+                            userId: session.user.id,
+                            content: contentToUse,
+                            prompt: rewritePrompt || undefined,
+                          });
+                          if (result.success && result.rewrittenContent) {
+                            await editChatContent({
+                              chatId: generateProjectContent.data?.id || '',
+                              platform: PLATFORM_IDS.INSTAGRAM,
+                              content: result.rewrittenContent,
+                            });
+                            const updatedContents = { ...generateProjectContent.data?.contents as any, [PLATFORM_IDS.INSTAGRAM]: result.rewrittenContent };
+                            generateProjectContent.data.contents = updatedContents;
+                            setEditedContent({ ...editedContent, [PLATFORM_IDS.INSTAGRAM]: result.rewrittenContent });
+                            queryClient.invalidateQueries({
+                              queryKey: ["project-chats", { projectId: project.id }]
+                            });
+                          }
+                        }}
+                      />
+                      <NewImageButton
+                        isTextCardPending={generateTextCardImage.isPending}
+                        isAIImagePending={generateAIImage.isPending}
+                        disabled={!session?.user?.id}
+                        hasExistingImage={!!generatedMedia[PLATFORM_IDS.INSTAGRAM] || !!(generateProjectContent.data?.media as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM]}
+                        fullWidth={false}
+                        onTextCard={async () => {
+                          if (!session?.user?.id) {
+                            toast.error("Please log in to generate images");
+                            return;
+                          }
+                          const instagramContent = (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || "";
+                          const contentToUse = editedContent[PLATFORM_IDS.INSTAGRAM] || instagramContent || "";
+                          const result = await generateTextCardImage.mutateAsync({
+                            content: contentToUse,
+                            userId: session.user.id,
+                            projectId: project.id,
+                          });
+                          if (result.success && result.mediaKey) {
+                            await editChatContent({
+                              chatId: generateProjectContent.data?.id || '',
+                              platform: PLATFORM_IDS.INSTAGRAM,
+                              media: result.mediaKey,
+                            });
+                            const updatedMedia = { ...(generateProjectContent.data?.media as Record<string, string>) || {}, [PLATFORM_IDS.INSTAGRAM]: result.mediaKey };
+                            generateProjectContent.data.media = updatedMedia;
+                            setGeneratedMedia(prev => ({ ...prev, [PLATFORM_IDS.INSTAGRAM]: result.previewUrl || result.mediaKey! }));
+                            queryClient.invalidateQueries({
+                              queryKey: ["project-chats", { projectId: project.id }]
+                            });
+                          }
+                        }}
+                        onAIImage={async () => {
+                          if (!session?.user?.id) {
+                            toast.error("Please log in to generate images");
+                            return;
+                          }
+                          const instagramContent = (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || "";
+                          const contentToUse = editedContent[PLATFORM_IDS.INSTAGRAM] || instagramContent || "";
+                          const result = await generateAIImage.mutateAsync({
+                            content: contentToUse,
+                            userId: session.user.id,
+                            projectId: project.id,
+                            platform: PLATFORM_IDS.INSTAGRAM,
+                          });
+                          if (result.success && result.mediaKey) {
+                            await editChatContent({
+                              chatId: generateProjectContent.data?.id || '',
+                              platform: PLATFORM_IDS.INSTAGRAM,
+                              media: result.mediaKey,
+                            });
+                            const updatedMedia = { ...(generateProjectContent.data?.media as Record<string, string>) || {}, [PLATFORM_IDS.INSTAGRAM]: result.mediaKey };
+                            generateProjectContent.data.media = updatedMedia;
+                            setGeneratedMedia(prev => ({ ...prev, [PLATFORM_IDS.INSTAGRAM]: result.previewUrl || result.mediaKey! }));
+                            queryClient.invalidateQueries({
+                              queryKey: ["project-chats", { projectId: project.id }]
+                            });
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const instagramText = (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || "";
+                          setEditedContent({ ...editedContent, [PLATFORM_IDS.INSTAGRAM]: instagramText });
+                          setEditingPlatform(PLATFORM_IDS.INSTAGRAM);
+                        }}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const instagramText = (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || "";
+                          copyToClipboard(instagramText, "Instagram");
+                        }}
+                      >
+                        <CopyIcon />
+                      </Button>
+                      <PostToWall
+                        content={(generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || ""}
+                        platform={PLATFORM_IDS.INSTAGRAM}
+                        projectId={project.id}
+                        prompt={generateProjectContent.data.prompt}
+                      />
+                      <AutoPost
+                        platform={PLATFORM_IDS.INSTAGRAM as any}
+                        content={(generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] || ""}
+                        projectId={project.id}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent>
+                    {/* Instagram edit mode */}
+                    {editingPlatform === PLATFORM_IDS.INSTAGRAM && (
+                      <div className="text-sm text-muted-foreground mb-4">
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            className="w-full border p-2 rounded text-black"
+                            rows={10}
+                            value={editedContent[PLATFORM_IDS.INSTAGRAM] ?? (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] ?? ""}
+                            onChange={(e) => setEditedContent({ ...editedContent, [PLATFORM_IDS.INSTAGRAM]: e.target.value })}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="secondary" size="sm" onClick={() => setEditingPlatform(null)}>
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              loading={isSaving}
+                              onClick={async () => {
+                                try {
+                                  setIsSaving(true);
+                                  await editChatContent({
+                                    chatId: generateProjectContent.data?.id || '',
+                                    platform: PLATFORM_IDS.INSTAGRAM,
+                                    content: editedContent[PLATFORM_IDS.INSTAGRAM] ?? (generateProjectContent.data?.contents as Record<string, string>)?.[PLATFORM_IDS.INSTAGRAM] ?? ""
+                                  });
+                                  const updatedContents = { ...generateProjectContent.data?.contents as any, [PLATFORM_IDS.INSTAGRAM]: editedContent[PLATFORM_IDS.INSTAGRAM] };
+                                  generateProjectContent.data.contents = updatedContents;
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["project-chats", { projectId: project.id }]
+                                  });
+                                  setEditingPlatform(null);
+                                  toast.success('Content updated successfully');
+                                } catch (error) {
+                                  toast.error('Failed to update content');
+                                } finally {
+                                  setIsSaving(false);
+                                }
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="aspect-square max-w-[400px] mx-auto">
-                      <ViewMedia 
-                        post={{ media: (generateProjectContent.data.media as Record<string, string>)[PLATFORM_IDS.INSTAGRAM] }} 
-                        showMedia 
-                      />
+                      {generatedMedia[PLATFORM_IDS.INSTAGRAM] ? (
+                        <img
+                          src={generatedMedia[PLATFORM_IDS.INSTAGRAM]}
+                          alt="Generated image for Instagram"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <ViewMedia 
+                          post={{ media: (generateProjectContent.data.media as Record<string, string>)[PLATFORM_IDS.INSTAGRAM] }} 
+                          showMedia 
+                        />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -481,7 +662,7 @@ export function ContentGenerator({ project }: ContentGeneratorProps) {
                         </div>
                       </div>
                     ) : !(generatedMedia[platform] || (generateProjectContent.data?.media as Record<string, string>)?.[platform]) ? (
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
                         <Markdown>
                           {(text as string)
                             .split("\n")
