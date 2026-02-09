@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Sparkles, Loader2, CheckCircle, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Sparkles, Loader2, Send, Bot, User, SkipForward } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/cn";
 
 interface ProjectToolsProps {
   projectId: string;
-  buttonText: string;
   setGeneratedAds: React.Dispatch<React.SetStateAction<AdCreative[]>>;
+  onComplete?: () => void;
+  onCancel?: () => void;
 }
 
 interface FormData {
@@ -36,19 +36,217 @@ interface FormData {
   lifeEvents: string[];
 }
 
-interface AdCreative {
+export interface AdCreative {
   id: string;
   angle: string;
   imageDescription: string;
   imageCopy: string;
   headline: string;
   primaryText: string;
+  imageKey?: string | null;
+  imageUrl?: string | null;
 }
 
-export function ProjectToolsStepByStep({ projectId, buttonText, setGeneratedAds }: ProjectToolsProps) {
-  const [isDiscoveryDialogOpen, setIsDiscoveryDialogOpen] = useState(false);
+interface ChatMessage {
+  id: string;
+  role: "assistant" | "user";
+  content: string;
+  section?: string;
+}
+
+// Define all questions in order
+const questions = [
+  {
+    id: "brandName",
+    section: "Your Product",
+    question: "Hey! Let's get started with your brand discovery. What is your brand name?",
+    required: true,
+    type: "text" as const,
+    placeholder: "Enter your brand name",
+    hint: null,
+  },
+  {
+    id: "productDescription",
+    section: "Your Product",
+    question: "Great! Now describe the product or service in one sentence:",
+    required: true,
+    type: "text" as const,
+    placeholder: "One sentence description of your product",
+    hint: null,
+  },
+  {
+    id: "features",
+    section: "Your Product",
+    question: "What are the product's main features? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nAI-powered content generation\nMulti-platform scheduling\nAnalytics dashboard",
+    hint: "Enter each feature on a new line",
+  },
+  {
+    id: "heroPersona",
+    section: "Your Product",
+    question: "Who is your Hero Persona — the specific persona you're marketing to?",
+    type: "textarea" as const,
+    placeholder: "Describe your target persona...",
+    hint: null,
+  },
+  {
+    id: "benefits",
+    section: "Your Product",
+    question: "What are the product's main benefits? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nSaves 10 hours per week\nIncreases engagement by 3x\nReduces content costs",
+    hint: "Enter each benefit on a new line",
+  },
+  {
+    id: "buyerQuestions",
+    section: "Your Product",
+    question: "What are the main questions someone might ask about the product? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nHow much does it cost?\nIs there a free trial?\nDoes it integrate with my tools?",
+    hint: "Enter each question on a new line",
+  },
+  {
+    id: "competitors",
+    section: "Competition",
+    question: "Let's talk about competition. List your top 3 competitors, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nCompetitor A\nCompetitor B\nCompetitor C",
+    hint: "Enter each competitor on a new line",
+  },
+  {
+    id: "competitiveDiff",
+    section: "Competition",
+    question: "How is your product different or better than your competitors?",
+    type: "textarea" as const,
+    placeholder: "Explain your unique advantages...",
+    hint: null,
+  },
+  {
+    id: "testimonials",
+    section: "Social Proof",
+    question: "Now let's gather some social proof. Paste up to 3 testimonials, separated by blank lines.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\n\"This tool changed how we do marketing!\" — Jane D.\n\n\"We saw 5x ROI in the first month.\" — Mark S.\n\n\"The best investment our team has made.\" — Sarah K.",
+    hint: "Separate each testimonial with a blank line",
+    isTextarea: true,
+  },
+  {
+    id: "proofPoints",
+    section: "Social Proof",
+    question: "What proof do you have that your product works? List up to 3 proof points, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\n10,000+ active users\nFeatured in TechCrunch\n4.9 star rating on G2",
+    hint: "Enter each proof point on a new line",
+  },
+  {
+    id: "customerDescription",
+    section: "Your Customers",
+    question: "Let's learn about your customers. How would you describe your ideal customer?",
+    type: "textarea" as const,
+    placeholder: "Describe your ideal customer...",
+    hint: null,
+  },
+  {
+    id: "dreamOutcome",
+    section: "Your Customers",
+    question: "What is their dream outcome once they buy your product?",
+    type: "text" as const,
+    placeholder: 'e.g. "I wish I could automate my marketing so that I can focus on growing my business"',
+    hint: null,
+  },
+  {
+    id: "jobsToBeDone",
+    section: "Your Customers",
+    question: "What job(s) are they hiring the product to do? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nCreate social media content faster\nGrow their audience organically\nTrack campaign performance",
+    hint: "Enter each job on a new line",
+  },
+  {
+    id: "challenges",
+    section: "Your Customers",
+    question: "What problems will the product solve for them? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nSpending too much time on content creation\nInconsistent posting schedule\nLow engagement rates",
+    hint: "Enter each challenge on a new line",
+  },
+  {
+    id: "emotionalBenefits",
+    section: "Your Customers",
+    question: "What 3 emotional benefits does the product give them? One per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nConfidence in their marketing\nRelief from content overwhelm\nExcitement about growth",
+    hint: "Enter each emotional benefit on a new line",
+  },
+  {
+    id: "transformations",
+    section: "Your Customers",
+    question: "How will their life change once they buy the product? List up to 3 transformations, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nFrom stressed marketer to strategic thinker\nFrom inconsistent posting to daily engagement\nFrom guessing to data-driven decisions",
+    hint: "Enter each transformation on a new line",
+  },
+  {
+    id: "perceptions",
+    section: "Your Customers",
+    question: "How will others perceive them once they have the product? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nSeen as a marketing expert\nRecognized as an industry leader\nAdmired for their content quality",
+    hint: "Enter each perception on a new line",
+  },
+  {
+    id: "alternatives",
+    section: "Your Customers",
+    question: "What other solutions have they tried? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nHiring freelancers\nUsing generic templates\nDoing everything manually",
+    hint: "Enter each alternative on a new line",
+  },
+  {
+    id: "alternativesDiff",
+    section: "Your Customers",
+    question: "How is your product better than those alternatives?",
+    type: "textarea" as const,
+    placeholder: "Explain how you're better...",
+    hint: null,
+  },
+  {
+    id: "lifeEvents",
+    section: "Your Customers",
+    question: "Last one! Are there specific life events that typically trigger a purchase? List up to 3, one per line.",
+    type: "array" as const,
+    count: 3,
+    placeholder: "e.g.\nLaunching a new business\nScaling past 10 employees\nPreparing for a product launch",
+    hint: "Enter each life event on a new line",
+  },
+];
+
+export function ProjectToolsStepByStep({
+  projectId,
+  setGeneratedAds,
+  onComplete,
+  onCancel,
+}: ProjectToolsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [inputValue, setInputValue] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [formData, setFormData] = useState<FormData>({
     brandName: "",
@@ -73,180 +271,178 @@ export function ProjectToolsStepByStep({ projectId, buttonText, setGeneratedAds 
     lifeEvents: ["", "", ""],
   });
 
-  const updateArrayField = (field: keyof FormData, index: number, value: string) => {
-    const currentArray = formData[field] as string[];
-    const newArray = [...currentArray];
-    newArray[index] = value;
-    setFormData({ ...formData, [field]: newArray });
-  };
-
-  // Define all questions in order
-  const questions = [
-    {
-      id: "brandName",
-      section: "📦 YOUR PRODUCT",
-      question: "What is your brand name?",
-      required: true,
-      type: "text",
-      placeholder: "Enter your brand name"
-    },
-    {
-      id: "productDescription",
-      section: "📦 YOUR PRODUCT",
-      question: "Describe the product or service in one sentence:",
-      required: true,
-      type: "text",
-      placeholder: "One sentence description"
-    },
-    {
-      id: "features",
-      section: "📦 YOUR PRODUCT",
-      question: "What are the product's main features?",
-      type: "array",
-      count: 3,
-      placeholder: "Feature"
-    },
-    {
-      id: "heroPersona",
-      section: "📦 YOUR PRODUCT",
-      question: "Who is your Hero Persona (what specific persona are you marketing to)?",
-      type: "textarea",
-      placeholder: "Describe your target persona..."
-    },
-    {
-      id: "benefits",
-      section: "📦 YOUR PRODUCT",
-      question: "What are the product's main benefits?",
-      type: "array",
-      count: 3,
-      placeholder: "Benefit"
-    },
-    {
-      id: "buyerQuestions",
-      section: "📦 YOUR PRODUCT",
-      question: "What are the main questions someone might ask about the product?",
-      type: "array",
-      count: 3,
-      placeholder: "Question"
-    },
-    {
-      id: "competitors",
-      section: "🎯 COMPETITION",
-      question: "List your top 3 competitors",
-      type: "array",
-      count: 3,
-      placeholder: "Competitor"
-    },
-    {
-      id: "competitiveDiff",
-      section: "🎯 COMPETITION",
-      question: "How is your product different or better than your competitors?",
-      type: "textarea",
-      placeholder: "Explain your unique advantages..."
-    },
-    {
-      id: "testimonials",
-      section: "⭐ SOCIAL PROOF",
-      question: "Paste 3 Testimonials Here",
-      type: "array",
-      count: 3,
-      placeholder: "Testimonial",
-      isTextarea: true
-    },
-    {
-      id: "proofPoints",
-      section: "⭐ SOCIAL PROOF",
-      question: "What proof do you have that your product works?",
-      type: "array",
-      count: 3,
-      placeholder: "Proof point (e.g., 10,000+ users)"
-    },
-    {
-      id: "customerDescription",
-      section: "👥 YOUR CUSTOMERS",
-      question: "How would you describe your customer?",
-      type: "textarea",
-      placeholder: "Describe your ideal customer..."
-    },
-    {
-      id: "dreamOutcome",
-      section: "👥 YOUR CUSTOMERS",
-      question: "What is their dream outcome once they buy your product?",
-      type: "text",
-      placeholder: "I wish that I could __ so that __"
-    },
-    {
-      id: "jobsToBeDone",
-      section: "👥 YOUR CUSTOMERS",
-      question: "What job(s) are they hiring the product to do?",
-      type: "array",
-      count: 3,
-      placeholder: "Job"
-    },
-    {
-      id: "challenges",
-      section: "👥 YOUR CUSTOMERS",
-      question: "What problems will the product solve for them?",
-      type: "array",
-      count: 3,
-      placeholder: "Challenge"
-    },
-    {
-      id: "emotionalBenefits",
-      section: "👥 YOUR CUSTOMERS",
-      question: "What 3 emotional benefits does the product give them?",
-      type: "array",
-      count: 3,
-      placeholder: "Emotional benefit (e.g., confidence)"
-    },
-    {
-      id: "transformations",
-      section: "👥 YOUR CUSTOMERS",
-      question: "How will their life change once they buy the product?",
-      type: "array",
-      count: 3,
-      placeholder: "Transformation"
-    },
-    {
-      id: "perceptions",
-      section: "👥 YOUR CUSTOMERS",
-      question: "How will others perceive them once they have the product?",
-      type: "array",
-      count: 3,
-      placeholder: "Perception"
-    },
-    {
-      id: "alternatives",
-      section: "👥 YOUR CUSTOMERS",
-      question: "What other solutions have they tried?",
-      type: "array",
-      count: 3,
-      placeholder: "Alternative"
-    },
-    {
-      id: "alternativesDiff",
-      section: "👥 YOUR CUSTOMERS",
-      question: "How is your product better than the alternatives?",
-      type: "textarea",
-      placeholder: "Explain how you're better..."
-    },
-    {
-      id: "lifeEvents",
-      section: "👥 YOUR CUSTOMERS",
-      question: "Are there specific life events that typically trigger a purchase?",
-      type: "array",
-      count: 3,
-      placeholder: "Life event"
-    },
-  ];
-
-  const currentQuestion = questions[currentStep];
   const totalSteps = questions.length;
+  const currentQuestion = questions[currentStep];
   const isLastStep = currentStep === totalSteps - 1;
 
-  const handleSubmit = async () => {
-    // Validate required fields
-    if (!formData.brandName || !formData.productDescription) {
+  // Scroll to bottom of chat whenever messages change
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages, currentStep, isTyping, scrollToBottom]);
+
+  // Focus textarea when step changes
+  useEffect(() => {
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 150);
+  }, [currentStep]);
+
+  // Initialize chat with first question
+  useEffect(() => {
+    if (chatMessages.length === 0) {
+      setChatMessages([
+        {
+          id: "q-0",
+          role: "assistant",
+          content: questions[0].question,
+          section: questions[0].section,
+        },
+      ]);
+    }
+  }, [chatMessages.length]);
+
+  // Auto-resize textarea
+  const handleTextareaResize = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 160)}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    handleTextareaResize();
+  }, [inputValue, handleTextareaResize]);
+
+  const saveAnswer = (step: number, value: string) => {
+    const question = questions[step];
+    if (question.type === "array") {
+      const separator = (question as any).isTextarea ? /\n\n+/ : /\n/;
+      const items = value
+        .split(separator)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const count = question.count || 3;
+      while (items.length < count) items.push("");
+      setFormData((prev) => ({ ...prev, [question.id]: items.slice(0, count) }));
+    } else {
+      setFormData((prev) => ({ ...prev, [question.id]: value.trim() }));
+    }
+  };
+
+  const handleSend = () => {
+    const trimmed = inputValue.trim();
+
+    if (currentQuestion.required && !trimmed) {
+      toast.error("This question is required. Please provide an answer.");
+      return;
+    }
+
+    if (trimmed) {
+      saveAnswer(currentStep, trimmed);
+    }
+
+    const userMsg: ChatMessage = {
+      id: `u-${currentStep}`,
+      role: "user",
+      content: trimmed || "(skipped)",
+    };
+
+    if (isLastStep) {
+      setChatMessages((prev) => [...prev, userMsg]);
+      setInputValue("");
+      handleSubmit(trimmed);
+      return;
+    }
+
+    // Show user message + typing indicator, then reveal AI reply after a short delay
+    setChatMessages((prev) => [...prev, userMsg]);
+    setInputValue("");
+    setIsTyping(true);
+
+    const nextStep = currentStep + 1;
+    const nextQuestion = questions[nextStep];
+
+    setTimeout(() => {
+      const assistantMsg: ChatMessage = {
+        id: `q-${nextStep}`,
+        role: "assistant",
+        content: nextQuestion.question,
+        section: nextQuestion.section,
+      };
+
+      setIsTyping(false);
+      setChatMessages((prev) => [...prev, assistantMsg]);
+      setCurrentStep(nextStep);
+    }, 800);
+  };
+
+  const handleSkip = () => {
+    if (currentQuestion.required) return;
+
+    const userMsg: ChatMessage = {
+      id: `u-${currentStep}`,
+      role: "user",
+      content: "(skipped)",
+    };
+
+    if (isLastStep) {
+      setChatMessages((prev) => [...prev, userMsg]);
+      handleSubmit("");
+      return;
+    }
+
+    // Show user message + typing indicator, then reveal AI reply after a short delay
+    setChatMessages((prev) => [...prev, userMsg]);
+    setInputValue("");
+    setIsTyping(true);
+
+    const nextStep = currentStep + 1;
+    const nextQuestion = questions[nextStep];
+
+    setTimeout(() => {
+      const assistantMsg: ChatMessage = {
+        id: `q-${nextStep}`,
+        role: "assistant",
+        content: nextQuestion.question,
+        section: nextQuestion.section,
+      };
+
+      setIsTyping(false);
+      setChatMessages((prev) => [...prev, assistantMsg]);
+      setCurrentStep(nextStep);
+    }, 800);
+  };
+
+  const handleSubmit = async (lastAnswer?: string) => {
+    if (lastAnswer !== undefined && lastAnswer.trim()) {
+      saveAnswer(currentStep, lastAnswer);
+    }
+
+    const finalFormData = { ...formData };
+    if (lastAnswer !== undefined && lastAnswer.trim()) {
+      const question = questions[currentStep];
+      if (question.type === "array") {
+        const separator = (question as any).isTextarea ? /\n\n+/ : /\n/;
+        const items = lastAnswer
+          .split(separator)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const count = question.count || 3;
+        while (items.length < count) items.push("");
+        (finalFormData as any)[question.id] = items.slice(0, count);
+      } else {
+        (finalFormData as any)[question.id] = lastAnswer.trim();
+      }
+    }
+
+    if (!finalFormData.brandName || !finalFormData.productDescription) {
       toast.error("Missing Information", {
         description: "Please provide at least the brand name and product description.",
       });
@@ -255,13 +451,22 @@ export function ProjectToolsStepByStep({ projectId, buttonText, setGeneratedAds 
 
     setIsGenerating(true);
 
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: "generating",
+        role: "assistant",
+        content: "Thanks for all the details! Generating your ad creatives now...",
+      },
+    ]);
+
     try {
       const response = await fetch("/api/brand-discovery", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId,
-          ...formData,
+          ...finalFormData,
         }),
       });
 
@@ -277,301 +482,212 @@ export function ProjectToolsStepByStep({ projectId, buttonText, setGeneratedAds 
 
       setGeneratedAds(data.adCreatives);
       setIsGenerating(false);
-      setIsDiscoveryDialogOpen(false);
-      setCurrentStep(0);
+      onComplete?.();
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error", {
         description: "Failed to generate ad creatives. Please try again.",
       });
+      setChatMessages((prev) => prev.filter((m) => m.id !== "generating"));
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleNext = () => {
-    if (isLastStep) {
-      handleSubmit();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (currentQuestion.type === "text") {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
     } else {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const canProceed = () => {
-    const question = currentQuestion;
-    const value = formData[question.id as keyof FormData];
-
-    if (question.required) {
-      if (typeof value === 'string') {
-        return value.trim() !== '';
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSend();
       }
     }
-    return true;
   };
 
+  const isMultiline = currentQuestion?.type === "array" || currentQuestion?.type === "textarea";
+
   return (
-    <div>
-      <Button variant="secondary" onClick={() => setIsDiscoveryDialogOpen(true)}>
-        {buttonText}
-      </Button>
-      {/* Add Discovery Dialog - Step by Step */}
-      <Dialog open={isDiscoveryDialogOpen} onOpenChange={(open) => {
-        setIsDiscoveryDialogOpen(open);
-        if (!open) setCurrentStep(0);
-      }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-blue-600" />
-              Brand Discovery
-            </DialogTitle>
-            <DialogDescription>
-              {currentQuestion.section}
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Progress Breadcrumb - Sectioned */}
-          <div className="py-4">
-            <div className="space-y-6">
-              {/* Product Section */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 mb-2 text-center">📦 YOUR PRODUCT</p>
-                <div className="flex items-center justify-center gap-1">
-                  {questions.slice(0, 6).map((_, index) => (
-                    <div key={index} className="flex items-center">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${index < currentStep
-                          ? "bg-green-500 text-white"
-                          : index === currentStep
-                            ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
-                            : "bg-gray-200 text-gray-400"
-                          }`}
-                      >
-                        {index < currentStep ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          index + 1
-                        )}
-                      </div>
-                      {index < 5 && (
-                        <div
-                          className={`w-3 h-0.5 mx-0.5 transition-all ${index < currentStep ? "bg-green-500" : "bg-gray-200"
-                            }`}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Competition Section */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 mb-2 text-center">🎯 COMPETITION</p>
-                <div className="flex items-center justify-center gap-1">
-                  {questions.slice(6, 8).map((_, index) => {
-                    const actualIndex = index + 6;
-                    return (
-                      <div key={actualIndex} className="flex items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${actualIndex < currentStep
-                            ? "bg-green-500 text-white"
-                            : actualIndex === currentStep
-                              ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
-                              : "bg-gray-200 text-gray-400"
-                            }`}
-                        >
-                          {actualIndex < currentStep ? (
-                            <Check className="w-4 h-4" />
-                          ) : (
-                            actualIndex + 1
-                          )}
-                        </div>
-                        {index < 1 && (
-                          <div
-                            className={`w-3 h-0.5 mx-0.5 transition-all ${actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
-                              }`}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Social Proof Section */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 mb-2 text-center">⭐ SOCIAL PROOF</p>
-                <div className="flex items-center justify-center gap-1">
-                  {questions.slice(8, 10).map((_, index) => {
-                    const actualIndex = index + 8;
-                    return (
-                      <div key={actualIndex} className="flex items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${actualIndex < currentStep
-                            ? "bg-green-500 text-white"
-                            : actualIndex === currentStep
-                              ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
-                              : "bg-gray-200 text-gray-400"
-                            }`}
-                        >
-                          {actualIndex < currentStep ? (
-                            <Check className="w-4 h-4" />
-                          ) : (
-                            actualIndex + 1
-                          )}
-                        </div>
-                        {index < 1 && (
-                          <div
-                            className={`w-3 h-0.5 mx-0.5 transition-all ${actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
-                              }`}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Customers Section */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 mb-2 text-center">👥 YOUR CUSTOMERS</p>
-                <div className="flex items-center justify-center gap-1 flex-wrap max-w-md mx-auto">
-                  {questions.slice(10, 20).map((_, index) => {
-                    const actualIndex = index + 10;
-                    return (
-                      <div key={actualIndex} className="flex items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${actualIndex < currentStep
-                            ? "bg-green-500 text-white"
-                            : actualIndex === currentStep
-                              ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
-                              : "bg-gray-200 text-gray-400"
-                            }`}
-                        >
-                          {actualIndex < currentStep ? (
-                            <Check className="w-4 h-4" />
-                          ) : (
-                            actualIndex + 1
-                          )}
-                        </div>
-                        {index < 9 && (
-                          <div
-                            className={`w-3 h-0.5 mx-0.5 transition-all ${actualIndex < currentStep ? "bg-green-500" : "bg-gray-200"
-                              }`}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <p className="text-center text-sm text-gray-500 mt-4">
-              Question {currentStep + 1} of {totalSteps}
+    <div className="flex flex-col h-[calc(100vh-220px)] max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between px-1 pb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Brand Discovery</h2>
+            <p className="text-xs text-muted-foreground">
+              Question {currentStep + 1} of {totalSteps} &middot; {currentQuestion?.section}
             </p>
           </div>
+        </div>
+        {onCancel && (
+          <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            Cancel
+          </Button>
+        )}
+      </div>
 
-          {/* Question Content */}
-          <div className="py-6 min-h-[300px]">
-            <h3 className="text-2xl font-bold mb-6">
-              {currentQuestion.question}
-              {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
-            </h3>
+      {/* Progress bar */}
+      <div className="px-1 pb-4 shrink-0">
+        <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+          />
+        </div>
+      </div>
 
-            <div className="space-y-3">
-              {currentQuestion.type === "text" && (
-                <input
-                  type="text"
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                  placeholder={currentQuestion.placeholder}
-                  value={formData[currentQuestion.id as keyof FormData] as string}
-                  onChange={(e) => setFormData({ ...formData, [currentQuestion.id]: e.target.value })}
-                  autoFocus
-                />
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto px-1 space-y-4 pb-4">
+        {chatMessages.map((msg) => (
+          <div
+            key={msg.id}
+            className={cn(
+              "flex gap-3",
+              msg.role === "user" ? "justify-end" : "justify-start"
+            )}
+          >
+            {msg.role === "assistant" && (
+              <div className="shrink-0 h-7 w-7 rounded-full bg-blue-600/20 flex items-center justify-center mt-0.5">
+                <Bot className="h-4 w-4 text-blue-400" />
+              </div>
+            )}
+            <div
+              className={cn(
+                "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                msg.role === "assistant"
+                  ? "bg-muted text-foreground"
+                  : "bg-blue-600 text-white"
               )}
+            >
+              {msg.section &&
+                msg.role === "assistant" &&
+                (() => {
+                  const prevAssistantMsgs = chatMessages.filter(
+                    (m) => m.role === "assistant" && m.section
+                  );
+                  const myIndex = prevAssistantMsgs.findIndex((m) => m.id === msg.id);
+                  const prevSection = myIndex > 0 ? prevAssistantMsgs[myIndex - 1].section : null;
+                  if (msg.section !== prevSection) {
+                    return (
+                      <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full mb-2">
+                        {msg.section}
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              <p className="whitespace-pre-wrap">{msg.content}</p>
+            </div>
+            {msg.role === "user" && (
+              <div className="shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center mt-0.5">
+                <User className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        ))}
 
-              {currentQuestion.type === "textarea" && (
-                <textarea
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                  rows={4}
-                  placeholder={currentQuestion.placeholder}
-                  value={formData[currentQuestion.id as keyof FormData] as string}
-                  onChange={(e) => setFormData({ ...formData, [currentQuestion.id]: e.target.value })}
-                  autoFocus
-                />
-              )}
-
-              {currentQuestion.type === "array" && (
-                <>
-                  {Array.from({ length: currentQuestion.count || 3 }).map((_, index) => (
-                    currentQuestion.isTextarea ? (
-                      <textarea
-                        key={index}
-                        className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                        rows={2}
-                        placeholder={`${index + 1}. ${currentQuestion.placeholder} ${index + 1}`}
-                        value={(formData[currentQuestion.id as keyof FormData] as string[])[index] || ""}
-                        onChange={(e) => updateArrayField(currentQuestion.id as keyof FormData, index, e.target.value)}
-                        autoFocus={index === 0}
-                      />
-                    ) : (
-                      <input
-                        key={index}
-                        type="text"
-                        className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                        placeholder={`${index + 1}. ${currentQuestion.placeholder} ${index + 1}`}
-                        value={(formData[currentQuestion.id as keyof FormData] as string[])[index] || ""}
-                        onChange={(e) => updateArrayField(currentQuestion.id as keyof FormData, index, e.target.value)}
-                        autoFocus={index === 0}
-                      />
-                    )
-                  ))}
-                </>
-              )}
+        {isTyping && (
+          <div className="flex gap-3 justify-start">
+            <div className="shrink-0 h-7 w-7 rounded-full bg-blue-600/20 flex items-center justify-center mt-0.5">
+              <Bot className="h-4 w-4 text-blue-400" />
+            </div>
+            <div className="bg-muted rounded-2xl px-5 py-3.5">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:300ms]" />
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Navigation Buttons */}
-          <div className="flex items-center justify-between gap-4 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 0}
-              className="px-6"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
+        {isGenerating && (
+          <div className="flex gap-3 justify-start">
+            <div className="shrink-0 h-7 w-7 rounded-full bg-blue-600/20 flex items-center justify-center mt-0.5">
+              <Bot className="h-4 w-4 text-blue-400" />
+            </div>
+            <div className="bg-muted rounded-2xl px-4 py-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating your ads...
+              </div>
+            </div>
+          </div>
+        )}
 
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="border-t border-border px-1 pt-3 pb-1 shrink-0">
+        {currentQuestion?.hint && (
+          <p className="text-[11px] text-muted-foreground mb-2 px-1">{currentQuestion.hint}</p>
+        )}
+        <div className="flex items-end gap-2">
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={currentQuestion?.placeholder || "Type your answer..."}
+              disabled={isGenerating || isTyping}
+              rows={1}
+              className={cn(
+                "w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground",
+                "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "scrollbar-thin",
+                isMultiline ? "min-h-[80px]" : "min-h-[44px]"
+              )}
+            />
+            {isMultiline && (
+              <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground">
+                {typeof navigator !== "undefined" && navigator?.platform?.includes("Mac") ? "Cmd" : "Ctrl"}+Enter to send
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
             <Button
-              onClick={handleNext}
-              disabled={!canProceed() || isGenerating}
-              className="px-8"
+              size="icon"
+              onClick={handleSend}
+              disabled={isGenerating || isTyping || (currentQuestion?.required && !inputValue.trim())}
+              className="h-10 w-10 rounded-xl bg-blue-600 hover:bg-blue-700 shrink-0"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : isLastStep ? (
-                "Generate Ads"
+              {isLastStep && inputValue.trim() ? (
+                <Sparkles className="h-4 w-4" />
               ) : (
-                <>
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
+                <Send className="h-4 w-4" />
               )}
             </Button>
+            {!currentQuestion?.required && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleSkip}
+                disabled={isGenerating || isTyping}
+                className="h-8 w-10 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
+                title="Skip this question"
+              >
+                <SkipForward className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
+          {isLastStep
+            ? "This is the last question — send to generate your ads"
+            : isMultiline
+              ? "Enter each item on a new line"
+              : "Press Enter to send"}
+        </p>
+      </div>
     </div>
   );
 }

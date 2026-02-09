@@ -40,6 +40,8 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  hidden: boolean;
+  setHidden: (hidden: boolean) => void;
   width: string;
 };
 
@@ -114,6 +116,24 @@ function SidebarProvider({
     [setOpenProp, open, persist, storageKey],
   );
 
+  // Hidden state – completely hides the sidebar (triggered by manual button click only)
+  const [_hidden, _setHidden] = React.useState(() => {
+    if (persist && typeof window !== "undefined") {
+      return localStorage.getItem(storageKey + "_hidden") === "true";
+    }
+    return false;
+  });
+
+  const setHidden = React.useCallback(
+    (value: boolean) => {
+      _setHidden(value);
+      if (persist && typeof window !== "undefined") {
+        localStorage.setItem(storageKey + "_hidden", String(value));
+      }
+    },
+    [persist, storageKey],
+  );
+
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
@@ -148,9 +168,11 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      hidden: _hidden,
+      setHidden,
       width: isMobile ? SIDEBAR_WIDTH_MOBILE : SIDEBAR_WIDTH
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, _hidden, setHidden],
   );
 
   return (
@@ -190,7 +212,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, state, openMobile, setOpenMobile, hidden } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -262,6 +284,7 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--spacing-4))]"
             : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
+          hidden && "!w-0",
         )}
       />
       <div
@@ -274,6 +297,7 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--spacing-4)+2px)]"
             : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          hidden && "!w-0 overflow-hidden !border-0",
           className,
         )}
         {...props}

@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, RefreshCw, Loader2, Users, Target, Heart, MessageSquare, Briefcase, MapPin, GraduationCap, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, RefreshCw, Loader2, Users, Target, Heart, MessageSquare, Briefcase, MapPin, GraduationCap, DollarSign, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PersonaQuestionnaire, type PersonaResult } from "../_components/persona-questionnaire";
@@ -19,6 +19,8 @@ export default function PersonasPage() {
     const [generatedPersonas, setGeneratedPersonas] = useState<PersonaResult[]>([]);
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [expandedPersonas, setExpandedPersonas] = useState<Set<string>>(new Set());
+    const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const { data: session } = useSession();
     const { handleCoinsFinished } = usePricingModal();
 
@@ -38,6 +40,8 @@ export default function PersonasPage() {
             setGeneratedPersonas(data.personas as PersonaResult[]);
         } catch (error) {
             console.error("Error fetching personas:", error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -106,6 +110,36 @@ export default function PersonasPage() {
 
     const hasPersonas = generatedPersonas.length > 0;
 
+    // Show questionnaire inline if no personas and not loading, or if user chose "Redo Questions"
+    if (!isLoading && (!hasPersonas || showQuestionnaire)) {
+        return (
+            <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto justify-center px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+                {/* Show back button only if they have existing personas (redo mode) */}
+                {hasPersonas && showQuestionnaire && (
+                    <div className="mb-4">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowQuestionnaire(false)}
+                            className="text-muted-foreground hover:text-foreground gap-2"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to Personas
+                        </Button>
+                    </div>
+                )}
+                <PersonaQuestionnaire
+                    projectId={id}
+                    setGeneratedPersonas={(personas) => {
+                        setGeneratedPersonas(personas);
+                    }}
+                    onComplete={() => setShowQuestionnaire(false)}
+                    onCancel={hasPersonas ? () => setShowQuestionnaire(false) : undefined}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto justify-center px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-4">
             {/* Header Card */}
@@ -119,7 +153,7 @@ export default function PersonasPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <CheckCircle className="h-5 w-5 text-green-600" />
-                                <span className="text-white text-base font-semibold">
+                                <span className="text-foreground text-base font-semibold">
                                     Buyer Personas
                                 </span>
                             </div>
@@ -132,13 +166,14 @@ export default function PersonasPage() {
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            {hasPersonas ? (
+                            {hasPersonas && (
                                 <>
-                                    <PersonaQuestionnaire
-                                        projectId={id}
-                                        buttonText="Redo Questions"
-                                        setGeneratedPersonas={setGeneratedPersonas}
-                                    />
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => setShowQuestionnaire(true)}
+                                    >
+                                        Redo Questions
+                                    </Button>
                                     <Button
                                         variant="default"
                                         onClick={handleRegeneratePersonas}
@@ -157,17 +192,18 @@ export default function PersonasPage() {
                                         )}
                                     </Button>
                                 </>
-                            ) : (
-                                <PersonaQuestionnaire
-                                    projectId={id}
-                                    buttonText="Find Personas"
-                                    setGeneratedPersonas={setGeneratedPersonas}
-                                />
                             )}
                         </div>
                     </CardDescription>
                 </CardHeader>
             </Card>
+
+            {/* Loading State */}
+            {isLoading && (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                </div>
+            )}
 
             {/* Persona Cards */}
             {hasPersonas && (
@@ -183,14 +219,14 @@ export default function PersonasPage() {
                                             <div className="text-5xl">{persona.avatar || "👤"}</div>
                                             <div>
                                                 <CardTitle className="text-xl">{persona.personaName}</CardTitle>
-                                                <p className="text-sm text-gray-400 mt-1 italic">
+                                                <p className="text-sm text-muted-foreground mt-1 italic">
                                                     &ldquo;{persona.tagline}&rdquo;
                                                 </p>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => togglePersonaExpand(persona.id)}
-                                            className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-800"
+                                            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted"
                                         >
                                             {isExpanded ? (
                                                 <>
@@ -235,8 +271,8 @@ export default function PersonasPage() {
                                 {isExpanded && (
                                     <CardContent className="space-y-6 pt-2">
                                         {/* Day in the Life */}
-                                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
-                                            <h4 className="font-semibold text-sm text-gray-500 mb-2 flex items-center gap-2">
+                                        <div className="bg-muted/50 rounded-xl p-5">
+                                            <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                                                 📅 A Day in Their Life
                                             </h4>
                                             <p className="text-sm leading-relaxed">{persona.dayInTheLife}</p>
@@ -244,7 +280,7 @@ export default function PersonasPage() {
 
                                         {/* How Product Fits */}
                                         <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-5">
-                                            <h4 className="font-semibold text-sm text-purple-600 mb-2 flex items-center gap-2">
+                                            <h4 className="font-semibold text-sm text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-2">
                                                 🎯 How Your Product Fits
                                             </h4>
                                             <p className="text-sm leading-relaxed">{persona.howProductFits}</p>
@@ -254,7 +290,7 @@ export default function PersonasPage() {
                                             {/* Psychographics */}
                                             <div className="space-y-4">
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2 flex items-center gap-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                                                         <Heart className="h-4 w-4 text-red-500" />
                                                         Values
                                                     </h4>
@@ -268,7 +304,7 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         🎨 Interests
                                                     </h4>
                                                     <div className="flex flex-wrap gap-2">
@@ -281,17 +317,17 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         🏡 Lifestyle
                                                     </h4>
-                                                    <p className="text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">{persona.lifestyle}</p>
+                                                    <p className="text-sm bg-muted/50 p-3 rounded-lg">{persona.lifestyle}</p>
                                                 </div>
                                             </div>
 
                                             {/* Goals & Pain Points */}
                                             <div className="space-y-4">
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2 flex items-center gap-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                                                         <Target className="h-4 w-4 text-green-500" />
                                                         Goals
                                                     </h4>
@@ -306,7 +342,7 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         😤 Pain Points
                                                     </h4>
                                                     <ul className="space-y-1.5">
@@ -325,7 +361,7 @@ export default function PersonasPage() {
                                             {/* Buying Behavior */}
                                             <div className="space-y-4">
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         💡 Buying Motivations
                                                     </h4>
                                                     <ul className="space-y-1.5">
@@ -339,7 +375,7 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         📱 Preferred Channels
                                                     </h4>
                                                     <div className="flex flex-wrap gap-2">
@@ -352,7 +388,7 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         📄 Content Preferences
                                                     </h4>
                                                     <div className="flex flex-wrap gap-2">
@@ -368,7 +404,7 @@ export default function PersonasPage() {
                                             {/* Messaging */}
                                             <div className="space-y-4">
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2 flex items-center gap-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                                                         <MessageSquare className="h-4 w-4 text-blue-500" />
                                                         Messaging Angles
                                                     </h4>
@@ -383,7 +419,7 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         🎤 Tone of Voice
                                                     </h4>
                                                     <p className="text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg font-medium">
@@ -392,7 +428,7 @@ export default function PersonasPage() {
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-semibold text-sm text-gray-500 mb-2">
+                                                    <h4 className="font-semibold text-sm text-muted-foreground mb-2">
                                                         💬 Key Messages
                                                     </h4>
                                                     <ul className="space-y-1.5">

@@ -11,6 +11,7 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { TodayTimelineView } from "./_components/today-timeline-view";
 import { GetStartedGuide } from "./_components/get-started-guide";
 import { useFocus } from "@/providers/focus-provider";
+import { VoiceInput } from "./_components/voice-input";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -144,6 +145,15 @@ export default function Home() {
               </p>
             )}
           </header>
+
+          {/* Voice Input - Whisper transcription with waveform animation */}
+          <div className="max-w-xl">
+            <VoiceInput
+              onSubmit={(text) => {
+                console.log("User input:", text);
+              }}
+            />
+          </div>
 
           {/* Show GetStartedGuide only for new users */}
           {isNewUser && <GetStartedGuide />}

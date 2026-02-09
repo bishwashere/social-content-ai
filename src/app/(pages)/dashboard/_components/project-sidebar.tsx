@@ -80,6 +80,10 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
   const { data: projects, isLoading } = useGetAllProjects();
   const { toggleSidebar } = sidebar;
 
+  // When user has exactly one project, skip dropdown and navigate directly
+  const hasSingleProject = !isLoading && projects?.length === 1;
+  const singleProject = hasSingleProject ? projects![0] : null;
+
   // Get current project from URL (exclude section segments like wall, content-planner, etc.)
   const urlProjectId = React.useMemo(() => {
     const match = pathname?.match(/\/project\/([^/?]+)/); // project detail pages stay at /project/[id]
@@ -218,7 +222,11 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setProjectSelectorOpen((v) => !v);
+                    if (hasSingleProject && singleProject) {
+                      handleProjectSelect(singleProject.id);
+                    } else {
+                      setProjectSelectorOpen((v) => !v);
+                    }
                   }}
                   className={cn(
                     "w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 group",
@@ -235,13 +243,17 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                     <>
                       <div className="flex-1 min-w-0 text-left">
                         <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                          {currentProject?.name || "Select Project"}
+                          {currentProject?.name || singleProject?.name || "Select Project"}
                         </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {projects?.length || 0} projects
-                        </p>
+                        {!hasSingleProject && (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {projects?.length || 0} projects
+                          </p>
+                        )}
                       </div>
-                      <ChevronsUpDown className="h-4 w-4 text-slate-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                      {!hasSingleProject && (
+                        <ChevronsUpDown className="h-4 w-4 text-slate-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                      )}
                     </>
                   )}
                 </button>
@@ -341,7 +353,13 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                 )}
               </div>
             ) : (
-              <Popover open={projectSelectorOpen} onOpenChange={setProjectSelectorOpen}>
+              <Popover open={projectSelectorOpen} onOpenChange={(open) => {
+                if (open && hasSingleProject && singleProject) {
+                  handleProjectSelect(singleProject.id);
+                  return;
+                }
+                setProjectSelectorOpen(open);
+              }}>
                 <PopoverTrigger asChild>
                   <button
                     data-project-selector="true"
@@ -365,13 +383,17 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
                       <>
                         <div className="flex-1 min-w-0 text-left">
                           <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                            {currentProject?.name || "Select Project"}
+                            {currentProject?.name || singleProject?.name || "Select Project"}
                           </p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {projects?.length || 0} projects
-                          </p>
+                          {!hasSingleProject && (
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              {projects?.length || 0} projects
+                            </p>
+                          )}
                         </div>
-                        <ChevronsUpDown className="h-4 w-4 text-slate-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                        {!hasSingleProject && (
+                          <ChevronsUpDown className="h-4 w-4 text-slate-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                        )}
                       </>
                     )}
                   </button>

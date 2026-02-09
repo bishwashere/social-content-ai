@@ -68,9 +68,9 @@ const Main = ({ children }: { children: React.ReactNode }) => {
              document.querySelector('[data-demo-active="true"]') !== null;
     };
     
-    // Only auto-minimize on desktop (not mobile) and when sidebar is open and no tour is active
-    if (sidebar.isMobile || !sidebar.open || isTourActive) {
-      // Clear timer if sidebar is closed or on mobile or tour is active
+    // Only auto-minimize on desktop (not mobile) and when sidebar is open, visible, and no tour is active
+    if (sidebar.isMobile || !sidebar.open || sidebar.hidden || isTourActive) {
+      // Clear timer if sidebar is closed/hidden or on mobile or tour is active
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
@@ -152,7 +152,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
         sidebarElementRef.current = null;
       }
     };
-  }, [sidebar.open, sidebar.isMobile, sidebar.setOpen, showTour, showNavigationTour, showFoldersTour, showProjectsTour]);
+  }, [sidebar.open, sidebar.isMobile, sidebar.setOpen, sidebar.hidden, showTour, showNavigationTour, showFoldersTour, showProjectsTour]);
 
   // When landing from project page with ?tour=dashboard, start tour after nav completes
   useEffect(() => {

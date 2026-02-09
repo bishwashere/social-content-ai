@@ -55,16 +55,25 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
             variant="ghost"
             size="icon"
             className="h-8 w-8 hover:bg-gray-100 transition-colors"
-            onClick={() => sidebar.toggleSidebar()}
+            onClick={() => {
+              if (sidebar.hidden) {
+                // Un-hide and expand the sidebar
+                sidebar.setHidden(false);
+                sidebar.setOpen(true);
+              } else {
+                // Completely hide the sidebar
+                sidebar.setHidden(true);
+              }
+            }}
           >
-            {sidebar.open ? (
-              <PanelLeftClose className="h-4 w-4" />
-            ) : (
+            {sidebar.hidden ? (
               <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
             )}
             <span className="sr-only">Toggle Sidebar</span>
           </Button>
-          {!sidebar.open && (
+          {(sidebar.hidden || !sidebar.open) && (
             <button
               onClick={() => router.push("/dashboard")}
               className="cursor-pointer hover:opacity-80 transition-opacity"
