@@ -45,6 +45,7 @@ import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
 import { Input } from "@/components/ui/input";
 import ChangeCampaignName from "./change-campaign-name";
+import ViewCampaignDetails from "./view-campaign-details";
 import { confirm } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/cn";
@@ -2059,7 +2060,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                         <div className="flex flex-wrap items-center gap-2">
                           {campaign.name}
                           <div className="hidden sm:block" onClick={(e) => e.stopPropagation()}>
-                            <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
+                            <ViewCampaignDetails campaign={campaign} />
                           </div>
                           <p className="text-sm max-md:hidden">• {campaign.goal}</p>
                           <p className="text-sm max-md:hidden">• {campaign.targetAudience}</p>
@@ -3138,7 +3139,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                         </div>
                         <div className="flex justify-center items-center gap-8">
                           <div onClick={(e) => e.stopPropagation()}>
-                            <ChangeCampaignName campaignId={campaign.id} campaignName={campaign.name || ""} />
+                            <ViewCampaignDetails campaign={campaign} />
                           </div>
                           <button onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}>
                             <Trash className="size-4 stroke-red-500" />

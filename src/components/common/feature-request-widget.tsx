@@ -8,9 +8,11 @@ import { cn } from "@/lib/cn";
 import api from "@/backend-apis/axios";
 import { toast } from "sonner";
 import { useSession } from "@/backend-apis/auth/hooks";
+import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 
 export function FeatureRequestWidget() {
   const { data: session, isLoading } = useSession();
+  const { featureRequestVisible } = useWidgetVisibility();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +51,11 @@ export function FeatureRequestWidget() {
 
   // Only show feature request widget when user is logged in
   if (isLoading || !session?.user) {
+    return null;
+  }
+
+  // Hide when a page requests it (e.g. dashboard chat mode)
+  if (!featureRequestVisible) {
     return null;
   }
 

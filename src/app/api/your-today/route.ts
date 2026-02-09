@@ -435,13 +435,13 @@ export async function GET(request: NextRequest) {
         const [ownedProjects, invitedProjectsData] = await Promise.all([
           prisma.projects.findMany({
             where: { userId: user.id },
-            select: { id: true, name: true }
+            select: { id: true, name: true, createdAt: true }
           }),
           prisma.invitedUser.findMany({
             where: { userId: user.id },
             include: {
               project: {
-                select: { id: true, name: true }
+                select: { id: true, name: true, createdAt: true }
               }
             }
           })
@@ -465,6 +465,14 @@ export async function GET(request: NextRequest) {
         console.log("📊 Your Today API - User projects:", uniqueProjects.length);
 
         const projectIds = uniqueProjects.map(p => p.id);
+
+        // Build a map of projectId -> createdAt for age checks
+        const projectCreatedAtMap = new Map<string, Date>();
+        uniqueProjects.forEach(p => {
+          if (p.createdAt) {
+            projectCreatedAtMap.set(p.id, new Date(p.createdAt));
+          }
+        });
 
         // If user has no projects, return empty array
         if (projectIds.length === 0) {
@@ -1198,17 +1206,34 @@ export async function GET(request: NextRequest) {
           if (projectScheduledPosts.length === 0 && !hasCampaignPostsScheduled && !projectsWithCampaignAlerts.has(projectId)) {
             // No scheduled posts - analyze historical data and show action if user is admin
             if (userRole === "admin") {
+              // Check how old the project is - don't show inactivity alerts for recently created projects
+              const projectCreatedAt = projectCreatedAtMap.get(projectId);
+              const projectAgeDays = projectCreatedAt
+                ? Math.floor((today.getTime() - new Date(projectCreatedAt).setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24))
+                : null;
+
               // Analyze historical consistency and impression correlation
               const consistencyAnalysis = await analyzeProjectConsistency(projectId);
               
-              // Track projects inactive for 7+ days for summary grouping
-              if (consistencyAnalysis.daysSinceLastPost >= 7) {
+              // The consistency analysis defaults to 30 days when a project has
+              // no posts at all. Cap the inactivity at the project's actual age
+              // so that a brand-new project isn't labelled "inactive for 7+ days".
+              const rawInactiveDays = consistencyAnalysis.daysSinceLastPost;
+              const effectiveInactiveDays = (projectAgeDays !== null && !consistencyAnalysis.hasHistoricalData)
+                ? Math.min(rawInactiveDays, projectAgeDays)
+                : rawInactiveDays;
+
+              if (effectiveInactiveDays >= 7) {
+                // Track projects inactive for 7+ days for summary grouping
                 inactiveProjects7PlusDays.push({
                   projectId: projectId,
                   projectName: projectName,
-                  daysSinceLastPost: consistencyAnalysis.daysSinceLastPost,
+                  daysSinceLastPost: effectiveInactiveDays,
                   userRole: userRole
                 });
+              } else if (effectiveInactiveDays <= 1 && !consistencyAnalysis.hasHistoricalData) {
+                // Project is very new (0-1 days) and has no posts - skip alert entirely
+                // Don't nag users about posting on a project they just created
               } else {
               // Show individual items for projects inactive less than 7 days
                 if (!tasksByType["schedule_post"]) {

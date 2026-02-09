@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { useSession } from "@/backend-apis/auth/hooks";
@@ -11,7 +11,10 @@ import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { TodayTimelineView } from "./_components/today-timeline-view";
 import { GetStartedGuide } from "./_components/get-started-guide";
 import { useFocus } from "@/providers/focus-provider";
+import { cn } from "@/lib/cn";
 import { VoiceInput } from "./_components/voice-input";
+import { DashboardChat } from "./_components/dashboard-chat";
+import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -30,12 +33,35 @@ export default function Home() {
   const projects = useGetAllProjects();
   const { open: pricingModalOpen } = usePricingModal();
   const { focusContext } = useFocus();
+  const { hideFeatureRequest, showFeatureRequest } = useWidgetVisibility();
   const onboardingShownRef = useRef(false);
   const projectSelectionCallbackRef = useRef<((projectId: string) => void) | null>(null);
+  const [chatMode, setChatMode] = useState(false);
+  const [initialChatMessage, setInitialChatMessage] = useState("");
   
   // Determine if user is new (has fewer than 3 projects)
   const isNewUser = (projects.data?.length ?? 0) < 3;
   const greeting = getGreeting(session?.user?.name);
+
+  const handleChatSubmit = useCallback((text: string) => {
+    setInitialChatMessage(text);
+    setChatMode(true);
+  }, []);
+
+  const handleBackToDashboard = useCallback(() => {
+    setChatMode(false);
+    setInitialChatMessage("");
+  }, []);
+
+  // Hide the feature-request widget while the chat is active
+  useEffect(() => {
+    if (chatMode) {
+      hideFeatureRequest();
+    } else {
+      showFeatureRequest();
+    }
+    return () => showFeatureRequest();
+  }, [chatMode, hideFeatureRequest, showFeatureRequest]);
 
   // Redirect if not authenticated (SessionProvider should handle this, but this is a safety check)
   useEffect(() => {
@@ -125,42 +151,51 @@ export default function Home() {
         <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-gradient-to-br from-amber-400/10 to-orange-400/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-        <div className="space-y-6">
-          {/* Header with greeting and date - always at the top */}
-          <header className="mb-2">
-            <p className="text-sm font-medium text-muted-foreground mb-1">
-              {format(new Date(), "EEEE, MMMM d")}
-            </p>
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-              {greeting}
-            </h1>
-            {focusContext?.projectName && focusContext.type !== "empty" && (
-              <p className="mt-2 text-muted-foreground flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Working on <span className="font-medium text-foreground">{focusContext.projectName}</span>
-                {focusContext.campaignName && (
-                  <span className="text-muted-foreground">• {focusContext.campaignName}</span>
-                )}
-              </p>
-            )}
-          </header>
-
-          {/* Voice Input - Whisper transcription with waveform animation */}
-          <div className="max-w-xl">
-            <VoiceInput
-              onSubmit={(text) => {
-                console.log("User input:", text);
-              }}
+      <div className={cn(
+        "relative max-w-7xl 2xl:max-w-[90%] mx-auto px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20",
+        chatMode ? "py-2" : "py-6"
+      )}>
+        {chatMode ? (
+          /* Chat Mode - full conversation view, account for header (h-16 + mb-5) + padding */
+          <div className="flex flex-col" style={{ height: "calc(100vh - 7.5rem)" }}>
+            <DashboardChat
+              initialMessage={initialChatMessage}
+              onBack={handleBackToDashboard}
+              userName={session?.user?.name}
             />
           </div>
+        ) : (
+          /* Dashboard Mode - normal view */
+          <div className="space-y-6">
+            {/* Header with greeting and date - always at the top */}
+            <header className="mb-2">
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                {format(new Date(), "EEEE, MMMM d")}
+              </p>
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+                {greeting}
+              </h1>
+              {focusContext?.projectName && focusContext.type !== "empty" && (
+                <p className="mt-2 text-muted-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Working on <span className="font-medium text-foreground">{focusContext.projectName}</span>
+                  {focusContext.campaignName && (
+                    <span className="text-muted-foreground">• {focusContext.campaignName}</span>
+                  )}
+                </p>
+              )}
+            </header>
 
-          {/* Show GetStartedGuide only for new users */}
-          {isNewUser && <GetStartedGuide />}
-          
-          {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
-          <TodayTimelineView showGetStartedGuide={isNewUser} />
-        </div>
+            {/* Voice Input - Whisper transcription with waveform animation */}
+            <VoiceInput onSubmit={handleChatSubmit} />
+
+            {/* Show GetStartedGuide only for new users */}
+            {isNewUser && <GetStartedGuide />}
+            
+            {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
+            <TodayTimelineView showGetStartedGuide={isNewUser} />
+          </div>
+        )}
         
         <AddGuidedProjectModal />
         <OnboardingModal 
