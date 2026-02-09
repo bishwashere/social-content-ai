@@ -15,9 +15,10 @@ interface AudioBar {
 interface VoiceInputProps {
   onSubmit?: (text: string) => void;
   className?: string;
+  placeholder?: string;
 }
 
-export function VoiceInput({ onSubmit, className }: VoiceInputProps) {
+export function VoiceInput({ onSubmit, className, placeholder }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -262,6 +263,16 @@ export function VoiceInput({ onSubmit, className }: VoiceInputProps) {
     }
   }, [isRecording]);
 
+  // Focus the input and place cursor at the end after transcription completes
+  useEffect(() => {
+    if (!isRecording && !isTranscribing && inputText && inputRef.current) {
+      inputRef.current.focus();
+      // Place cursor at end of text
+      const len = inputText.length;
+      inputRef.current.setSelectionRange(len, len);
+    }
+  }, [isRecording, isTranscribing, inputText]);
+
   const handleSubmit = useCallback(() => {
     const text = inputText.trim();
     if (!text) return;
@@ -371,17 +382,19 @@ export function VoiceInput({ onSubmit, className }: VoiceInputProps) {
             </div>
           )}
 
-          {/* Text Input - shown when not recording and not transcribing */}
-          {!isRecording && !isTranscribing && (
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="What would you like to do today?"
-              className="w-full h-full px-4 pr-12 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-          )}
+          {/* Text Input - always in DOM so controlled value stays in sync; hidden during recording/transcribing */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder={placeholder || "What would you like to do today?"}
+            className={cn(
+              "w-full h-full px-4 pr-12 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none",
+              (isRecording || isTranscribing) && "opacity-0 pointer-events-none"
+            )}
+            tabIndex={isRecording || isTranscribing ? -1 : 0}
+          />
         </div>
 
         {/* Send Button - shown when there's text and not recording */}

@@ -7,6 +7,8 @@ import { VoiceInput } from "./voice-input";
 import Cookie from "js-cookie";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/constants/common";
 import ReactMarkdown from "react-markdown";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ChatMessage {
   id: string;
@@ -14,21 +16,30 @@ interface ChatMessage {
   content: string;
 }
 
+export type DashboardChatMode = "chat" | "start-project";
+
 interface DashboardChatProps {
   initialMessage: string;
   onBack: () => void;
   userName?: string | null;
+  mode?: DashboardChatMode;
 }
 
 export function DashboardChat({
   initialMessage,
   onBack,
   userName,
+  mode = "chat",
 }: DashboardChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  // Track the start-project flow phase: "ask-name" → "creating" → "done"
+  const [projectPhase, setProjectPhase] = useState<"ask-name" | "creating" | "done">("ask-name");
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -76,11 +87,86 @@ export function DashboardChat({
     []
   );
 
+  // Create a project via the API
+  const createProject = useCallback(
+    async (name: string) => {
+      const token = Cookie.get(AUTH_TOKEN_COOKIE_NAME);
+
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ name, url: "", description: "" }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to create project");
+      }
+
+      const data = await res.json();
+      return data.data as { id: string; name: string };
+    },
+    []
+  );
+
   // Handle sending a message (from user typing or voice)
   const handleSend = useCallback(
     async (content: string) => {
       if (!content.trim() || isLoading) return;
 
+      // ── Start-project flow ──
+      if (mode === "start-project" && projectPhase === "ask-name") {
+        const projectName = content.trim();
+
+        const userMsg: ChatMessage = {
+          id: `user-${Date.now()}`,
+          role: "user",
+          content: projectName,
+        };
+        setMessages((prev) => [...prev, userMsg]);
+        setIsLoading(true);
+        setProjectPhase("creating");
+        scrollToBottom();
+
+        try {
+          const project = await createProject(projectName);
+
+          // Invalidate projects cache so sidebar / dashboard refreshes
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
+
+          const successMsg: ChatMessage = {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: `Your project **"${project.name}"** has been created! Taking you there now...`,
+          };
+          setMessages((prev) => [...prev, successMsg]);
+          setIsLoading(false);
+          setProjectPhase("done");
+          scrollToBottom();
+
+          // Navigate after a short pause so the user sees the success message
+          setTimeout(() => {
+            router.push(`/project/${project.id}?tab=campaign`);
+          }, 1200);
+        } catch (error: any) {
+          const errorMsg: ChatMessage = {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: `Something went wrong: ${error.message || "Could not create the project."}. Please try again.`,
+          };
+          setMessages((prev) => [...prev, errorMsg]);
+          setIsLoading(false);
+          setProjectPhase("ask-name");
+          scrollToBottom();
+        }
+
+        return;
+      }
+
+      // ── Normal AI chat flow ──
       const userMsg: ChatMessage = {
         id: `user-${Date.now()}`,
         role: "user",
@@ -104,17 +190,34 @@ export function DashboardChat({
       setIsLoading(false);
       scrollToBottom();
     },
-    [isLoading, messages, sendMessage, scrollToBottom]
+    [isLoading, messages, sendMessage, scrollToBottom, mode, projectPhase, createProject, queryClient, router]
   );
 
-  // Send the initial message on mount
+  // Initialize chat on mount
   useEffect(() => {
-    if (!hasInitialized.current && initialMessage) {
-      hasInitialized.current = true;
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    if (mode === "start-project") {
+      // Seed the conversation with a hardcoded exchange – no AI call
+      const firstName = userName?.split(" ")[0];
+      setMessages([
+        {
+          id: "user-init",
+          role: "user",
+          content: "Start a project",
+        },
+        {
+          id: "assistant-init",
+          role: "assistant",
+          content: `Great${firstName ? `, ${firstName}` : ""}! What would you like to name your new project?`,
+        },
+      ]);
+    } else if (initialMessage) {
       handleSend(initialMessage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMessage]);
+  }, [initialMessage, mode]);
 
   // Scroll when messages change
   useEffect(() => {
@@ -201,7 +304,18 @@ export function DashboardChat({
 
       {/* Input at bottom */}
       <div className="flex-shrink-0 pt-4 pb-2 border-t border-border">
-        <VoiceInput onSubmit={handleSend} />
+        {mode === "start-project" && projectPhase === "done" ? (
+          <p className="text-sm text-muted-foreground text-center py-2">Redirecting to your project...</p>
+        ) : (
+          <VoiceInput
+            onSubmit={handleSend}
+            placeholder={
+              mode === "start-project" && projectPhase === "ask-name"
+                ? "Enter your project name..."
+                : undefined
+            }
+          />
+        )}
       </div>
     </div>
   );

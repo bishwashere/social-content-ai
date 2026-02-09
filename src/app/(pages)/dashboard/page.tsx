@@ -13,7 +13,7 @@ import { GetStartedGuide } from "./_components/get-started-guide";
 import { useFocus } from "@/providers/focus-provider";
 import { cn } from "@/lib/cn";
 import { VoiceInput } from "./_components/voice-input";
-import { DashboardChat } from "./_components/dashboard-chat";
+import { DashboardChat, type DashboardChatMode } from "./_components/dashboard-chat";
 import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 
 function getGreeting(name?: string | null): string {
@@ -37,19 +37,22 @@ export default function Home() {
   const onboardingShownRef = useRef(false);
   const projectSelectionCallbackRef = useRef<((projectId: string) => void) | null>(null);
   const [chatMode, setChatMode] = useState(false);
+  const [chatFlowType, setChatFlowType] = useState<DashboardChatMode>("chat");
   const [initialChatMessage, setInitialChatMessage] = useState("");
   
   // Determine if user is new (has fewer than 3 projects)
   const isNewUser = (projects.data?.length ?? 0) < 3;
   const greeting = getGreeting(session?.user?.name);
 
-  const handleChatSubmit = useCallback((text: string) => {
+  const handleChatSubmit = useCallback((text: string, mode: DashboardChatMode = "chat") => {
     setInitialChatMessage(text);
+    setChatFlowType(mode);
     setChatMode(true);
   }, []);
 
   const handleBackToDashboard = useCallback(() => {
     setChatMode(false);
+    setChatFlowType("chat");
     setInitialChatMessage("");
   }, []);
 
@@ -162,6 +165,7 @@ export default function Home() {
               initialMessage={initialChatMessage}
               onBack={handleBackToDashboard}
               userName={session?.user?.name}
+              mode={chatFlowType}
             />
           </div>
         ) : (
@@ -188,6 +192,28 @@ export default function Home() {
 
             {/* Voice Input - Whisper transcription with waveform animation */}
             <VoiceInput onSubmit={handleChatSubmit} />
+
+            {/* Quick suggestion bubbles */}
+            <div className="flex items-center gap-2 -mt-3">
+              <button
+                onClick={() => handleChatSubmit("Start a project", "start-project")}
+                className="px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 shadow-sm hover:shadow"
+              >
+                Start a project
+              </button>
+              <button
+                onClick={() => handleChatSubmit("Help me brainstorm a new project idea")}
+                className="px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 shadow-sm hover:shadow"
+              >
+                Brainstorm project idea
+              </button>
+              <button
+                onClick={() => handleChatSubmit("Help me brainstorm a new content idea")}
+                className="px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 shadow-sm hover:shadow"
+              >
+                Brainstorm content idea
+              </button>
+            </div>
 
             {/* Show GetStartedGuide only for new users */}
             {isNewUser && <GetStartedGuide />}
