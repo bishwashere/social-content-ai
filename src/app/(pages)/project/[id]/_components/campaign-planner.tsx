@@ -1209,9 +1209,14 @@ export default function CampaignPlannerPage({ project }: Props) {
       }
 
       // Verify campaign exists in current project before loading chats
-      const allCampaignIds = new Set(
+      // Include both current and old campaigns when showOldCampaigns is true
+      const currentCampaignIds = new Set(
         (campaignPlannerData.data.chatsGroupedByCampaign || []).map((c: { id: string }) => c.id)
       );
+      const oldCampaignIds = showOldCampaigns && oldCampaignsData.data?.chatsGroupedByCampaign
+        ? new Set(oldCampaignsData.data.chatsGroupedByCampaign.map((c: { id: string }) => c.id))
+        : new Set<string>();
+      const allCampaignIds = new Set([...currentCampaignIds, ...oldCampaignIds]);
       if (!allCampaignIds.has(campaignId)) {
         // Campaign doesn't exist in current project, remove from openCampaigns
         setOpenCampaigns(prev => {
@@ -1249,7 +1254,7 @@ export default function CampaignPlannerPage({ project }: Props) {
         loadChatsForCampaign(campaignId);
       }
     });
-  }, [openCampaigns, loadedChats, loadingChats, campaignPlannerData.data]);
+  }, [openCampaigns, loadedChats, loadingChats, campaignPlannerData.data, oldCampaignsData.data, showOldCampaigns]);
 
   // Merge loaded chats and old campaigns into campaign data
   const mergedCampaignData = useMemo(() => {
@@ -2144,20 +2149,29 @@ export default function CampaignPlannerPage({ project }: Props) {
                                   }}
                                 />
                                 <Label className="text-xs cursor-pointer">Auto-post</Label>
-                                {campaign.autoPostEnabled && campaign.autoPostTime && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-auto p-1 text-xs"
-                                    onClick={() => {
-                                      // When editing, open platform selector first
-                                      setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
-                                    }}
-                                  >
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {campaign.autoPostTime}
-                                  </Button>
-                                )}
+                                {campaign.autoPostEnabled && campaign.autoPostTime && (() => {
+                                  const tz = (campaign.blogNewsMetadata as any)?.timezone || campaignTimezones[campaign.id] || "America/New_York";
+                                  // Get timezone abbreviation using Intl API
+                                  const tzAbbr = (() => {
+                                    try {
+                                      return new Date().toLocaleString("en-US", { timeZoneName: "short", timeZone: tz }).split(" ").pop() || tz;
+                                    } catch { return tz; }
+                                  })();
+                                  return (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-auto p-1 text-xs"
+                                      onClick={() => {
+                                        // When editing, open platform selector first
+                                        setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                      }}
+                                    >
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {campaign.autoPostTime} {tzAbbr}
+                                    </Button>
+                                  );
+                                })()}
                               </div>
                               {/* Platform Selection Dialog */}
                               <Dialog

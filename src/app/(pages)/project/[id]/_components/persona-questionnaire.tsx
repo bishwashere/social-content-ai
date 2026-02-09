@@ -466,18 +466,25 @@ export function PersonaQuestionnaire({
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate personas");
+      const text = await response.text();
+      let data: { personas?: PersonaResult[]; error?: string } = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        if (!response.ok) throw new Error(text || "Failed to generate personas");
+        throw new Error("Invalid response from server");
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate personas");
+      }
 
+      const personas: PersonaResult[] = data.personas ?? [];
       toast.success("Success!", {
-        description: `Generated ${data.personas.length} buyer personas for your product.`,
+        description: `Generated ${personas.length} buyer personas for your product.`,
       });
 
-      setGeneratedPersonas(data.personas);
+      setGeneratedPersonas(personas);
       setIsGenerating(false);
       onComplete?.();
     } catch (error: any) {

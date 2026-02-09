@@ -29,6 +29,12 @@ export function CampaignAnalyticsSummary({ campaignId }: { campaignId: string })
   const [error, setError] = useState<string | null>(null);
   const [hasScheduledPosts, setHasScheduledPosts] = useState<boolean | null>(null);
 
+  // Get viewer's timezone for displaying times
+  const viewerTimezone =
+    typeof window !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "UTC";
+
   const loadAnalytics = async () => {
     setLoading(true);
     setError(null);
@@ -115,10 +121,27 @@ export function CampaignAnalyticsSummary({ campaignId }: { campaignId: string })
     );
   }
 
-  const formatTime = (hour: number) => {
-    const period = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-    return `${displayHour}:00 ${period}`;
+  // Convert UTC hour to viewer's local timezone and format with timezone abbreviation
+  const formatTime = (utcHour: number) => {
+    // Create a reference date with the UTC hour
+    const refDate = new Date();
+    refDate.setUTCHours(utcHour, 0, 0, 0);
+
+    // Format time in viewer's timezone
+    const timeStr = refDate.toLocaleString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: viewerTimezone,
+    });
+
+    // Get timezone abbreviation
+    const tzAbbr = refDate.toLocaleString("en-US", {
+      timeZoneName: "short",
+      timeZone: viewerTimezone,
+    }).split(" ").pop() || viewerTimezone;
+
+    return `${timeStr} ${tzAbbr}`;
   };
 
   return (

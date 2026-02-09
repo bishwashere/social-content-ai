@@ -273,22 +273,31 @@ async function fetchPersonas(
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error(
-          `OpenAI API error (attempt ${attempt + 1}):`,
-          errorData
-        );
+        const rawText = await response.text();
+        let errorMessage = "Failed to generate personas";
+        try {
+          const errorData = JSON.parse(rawText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch {
+          errorMessage = rawText || errorMessage;
+        }
+        console.error(`OpenAI API error (attempt ${attempt + 1}):`, rawText);
         if (attempt === retries) {
-          throw new Error(
-            errorData.error?.message || "Failed to generate personas"
-          );
+          throw new Error(errorMessage);
         }
         await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
         continue;
       }
 
-      const data = await response.json();
-      const responseText = data.choices[0]?.message?.content || "";
+      let data: { choices?: Array<{ message?: { content?: string } }> };
+      try {
+        data = JSON.parse(await response.text());
+      } catch {
+        if (attempt === retries) throw new Error("Invalid response from AI");
+        await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      const responseText = data.choices?.[0]?.message?.content || "";
 
       let jsonText = responseText.trim();
       if (jsonText.startsWith("```")) {

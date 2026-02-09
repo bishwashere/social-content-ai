@@ -166,7 +166,8 @@ export async function calculateCampaignAnalytics(campaignId: string) {
 }
 
 /**
- * Find which hour gets best engagement
+ * Find which hour gets best engagement (UTC-based)
+ * Returns hour in UTC (0-23) so it can be converted to any timezone for display
  */
 function findBestPostingHour(posts: any[]): number | null {
   if (posts.length === 0) return null;
@@ -174,7 +175,7 @@ function findBestPostingHour(posts: any[]): number | null {
   const hourlyEngagement = new Map<number, { total: number; count: number }>();
 
   posts.forEach((post) => {
-    const hour = new Date(post.date).getHours();
+    const hour = new Date(post.date).getUTCHours();
     const engagement =
       (post.likes + post.comments + post.shares) / Math.max(post.impressions || 1, 1);
 
@@ -203,7 +204,8 @@ function findBestPostingHour(posts: any[]): number | null {
 }
 
 /**
- * Find which day of week gets best engagement
+ * Find which day of week gets best engagement (UTC-based)
+ * Returns day in UTC (0 = Sunday, 6 = Saturday)
  */
 function findBestDayOfWeek(posts: any[]): number | null {
   if (posts.length === 0) return null;
@@ -211,7 +213,7 @@ function findBestDayOfWeek(posts: any[]): number | null {
   const dailyEngagement = new Map<number, { total: number; count: number }>();
 
   posts.forEach((post) => {
-    const dayOfWeek = new Date(post.date).getDay(); // 0 = Sunday, 6 = Saturday
+    const dayOfWeek = new Date(post.date).getUTCDay(); // 0 = Sunday, 6 = Saturday (UTC)
     const engagement =
       (post.likes + post.comments + post.shares) / Math.max(post.impressions || 1, 1);
 

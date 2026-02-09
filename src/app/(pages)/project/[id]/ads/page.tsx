@@ -36,12 +36,20 @@ export default function ChatPage() {
                 headers: { "Content-Type": "application/json" },
             });
 
+            const text = await response.text();
+            let data: { adCreatives?: AdCreative[] } = {};
+            try {
+                data = JSON.parse(text);
+            } catch {
+                if (!response.ok) throw new Error(text || "Failed to fetch brand discovery");
+                throw new Error("Invalid response from server");
+            }
+
             if (!response.ok) {
                 throw new Error("Failed to fetch brand discovery");
             }
 
-            const data = await response.json();
-            const adCreatives = data.adCreatives as AdCreative[];
+            const adCreatives = data.adCreatives ?? [];
             setGeneratedAds(adCreatives);
         } catch (error) {
             console.error("Error fetching ads:", error);
@@ -72,15 +80,30 @@ export default function ChatPage() {
                 body: JSON.stringify({ adCreativeId }),
             });
 
+            const text = await response.text();
+            let errorData: { error?: string } = {};
+            let data: { imageKey?: string; imageUrl?: string } = {};
+            try {
+                const parsed = JSON.parse(text);
+                if (!response.ok) {
+                    errorData = parsed;
+                } else {
+                    data = parsed;
+                }
+            } catch {
+                // Response body is not JSON (e.g. plain text "An error occurred...")
+                if (!response.ok) {
+                    throw new Error(text || "Failed to generate image");
+                }
+                throw new Error("Invalid response from server");
+            }
+
             if (!response.ok) {
-                const errorData = await response.json();
                 if (errorData.error?.includes("credits") || errorData.error?.includes("need")) {
                     handleCoinsFinished();
                 }
                 throw new Error(errorData.error || "Failed to generate image");
             }
-
-            const data = await response.json();
 
             setGeneratedAds((prev) =>
                 prev.map((ad) =>
@@ -127,19 +150,27 @@ export default function ChatPage() {
                 body: JSON.stringify({ projectId: id }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                if (errorData.error?.includes("credits") || errorData.error?.includes("need")) {
-                    handleCoinsFinished();
-                }
-                throw new Error(errorData.error || "Failed to regenerate ads");
+            const text = await response.text();
+            let data: { adCreatives?: AdCreative[]; error?: string } = {};
+            try {
+                data = JSON.parse(text);
+            } catch {
+                if (!response.ok) throw new Error(text || "Failed to regenerate ads");
+                throw new Error("Invalid response from server");
             }
 
-            const data = await response.json();
-            setGeneratedAds(data.adCreatives);
+            if (!response.ok) {
+                if (data.error?.includes("credits") || data.error?.includes("need")) {
+                    handleCoinsFinished();
+                }
+                throw new Error(data.error || "Failed to regenerate ads");
+            }
+
+            const adCreatives = data.adCreatives ?? [];
+            setGeneratedAds(adCreatives);
             setSelectedAngle(ALL_ANGLES_KEY);
             toast.success("Success!", {
-                description: `Regenerated ${data.adCreatives.length} ad creatives from your saved answers.`,
+                description: `Regenerated ${adCreatives.length} ad creatives from your saved answers.`,
             });
         } catch (error: any) {
             console.error("Error regenerating ads:", error);

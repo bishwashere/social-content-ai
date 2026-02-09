@@ -26,6 +26,12 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
   const [error, setError] = useState<string | null>(null);
   const [hasScheduledPosts, setHasScheduledPosts] = useState<boolean | null>(null);
 
+  // Get viewer's timezone for displaying times
+  const viewerTimezone =
+    typeof window !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "UTC";
+
   // Check if project has any scheduled posts
   useEffect(() => {
     const checkScheduledPosts = async () => {
@@ -185,7 +191,7 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
                 <span className="text-2xl">⏰</span>
                 <div>
                   <p className="text-sm text-muted-foreground">Best Time to Post</p>
-                  <p className="font-medium">{analytics.recommendedTime}</p>
+                  <p className="font-medium">{formatRecommendedTime(analytics.recommendedTime, viewerTimezone)}</p>
                 </div>
               </div>
             )}
@@ -231,6 +237,34 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
       )}
     </div>
   );
+}
+
+/**
+ * Convert a UTC time string (e.g., "14:00") to the viewer's local timezone with abbreviation
+ */
+function formatRecommendedTime(utcTimeStr: string, viewerTimezone: string): string {
+  const utcHour = parseInt(utcTimeStr.split(":")[0], 10);
+  if (isNaN(utcHour)) return utcTimeStr;
+
+  // Create a reference date with the UTC hour
+  const refDate = new Date();
+  refDate.setUTCHours(utcHour, 0, 0, 0);
+
+  // Format time in viewer's timezone
+  const timeStr = refDate.toLocaleString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: viewerTimezone,
+  });
+
+  // Get timezone abbreviation
+  const tzAbbr = refDate.toLocaleString("en-US", {
+    timeZoneName: "short",
+    timeZone: viewerTimezone,
+  }).split(" ").pop() || viewerTimezone;
+
+  return `${timeStr} ${tzAbbr}`;
 }
 
 function MetricCard({ label, value }: { label: string; value: string | number }) {

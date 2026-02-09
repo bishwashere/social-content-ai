@@ -107,19 +107,28 @@ Style: Professional, high-quality social media advertisement. Clean layout with 
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI DALL-E API error:", errorData);
+      const rawText = await response.text();
+      let errorMessage = "Failed to generate image";
+      try {
+        const errorData = JSON.parse(rawText);
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch {
+        errorMessage = rawText || errorMessage;
+      }
+      console.error("OpenAI DALL-E API error:", rawText);
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    }
+
+    let data: { data?: Array<{ b64_json?: string }> };
+    try {
+      data = JSON.parse(await response.text());
+    } catch {
       return NextResponse.json(
-        {
-          error:
-            errorData.error?.message || "Failed to generate image",
-        },
+        { error: "Invalid response from image generation service" },
         { status: 500 }
       );
     }
-
-    const data = await response.json();
-    const base64Image = data.data[0]?.b64_json;
+    const base64Image = data.data?.[0]?.b64_json;
 
     if (!base64Image) {
       return NextResponse.json(
