@@ -1,0 +1,24 @@
+---
+description: Where to read and write project docs (ai-docs layout)
+globs:
+alwaysApply: true
+---
+
+# Doc reading and writing
+
+## Reading docs
+
+- Project documentation lives under **`ai-docs/`** in **`.md`** or **`.txt`** format. Use **`README.md`** (root) as the index to see what doc is where.
+- **`ai-docs/architecture/`** — system design, APIs, dev guide, implementation details.
+- **`ai-docs/features/`** — feature specs, flows, demos, user/quick-start guides.
+- **`ai-docs/decisions/`** — analyses, issue writeups, verification checklists, revalidation notes.
+- When answering questions about the codebase or features, read from `ai-docs/` when relevant (e.g. DEVELOPMENT.md for patterns, feature docs for behaviour).
+
+## Writing docs
+
+- **Do not** add new **`.md`** or **`.txt`** documentation files at the project root (only `README.md` stays there). Leave dependency/config `.txt` files (e.g. `requirements.txt`) in their current locations.
+- Add new docs under **`ai-docs/`** as **`.md`** or **`.txt`**, in the folder that matches the content:
+  - **`ai-docs/architecture/`** — how the system is built (APIs, dev setup, implementation notes).
+  - **`ai-docs/features/`** — what a feature does, flows, demos, guides.
+  - **`ai-docs/decisions/`** — why something was done, analyses, issue notes, checklists.
+- After adding a doc, update **root `README.md`**: add one line in the right category with the filename and a short description.
