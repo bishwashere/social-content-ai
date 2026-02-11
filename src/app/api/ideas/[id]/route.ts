@@ -87,10 +87,10 @@ export const PUT = applyMiddleware(
   catchApiAsyncError(async (req: NextRequest, params) => {
     const { id } = (params?.params || {}) as { id: string };
     const body = await req.json();
-    let { title, summary, content, tags, thumbnail, status, publishedAt, authorId } = body;
+    const { title, summary, content: contentRaw, tags, thumbnail, status, publishedAt, authorId } = body;
 
     // Clean content before save (same as other cleaners, applied before publish)
-    if (content !== undefined) content = cleanDashes(content);
+    const content = contentRaw !== undefined ? cleanDashes(contentRaw) : contentRaw;
 
     // Find the idea - only check by id if it's a valid ObjectID, otherwise check by slug
     const existingIdea = await prisma.idea.findFirst({

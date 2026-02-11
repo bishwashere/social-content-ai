@@ -208,7 +208,7 @@ export const POST = applyMiddleware(
       }
 
       // Generate Instagram text card image if Instagram content exists
-      let mediaData: Record<string, string> = {};
+      const mediaData: Record<string, string> = {};
       if (cleanedContent[PLATFORM_IDS.INSTAGRAM]) {
         console.log("[Chat API] Generating Instagram text card image...");
         const textCardResult = await generateTextCardImageForQuickGenerate({

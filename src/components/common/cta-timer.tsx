@@ -9,7 +9,7 @@ const TIMER_DURATION_MS = 20 * 60 * 1000; // 20 minutes
 /** Returns how many ms are left, looping every 20 minutes. */
 function getTimeRemaining(): number {
   if (typeof window === "undefined") return TIMER_DURATION_MS;
-  let stored = sessionStorage.getItem(TIMER_STORAGE_KEY);
+  const stored = sessionStorage.getItem(TIMER_STORAGE_KEY);
   if (!stored) {
     const now = Date.now();
     sessionStorage.setItem(TIMER_STORAGE_KEY, now.toString());

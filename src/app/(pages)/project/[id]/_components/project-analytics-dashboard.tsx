@@ -123,7 +123,7 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
                 AI Campaign Suggestions
               </CardTitle>
               <CardDescription>
-                Get AI-powered campaign ideas based on your project's performance
+                Get AI-powered campaign ideas based on your project&apos;s performance
               </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}>

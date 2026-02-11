@@ -236,7 +236,7 @@ export const generateCampaignChat = async (props: {
   }
 
   // For Instagram, auto-generate text card image from content
-  let mediaUpdate: Record<string, string> = {};
+  const mediaUpdate: Record<string, string> = {};
   if (platforms.includes(PLATFORM_IDS.INSTAGRAM) && cleanedContent[PLATFORM_IDS.INSTAGRAM]) {
     const { generateTextCardImage } = await import("@/backend-apis/text-image/actions");
     
