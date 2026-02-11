@@ -684,16 +684,17 @@ export function NewsTrending() {
                           expandedItem.type === "reddit"
                             ? (() => {
                                 const redditPost = expandedItem.post as RedditPost;
-                                // Use url field if available, otherwise construct from permalink
-                                if (redditPost.url && redditPost.url.startsWith('http')) {
-                                  return redditPost.url;
+                                const raw = (redditPost.url || redditPost.permalink || "").trim();
+                                const norm = (s: string) => s.replace(/^https?\/\//i, "https://");
+                                if (!raw) return "https://www.reddit.com";
+                                if (!raw.startsWith("http")) {
+                                  const path = raw.startsWith("/") ? raw : `/${raw}`;
+                                  return `https://www.reddit.com${path}`;
                                 }
-                                // Check if permalink is already a full URL
-                                if (redditPost.permalink.startsWith('http')) {
-                                  return redditPost.permalink;
-                                }
-                                // Otherwise, prepend reddit.com
-                                return `https://reddit.com${redditPost.permalink}`;
+                                let url = norm(raw);
+                                const doubleMatch = url.match(/reddit\.com(https?\/\/[^\s]+)/i);
+                                if (doubleMatch) url = norm(doubleMatch[1]);
+                                return url;
                               })()
                             : `https://news.ycombinator.com/item?id=${(expandedItem.post as HackerNewsPost).id}`
                         }

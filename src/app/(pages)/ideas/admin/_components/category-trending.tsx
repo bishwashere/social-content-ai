@@ -353,7 +353,20 @@ export function CategoryTrending({ onStartIdea }: CategoryTrendingProps = {}) {
                       <a
                         href={
                           expandedItem.type === "reddit"
-                            ? `https://reddit.com${(expandedItem.post as RedditPost).permalink}`
+                            ? (() => {
+                                const p = expandedItem.post as RedditPost;
+                                const raw = (p.url || p.permalink || "").trim();
+                                const norm = (s: string) => s.replace(/^https?\/\//i, "https://");
+                                if (!raw) return "https://www.reddit.com";
+                                if (!raw.startsWith("http")) {
+                                  const path = raw.startsWith("/") ? raw : `/${raw}`;
+                                  return `https://www.reddit.com${path}`;
+                                }
+                                let url = norm(raw);
+                                const doubleMatch = url.match(/reddit\.com(https?\/\/[^\s]+)/i);
+                                if (doubleMatch) url = norm(doubleMatch[1]);
+                                return url;
+                              })()
                             : `https://news.ycombinator.com/item?id=${(expandedItem.post as HackerNewsPost).id}`
                         }
                         target="_blank"

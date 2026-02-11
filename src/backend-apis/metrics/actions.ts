@@ -108,19 +108,34 @@ export const fetchRedditPosts = async (
       throw new Error(response.data.message || "Failed to fetch Reddit posts");
     }
 
+    // Normalize Reddit URL: fix malformed "https//" and avoid double base
+    const toRedditUrl = (rawUrl: string, rawPermalink: string): string => {
+      const norm = (s: string) => (s || "").replace(/^https?\/\//i, "https://").trim();
+      const url = norm(rawUrl || "");
+      const permalink = rawPermalink || "";
+      if (url && /^https?:\/\//i.test(url)) return url;
+      if (permalink && /^https?:\/\//i.test(permalink)) return norm(permalink);
+      const path = permalink.startsWith("/") ? permalink : `/${permalink}`;
+      return `https://www.reddit.com${path}`;
+    };
+
     // Transform olivedrift response to our format
-    const posts: RedditPost[] = (response.data.posts || []).map((post: any) => ({
-      id: post.id || post.name || "",
-      title: post.title || "",
-      selftext: post.selftext || "",
-      author: post.author || "",
-      score: post.score || 0,
-      num_comments: post.num_comments || 0,
-      created_utc: post.created_utc || Date.now() / 1000,
-      permalink: post.permalink || "",
-      url: post.url || `https://reddit.com${post.permalink}`,
-      subreddit: post.subreddit || "",
-    }));
+    const posts: RedditPost[] = (response.data.posts || []).map((post: any) => {
+      const permalink = post.permalink || "";
+      const storedPermalink = permalink.startsWith("http") ? permalink.replace(/^https?:\/\/[^/]+/i, "") || "/" : permalink;
+      return {
+        id: post.id || post.name || "",
+        title: post.title || "",
+        selftext: post.selftext || "",
+        author: post.author || "",
+        score: post.score || 0,
+        num_comments: post.num_comments || 0,
+        created_utc: post.created_utc || Date.now() / 1000,
+        permalink: storedPermalink,
+        url: toRedditUrl(post.url, permalink),
+        subreddit: post.subreddit || "",
+      };
+    });
 
     return posts;
   } catch (error) {
