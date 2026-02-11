@@ -40,6 +40,7 @@ import { useUserSettings } from "@/backend-apis/user-settings/hooks";
 import { Badge } from "@/components/ui/badge";
 import { useCreateCheckoutSession } from "@/backend-apis/payment/hooks";
 import { Button } from "@/components/ui/button";
+import { isSubscriptionExpired } from "@/lib/sub";
 
 // Path segments that are sections, not project IDs
 const PROJECT_SECTION_SEGMENTS = new Set([
@@ -79,6 +80,12 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
 
   const { data: projects, isLoading } = useGetAllProjects();
   const { toggleSidebar } = sidebar;
+
+  const subscription = session?.subscription;
+  const isPro =
+    !!subscription &&
+    subscription.status === "active" &&
+    !isSubscriptionExpired(subscription.endsAt).isExpired;
 
   // When user has exactly one project, skip dropdown and navigate directly
   const hasSingleProject = !isLoading && projects?.length === 1;
@@ -616,60 +623,62 @@ export function ProjectSidebar({ elementRefs, onNavigationTourStart, onFoldersTo
             </div>
           )}
 
-          {/* Start Premium CTA */}
-          <div className={cn("px-2 mt-6", !isOpen && "px-1")}>
-            {isOpen ? (
-              <Button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    const res = await payment.mutateAsync("subscription");
-                    if (res?.data?.redirectUrl) {
-                      router.push(res.data.redirectUrl);
+          {/* Start Premium CTA - hidden for Pro users */}
+          {!isPro && (
+            <div className={cn("px-2 mt-6", !isOpen && "px-1")}>
+              {isOpen ? (
+                <Button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const res = await payment.mutateAsync("subscription");
+                      if (res?.data?.redirectUrl) {
+                        router.push(res.data.redirectUrl);
+                      }
+                    } catch (error) {
+                      console.error("Error creating checkout session:", error);
                     }
-                  } catch (error) {
-                    console.error("Error creating checkout session:", error);
-                  }
-                }}
-                disabled={payment.isPending}
-                className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-6 h-auto"
-              >
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-white flex-shrink-0" />
-                  <span className="text-white font-semibold text-sm">
-                    {payment.isPending ? "Loading..." : "Start Premium"}
-                  </span>
-                </div>
-              </Button>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          const res = await payment.mutateAsync("subscription");
-                          if (res?.data?.redirectUrl) {
-                            router.push(res.data.redirectUrl);
+                  }}
+                  disabled={payment.isPending}
+                  className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-6 h-auto"
+                >
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-white flex-shrink-0" />
+                    <span className="text-white font-semibold text-sm">
+                      {payment.isPending ? "Loading..." : "Start Premium"}
+                    </span>
+                  </div>
+                </Button>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const res = await payment.mutateAsync("subscription");
+                            if (res?.data?.redirectUrl) {
+                              router.push(res.data.redirectUrl);
+                            }
+                          } catch (error) {
+                            console.error("Error creating checkout session:", error);
                           }
-                        } catch (error) {
-                          console.error("Error creating checkout session:", error);
-                        }
-                      }}
-                      disabled={payment.isPending}
-                      className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 p-2 h-auto"
-                    >
-                      <Zap className="w-4 h-4 text-white" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    Start Premium
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
+                        }}
+                        disabled={payment.isPending}
+                        className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 p-2 h-auto"
+                      >
+                        <Zap className="w-4 h-4 text-white" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium">
+                      Start Premium
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          )}
         </SidebarContent>
       </ScrollArea>
 
