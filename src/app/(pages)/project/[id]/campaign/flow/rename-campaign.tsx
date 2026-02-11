@@ -1,3 +1,5 @@
+"use client";
+
 import { useChangeCampaignData } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogContent, DialogDescription, DialogTrigger } from "@/components/ui/dialog";

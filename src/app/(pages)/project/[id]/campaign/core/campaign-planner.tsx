@@ -13,8 +13,7 @@ import {
   useRetryWebhook,
   useScheduleCampaignPosts,
   useScheduleCampaignTasks,
-  useToggleTickMark,
-  useBlogFromScheduledPost
+  useToggleTickMark
 } from "@/backend-apis/campaign-planner/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,18 +43,17 @@ import Link from "next/link";
 import AutoPost from "@/components/common/auto-post";
 import Markdown from "react-markdown";
 import { Input } from "@/components/ui/input";
-import ChangeCampaignName from "./change-campaign-name";
-import ViewCampaignDetails from "./view-campaign-details";
+import ChangeCampaignName from "../flow/rename-campaign";
+import ViewCampaignDetails from "../analytics/campaign-details";
 import { confirm } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/cn";
-import { CampaignVideoButton } from "./campaign-video-button";
-import { CampaignCheckButton } from "./campaign-check-button";
+import { CampaignVideoButton } from "../ui/controls/video-button";
+import { CampaignCheckButton } from "../ui/controls/check-button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useQueryClient } from "@tanstack/react-query";
-import { Projects } from "@prisma/client";
-import { SavePlatformCard } from "./save-platform-card";
+import { SavePlatformCard } from "../scheduling/platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { Switch } from "@/components/ui/switch";
 import { TimePickerDialog } from "@/components/common/time-picker";
@@ -64,7 +62,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
 import { markDemoCampaignCreated } from "@/server-actions/user-flags";
 import { ProjectLocationTour } from "@/components/common/project-location-tour";
-import { UploadMediaToCampaignChat } from "./upload-media-to-campaign-chat";
+import { UploadMediaToCampaignChat } from "../flow/upload-media";
 import { ViewMedia } from "@/components/social/view-media";
 import { useGenerateAIImage } from "@/backend-apis/ai-image/hooks";
 import { useGenerateTextCardImage } from "@/backend-apis/text-image/hooks";
@@ -73,627 +71,25 @@ import { RewriteWithAIDialog } from "@/components/common/rewrite-with-ai-dialog"
 import { NewImageButton } from "@/components/common/new-image-button";
 import { UploadImageButton } from "@/components/common/upload-image-button";
 import { useUploadMediaForCampaignChat } from "@/backend-apis/video-generation/hooks";
-import { 
-  PLATFORM_IDS, 
-  PLATFORM_ICONS, 
-  PLATFORM_LABELS,
+import {
   PLATFORMS_WITH_MEDIA_SUPPORT,
-  type PlatformId 
+  type PlatformId
 } from "@/constants/platforms";
-import { CampaignAnalyticsSummary } from "./campaign-analytics-summary";
+import { CampaignAnalyticsSummary } from "../analytics/analytics-summary";
+import {
+  PLATFORMS,
+  ICONS,
+  getPrompt,
+  BLOG_NEWS_ANGLES,
+  ANGLE_DESCRIPTIONS,
+  type Props
+} from "./campaign.constants";
+import { BlogNewsDayContent } from "../content/blog-news-content";
+import { DemoChoiceDialog } from "../ui/demo/demo-choice-dialog";
+import { CampaignAutoplayOverlay } from "../ui/demo/autoplay-overlay";
+import { CampaignDemoFeatureTour } from "../ui/demo/feature-tour";
 
-// Component to display blog from ScheduledPost (where Python saves it)
-function BlogNewsDayContent({ 
-  campaignId, 
-  day, 
-  retryWebhook 
-}: { 
-  campaignId: string; 
-  day: number; 
-  retryWebhook: ReturnType<typeof useRetryWebhook>;
-}) {
-  // Fetch blog from ScheduledPost (where Python saves it)
-  const { data: scheduledPostData, isLoading: isLoadingBlog } = useBlogFromScheduledPost(campaignId, day);
-  
-  // Get blog from ScheduledPost.meta.blog (where Python saves it after steps 1 and 2)
-  const blog = scheduledPostData?.blog;
-  const step1Completed = scheduledPostData?.step1Completed || false;
-  const step2Completed = scheduledPostData?.step2Completed || false;
-  const step3Completed = scheduledPostData?.step3Completed || false;
-  const step4Completed = scheduledPostData?.step4Completed || false;
-  const allStepsComplete = scheduledPostData?.allStepsComplete || false;
-  const articleUrl = scheduledPostData?.articleUrl;
-  const webhookSent = scheduledPostData?.webhookSent;
-  
-  // Show blog if steps 1 and 2 are complete (blog exists in ScheduledPost)
-  if (!step1Completed || !step2Completed || !blog) {
-    return (
-      <div className="col-span-2 flex items-center justify-center py-12">
-        {isLoadingBlog ? (
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <p className="text-muted-foreground">Loading blog...</p>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">
-            {step1Completed && !step2Completed 
-              ? "Step 1 complete. Generating blog (Step 2)..." 
-              : !step1Completed 
-              ? "Fetching article (Step 1)..." 
-              : "No blog generated yet. Click Generate to create it with AI."}
-          </p>
-        )}
-      </div>
-    );
-  }
-  
-  return (
-    <div className="col-span-2 space-y-4">
-      <Card className="rounded-lg border">
-        <CardHeader>
-          <CardTitle>{blog.title || "Untitled Blog"}</CardTitle>
-          {blog.tags && blog.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {blog.tags.map((tag: string, index: number) => (
-                <Badge key={index} variant="secondary">{tag}</Badge>
-              ))}
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="prose prose-sm max-w-none">
-            <Markdown>{blog.content || ""}</Markdown>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between items-center pt-4 border-t">
-          <div className="text-sm text-muted-foreground flex flex-col gap-1">
-            {allStepsComplete && webhookSent !== undefined && (
-              <span className={webhookSent ? "text-green-600" : "text-red-600"}>
-                {webhookSent ? "✓ Webhook sent" : "✗ Webhook failed"}
-              </span>
-            )}
-            {allStepsComplete && articleUrl && (
-              <a 
-                href={articleUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-primary hover:underline text-xs break-all"
-              >
-                {articleUrl}
-              </a>
-            )}
-            {!allStepsComplete && (
-              <div className="flex flex-wrap gap-2 text-xs">
-                <Badge variant={step1Completed ? "default" : "outline"} className={step1Completed ? "bg-green-500" : ""}>
-                  Step 1 {step1Completed ? "✓" : "..."}
-                </Badge>
-                <Badge variant={step2Completed ? "default" : "outline"} className={step2Completed ? "bg-green-500" : ""}>
-                  Step 2 {step2Completed ? "✓" : "..."}
-                </Badge>
-                <Badge variant={step3Completed ? "default" : "outline"} className={step3Completed ? "bg-green-500" : ""}>
-                  Step 3 {step3Completed ? "✓" : "..."}
-                </Badge>
-                <Badge variant={step4Completed ? "default" : "outline"} className={step4Completed ? "bg-green-500" : ""}>
-                  Step 4 {step4Completed ? "✓" : "..."}
-                </Badge>
-              </div>
-            )}
-          </div>
-          {allStepsComplete && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
-                const metadata = await getBlogNewsMetadataFromCampaign(campaignId);
-                const finalWebhookUrl = metadata?.webhook || "";
-                
-                if (!finalWebhookUrl) {
-                  toast.error("Webhook URL not found. Please configure the webhook in campaign settings.");
-                  return;
-                }
-                retryWebhook.mutate({
-                  webhook: finalWebhookUrl,
-                  blog: {
-                    title: blog.title,
-                    content: blog.content,
-                    tags: blog.tags,
-                    sourceArticle: blog.sourceArticle,
-                  },
-                  day: day,
-                  campaignId: campaignId,
-                });
-              }}
-              loading={retryWebhook.isPending}
-              disabled={retryWebhook.isPending}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Resend Webhook
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
-  );
-}
-
-export const PLATFORMS = [
-  { key: PLATFORM_IDS.X, label: PLATFORM_LABELS[PLATFORM_IDS.X], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.X]} width={16} height={16} alt="X" className="dark:brightness-0 dark:invert" /> },
-  { key: PLATFORM_IDS.FACEBOOK, label: PLATFORM_LABELS[PLATFORM_IDS.FACEBOOK], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.FACEBOOK]} width={16} height={16} alt="Facebook" className="dark:brightness-0 dark:invert" /> },
-  { key: PLATFORM_IDS.LINKEDIN, label: PLATFORM_LABELS[PLATFORM_IDS.LINKEDIN], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.LINKEDIN]} width={16} height={16} alt="LinkedIn" className="dark:brightness-0 dark:invert" /> },
-  { key: PLATFORM_IDS.INSTAGRAM, label: PLATFORM_LABELS[PLATFORM_IDS.INSTAGRAM], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.INSTAGRAM]} width={16} height={16} alt="Instagram" className="dark:brightness-0 dark:invert" /> },
-  { key: PLATFORM_IDS.THREADS, label: PLATFORM_LABELS[PLATFORM_IDS.THREADS], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.THREADS]} width={16} height={16} alt="Threads" className="dark:brightness-0 dark:invert" /> },
-  { key: PLATFORM_IDS.REDDIT, label: PLATFORM_LABELS[PLATFORM_IDS.REDDIT], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.REDDIT]} width={16} height={16} alt="Reddit" className="dark:brightness-0 dark:invert" /> },
-  { key: PLATFORM_IDS.TIKTOK, label: PLATFORM_LABELS[PLATFORM_IDS.TIKTOK], icon: <Image src={PLATFORM_ICONS[PLATFORM_IDS.TIKTOK]} width={16} height={16} alt="TikTok" className="dark:brightness-0 dark:invert" /> }
-];
-
-// Use centralized PLATFORM_ICONS from constants
-const ICONS = PLATFORM_ICONS;
-
-const getPrompt = (str: string) => `
-Description: ${str}
-`;
-
-const BLOG_NEWS_ANGLES = [
-  "Economic Reality Angle",
-  "Market Dynamics Angle",
-  "Innovation Constraint Angle",
-  "Risk & Bubble Angle",
-  "Enterprise Productivity Angle",
-  "Builder/Creator Angle",
-  "Startup Opportunity Angle",
-  "Sustainability Angle",
-  "Regulatory Angle",
-  "Human Impact Angle",
-  "Future Forecast Angle",
-  "Tech Infrastructure Angle",
-  "Adoption Reality Angle",
-  "Strategic Pivot Angle",
-  "Operational Efficiency Angle",
-  "Narrative Shift Angle",
-  "Contrarian Angle",
-  "Psychology of Hype Angle",
-  "System-Level Angle",
-  "User-Centric Angle"
-];
-
-const ANGLE_DESCRIPTIONS: Record<string, string> = {
-  "Economic Reality Angle": "Explore whether the financial assumptions behind this trend actually hold up.",
-  "Market Dynamics Angle": "Examine how this news shifts competitive power across the industry.",
-  "Innovation Constraint Angle": "Analyze whether costs, regulations, or resources slow down progress.",
-  "Risk & Bubble Angle": "Look at the possibility of market overinvestment or corrections.",
-  "Enterprise Productivity Angle": "Focus on how businesses can use this technology for real ROI.",
-  "Builder/Creator Angle": "Interpret what this means for small teams and indie product builders.",
-  "Startup Opportunity Angle": "Identify gaps, openings, or underserved problems this news exposes.",
-  "Sustainability Angle": "Discuss long-term feasibility in terms of cost, energy, and maintenance.",
-  "Regulatory Angle": "Look at how governments, laws, or policy shifts may affect outcomes.",
-  "Human Impact Angle": "Explore how this trend affects workers, consumers, and everyday people.",
-  "Future Forecast Angle": "Project how this situation may evolve over the next 3–5 years.",
-  "Tech Infrastructure Angle": "Break down the hardware, scale, and infrastructure implications.",
-  "Adoption Reality Angle": "Evaluate what adoption looks like outside of hype cycles.",
-  "Strategic Pivot Angle": "Explain how companies should rethink their long-term strategy.",
-  "Operational Efficiency Angle": "Show how systems, pipelines, or workflows may improve.",
-  "Narrative Shift Angle": "Reframe the story around a deeper message or misunderstood truth.",
-  "Contrarian Angle": "Explore the viewpoint that challenges the mainstream interpretation.",
-  "Psychology of Hype Angle": "Analyze how hype cycles distort decisions and expectations.",
-  "System-Level Angle": "Connect this news to broader forces like geopolitics or global markets.",
-  "User-Centric Angle": "Reinterpret the news through the lens of the end user or customer."
-};
-
-type Props = {
-  project: Projects;
-};
-
-function DemoChoiceDialog({
-  open,
-  onCountdownZero,
-  onSkip,
-}: {
-  open: boolean;
-  onCountdownZero: () => void;
-  onSkip: () => void;
-}) {
-  const [countdown, setCountdown] = useState(10);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setCountdown(10);
-    intervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          onCountdownZero();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- only run when open changes; onCountdownZero/onSkip are stable via ref
-
-  if (!open) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[70] bg-black/40" />
-      <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border px-6 py-5 shadow-lg">
-          <div className="text-base sm:text-lg font-semibold mb-1">
-            Plan your first campaign
-          </div>
-          <div className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-            See how the campaign planner works in a few seconds.
-          </div>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-              <span className="text-lg font-medium">
-                Watch demo ({countdown}s)
-              </span>
-            </div>
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => {
-                if (intervalRef.current) {
-                  clearInterval(intervalRef.current);
-                  intervalRef.current = null;
-                }
-                onSkip();
-              }}
-            >
-              Skip and start creating
-            </Button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function CampaignAutoplayOverlay({
-  active,
-  cursor,
-  highlight,
-  label,
-  onStop,
-}: {
-  active: boolean;
-  cursor: { x: number; y: number };
-  highlight: DOMRect | null;
-  label: string;
-  onStop: () => void;
-}) {
-  if (!active) return null;
-
-  // Treat an empty label as the "intro" phase (no separate state).
-  const isIntro = label === "";
-  const rect = highlight
-    ? {
-        left: highlight.left - 10,
-        top: highlight.top - 10,
-        width: highlight.width + 20,
-        height: highlight.height + 20,
-      }
-    : null;
-
-  return (
-    <>
-      {isIntro ? (
-        <div className="fixed inset-0 z-[70] bg-black/40 pointer-events-auto" />
-      ) : rect ? (
-        <svg
-          className="fixed inset-0 z-[70] pointer-events-none"
-          width="100%"
-          height="100%"
-        >
-          <defs>
-            <mask id="campaign-autoplay-mask">
-              <rect width="100%" height="100%" fill="white" />
-              <rect
-                x={rect.left}
-                y={rect.top}
-                width={rect.width}
-                height={rect.height}
-                rx="10"
-                ry="10"
-                fill="black"
-              />
-            </mask>
-          </defs>
-          <rect
-            width="100%"
-            height="100%"
-            fill="rgba(0,0,0,0.25)"
-            mask="url(#campaign-autoplay-mask)"
-          />
-        </svg>
-      ) : (
-        <div className="fixed inset-0 z-[70] bg-black/25 pointer-events-none" />
-      )}
-
-      {isIntro ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 pointer-events-none">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border px-6 py-5 shadow-lg">
-            <div className="text-base sm:text-lg font-semibold">
-              Creating your first campaign
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-              This can take a few minutes
-            </div>
-            <div className="text-sm text-slate-700 dark:text-slate-400 mt-4">
-              Preparing…
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="fixed z-[80] top-4 left-1/2 -translate-x-1/2 pointer-events-none w-[min(680px,calc(100vw-2rem))]">
-          <div className="rounded-full bg-white/95 text-slate-900 border px-4 py-2 shadow-sm">
-            <div className="text-xs sm:text-sm font-medium">
-              {label ? label : "Preparing…"}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Fake cursor */}
-      {!isIntro && rect && (
-        <div
-          className="fixed z-[80] pointer-events-none"
-          style={{
-            left: `${cursor.x}px`,
-            top: `${cursor.y}px`,
-            transform: "translate(-50%, -50%)",
-            transition: "left 420ms ease, top 420ms ease",
-          }}
-        >
-          <div className="h-3.5 w-3.5 rounded-full bg-blue-600 shadow-lg ring-4 ring-blue-500/25" />
-        </div>
-      )}
-
-      {/* Stop button */}
-      <div className="fixed z-[80] bottom-4 right-4">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={onStop}
-        >
-          Stop demo
-        </Button>
-      </div>
-    </>
-  );
-}
-
-function CampaignDemoFeatureTour({
-  isOpen,
-  onClose,
-  campaignId,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  campaignId: string;
-}) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [highlightRect, setHighlightRect] = useState<DOMRect | undefined>();
-  const [tooltipPlacement, setTooltipPlacement] = useState<"below" | "above">("below");
-  const tooltipRef = useRef<HTMLDivElement>(null);
-
-  const steps = useMemo(
-    () => [
-      {
-        key: "auto-post",
-        name: "Auto-post",
-        description:
-          "Turn this on to automatically publish your campaign posts. You’ll set a start date, then choose platforms and a time. NextPostAI will schedule and auto-post for you.",
-        selector: `[data-campaign-mini-tour="auto-post"][data-campaign-mini-tour-campaign-id="${campaignId}"]`,
-      },
-      {
-        key: "generate",
-        name: "AI Generate",
-        description:
-          "Use AI Generate to create (or regenerate) all campaign content. It can use credits/coins because it creates posts across days and platforms.",
-        selector: `[data-campaign-mini-tour="generate"][data-campaign-mini-tour-campaign-id="${campaignId}"]`,
-      },
-    ],
-    [campaignId]
-  );
-
-  useEffect(() => {
-    if (!isOpen) {
-      setCurrentStep(0);
-      setHighlightRect(undefined);
-      return;
-    }
-
-    const step = steps[currentStep];
-    const originalElement = document.querySelector(step.selector) as HTMLElement | null;
-    let element: HTMLElement | null = originalElement;
-
-    // If selector hits a wrapper, highlight an inner actionable element when possible.
-    if (element) {
-      const inner =
-        element.querySelector("button") ||
-        element.querySelector("[role='switch']") ||
-        element;
-      element = inner as HTMLElement;
-    }
-
-    if (!element) {
-      setHighlightRect(undefined);
-      return;
-    }
-
-    const rect = element.getBoundingClientRect();
-    setHighlightRect(rect);
-
-    element.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-      inline: "center",
-    });
-
-    const applyHighlight = () => {
-      element.classList.add(
-        "ring-4",
-        "ring-blue-500",
-        "ring-offset-2",
-        "z-[60]",
-        "relative",
-        "rounded",
-        "backdrop-blur-0"
-      );
-
-      const r = element.getBoundingClientRect();
-      const maxTooltipWidth = 360;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const padding = 16;
-      const actualTooltipWidth = Math.min(
-        maxTooltipWidth,
-        viewportWidth - padding * 2
-      );
-
-      // Prefer placing the dialog BELOW the element.
-      // If there's not enough space, fall back ABOVE.
-      const estimatedTooltipHeight = 220;
-      const gap = 12;
-
-      let placement: "below" | "above" = "below";
-      let top = r.bottom + gap;
-      if (top + estimatedTooltipHeight > viewportHeight - padding) {
-        placement = "above";
-        top = r.top - estimatedTooltipHeight - gap;
-      }
-      if (top < padding) top = padding;
-      setTooltipPlacement(placement);
-
-      // Center horizontally under the element, clamped to viewport.
-      let left = r.left + r.width / 2;
-      const half = actualTooltipWidth / 2;
-      if (left + half > viewportWidth - padding) left = viewportWidth - padding - half;
-      if (left - half < padding) left = padding + half;
-
-      setPosition({ top, left });
-    };
-
-    const timer = setTimeout(applyHighlight, 250);
-
-    return () => {
-      clearTimeout(timer);
-      element.classList.remove(
-        "ring-4",
-        "ring-blue-500",
-        "ring-offset-2",
-        "z-[60]",
-        "relative",
-        "rounded",
-        "backdrop-blur-0"
-      );
-    };
-  }, [currentStep, isOpen, steps]);
-
-  if (!isOpen) return null;
-
-  const step = steps[currentStep];
-  const isLast = currentStep === steps.length - 1;
-
-  return (
-    <>
-      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
-        <defs>
-          <mask id="campaign-feature-tour-mask">
-            <rect width="100%" height="100%" fill="white" />
-            {highlightRect && (
-              <rect
-                x={highlightRect.left - 6}
-                y={highlightRect.top - 6}
-                width={highlightRect.width + 12}
-                height={highlightRect.height + 12}
-                rx="10"
-                ry="10"
-                fill="black"
-              />
-            )}
-          </mask>
-        </defs>
-        <rect
-          width="100%"
-          height="100%"
-          fill="rgba(0, 0, 0, 0.3)"
-          mask="url(#campaign-feature-tour-mask)"
-        />
-      </svg>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-
-      <div
-        ref={tooltipRef}
-        className="fixed z-[60] w-80 max-w-[calc(100vw-2rem)]"
-        style={{
-          isolation: "isolate",
-          top: `${position.top}px`,
-          left: `${position.left}px`,
-          transform: "translateX(-50%)",
-          maxWidth: "calc(100vw - 2rem)",
-        }}
-      >
-        <div className="bg-white rounded-lg border border-gray-200 shadow-lg p-4">
-          {/* Arrow points to the highlighted element */}
-          {tooltipPlacement === "below" ? (
-            <div
-              className="absolute -top-2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"
-              style={{
-                left: "50%",
-                transform: "translateX(-50%) rotate(45deg)",
-              }}
-            />
-          ) : (
-            <div
-              className="absolute -bottom-2 w-4 h-4 bg-white border-r border-b border-gray-200 rotate-45"
-              style={{
-                left: "50%",
-                transform: "translateX(-50%) rotate(45deg)",
-              }}
-            />
-          )}
-
-          <h3 className="text-xl font-semibold">{step.name}</h3>
-          <p className="text-base text-gray-600 mt-2 mb-4">{step.description}</p>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              {currentStep + 1} of {steps.length}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={onClose}>
-                Skip
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (isLast) onClose();
-                  else setCurrentStep((s) => s + 1);
-                }}
-              >
-                {isLast ? "Got it" : "Next"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+export { PLATFORMS };
 
 export default function CampaignPlannerPage({ project }: Props) {
   const generate = useGenerateCampaignChat();
@@ -2625,6 +2021,110 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 <div className="flex flex-col gap-0">
                                                   <CardHeader className="flex flex-col gap-2">
                                                     <div className="flex flex-wrap items-center gap-1">
+                                                      <RewriteWithAIDialog
+                                                        isPending={rewriteWithAI.isPending}
+                                                        disabled={!session?.user?.id}
+                                                        fullWidth={false}
+                                                        onRewrite={async (prompt) => {
+                                                          if (!session?.user?.id) {
+                                                            toast.error("Please log in to rewrite content");
+                                                            return;
+                                                          }
+                                                          const instagramText = (timeline.contents as Record<string, string>)?.instagram || "";
+                                                          if (!instagramText) {
+                                                            toast.error("No content to rewrite");
+                                                            return;
+                                                          }
+                                                          const result = await rewriteWithAI.mutateAsync({
+                                                            userId: session.user.id,
+                                                            content: instagramText,
+                                                            prompt: prompt || undefined,
+                                                          });
+                                                          if (result.success && result.rewrittenContent) {
+                                                            await editContent.mutateAsync({
+                                                              campaignId: campaign.id,
+                                                              day: timeline.day,
+                                                              platform: "instagram",
+                                                              content: result.rewrittenContent,
+                                                              scheduledPostId: instagramScheduledInfo?.scheduledPostId,
+                                                            });
+                                                            setLoadedChats(prev => {
+                                                              const next = { ...prev };
+                                                              delete next[campaign.id];
+                                                              return next;
+                                                            });
+                                                            toast.success("Content rewritten for Instagram");
+                                                          }
+                                                        }}
+                                                      />
+                                                      <NewImageButton
+                                                        isTextCardPending={generateTextCardImage.isPending}
+                                                        isAIImagePending={generateAIImage.isPending}
+                                                        disabled={!session?.user?.id}
+                                                        hasExistingImage={!!instagramMedia}
+                                                        fullWidth={false}
+                                                        onTextCard={async () => {
+                                                          if (!session?.user?.id) {
+                                                            toast.error("Please log in to generate images");
+                                                            return;
+                                                          }
+                                                          const contentToUse = (timeline.contents as Record<string, string>)?.instagram || project.description || project.name || "Instagram post";
+                                                          const result = await generateTextCardImage.mutateAsync({
+                                                            content: contentToUse,
+                                                            userId: session.user.id,
+                                                            campaignId: campaign.id,
+                                                            day: timeline.day,
+                                                          });
+                                                          if (result.success && result.mediaKey) {
+                                                            const instagramText = (timeline.contents as Record<string, string>)?.instagram || "";
+                                                            await editContent.mutateAsync({
+                                                              campaignId: campaign.id,
+                                                              day: timeline.day,
+                                                              platform: "instagram",
+                                                              content: instagramText,
+                                                              media: result.mediaKey,
+                                                              scheduledPostId: instagramScheduledInfo?.scheduledPostId,
+                                                            });
+                                                            setLoadedChats(prev => {
+                                                              const next = { ...prev };
+                                                              delete next[campaign.id];
+                                                              return next;
+                                                            });
+                                                            toast.success("Image generated for Instagram");
+                                                          }
+                                                        }}
+                                                        onAIImage={async () => {
+                                                          if (!session?.user?.id) {
+                                                            toast.error("Please log in to generate images");
+                                                            return;
+                                                          }
+                                                          const contentToUse = (timeline.contents as Record<string, string>)?.instagram || project.description || project.name || "Instagram post";
+                                                          const result = await generateAIImage.mutateAsync({
+                                                            content: contentToUse,
+                                                            userId: session.user.id,
+                                                            campaignId: campaign.id,
+                                                            day: timeline.day,
+                                                            platform: "instagram",
+                                                          });
+                                                          if (result.success && result.mediaKey) {
+                                                            const instagramText = (timeline.contents as Record<string, string>)?.instagram || "";
+                                                            await editContent.mutateAsync({
+                                                              campaignId: campaign.id,
+                                                              day: timeline.day,
+                                                              platform: "instagram",
+                                                              content: instagramText,
+                                                              media: result.mediaKey,
+                                                              scheduledPostId: instagramScheduledInfo?.scheduledPostId,
+                                                            });
+                                                            setLoadedChats(prev => {
+                                                              const next = { ...prev };
+                                                              delete next[campaign.id];
+                                                              return next;
+                                                            });
+                                                            toast.success("Image generated for Instagram");
+                                                          }
+                                                        }}
+                                                      />
                                                       <Button variant="ghost" size="icon"
                                                         onClick={() => {
                                                           const instagramText = (timeline.contents as Record<string, string>)?.instagram || "";
@@ -2906,6 +2406,109 @@ export default function CampaignPlannerPage({ project }: Props) {
                                             <div className="flex flex-col gap-0">
                                               <CardHeader className="flex flex-col gap-2">
                                                 <div className="flex flex-wrap items-center gap-1">
+                                                  <RewriteWithAIDialog
+                                                    isPending={rewriteWithAI.isPending}
+                                                    disabled={!session?.user?.id}
+                                                    fullWidth={false}
+                                                    onRewrite={async (prompt) => {
+                                                      if (!session?.user?.id) {
+                                                        toast.error("Please log in to rewrite content");
+                                                        return;
+                                                      }
+                                                      if (!resolvedText) {
+                                                        toast.error("No content to rewrite");
+                                                        return;
+                                                      }
+                                                      const result = await rewriteWithAI.mutateAsync({
+                                                        userId: session.user.id,
+                                                        content: resolvedText,
+                                                        prompt: prompt || undefined,
+                                                      });
+                                                      if (result.success && result.rewrittenContent) {
+                                                        await editContent.mutateAsync({
+                                                          campaignId: campaign.id,
+                                                          day: timeline.day,
+                                                          platform,
+                                                          content: result.rewrittenContent,
+                                                          scheduledPostId: scheduledInfo?.scheduledPostId,
+                                                        });
+                                                        setLoadedChats(prev => {
+                                                          const next = { ...prev };
+                                                          delete next[campaign.id];
+                                                          return next;
+                                                        });
+                                                        toast.success(`Content rewritten for ${platform}`);
+                                                      }
+                                                    }}
+                                                  />
+                                                  {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (
+                                                    <NewImageButton
+                                                      isTextCardPending={generateTextCardImage.isPending}
+                                                      isAIImagePending={generateAIImage.isPending}
+                                                      disabled={!session?.user?.id}
+                                                      hasExistingImage={!!(timeline.media as Record<string, string>)?.[platform]}
+                                                      fullWidth={false}
+                                                      onTextCard={async () => {
+                                                        if (!session?.user?.id) {
+                                                          toast.error("Please log in to generate images");
+                                                          return;
+                                                        }
+                                                        const contentToUse = resolvedText || project.description || project.name || "Social post";
+                                                        const result = await generateTextCardImage.mutateAsync({
+                                                          content: contentToUse,
+                                                          userId: session.user.id,
+                                                          campaignId: campaign.id,
+                                                          day: timeline.day,
+                                                        });
+                                                        if (result.success && result.mediaKey) {
+                                                          await editContent.mutateAsync({
+                                                            campaignId: campaign.id,
+                                                            day: timeline.day,
+                                                            platform,
+                                                            content: resolvedText,
+                                                            media: result.mediaKey,
+                                                            scheduledPostId: scheduledInfo?.scheduledPostId,
+                                                          });
+                                                          setLoadedChats(prev => {
+                                                            const next = { ...prev };
+                                                            delete next[campaign.id];
+                                                            return next;
+                                                          });
+                                                          toast.success(`Image generated for ${platform}`);
+                                                        }
+                                                      }}
+                                                      onAIImage={async () => {
+                                                        if (!session?.user?.id) {
+                                                          toast.error("Please log in to generate images");
+                                                          return;
+                                                        }
+                                                        const contentToUse = resolvedText || project.description || project.name || "Social post";
+                                                        const result = await generateAIImage.mutateAsync({
+                                                          content: contentToUse,
+                                                          userId: session.user.id,
+                                                          campaignId: campaign.id,
+                                                          day: timeline.day,
+                                                          platform,
+                                                        });
+                                                        if (result.success && result.mediaKey) {
+                                                          await editContent.mutateAsync({
+                                                            campaignId: campaign.id,
+                                                            day: timeline.day,
+                                                            platform,
+                                                            content: resolvedText,
+                                                            media: result.mediaKey,
+                                                            scheduledPostId: scheduledInfo?.scheduledPostId,
+                                                          });
+                                                          setLoadedChats(prev => {
+                                                            const next = { ...prev };
+                                                            delete next[campaign.id];
+                                                            return next;
+                                                          });
+                                                          toast.success(`Image generated for ${platform}`);
+                                                        }
+                                                      }}
+                                                    />
+                                                  )}
                                                   <Button variant="ghost" size="icon"
                                                     onClick={() => {
                                                       setEditedContent({ ...editedContent, [platform]: text });

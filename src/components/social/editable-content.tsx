@@ -5,7 +5,7 @@ import { Wand2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
-import { UploadMediaToScheduledPost } from "@/app/(pages)/project/[id]/_components/upload-media-to-scheduled-post";
+import { UploadMediaToScheduledPost } from "@/app/(pages)/project/[id]/campaign/flow/attach-media-to-post";
 import { useGenerateAIImageForScheduledPost } from "@/backend-apis/ai-image/hooks";
 import { useSession } from "@/backend-apis/auth/hooks";
 

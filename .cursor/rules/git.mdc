@@ -1,0 +1,13 @@
+---
+description: Git commit and push — use plain commands only
+globs: 
+alwaysApply: true
+---
+
+# Git commit and push
+
+When the user asks to commit, push, or "build and push":
+
+- Use only: `git add -A && git commit -m "message" && git push`
+- Do **not** add `--trailer` or `Co-authored-by` to `git commit`. Use a plain commit message only.
+- Keep the commit message concise and descriptive.

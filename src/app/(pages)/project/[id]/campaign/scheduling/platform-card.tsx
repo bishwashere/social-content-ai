@@ -22,7 +22,6 @@ export const SavePlatformCard = ({ platform, projectId }: Props) => {
   const trackProject = useTrackProject();
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // 🔐 Detect outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -81,7 +80,7 @@ export const SavePlatformCard = ({ platform, projectId }: Props) => {
                       });
                       setSelectedDate(null);
                       setInputValue("");
-                      setIsPopoverOpen(false); // Close after save
+                      setIsPopoverOpen(false);
                       if (res) {
                         toast.success("Saved!")
                       }
