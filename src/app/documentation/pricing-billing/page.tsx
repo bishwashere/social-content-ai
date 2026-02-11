@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Gift, CreditCard, Coins } from "lucide-react";
+import { DollarSign, Gift, CreditCard, Coins, CheckCircle } from "lucide-react";
 
 export default function PricingBillingPage() {
   return (
@@ -17,6 +17,44 @@ export default function PricingBillingPage() {
       </div>
 
       <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-green-600" />
+              Welcome Offer
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              New users see a welcome offer when they first land on the dashboard:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
+              <li>A popup highlights your free credits and how to get started</li>
+              <li>Countdown timer shows how long the offer or trial terms are available</li>
+              <li>Designed to make the first steps clear and encourage exploration</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Credit Confirmation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Before credits are spent on certain actions, you’re asked to confirm:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
+              <li>Ad generation and ad discovery flows show a confirmation dialog before deducting credits</li>
+              <li>You can cancel or confirm so there are no surprise deductions</li>
+              <li>Helps you stay in control of credit usage</li>
+            </ul>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Subscription Plans</CardTitle>

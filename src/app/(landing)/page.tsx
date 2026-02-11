@@ -60,12 +60,20 @@ const SECTION_TITLES: Record<string, string> = {
   cta: "Ready to Save 10+ Hours & Launch Smarter? | NextPostAI",
 };
 
-// Navigation menu items
+// Navigation menu items (in-page sections)
 const NAV_ITEMS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Why NextPostAI", href: "#features" },
   // { label: "Testimonials", href: "#testimonials" },
   { label: "Pricing", href: "#pricing" },
+];
+
+// Footer / external links for side menu
+const FOOTER_MENU_ITEMS = [
+  { label: "Documentation", href: "/documentation" },
+  { label: "Ideas", href: "/ideas" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms & Conditions", href: "/terms" },
 ];
 
 interface UserAvatar {
@@ -288,6 +296,18 @@ export default function ModernLanding() {
                     <ArrowRight className="w-4 h-4 text-purple-400" />
                     {item.label}
                   </button>
+                ))}
+              </nav>
+              <nav className="mt-6 pt-6 border-t border-white/10 space-y-1">
+                {FOOTER_MENU_ITEMS.map((item, idx) => (
+                  <Link
+                    key={idx}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="w-full block px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    {item.label}
+                  </Link>
                 ))}
               </nav>
               <div className="mt-8 pt-8 border-t border-white/10">

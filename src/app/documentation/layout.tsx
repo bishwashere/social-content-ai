@@ -10,6 +10,45 @@ import { DocumentationHeader } from "./_components/documentation-header";
 import { DocumentationNavigation } from "./_components/documentation-navigation";
 import Footer from "@/components/footer";
 
+const featureGroupsOrder = [
+  "AI powered generation",
+  "Data driven workflow",
+  "User personalization",
+  "Platform integration",
+] as const;
+
+const featureToGroup: Record<string, (typeof featureGroupsOrder)[number]> = {
+  "Quick Generate": "AI powered generation",
+  "Campaign Planner": "AI powered generation",
+  "Persona Finder": "AI powered generation",
+  "Video Features": "User personalization",
+  "AI Campaign Suggestion": "Data driven workflow",
+  "Platform Analytics + Suggestion": "Data driven workflow",
+  "Consistency Tracking": "Data driven workflow",
+  "Templates Library": "Data driven workflow",
+  "Auto post": "AI powered generation",
+  "Content Discovery": "Data driven workflow",
+  "Brand Discovery & Creative Generation": "AI powered generation",
+  "Blog News": "Data driven workflow",
+  "Scheduled Posts": "Platform integration",
+};
+
+const featuresChildren = [
+  { title: "Quick Generate", href: "/documentation/features/quick-generate" },
+  { title: "Campaign Planner", href: "/documentation/features/campaign-planner" },
+  { title: "Persona Finder", href: "/documentation/features/persona-finder" },
+  { title: "Video Features", href: "/documentation/features/video-features" },
+  { title: "AI Campaign Suggestion", href: "/documentation/features/ai-campaign-suggestion" },
+  { title: "Platform Analytics + Suggestion", href: "/documentation/features/platform-analytics" },
+  { title: "Consistency Tracking", href: "/documentation/features/consistency-tracking" },
+  { title: "Templates Library", href: "/documentation/features/templates-library" },
+  { title: "Auto post", href: "/documentation/features/automation" },
+  { title: "Content Discovery", href: "/documentation/features/content-discovery" },
+  { title: "Brand Discovery & Creative Generation", href: "/documentation/features/brand-discovery" },
+  { title: "Blog News", href: "/documentation/features/blog-news" },
+  { title: "Scheduled Posts", href: "/documentation/features/scheduled-posts" },
+];
+
 const documentationLinks = [
   {
     title: "Getting Started",
@@ -18,18 +57,13 @@ const documentationLinks = [
   {
     title: "Features",
     href: "/documentation/features",
-    children: [
-      { title: "Quick Generate", href: "/documentation/features/quick-generate" },
-      { title: "Campaign Planner", href: "/documentation/features/campaign-planner" },
-      { title: "Video Features", href: "/documentation/features/video-features" },
-      { title: "Analytics & Insights", href: "/documentation/features/analytics-insights" },
-      { title: "Templates Library", href: "/documentation/features/templates-library" },
-      { title: "Automation", href: "/documentation/features/automation" },
-      { title: "Content Discovery", href: "/documentation/features/content-discovery" },
-      { title: "Blog News", href: "/documentation/features/blog-news" },
-      { title: "Scheduled Posts", href: "/documentation/features/scheduled-posts" },
-      { title: "Advanced Customization", href: "/documentation/features/advanced-customization" },
-    ],
+    children: featuresChildren,
+    groupBy: featureGroupsOrder.map((group) => ({
+      title: group,
+      childTitles: featuresChildren
+        .filter((c) => featureToGroup[c.title] === group)
+        .map((c) => c.title),
+    })),
   },
   {
     title: "User Engagement",
@@ -156,20 +190,47 @@ export default function DocumentationLayout({
                     )}
                   </div>
                   {link.children && expandedSections[link.title.toLowerCase()] && (
-                    <div className="ml-4 mt-1 space-y-1">
-                      {link.children.map((child) => (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className={cn(
-                            "block text-sm py-1.5 px-3 rounded-md hover:bg-muted transition-colors",
-                            isActive(child.href) && "bg-muted font-medium"
-                          )}
-                        >
-                          {child.title}
-                        </Link>
-                      ))}
+                    <div className="ml-4 mt-1 space-y-3">
+                      {"groupBy" in link && link.groupBy ? (
+                        link.groupBy.map((group) => (
+                          <div key={group.title}>
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-1">
+                              {group.title}
+                            </div>
+                            <div className="space-y-1 mt-0.5">
+                              {link.children!
+                                .filter((c) => group.childTitles.includes(c.title))
+                                .map((child) => (
+                                  <Link
+                                    key={child.href}
+                                    href={child.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={cn(
+                                      "block text-sm py-1.5 px-3 rounded-md hover:bg-muted transition-colors",
+                                      isActive(child.href) && "bg-muted font-medium"
+                                    )}
+                                  >
+                                    {child.title}
+                                  </Link>
+                                ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        link.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={cn(
+                              "block text-sm py-1.5 px-3 rounded-md hover:bg-muted transition-colors",
+                              isActive(child.href) && "bg-muted font-medium"
+                            )}
+                          >
+                            {child.title}
+                          </Link>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>

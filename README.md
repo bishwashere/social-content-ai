@@ -32,6 +32,7 @@ Project documentation lives under **`ai-docs/`**, grouped by topic. Supported fo
 - `PROJECT_FOLDERS_FEATURE.md` — Project folders feature
 
 ### ai-docs/decisions
+- `DOCUMENTATION_COVERAGE_CHECK.md` — Documentation coverage check (nextpostai.com vs codebase)
 - `BLOG_NEWS_STUCK_ISSUE_ANALYSIS.md` — Blog/News stuck issue analysis
 - `unexpectedissues.md` — Unexpected issues log
 - `VERIFICATION_CHECKLIST.md` — Verification checklist

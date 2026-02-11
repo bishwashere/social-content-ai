@@ -9,7 +9,7 @@ export default function AutomationPage() {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="h-6 w-6 text-orange-600" />
-          <h1 className="text-4xl font-bold">Automation</h1>
+          <h1 className="text-4xl font-bold">Auto post</h1>
         </div>
         <p className="text-muted-foreground text-lg">
           Automate your content creation and posting workflows

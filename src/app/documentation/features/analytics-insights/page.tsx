@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, TrendingUp, Target, Activity } from "lucide-react";
+import { BarChart3, Clock, Lightbulb } from "lucide-react";
 
 export default function AnalyticsInsightsPage() {
   return (
@@ -33,6 +33,45 @@ export default function AnalyticsInsightsPage() {
               <li><strong>Success Rate (10%):</strong> Scheduled posting reliability</li>
               <li><strong>Coverage (5%):</strong> Platform usage diversity</li>
               <li><strong>Platform Diversity (5%):</strong> Multi-platform usage</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-indigo-600" />
+              Best Time to Post
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Analytics surfaces when your content performs best so you can schedule smarter:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
+              <li><strong>Best hour:</strong> Hour of the day with highest engagement</li>
+              <li><strong>Best day of week:</strong> Day with highest engagement</li>
+              <li><strong>Best platform:</strong> Platform that drives the most engagement for your project</li>
+              <li>Recommendations are based on your actual campaign and project performance data</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-amber-600" />
+              AI Campaign Suggestions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Get AI-generated campaign ideas based on your performance data:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
+              <li>Suggestions are derived from your engagement trends and best-performing content</li>
+              <li>Project-level analytics includes expandable cards with actionable campaign ideas</li>
+              <li>Use insights to plan your next campaigns without leaving the analytics view</li>
             </ul>
           </CardContent>
         </Card>

@@ -57,7 +57,7 @@ export default function DocumentationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Quick Generate, Campaign Planner, Video, Analytics, Templates, Automation, and more
+                    Quick Generate, Campaign Planner, Video, Analytics, Templates, Auto post, and more
                   </p>
                 </CardContent>
               </Card>

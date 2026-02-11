@@ -9,5 +9,7 @@ alwaysApply: true
 When the user asks to commit, push, or "build and push":
 
 - Use only: `git add -A && git commit -m "message" && git push`
-- Do **not** add `--trailer` or `Co-authored-by` to `git commit`. Use a plain commit message only.
+- Do **not** add `--trailer`, `--trailer=...`, or `Co-authored-by` to the commit command. Use a plain `git commit -m "message"` only.
 - Keep the commit message concise and descriptive.
+
+If commit fails with **unknown option `trailer'**: Cursor may be injecting a Co-authored-by trailer. Disable it in Cursor Settings (e.g. search "Co-authored" or "trailer") or run `git commit -m "message"` and `git push` in an external terminal.
