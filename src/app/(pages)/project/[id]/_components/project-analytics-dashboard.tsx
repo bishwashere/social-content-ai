@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ProjectAnalytics {
@@ -24,31 +24,13 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasScheduledPosts, setHasScheduledPosts] = useState<boolean | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   // Get viewer's timezone for displaying times
   const viewerTimezone =
     typeof window !== "undefined"
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC";
-
-  // Check if project has any scheduled posts
-  useEffect(() => {
-    const checkScheduledPosts = async () => {
-      try {
-        const response = await fetch(`/api/scheduled-posts?projectId=${projectId}`);
-        if (response.ok) {
-          const posts = await response.json();
-          setHasScheduledPosts(Array.isArray(posts) && posts.length > 0);
-        } else {
-          setHasScheduledPosts(false);
-        }
-      } catch {
-        setHasScheduledPosts(false);
-      }
-    };
-    checkScheduledPosts();
-  }, [projectId]);
 
   const loadAnalytics = async () => {
     setLoading(true);
@@ -90,14 +72,34 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
     setCalculating(false);
   };
 
+  // Fetch only when user expands to see stats
   useEffect(() => {
-    if (hasScheduledPosts) {
+    if (expanded) {
       loadAnalytics();
     }
-  }, [projectId, hasScheduledPosts]);
+  }, [expanded, projectId]);
 
-  // Don't show if no scheduled posts for this project
-  if (hasScheduledPosts === null || hasScheduledPosts === false) return null;
+  // Collapsed: show trigger only (no fetch)
+  if (!expanded) {
+    return (
+      <Card className="mb-6">
+        <CardHeader className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Project analytics</CardTitle>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setExpanded(true)}>
+              Show stats
+            </Button>
+          </div>
+          <CardDescription>
+            View overview, engagement, and AI campaign suggestions
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (
@@ -114,13 +116,20 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-600" />
-            AI Campaign Suggestions
-          </CardTitle>
-          <CardDescription>
-            Get AI-powered campaign ideas based on your project's performance
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                AI Campaign Suggestions
+              </CardTitle>
+              <CardDescription>
+                Get AI-powered campaign ideas based on your project's performance
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}>
+              Hide stats
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
@@ -160,10 +169,15 @@ export function ProjectAnalyticsDashboard({ projectId }: { projectId: string }) 
                 Last calculated: {new Date(analytics.calculatedAt).toLocaleString()}
               </CardDescription>
             </div>
-            <Button onClick={calculateNewAnalytics} disabled={calculating} variant="outline" size="sm">
-              {calculating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setExpanded(false)} variant="ghost" size="sm">
+                Hide stats
+              </Button>
+              <Button onClick={calculateNewAnalytics} disabled={calculating} variant="outline" size="sm">
+                {calculating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

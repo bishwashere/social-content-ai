@@ -3087,7 +3087,7 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                       <Dialog>
                                                         <DialogTrigger asChild>
                                                           <div className="w-24 h-24 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity rounded overflow-hidden border">
-                                                            <ViewMedia post={{ media: editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform] }} showMedia />
+                                                            <ViewMedia post={{ media: editedMediaSignedUrl[platform] || (timeline.media as Record<string, string>)?.[platform] }} showMedia prioritizeImage />
                                                           </div>
                                                         </DialogTrigger>
                                                         <DialogContent className="max-w-3xl p-4" aria-describedby={undefined}>
@@ -3114,17 +3114,34 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                 </div>
                                               ) : (
                                                 <>
-                                                  <Markdown>
-                                                    {resolvedText
-                                                      .split("\n")
-                                                      .map(line => line.trim())
-                                                      .filter(line => line.length > 0)
-                                                      .join("\n\n")}
-                                                  </Markdown>
-                                                  {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (timeline.media as Record<string, string>)?.[platform] && (
-                                                    <div className="mt-4">
-                                                      <ViewMedia post={{ media: (timeline.media as Record<string, string>)[platform] }} showMedia />
+                                                  {/* When platform has media: show only image (text hidden until edit, like Instagram) */}
+                                                  {PLATFORMS_WITH_MEDIA_SUPPORT.includes(platform as PlatformId) && (timeline.media as Record<string, string>)?.[platform] ? (
+                                                    <div className="mb-4">
+                                                      <Dialog>
+                                                        <DialogTrigger asChild>
+                                                          <div className="rounded-lg overflow-hidden border bg-muted/30 cursor-pointer hover:opacity-95 transition-opacity max-w-sm">
+                                                            <ViewMedia post={{ media: (timeline.media as Record<string, string>)[platform] }} showMedia prioritizeImage />
+                                                          </div>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-3xl p-4" aria-describedby={undefined}>
+                                                          <DialogHeader>
+                                                            <DialogTitle>Image Preview</DialogTitle>
+                                                          </DialogHeader>
+                                                          <div className="flex justify-center">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img src={(timeline.media as Record<string, string>)[platform]} alt={`${platform} post`} className="max-h-[70vh] w-auto rounded" />
+                                                          </div>
+                                                        </DialogContent>
+                                                      </Dialog>
                                                     </div>
+                                                  ) : (
+                                                    <Markdown>
+                                                      {resolvedText
+                                                        .split("\n")
+                                                        .map(line => line.trim())
+                                                        .filter(line => line.length > 0)
+                                                        .join("\n\n")}
+                                                    </Markdown>
                                                   )}
                                                 </>
                                               )}

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Persona generation calls OpenAI for 5 detailed personas (large prompt, up to 8192 tokens).
+// Without this, the serverless function can hit FUNCTION_INVOCATION_TIMEOUT (e.g. on Vercel).
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -201,13 +205,13 @@ For each persona, provide:
 2. A short tagline (one-liner description)
 3. An emoji avatar that represents them
 4. Demographics: age range, gender, location type, income level, education, occupation
-5. Psychographics: 3 core values, 3 interests/hobbies, lifestyle description
+5. Psychographics: 3 core values, 3 interests/hobbies, lifestyle (1 short sentence)
 6. Behavioral: 3 goals, 3 pain points, 3 buying motivations, 3 preferred marketing channels, 3 content preferences
 7. Messaging: 3 messaging angles that would resonate, recommended tone of voice, 3 key messages
-8. A "day in the life" narrative paragraph (3-4 sentences)
-9. How the product fits into their life (2-3 sentences)
+8. "dayInTheLife": 1–2 sentences only (concise).
+9. "howProductFits": 1 sentence only.
 
-Make each persona distinct and well-differentiated from the others. They should cover different segments of the potential market.
+Be concise for narrative fields (lifestyle, dayInTheLife, howProductFits) so the response stays compact. Make each persona distinct and well-differentiated. They should cover different segments of the potential market.
 
 IMPORTANT: Return ONLY a valid JSON array. Each persona should be an object with these exact fields:
 {
@@ -266,8 +270,8 @@ async function fetchPersonas(
               },
               { role: "user", content: prompt },
             ],
-            temperature: 0.8,
-            max_tokens: 8192,
+            temperature: 0.7,
+            max_tokens: 4096,
           }),
         }
       );
