@@ -6,6 +6,7 @@ import {
   User,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelLeft,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -56,7 +57,10 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
             size="icon"
             className="h-8 w-8 hover:bg-gray-100 transition-colors"
             onClick={() => {
-              if (sidebar.hidden) {
+              if (sidebar.isMobile) {
+                // On mobile, open/close the sidebar sheet
+                sidebar.toggleSidebar();
+              } else if (sidebar.hidden) {
                 // Un-hide and expand the sidebar
                 sidebar.setHidden(false);
                 sidebar.setOpen(true);
@@ -66,7 +70,9 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
               }
             }}
           >
-            {sidebar.hidden ? (
+            {sidebar.isMobile ? (
+              <PanelLeft className="h-4 w-4" />
+            ) : sidebar.hidden ? (
               <PanelLeftOpen className="h-4 w-4" />
             ) : (
               <PanelLeftClose className="h-4 w-4" />

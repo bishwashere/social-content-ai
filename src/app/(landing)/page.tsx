@@ -310,10 +310,14 @@ export default function ModernLanding() {
                   </Link>
                 ))}
               </nav>
-              <div className="mt-8 pt-8 border-t border-white/10">
+              <div className="mt-8 pt-8 border-t border-white/10 space-y-3">
                 <GoogleLoginButton 
                   triggerClassName="w-full glow-button px-6 py-3 text-base font-semibold rounded-xl text-white flex items-center justify-center gap-2"
                   buttonText="Get Started Free"
+                />
+                <GoogleLoginButton 
+                  triggerClassName="w-full px-6 py-3 text-base font-semibold rounded-xl text-white bg-white/10 hover:bg-white/20 border border-white/30 transition-colors flex items-center justify-center gap-2"
+                  buttonText="Login"
                 />
               </div>
             </div>
