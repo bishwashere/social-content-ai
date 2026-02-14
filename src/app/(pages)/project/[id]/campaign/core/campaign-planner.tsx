@@ -52,7 +52,7 @@ import { CampaignVideoButton } from "../ui/controls/video-button";
 import { CampaignCheckButton } from "../ui/controls/check-button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SavePlatformCard } from "../scheduling/platform-card";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { Switch } from "@/components/ui/switch";
@@ -91,7 +91,7 @@ import { CampaignDemoFeatureTour } from "../ui/demo/feature-tour";
 
 export { PLATFORMS };
 
-export default function CampaignPlannerPage({ project }: Props) {
+export default function CampaignPlannerPage({ project, analyticsEligible = false }: Props) {
   const generate = useGenerateCampaignChat();
   const campaignPlannerMutation = useCampaignPlanner();
   const { id: projectId } = useParams();
@@ -564,6 +564,19 @@ export default function CampaignPlannerPage({ project }: Props) {
     projectId as string,
     showOldCampaigns // Only load when showOldCampaigns is true
   );
+
+  // Reddit: suggested subreddits for this project (shown per day in campaign)
+  const { data: subredditSuggestionsData } = useQuery({
+    queryKey: ["project-subreddit-suggestions", projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/subreddit-suggestions`);
+      if (!res.ok) return { subreddits: [] as string[] };
+      const json = await res.json();
+      return json.data ?? { subreddits: [] as string[] };
+    },
+    enabled: !!projectId && !!project?.id,
+  });
+  const subredditSuggestions = subredditSuggestionsData?.subreddits ?? [];
 
   // Track loaded chats for each campaign
   const [loadedChats, setLoadedChats] = useState<Record<string, any[]>>({});
@@ -1820,10 +1833,12 @@ export default function CampaignPlannerPage({ project }: Props) {
                     <div>
                       {isOpen && (
                         <>
-                          {/* Campaign Analytics Summary */}
-                          <div className="ml-0 md:ml-32 px-4 mb-6">
-                            <CampaignAnalyticsSummary campaignId={campaign.id} />
-                          </div>
+                          {/* Campaign Analytics: only when project has 1+ scheduled or 3+ successful posts */}
+                          {analyticsEligible && (
+                            <div className="ml-0 md:ml-32 px-4 mb-6">
+                              <CampaignAnalyticsSummary campaignId={campaign.id} />
+                            </div>
+                          )}
 
                           <div className="flex ml-0 md:ml-32 px-4">
                             <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="w-full rounded-lg border mb-5">
@@ -2569,15 +2584,38 @@ export default function CampaignPlannerPage({ project }: Props) {
                                                   )}
                                                 </div>
                                               </CardHeader>
-                                              {timeline.subreddit && platform === "reddit" && <div className="px-6 flex flex-col gap-0.5">
-                                                <span
-                                                  className="text-sm text-muted-foreground">
-                                                  {`/r/${timeline.subreddit}`}
-                                                </span>
-                                                {timeline.referencePostContent && <span className="text-sm text-muted-foreground">
-                                                  {timeline.referencePostContent ? `${timeline.referencePostContent}...` : ""}
-                                                </span>}
-                                              </div>}
+                                              {platform === "reddit" && (
+                                                <div className="px-6 flex flex-col gap-1.5">
+                                                  {timeline.subreddit && (
+                                                    <>
+                                                      <span className="text-sm text-muted-foreground">
+                                                        {`/r/${timeline.subreddit}`}
+                                                      </span>
+                                                      {timeline.referencePostContent && (
+                                                        <span className="text-sm text-muted-foreground">
+                                                          {timeline.referencePostContent ? `${timeline.referencePostContent}...` : ""}
+                                                        </span>
+                                                      )}
+                                                    </>
+                                                  )}
+                                                  {subredditSuggestions.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 items-center">
+                                                      <span className="text-xs text-muted-foreground">Suggested subreddits:</span>
+                                                      {subredditSuggestions.map((sr: string) => (
+                                                        <a
+                                                          key={sr}
+                                                          href={`https://www.reddit.com/r/${sr}`}
+                                                          target="_blank"
+                                                          rel="noopener noreferrer"
+                                                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                                        >
+                                                          r/{sr}
+                                                        </a>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
                                             </div>
                                             <CardContent className="text-sm text-muted-foreground" style={{ whiteSpace: "pre-wrap" }}>
                                               {editingPlatform === platform ? (

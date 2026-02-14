@@ -73,4 +73,6 @@ export const ANGLE_DESCRIPTIONS: Record<string, string> = {
 
 export type Props = {
   project: Projects;
+  /** When false, campaign analytics block is hidden (same gate as project analytics: need 1+ scheduled or 3+ successful posts). */
+  analyticsEligible?: boolean;
 };

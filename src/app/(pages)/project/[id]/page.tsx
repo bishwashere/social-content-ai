@@ -9,6 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 import { useGetAllProjects, useGetProjectPulse } from "@/backend-apis/projects/hooks";
 import { Projects as Project } from "@prisma/client";
 import { useGetCampaignPlanner } from "@/backend-apis/campaign-planner/hooks";
@@ -23,6 +24,7 @@ import { ProjectSocialConnectionAlert } from "./_components/project-social-conne
 import AdvanceCustomization from "@/app/(pages)/dashboard/_components/advance-customization";
 import { ProjectAnalyticsDashboard } from "./_components/project-analytics-dashboard";
 import { ProjectTools } from "./_components/project-tools";
+import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 
 const TAB_VALUES = ["generate", "campaign", "media", "scheduled", "tools"] as const;
 const STORAGE_KEY = "lastProjectTab";
@@ -31,8 +33,15 @@ function ProjectPage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { hideFeatureRequest, showFeatureRequest } = useWidgetVisibility();
   const [contentMode, setContentMode] = useState<'normal' | 'advanced'>('normal');
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Hide feature request widget on project page; restore on unmount
+  useEffect(() => {
+    hideFeatureRequest();
+    return () => showFeatureRequest();
+  }, [hideFeatureRequest, showFeatureRequest]);
 
   const projects = useGetAllProjects();
   const project = useMemo(
@@ -121,7 +130,18 @@ function ProjectPage() {
     campaignPlannerCompleted
   );
 
-  console.log(projectPulse)
+  // Analytics (project + campaign) shown only when: at least 1 scheduled post OR at least 3 successfully posted posts
+  const { data: analyticsEligibility } = useQuery({
+    queryKey: ["project-analytics-eligibility", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${id}/analytics-eligibility`);
+      if (!res.ok) return { eligible: false };
+      const json = await res.json();
+      return json.data ?? { eligible: false };
+    },
+    enabled: !!id && !!project,
+  });
+  const analyticsEligible = analyticsEligibility?.eligible ?? false;
 
   // Default project pulse data when no data is available
   const defaultProjectPulse = {
@@ -195,11 +215,13 @@ function ProjectPage() {
           {!isProjectLessThanOneDayOld && (
             <ProjectPulseMetrics projectPulse={projectPulse || defaultProjectPulse} />
           )}
-          {/* Project Analytics Dashboard */}
-          <div className="mb-6">
-            <ProjectAnalyticsDashboard projectId={id as string} />
-          </div>
-          <CampaignPlannerPage project={project} />
+          {/* Project Analytics: only when at least 1 scheduled post or 3+ successfully posted posts */}
+          {analyticsEligible && (
+            <div className="mb-6">
+              <ProjectAnalyticsDashboard projectId={id as string} />
+            </div>
+          )}
+          <CampaignPlannerPage project={project} analyticsEligible={analyticsEligible} />
         </TabsContent>
         <TabsContent value="generate">
           {contentMode === "normal" ? (
