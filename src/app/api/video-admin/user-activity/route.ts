@@ -302,10 +302,21 @@ export const GET = applyMiddleware(
       };
     });
 
+    // Sort users by latest activity on top (most recent activity first)
+    const sortedUsers = usersWithTimeline.sort((a, b) => {
+      const aLatest = a.activities[0]?.timestamp
+        ? new Date(a.activities[0].timestamp).getTime()
+        : new Date(a.createdAt).getTime();
+      const bLatest = b.activities[0]?.timestamp
+        ? new Date(b.activities[0].timestamp).getTime()
+        : new Date(b.createdAt).getTime();
+      return bLatest - aLatest;
+    });
+
     return sendNextResponse({
       status: 200,
       message: "User activity fetched successfully",
-      data: { users: usersWithTimeline },
+      data: { users: sortedUsers },
     });
   })
 );

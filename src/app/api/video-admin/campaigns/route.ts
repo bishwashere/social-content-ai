@@ -5,7 +5,7 @@ import { validateVideoAdminAuth } from "@/middlewares/validate-video-admin-auth"
 import { prisma } from "@/lib/prisma";
 
 /**
- * Get all campaigns across all users, sorted by most recently created
+ * Get all campaigns across all users, sorted by latest activity (updatedAt) on top
  */
 export const GET = applyMiddleware(
   validateVideoAdminAuth({ errorIfNotAuthenticated: true }),
@@ -43,7 +43,7 @@ export const GET = applyMiddleware(
         },
       },
       orderBy: {
-        createdAt: "desc",
+        updatedAt: "desc",
       },
     });
 

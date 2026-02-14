@@ -34,6 +34,8 @@ type PlatformState = {
 
 type Props = {
   projectId: string
+  /** When false (e.g. in project settings modal), the connect UI is always shown when there are providers to link, with no dismiss button. */
+  dismissible?: boolean
 }
 
 type PendingAutoLink = {
@@ -63,7 +65,7 @@ const PLATFORM_LABELS: Record<OauthPlatform, string> = {
   instagram: "Instagram"
 }
 
-export function ProjectSocialConnectionAlert({ projectId }: Props) {
+export function ProjectSocialConnectionAlert({ projectId, dismissible = true }: Props) {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const [showAlert, setShowAlert] = useState(false)
@@ -75,11 +77,11 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     }), {} as Record<OauthPlatform, PlatformState>)
   )
 
-  // Check if user has dismissed this alert for this project
+  // Dismissal is per-user (FirstViewTooltip is keyed by userId). Only used when dismissible is true.
   const { data: tooltipData } = useQuery({
     queryKey: ["first-view-tooltip", session?.user?.id],
     queryFn: () => getFirstViewTooltip(session?.user?.id || ""),
-    enabled: !!session?.user?.id,
+    enabled: !!session?.user?.id && dismissible,
   })
 
   const dismissAlertMutation = useMutation({
@@ -88,7 +90,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
 
       const currentDismissed = tooltipData?.dismissedProjectAlerts || []
       await updateFirstViewTooltip({
-        userId: session.user.id,
+        userId: session.user.id, // always current user — so only this user's dismissals are updated
         updateData: {
           dismissedProjectAlerts: [...currentDismissed, projectId],
         },
@@ -131,10 +133,8 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
 
       setPlatformStates(newPlatformStates)
 
-      // Check if alert has been dismissed for this project
-      const isDismissed = tooltipData?.dismissedProjectAlerts?.includes(projectId) || false
-
-      // Show alert only if at least one dropdown should show AND not dismissed
+      // When dismissible: only show if current user has not dismissed. When non-dismissible (e.g. settings modal), always show when there are providers to link.
+      const isDismissed = dismissible && (tooltipData?.dismissedProjectAlerts?.includes(projectId) || false)
       if (hasAnyDropdown && !isDismissed) {
         setShowAlert(true)
       } else {
@@ -143,7 +143,7 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
     } catch (error) {
       console.error("Error checking available providers:", error)
     }
-  }, [projectId, session?.user?.id, tooltipData])
+  }, [projectId, session?.user?.id, tooltipData, dismissible])
 
   // Auto-link providers on mount
   useEffect(() => {
@@ -321,46 +321,62 @@ export function ProjectSocialConnectionAlert({ projectId }: Props) {
 
   if (visiblePlatforms.length === 0) return null
 
-  return (
-    <div className="px-6 mb-4 max-w-4xl mx-auto">
-      <Alert className="border-orange-500 bg-orange-50/50 w-full relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 h-6 w-6 hover:bg-orange-100"
-          onClick={() => dismissAlertMutation.mutate()}
-        >
-          <X className="h-4 w-4 text-orange-600" />
-        </Button>
-        <AlertDescription className="w-full">
-          <div className="flex items-center gap-3 pr-8 flex-wrap">
-            {visiblePlatforms.map(platform => {
-              const state = platformStates[platform]
-              return (
-                <div key={platform} className="min-w-[200px]">
-                  <Select
-                    value={state.isMapping ? "connecting" : ""}
-                    onValueChange={(providerId) => handleConnectPlatform(platform, providerId)}
-                    disabled={state.isMapping}
-                  >
-                    <SelectTrigger className="w-full focus:outline-none">
-                      <SelectValue
-                        placeholder={state.isMapping ? "Connecting..." : `Connect ${PLATFORM_LABELS[platform]}`}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {state.providers.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          {provider.pageName || provider.pageId || 'Unnamed Account'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )
-            })}
+  const connectContent = (
+    <div className="flex items-center gap-3 flex-wrap">
+      {visiblePlatforms.map(platform => {
+        const state = platformStates[platform]
+        return (
+          <div key={platform} className="min-w-[200px]">
+            <Select
+              value={state.isMapping ? "connecting" : ""}
+              onValueChange={(providerId) => handleConnectPlatform(platform, providerId)}
+              disabled={state.isMapping}
+            >
+              <SelectTrigger className="w-full focus:outline-none">
+                <SelectValue
+                  placeholder={state.isMapping ? "Connecting..." : `Connect ${PLATFORM_LABELS[platform]}`}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {state.providers.map((provider) => (
+                  <SelectItem key={provider.id} value={provider.id}>
+                    {provider.pageName || provider.pageId || 'Unnamed Account'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </AlertDescription>
+        )
+      })}
+    </div>
+  )
+
+  const wrapperClass = dismissible ? "px-6 mb-4 max-w-4xl mx-auto" : "w-full"
+
+  if (dismissible) {
+    return (
+      <div className={wrapperClass}>
+        <Alert className="border-orange-500 bg-orange-50/50 w-full relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 hover:bg-orange-100"
+            onClick={() => dismissAlertMutation.mutate()}
+          >
+            <X className="h-4 w-4 text-orange-600" />
+          </Button>
+          <AlertDescription className="w-full">
+            <div className="pr-8">{connectContent}</div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  return (
+    <div className={wrapperClass}>
+      <Alert className="border-orange-500 bg-orange-50/50 w-full">
+        <AlertDescription className="w-full">{connectContent}</AlertDescription>
       </Alert>
     </div>
   )

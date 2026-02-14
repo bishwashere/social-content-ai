@@ -913,7 +913,13 @@ export default function CampaignsAdminPage() {
                                 <div className="relative">
                                   <div className="absolute left-[15px] top-0 bottom-0 w-px bg-slate-200" />
                                   <div className="space-y-0">
-                                    {user.activities.map((activity, idx) => (
+                                    {[...user.activities]
+                                      .sort(
+                                        (a, b) =>
+                                          new Date(b.timestamp).getTime() -
+                                          new Date(a.timestamp).getTime()
+                                      )
+                                      .map((activity, idx) => (
                                       <div
                                         key={`${activity.type}-${idx}`}
                                         className="relative flex items-start gap-4 py-3 pl-0"

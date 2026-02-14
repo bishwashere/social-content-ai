@@ -16,6 +16,7 @@ import { getProjectPlaceholders, PlaceholderMap } from "@/lib/placeholders";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Trash2 } from "lucide-react";
+import { ProjectSocialConnectionAlert } from "@/app/(pages)/project/[id]/_components/project-social-connection-alert";
 
 type Row = { key: string; value: string };
 
@@ -215,6 +216,17 @@ export const ProjectEditModal = ({ project }: { project: ProjectWithChats }) => 
                         </div>
                     )}
                 </DialogDescription>
+
+                <Separator className="my-4" />
+
+                {/* Connect social accounts (non-dismissible in settings — show when project has no linked socials but user has connected accounts) */}
+                <div className="space-y-2">
+                    <h3 className="text-base font-semibold">Connected accounts</h3>
+                    <p className="text-xs text-muted-foreground">
+                        Link your social accounts to this project to post and view analytics.
+                    </p>
+                    <ProjectSocialConnectionAlert projectId={project.id} dismissible={false} />
+                </div>
 
                 <Separator className="my-4" />
 
