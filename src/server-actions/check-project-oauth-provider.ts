@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { OauthPlatform } from "@prisma/client";
+import { getProjectOAuthPermission } from "@/lib/project-oauth-permissions";
 
 type CheckProjectOAuthProviderResult = {
   hasProviderConnected: boolean;
@@ -35,19 +36,8 @@ export async function checkAllProjectOAuthProviders(
   platforms: OauthPlatform[]
 ): Promise<CheckAllProjectOAuthProvidersResult> {
   try {
-    // First, check if the user is the project owner
-    const project = await prisma.projects.findUnique({
-      where: { id: projectId },
-      select: { userId: true, name: true },
-    });
-
-    if (!project) {
-      throw new Error("Project not found");
-    }
-
-    const isOwner = project.userId === userId;
-
-    if (!isOwner) {
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
       return platforms.reduce((acc, platform) => ({
         ...acc,
         [platform]: {
@@ -57,11 +47,18 @@ export async function checkAllProjectOAuthProviders(
       }), {} as CheckAllProjectOAuthProvidersResult);
     }
 
-    // Fetch all OAuth providers for all platforms in a single query
-    // Include ALL project mappings to check if provider is linked to any project
+    const project = await prisma.projects.findUnique({
+      where: { id: projectId },
+      select: { name: true },
+    });
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    // Use current user's OAuth providers (owner sees their list, editor sees their own)
     const providers = await prisma.oauthProvider.findMany({
       where: {
-        userId: project.userId,
+        userId,
         platform: {
           in: platforms,
         },
@@ -156,29 +153,18 @@ export async function checkProjectOAuthProvider(
   platform: OauthPlatform
 ): Promise<CheckProjectOAuthProviderResult> {
   try {
-    // First, check if the user is the project owner
-    const project = await prisma.projects.findUnique({
-      where: { id: projectId },
-      select: { userId: true },
-    });
-
-    if (!project) {
-      throw new Error("Project not found");
-    }
-
-    const isOwner = project.userId === userId;
-
-    if (!isOwner) {
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
       return {
         hasProviderConnected: false,
         isProjectMapped: false,
       };
     }
 
-    // Check if the owner has any OAuth providers for the platform
+    // Use current user's OAuth providers (owner sees their list, editor sees their own)
     const providers = await prisma.oauthProvider.findMany({
       where: {
-        userId: project.userId,
+        userId,
         platform,
       },
       select: {

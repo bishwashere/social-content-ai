@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getProjectOAuthPermission } from "@/lib/project-oauth-permissions";
 
 export async function mapProjectToOAuthProvider(
   projectId: string,
@@ -8,21 +9,20 @@ export async function mapProjectToOAuthProvider(
   userId: string
 ) {
   try {
-    // First, check if the user is the project owner
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
+      throw new Error("You do not have permission to link OAuth providers to this project");
+    }
+
     const project = await prisma.projects.findUnique({
       where: { id: projectId },
-      select: { userId: true },
+      select: { id: true },
     });
-
     if (!project) {
       throw new Error("Project not found");
     }
 
-    if (project.userId !== userId) {
-      throw new Error("Only project owner can map OAuth providers");
-    }
-
-    // Check if the OAuth provider exists and belongs to the user
+    // Provider must belong to the current user (owner or editor can only link their own OAuth)
     const provider = await prisma.oauthProvider.findUnique({
       where: { id: oauthProviderId },
       select: { userId: true },
@@ -33,7 +33,7 @@ export async function mapProjectToOAuthProvider(
     }
 
     if (provider.userId !== userId) {
-      throw new Error("OAuth provider does not belong to the user");
+      throw new Error("OAuth provider does not belong to you");
     }
 
     // Check if mapping already exists

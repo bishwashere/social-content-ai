@@ -47,11 +47,17 @@ export default async function BlogPage({ params }: BlogPageProps) {
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                {new Date((blog as { publishedAt?: string; date?: string }).publishedAt || (blog as { publishedAt?: string; date?: string }).date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {(() => {
+                  const b = blog as { publishedAt?: string; date?: string };
+                  const dateStr = b.publishedAt ?? b.date;
+                  return dateStr
+                    ? new Date(dateStr).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "—";
+                })()}
               </Badge>
               <Badge variant="outline" className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -121,11 +127,17 @@ export default async function BlogPage({ params }: BlogPageProps) {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-muted-foreground">
                 Published on{" "}
-                {new Date((blog as { publishedAt?: string; date?: string }).publishedAt || (blog as { publishedAt?: string; date?: string }).date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {(() => {
+                  const b = blog as { publishedAt?: string; date?: string };
+                  const dateStr = b.publishedAt ?? b.date;
+                  return dateStr
+                    ? new Date(dateStr).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "—";
+                })()}
               </div>
               <div className="flex gap-2">
                 <Button asChild variant="outline">

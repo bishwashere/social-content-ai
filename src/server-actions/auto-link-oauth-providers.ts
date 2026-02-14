@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { OauthPlatform } from "@prisma/client";
+import { getProjectOAuthPermission } from "@/lib/project-oauth-permissions";
 
 type AutoLinkedProvider = {
   oauthProviderId: string;
@@ -177,23 +178,22 @@ export async function autoLinkOAuthProviders(
   userId: string
 ): Promise<AutoLinkedProvider[]> {
   try {
-    // Get project details
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
+      throw new Error("You do not have permission to auto-link providers to this project");
+    }
+
     const project = await prisma.projects.findUnique({
       where: { id: projectId },
-      select: { userId: true, name: true },
+      select: { name: true },
     });
-
     if (!project) {
       throw new Error("Project not found");
     }
 
-    if (project.userId !== userId) {
-      throw new Error("Only project owner can auto-link providers");
-    }
-
     const normalizedProjectName = normalizeForComparison(project.name);
 
-    // Get all OAuth providers for the user that are not already linked to this project
+    // Use current user's providers (owner or editor links their own)
     const allProviders = await prisma.oauthProvider.findMany({
       where: {
         userId,
@@ -276,21 +276,20 @@ export async function getPendingAutoLinkedProviders(
   userId: string
 ): Promise<AutoLinkedProvider[]> {
   try {
-    // Get project details
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
+      return [];
+    }
+
     const project = await prisma.projects.findUnique({
       where: { id: projectId },
-      select: { userId: true, name: true },
+      select: { name: true },
     });
-
     if (!project) {
       throw new Error("Project not found");
     }
 
-    if (project.userId !== userId) {
-      return [];
-    }
-
-    // Get approved auto-links from FirstViewTooltip
+    // Get approved auto-links from current user's FirstViewTooltip
     const tooltip = await prisma.firstViewTooltip.findFirst({
       where: { userId },
       select: { approvedAutoLinks: true },
@@ -397,7 +396,12 @@ export async function approveAutoLinkedProvider(
       throw new Error("Invalid mapping");
     }
 
-    if (mapping.oauthProvider.userId !== userId || mapping.project.userId !== userId) {
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
+      throw new Error("Unauthorized");
+    }
+    // Owner can approve any; editor can only approve their own provider's auto-link
+    if (!permission.isOwner && mapping.oauthProvider.userId !== userId) {
       throw new Error("Unauthorized");
     }
 
@@ -471,7 +475,12 @@ export async function cancelAutoLinkedProvider(
       throw new Error("Invalid mapping");
     }
 
-    if (mapping.oauthProvider.userId !== userId || mapping.project.userId !== userId) {
+    const permission = await getProjectOAuthPermission(projectId, userId);
+    if (!permission || !permission.canManageOAuth) {
+      throw new Error("Unauthorized");
+    }
+    // Owner can cancel any mapping; editor can only cancel their own provider's mapping
+    if (!permission.isOwner && mapping.oauthProvider.userId !== userId) {
       throw new Error("Unauthorized");
     }
 
