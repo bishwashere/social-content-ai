@@ -116,13 +116,20 @@ export default function Home() {
     if (projectSelectionCallbackRef.current) {
       projectSelectionCallbackRef.current(projectId);
     }
-    
-    // Only trigger autoplay demo if user hasn't created a demo campaign before
+
+    // Only trigger autoplay demo when:
+    // 1. User hasn't completed the demo before, and
+    // 2. This is the first project they're seeing (no other owned or invited projects).
+    // If they were already working on someone else's project and just created their first own project, skip the demo.
     const hasCreatedDemoCampaign = session?.user?.demoCampaignCreated;
-    const targetUrl = hasCreatedDemoCampaign 
-      ? `/project/${projectId}?tab=campaign`
-      : `/project/${projectId}?tab=campaign&autoplay=1&fromOnboarding=1`;
-    
+    const totalProjectsCount = projects.data?.length ?? 0;
+    const isFirstProjectEver = totalProjectsCount <= 1; // 0 = stale cache before refetch, 1 = only this new project
+    const shouldShowDemo = !hasCreatedDemoCampaign && isFirstProjectEver;
+
+    const targetUrl = shouldShowDemo
+      ? `/project/${projectId}?tab=campaign&autoplay=1&fromOnboarding=1`
+      : `/project/${projectId}?tab=campaign`;
+
     setTimeout(() => {
       router.push(targetUrl);
     }, 400);
