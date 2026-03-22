@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { format, isToday, isTomorrow, addDays } from "date-fns";
 import { 
   ArrowRight, 
@@ -31,9 +32,26 @@ import { useGetAllScheduledPosts, useGetAllProjects } from "@/backend-apis/proje
 import { ProjectCreationSuggestions } from "@/components/project-creation-suggestions";
 import { NewsTrendingSection } from "./news-trending";
 import { useQuery } from "@tanstack/react-query";
+import { PLATFORM_ICONS, PLATFORM_IDS } from "@/constants/platforms";
 
 type TodayTimelineViewProps = {
   showGetStartedGuide?: boolean;
+};
+
+const normalizePlatformId = (platform?: string | null) => {
+  if (!platform) return null;
+  const key = platform.toLowerCase();
+  if (key === "twitter") return PLATFORM_IDS.X;
+  return key in PLATFORM_ICONS ? (key as keyof typeof PLATFORM_ICONS) : null;
+};
+
+const mergeStatus = (a?: string | null, b?: string | null) => {
+  const statuses = [a, b].filter(Boolean) as string[];
+  if (statuses.includes("failed")) return "failed";
+  if (statuses.length > 0 && statuses.every((status) => status === "success")) {
+    return "success";
+  }
+  return "pending";
 };
 
 export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimelineViewProps) {
@@ -156,6 +174,8 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
       day: post.meta?.day || null,
       platform: post.platform,
       scheduledTime: post.date ? new Date(post.date) : null,
+      status: post.status || 'pending',
+      postId: post.id,
       // Create a unique key for deduplication
       key: `scheduled-${post.id}`,
     })) || [];
@@ -168,6 +188,38 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
     const deduplicatedTomorrow = Array.from(
       new Map(tomorrowPosts.map(item => [item.key, item])).values()
     );
+
+    const groupScheduledItems = (items: typeof deduplicatedToday) => {
+      const grouped = new Map<string, any>();
+
+      items.forEach((item) => {
+        const timeKey = item.scheduledTime
+          ? format(new Date(item.scheduledTime), "HH:mm")
+          : "unknown";
+        const groupKey = `${item.projectName}|${item.day ?? ""}|${timeKey}`;
+        const platformId = normalizePlatformId(item.platform);
+
+        if (!grouped.has(groupKey)) {
+          grouped.set(groupKey, {
+            ...item,
+            platforms: platformId ? [platformId] : [],
+            status: item.status || "pending",
+          });
+          return;
+        }
+
+        const current = grouped.get(groupKey);
+        if (platformId && !current.platforms.includes(platformId)) {
+          current.platforms.push(platformId);
+        }
+        current.status = mergeStatus(current.status, item.status);
+      });
+
+      return Array.from(grouped.values()).map((item) => ({
+        ...item,
+        platforms: item.platforms.sort(),
+      }));
+    };
     
     // Get scheduled times for today - extract from the already filtered todayPosts
     const todayScheduledTimes: string[] = [];
@@ -226,8 +278,8 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
     }
     
     return { 
-      todayItems: deduplicatedToday,
-      tomorrowItems: deduplicatedTomorrow,
+      todayItems: groupScheduledItems(deduplicatedToday),
+      tomorrowItems: groupScheduledItems(deduplicatedTomorrow),
       todayScheduledTimes,
       tomorrowScheduledTimes
     };
@@ -687,19 +739,35 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
                                   </span>
                                 )}
                                 {(() => {
-                                  // Show platform(s) - for scheduled posts it's a single platform, for campaigns it's an array
-                                  if ('platform' in item && item.platform) {
-                                    return (
-                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
-                                    );
-                                  } else if ('platforms' in item && Array.isArray(item.platforms) && item.platforms.length > 0) {
-                                    return (
-                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">
-                                        • {item.platforms.join(", ")}
-                                      </span>
-                                    );
-                                  }
-                                  return null;
+                                  const rawPlatforms = Array.isArray((item as any).platforms)
+                                    ? (item as any).platforms
+                                    : (item as any).platform
+                                    ? [(item as any).platform]
+                                    : [];
+                                  const platformIds = rawPlatforms
+                                    .map((platform: string) => normalizePlatformId(platform))
+                                    .filter(Boolean) as Array<keyof typeof PLATFORM_ICONS>;
+
+                                  if (platformIds.length === 0) return null;
+
+                                  return (
+                                    <div className="flex items-center gap-1 ml-auto">
+                                      {platformIds.map((platformId) => (
+                                        <span
+                                          key={platformId}
+                                          className="w-4 h-4 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center"
+                                        >
+                                          <Image
+                                            src={PLATFORM_ICONS[platformId]}
+                                            alt={platformId}
+                                            width={12}
+                                            height={12}
+                                            className="dark:brightness-0 dark:invert"
+                                          />
+                                        </span>
+                                      ))}
+                                    </div>
+                                  );
                                 })()}
                               </div>
                             </div>
@@ -785,19 +853,35 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
                                   </span>
                                 )}
                                 {(() => {
-                                  // Show platform(s) - for scheduled posts it's a single platform, for campaigns it's an array
-                                  if ('platform' in item && item.platform) {
-                                    return (
-                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">• {item.platform}</span>
-                                    );
-                                  } else if ('platforms' in item && Array.isArray(item.platforms) && item.platforms.length > 0) {
-                                    return (
-                                      <span className="text-slate-400 dark:text-slate-500 whitespace-nowrap truncate lg:max-w-none">
-                                        • {item.platforms.join(", ")}
-                                      </span>
-                                    );
-                                  }
-                                  return null;
+                                  const rawPlatforms = Array.isArray((item as any).platforms)
+                                    ? (item as any).platforms
+                                    : (item as any).platform
+                                    ? [(item as any).platform]
+                                    : [];
+                                  const platformIds = rawPlatforms
+                                    .map((platform: string) => normalizePlatformId(platform))
+                                    .filter(Boolean) as Array<keyof typeof PLATFORM_ICONS>;
+
+                                  if (platformIds.length === 0) return null;
+
+                                  return (
+                                    <div className="flex items-center gap-1 ml-auto">
+                                      {platformIds.map((platformId) => (
+                                        <span
+                                          key={platformId}
+                                          className="w-4 h-4 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center"
+                                        >
+                                          <Image
+                                            src={PLATFORM_ICONS[platformId]}
+                                            alt={platformId}
+                                            width={12}
+                                            height={12}
+                                            className="dark:brightness-0 dark:invert"
+                                          />
+                                        </span>
+                                      ))}
+                                    </div>
+                                  );
                                 })()}
                               </div>
                             </div>
