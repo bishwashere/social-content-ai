@@ -12,7 +12,7 @@ export default function AutomationPage() {
           <h1 className="text-4xl font-bold">Auto post</h1>
         </div>
         <p className="text-muted-foreground text-lg">
-          Automate your content creation and posting workflows
+          Fully automate your content creation and posting workflows end to end
         </p>
       </div>
 
@@ -23,12 +23,12 @@ export default function AutomationPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Automatically post campaign content at scheduled times:
+              Fully automated posting for campaign content at scheduled times:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
               <li>Set a daily posting time for campaigns</li>
-              <li>Select platforms for automated posting</li>
-              <li>Content is generated and posted automatically</li>
+              <li>Select platforms for fully automated posting</li>
+              <li>Content is generated and posted automatically—no step-by-step handoff</li>
               <li>Failed posts are logged and can be retried</li>
             </ul>
           </CardContent>
@@ -40,7 +40,7 @@ export default function AutomationPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              4-step automated pipeline:
+              Fully automated 4-step pipeline (each step triggers the next):
             </p>
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-4">
               <li><strong>Fetch Article:</strong> Get trending articles from Reddit/HackerNews</li>
@@ -57,7 +57,7 @@ export default function AutomationPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Schedule content to be posted automatically:
+              Schedule content for fully automatic posting at the chosen time:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
               <li>Set specific date and time for posts</li>

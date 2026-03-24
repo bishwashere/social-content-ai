@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Blog News auto-post system uses a **4-step pipeline** to automatically generate blog posts from Reddit/HackerNews articles and publish them to social media platforms. The system is triggered by a cron job that runs periodically.
+The Blog News auto-post system is a **fully automated**, end-to-end **4-step pipeline**: it generates blog posts from Reddit/HackerNews articles and publishes them to social media without manual steps between stages. The system is triggered by a cron job that runs periodically.
 
 ---
 
@@ -373,7 +373,7 @@ The Blog News auto-post system uses a **4-step pipeline** to automatically gener
 
 **Error Handling**:
 - If platform post creation fails for some platforms → continues with others
-- Partial success is allowed (some platforms succeed, some fail)
+- Failures are isolated per platform: the automation keeps going so successful platforms still receive posts
 
 ---
 
@@ -575,7 +575,7 @@ The Blog News auto-post system uses a **4-step pipeline** to automatically gener
 
 ## 🎯 Summary
 
-The Blog News auto-post system:
+The Blog News auto-post system is **fully automated** from schedule through social posting:
 1. **Schedules** posts when campaign is created
 2. **Triggers** via cron job (`GET /api/post`)
 3. **Fetches** article (Step 1)
@@ -584,4 +584,4 @@ The Blog News auto-post system:
 6. **Creates** platform posts (Step 4)
 7. **Posts** to social media (via same cron job)
 
-Each step is **idempotent**, has **precondition checks**, and includes **error handling** and **timeout protection**.
+Each step chains automatically, is **idempotent**, has **precondition checks**, and includes **error handling** and **timeout protection**.

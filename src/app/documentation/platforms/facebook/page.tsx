@@ -14,7 +14,7 @@ export default function FacebookPage() {
             <Badge variant="secondary">OAuth 2.0</Badge>
           </div>
           <p className="text-muted-foreground text-lg">
-            Connect your Facebook Pages for automated posting
+            Connect your Facebook Pages for fully automated posting
           </p>
         </div>
 

@@ -14,7 +14,7 @@ export default function TwitterPage() {
             <Badge variant="secondary">OAuth 2.0</Badge>
           </div>
           <p className="text-muted-foreground text-lg">
-            Connect Twitter/X accounts for automated posting
+            Connect Twitter/X accounts for fully automated posting
           </p>
         </div>
 

@@ -46,7 +46,7 @@ const featureMeta: Record<string, { description: string; icon: typeof Zap; color
     color: "text-purple-600",
   },
   "Auto post": {
-    description: "Auto-posting, scheduled campaigns, and automated workflows",
+    description: "Fully automated posting, scheduled campaigns, and end-to-end workflows",
     icon: AutoIcon,
     color: "text-orange-600",
   },
@@ -61,12 +61,12 @@ const featureMeta: Record<string, { description: string; icon: typeof Zap; color
     color: "text-amber-600",
   },
   "Blog News": {
-    description: "Automated blog generation from trending news and articles",
+    description: "Fully automated blog generation from trending news and articles",
     icon: FileText,
     color: "text-green-600",
   },
   "Scheduled Posts": {
-    description: "Schedule content to be posted automatically at specific times",
+    description: "Schedule content for fully automatic posting at specific times",
     icon: Clock,
     color: "text-indigo-600",
   },
@@ -91,7 +91,7 @@ const featureHref: Record<string, string> = {
 const featureGroups = [
   {
     title: "AI powered generation",
-    description: "Generate and create content with AI: copy, concepts, video, auto post, and campaign planning.",
+    description: "Generate and create content with AI: copy, concepts, video, fully automated auto post, and campaign planning.",
     features: [
       "Quick Generate",
       "Campaign Planner",
@@ -102,7 +102,7 @@ const featureGroups = [
   },
   {
     title: "Data driven workflow",
-    description: "Continuous learning from data: analytics, insights, templates, blog news, and content discovery.",
+    description: "Continuous learning from data: analytics, insights, templates, fully automated blog news, and content discovery.",
     features: [
       "AI Campaign Suggestion",
       "Platform Analytics + Suggestion",
@@ -119,7 +119,7 @@ const featureGroups = [
   },
   {
     title: "Platform integration",
-    description: "Connect and publish across social platforms.",
+    description: "Connect and publish across social platforms with fully automatic scheduled posting.",
     features: ["Scheduled Posts"],
   },
 ];

@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function PlatformsPage() {
   const platforms = [
-    { name: "Facebook", href: "/documentation/platforms/facebook", description: "Connect Facebook Pages for automated posting" },
+    { name: "Facebook", href: "/documentation/platforms/facebook", description: "Connect Facebook Pages for fully automated posting" },
     { name: "Instagram", href: "/documentation/platforms/instagram", description: "Connect Instagram Business accounts via Facebook" },
     { name: "LinkedIn", href: "/documentation/platforms/linkedin", description: "Connect LinkedIn profiles and company pages" },
-    { name: "Twitter / X", href: "/documentation/platforms/twitter", description: "Connect Twitter/X accounts for automated posting" },
+    { name: "Twitter / X", href: "/documentation/platforms/twitter", description: "Connect Twitter/X accounts for fully automated posting" },
     { name: "TikTok", href: "/documentation/platforms/tiktok", description: "Connect TikTok Business accounts for video posting" },
     { name: "Threads", href: "/documentation/platforms/threads", description: "Connect Threads accounts via Instagram" },
     { name: "Reddit", href: "/documentation/platforms/reddit", description: "Connect Reddit accounts for subreddit posting" },

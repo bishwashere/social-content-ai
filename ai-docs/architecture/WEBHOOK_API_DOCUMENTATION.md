@@ -89,7 +89,7 @@ Content-Type: application/json
 If the webhook fails initially:
 1. The blog is still saved in the system
 2. A "Retry Webhook" button appears in the UI below the blog
-3. Users can manually retry sending to the webhook
+3. Users can trigger another send from the UI using Retry Webhook
 4. The webhook status is tracked and displayed in the UI
 
 ## Content Format

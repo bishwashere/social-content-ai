@@ -25,7 +25,7 @@ Project documentation lives under **`ai-docs/`**, grouped by topic. Supported fo
 - `PROJECT_SELECTION_DEMO.md` — Project selection demo
 - `PROJECT_SELECTION_DEMO_FLOW.md` — Project selection demo flow
 - `PROJECT_SELECTION_DEMO_TEST_CHECKLIST.md` — Project selection demo test checklist
-- `BLOG_NEWS_AUTO_POST_FLOW.md` — Blog News auto-post flow
+- `BLOG_NEWS_AUTO_POST_FLOW.md` — Blog News fully automated auto-post flow
 - `REFERRAL_SYSTEM.md` — Referral system
 - `VIDEO_FLOW_DOCUMENTATION.md` — Video flow documentation
 - `QUICK_VIDEO_MAKER_FEATURE.md` — Quick video maker feature

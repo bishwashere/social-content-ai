@@ -27,7 +27,7 @@ export default function WebhooksPage() {
               Webhooks allow NextPost AI to send generated blog posts to your external publishing platform automatically.
             </p>
             <p className="text-sm text-muted-foreground">
-              This is primarily used with the Blog News automation feature to publish blogs to your CMS or blog platform.
+              This is used with the fully automated Blog News pipeline to publish blogs to your CMS or blog platform.
             </p>
           </CardContent>
         </Card>
@@ -67,7 +67,7 @@ export default function WebhooksPage() {
 
         <div className="mt-4">
           <Link href="/documentation/features/blog-news" className="text-sm text-primary hover:underline">
-            Learn more about Blog News automation →
+            Learn more about fully automated Blog News →
           </Link>
         </div>
       </div>

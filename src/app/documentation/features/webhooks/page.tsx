@@ -87,7 +87,7 @@ export default function WebhooksPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                If a webhook fails, you can manually retry sending:
+                If a webhook fails, retry sending from the UI:
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Webhook status is displayed in the blog view</li>

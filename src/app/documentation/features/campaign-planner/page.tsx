@@ -23,7 +23,7 @@ export default function CampaignPlannerPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Campaign Planner helps you create structured, multi-day content campaigns with automated scheduling and content generation.
+                Campaign Planner helps you create structured, multi-day content campaigns with fully automated scheduling and content generation.
               </p>
             </CardContent>
           </Card>
@@ -35,7 +35,7 @@ export default function CampaignPlannerPage() {
             <CardContent>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li><strong>Standard Campaigns:</strong> Multi-day content plans with platform-specific posts</li>
-                <li><strong>Blog News Campaigns:</strong> Automated blog generation from trending articles</li>
+                <li><strong>Blog News Campaigns:</strong> Fully automated blog generation from trending articles</li>
                 <li>Customizable target audience intensity (Light to Aggressive)</li>
                 <li>Platform-specific content generation</li>
               </ul>
@@ -49,7 +49,7 @@ export default function CampaignPlannerPage() {
             <CardContent>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Multi-day campaign timeline with day-by-day content</li>
-                <li>Automated content generation for each day</li>
+                <li>Fully automated content generation for each day</li>
                 <li>Auto-post scheduling with time-based triggers</li>
                 <li>Campaign progress tracking and completion status</li>
                 <li>Content editing and customization per day</li>
@@ -63,12 +63,12 @@ export default function CampaignPlannerPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                Enable auto-post to automatically publish content at scheduled times:
+                Enable auto-post for fully automatic publishing at scheduled times:
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Set a daily posting time for the campaign</li>
-                <li>Select platforms for automated posting</li>
-                <li>Content is generated and posted automatically at the scheduled time</li>
+                <li>Select platforms for fully automated posting</li>
+                <li>Content is generated and posted automatically at the scheduled time with no manual pipeline steps</li>
                 <li>Failed posts are logged and can be retried</li>
               </ul>
             </CardContent>

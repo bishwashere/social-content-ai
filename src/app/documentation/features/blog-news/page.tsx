@@ -12,7 +12,7 @@ export default function BlogNewsPage() {
             <h1 className="text-4xl font-bold">Blog News Campaigns</h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Automated blog generation from trending news and articles
+            Fully automated blog generation from trending news and articles
           </p>
         </div>
 
@@ -35,7 +35,7 @@ export default function BlogNewsPage() {
             <CardContent>
               <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Select topics and choose a content angle (Industry Shift, Trend Watch, etc.)</li>
-                <li>Configure webhook URL for publishing (optional)</li>
+                <li>Configure webhook URL so blogs publish automatically to your CMS or site</li>
                 <li>Campaign generates timeline with daily blog posts</li>
                 <li>Each day, system fetches relevant articles from news sources</li>
                 <li>AI generates blog post with your chosen angle</li>
@@ -55,7 +55,7 @@ export default function BlogNewsPage() {
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
                 <li>Articles are tracked by unique identifiers</li>
                 <li>If an article was used previously, the system automatically selects the next available article</li>
-                <li>Works for both manual triggers and automated scheduling</li>
+                <li>Runs the same fully automated pipeline for every scheduled day and system retry</li>
                 <li>Ensures fresh, unique content for each day</li>
               </ul>
             </CardContent>
