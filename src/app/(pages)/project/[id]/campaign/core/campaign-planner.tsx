@@ -24,7 +24,7 @@ import { Calendar, ChevronDown, ChevronsUpDown, ChevronUp, Clock, CopyIcon, Help
 import { useSession } from "@/backend-apis/auth/hooks";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -91,6 +91,44 @@ import { CampaignDemoFeatureTour } from "../ui/demo/feature-tour";
 
 export { PLATFORMS };
 
+type CampaignScheduleFields = {
+  startDate: Date | string | null | undefined;
+  totalDays?: number | null;
+  chatCount?: number | null;
+  chats?: { length: number } | null;
+};
+
+/** Campaign whose last scheduled day is strictly before today (same idea as "older" in the list filter). */
+function isPastCampaign(campaign: CampaignScheduleFields): boolean {
+  if (!campaign.startDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const totalDays =
+    campaign.totalDays ??
+    campaign.chatCount ??
+    (campaign.chats?.length ?? 0);
+  if (!totalDays || totalDays === 0) return false;
+  const baseDate = new Date(campaign.startDate);
+  const lastDayOfCampaign = new Date(baseDate);
+  lastDayOfCampaign.setDate(lastDayOfCampaign.getDate() + (totalDays - 1));
+  lastDayOfCampaign.setHours(0, 0, 0, 0);
+  return lastDayOfCampaign < today;
+}
+
+const TARGET_AUDIENCE_TO_SLIDER: Record<string, number> = {
+  Light: 1,
+  "Light-Moderate": 2,
+  Moderate: 3,
+  "Moderate-Aggressive": 4,
+  Aggressive: 5,
+};
+
+function targetAudienceLabelToSlider(label: string | undefined | null): number {
+  if (!label) return 3;
+  const key = label.trim();
+  return TARGET_AUDIENCE_TO_SLIDER[key] ?? 3;
+}
+
 export default function CampaignPlannerPage({ project, analyticsEligible = false }: Props) {
   const generate = useGenerateCampaignChat();
   const campaignPlannerMutation = useCampaignPlanner();
@@ -104,6 +142,8 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
   const [name, setName] = useState<string>('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(Object.keys(ICONS));
   const [showCampaignForm, setShowCampaignForm] = useState(false);
+  const planCampaignFormRef = useRef<HTMLDivElement>(null);
+  const [planFormScrollTick, setPlanFormScrollTick] = useState(0);
   const [productRelated, setProductRelated] = useState(true);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState<string>("");
@@ -137,6 +177,13 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
   useEffect(() => {
     showCampaignFormRef.current = showCampaignForm;
   }, [showCampaignForm]);
+
+  useEffect(() => {
+    if (planFormScrollTick === 0) return;
+    requestAnimationFrame(() => {
+      planCampaignFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [planFormScrollTick]);
 
   useEffect(() => {
     demoCancelledRef.current = false;
@@ -703,6 +750,54 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
     };
   }, [campaignPlannerData.data, oldCampaignsData.data, showOldCampaigns, loadedChats]);
 
+  const prefillPlanFormFromCampaign = useCallback(
+    (campaign: {
+      name: string;
+      goal: string;
+      targetAudience: string;
+      platforms: string[];
+      blogNewsMetadata?: unknown;
+    }) => {
+      const goalEntry = campaignPlanner.find(
+        (g) => g.goal.toLowerCase() === campaign.goal.toLowerCase()
+      );
+      if (!goalEntry) {
+        toast.error("Could not load this campaign's plan template.");
+        return;
+      }
+      const baseName = (campaign.name || "").trim() || "Campaign";
+      setName(`${baseName} (copy)`);
+      setSelectedGoal(goalEntry.id);
+      setSelectedPlatforms(
+        campaign.platforms?.length ? [...campaign.platforms] : Object.keys(ICONS)
+      );
+      setSelectedTargetAudience(targetAudienceLabelToSlider(campaign.targetAudience));
+
+      const meta = campaign.blogNewsMetadata as {
+        topics?: string[];
+        angles?: string[];
+        webhook?: string;
+        productRelated?: boolean;
+      } | null;
+
+      if (goalEntry.id === "blog-news") {
+        setTopics(meta?.topics?.length ? [...meta.topics] : []);
+        setSelectedAngles(meta?.angles?.length ? [...meta.angles] : []);
+        setWebhook(meta?.webhook ?? "");
+        setProductRelated(meta?.productRelated ?? true);
+      } else {
+        setTopics([]);
+        setSelectedAngles([]);
+        setWebhook("");
+        setProductRelated(true);
+      }
+      setTopicInput("");
+      setShowCampaignForm(true);
+      setPlanFormScrollTick((n) => n + 1);
+    },
+    []
+  );
+
   const onGenerate = async () => {
     if (!name) {
       toast.error("Please enter campaign name!");
@@ -1045,7 +1140,10 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
       )}
 
       {showCampaignForm && (
-        <div className="w-full max-w-2xl bg-card border border-border p-6 rounded-2xl shadow-md">
+        <div
+          ref={planCampaignFormRef}
+          className="w-full max-w-2xl bg-card border border-border p-6 rounded-2xl shadow-md"
+        >
           <div className="space-y-5">
             <div className="space-y-2">
               <h2 className="text-xl font-semibold mb-2 text-foreground">Campaign Name:</h2>
@@ -1428,6 +1526,17 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                 });
                                 const firstUpcomingDay = firstUpcomingTimeline?.day;
 
+                                const totalDaysForPast =
+                                  (campaign as { totalDays?: number }).totalDays ??
+                                  (campaign as { chatCount?: number }).chatCount ??
+                                  (campaign.chats?.length || 0);
+                                const campaignIsPast = isPastCampaign({
+                                  startDate: campaign.startDate,
+                                  totalDays: totalDaysForPast,
+                                  chatCount: (campaign as { chatCount?: number }).chatCount,
+                                  chats: campaign.chats,
+                                });
+
                                 // Campaign has scheduled posts if any loaded chat has scheduledPlatforms (from Schedule / shared)
                                 const hasScheduledPosts = (campaign.chats || []).some((chat: any) => {
                                   const sp = chat.scheduledPlatforms as Record<string, unknown> | undefined;
@@ -1493,6 +1602,22 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                           <div className="px-4 py-0 flex flex-col justify-center gap-3">
                             <div className="hidden sm:flex gap-2 justify-end items-center">
 
+                              {campaignIsPast && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-fit text-xs !z-0"
+                                  aria-label="Duplicate as new campaign plan"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    prefillPlanFormFromCampaign(campaign);
+                                  }}
+                                >
+                                  <CopyIcon className="h-4 w-4" />
+                                  <span className="sr-only">Duplicate as new campaign plan</span>
+                                </Button>
+                              )}
                               <div onClick={(e) => e.stopPropagation()} className="z-30">
                                 <DatePicker
                                   // selected={selectedDate}
@@ -2817,7 +2942,24 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                             <Trash className="size-4 stroke-red-500" />
                           </button>
                         </div>
-                        <div className="flex justify-center gap-4">
+                        <div className="flex justify-center gap-4 items-center">
+                          {campaignIsPast && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-fit text-xs"
+                              aria-label="Duplicate as new campaign plan"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                prefillPlanFormFromCampaign(campaign);
+                                closeCampaignStartDateSettings(campaign.id);
+                              }}
+                            >
+                              <CopyIcon className="h-4 w-4" />
+                              <span className="sr-only">Duplicate as new campaign plan</span>
+                            </Button>
+                          )}
                           <div onClick={(e) => e.stopPropagation()} className="z-50">
                             <DatePicker
                               // selected={selectedDate}
