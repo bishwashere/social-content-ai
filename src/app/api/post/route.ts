@@ -10,6 +10,7 @@ import { Fb } from "@/lib/3rd-providers/fb";
 import { Threads } from "@/lib/3rd-providers/threads";
 import { Instagram } from "@/lib/3rd-providers/instagram";
 import { generateBlogNewsContent, generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
+import { generateCampaignChat } from "@/backend-apis/campaign-planner/campaign-generation";
 import { schedulePost } from "@/server-actions/schedule-post";
 import { logger } from "@/utils/logger";
 import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
@@ -17,6 +18,83 @@ import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
 export const dynamic = "force-dynamic";
 // Increase timeout for blog generation (Vercel Pro allows up to 60s, Hobby is 10s)
 export const maxDuration = 60; // 60 seconds for Pro plan, will be capped at 10s on Hobby plan
+
+/**
+ * For regular campaign posts scheduled without content, attempt to auto-generate
+ * the content using AI at post time (uses user's coins, 1 per platform).
+ * Returns the generated content string for the given platform, or null on failure.
+ */
+async function tryAutoGenerateCampaignContent(post: {
+  id: string;
+  projectId: string;
+  platform: string;
+  meta: unknown;
+}): Promise<string | null> {
+  const meta = post.meta as Record<string, any>;
+  if (!meta?.campaignId || !meta?.day) return null;
+
+  const campaignChat = await prisma.campaignChat.findFirst({
+    where: {
+      plannerId: meta.campaignId,
+      day: Number(meta.day),
+    },
+    include: {
+      planner: {
+        include: {
+          project: { include: { user: true } },
+        },
+      },
+    },
+  });
+
+  if (!campaignChat) {
+    logger.error(`[AutoGenerate] CampaignChat not found for campaign=${meta.campaignId} day=${meta.day}`);
+    return null;
+  }
+
+  // CampaignChat.contents may use "twitter" or "x" as the key — check both
+  const existingContents = campaignChat.contents as Record<string, string>;
+  const twitterAlias = post.platform === "twitter" ? "x" : null;
+  const existingContent =
+    existingContents[post.platform] ?? (twitterAlias ? existingContents[twitterAlias] : null);
+  if (existingContent) return existingContent;
+
+  const user = campaignChat.planner?.project?.user;
+  if (!user) {
+    logger.error(`[AutoGenerate] User not found for post ${post.id}`);
+    return null;
+  }
+
+  logger.log(
+    `[AutoGenerate] No content found — generating for post ${post.id} ` +
+      `(campaign ${meta.campaignId} day ${meta.day} platform ${post.platform})`
+  );
+
+  const result = await generateCampaignChat({
+    projectId: post.projectId,
+    id: meta.campaignId,
+    prompt: campaignChat.title || "",
+    userId: user.id,
+    day: Number(meta.day),
+    productRelated: false,
+  });
+
+  if (!result.success) {
+    logger.error(
+      `[AutoGenerate] Generation failed for post ${post.id}: ${(result as any).message}`
+    );
+    return null;
+  }
+
+  // Re-fetch to get the freshly generated content
+  const updated = await prisma.campaignChat.findUnique({ where: { id: campaignChat.id } });
+  const updatedContents = updated?.contents as Record<string, string>;
+  return (
+    updatedContents?.[post.platform] ??
+    (twitterAlias ? updatedContents?.[twitterAlias] : null) ??
+    null
+  );
+}
 
 /**
  * Process pending scheduled posts
@@ -197,13 +275,31 @@ export const GET = applyMiddleware(
       const meta = p.meta as any;
       return p.platform !== "webhook" && meta?.type !== "blog-news";
     });
-    
-    const twitterPosts = regularPosts.filter((p) => p.platform === "twitter");
-    const facebookPosts = regularPosts.filter((p) => p.platform === "facebook");
-    const linkedinPosts = regularPosts.filter((p) => p.platform === "linkedin");
-    const threadsPosts = regularPosts.filter((p) => p.platform === "threads");
-    const redditPosts = regularPosts.filter((p) => p.platform === "reddit");
-    const instagramPosts = regularPosts.filter((p) => p.platform === "instagram");
+
+    // Pre-process: for campaign posts that have no content, auto-generate now using AI.
+    // This handles days where the user enabled auto-post before clicking "Generate".
+    const regularPostsReady = await Promise.all(
+      regularPosts.map(async (post) => {
+        const meta = post.meta as any;
+        if (post.content || !meta?.campaignId || !meta?.day) return post;
+        const generated = await tryAutoGenerateCampaignContent(post);
+        if (generated) {
+          await prisma.scheduledPost.update({
+            where: { id: post.id },
+            data: { content: generated },
+          });
+          return { ...post, content: generated };
+        }
+        return post;
+      })
+    );
+
+    const twitterPosts = regularPostsReady.filter((p) => p.platform === "twitter");
+    const facebookPosts = regularPostsReady.filter((p) => p.platform === "facebook");
+    const linkedinPosts = regularPostsReady.filter((p) => p.platform === "linkedin");
+    const threadsPosts = regularPostsReady.filter((p) => p.platform === "threads");
+    const redditPosts = regularPostsReady.filter((p) => p.platform === "reddit");
+    const instagramPosts = regularPostsReady.filter((p) => p.platform === "instagram");
     
     console.log(`📰 Found ${blogNewsPosts.length} Blog News posts to process`);
     console.log(`🐦 Found ${twitterPosts.length} Twitter posts to process`);

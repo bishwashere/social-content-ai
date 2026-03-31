@@ -130,26 +130,24 @@ export const scheduleCampaignPosts = async ({
 
       // For each platform
       for (const platform of platforms) {
-        const content = contents[platform];
-        if (!content) {
-          continue; // Skip if no content for this platform
-        }
-
         // Convert platform name (x -> twitter)
         const platformName = platform === PLATFORM_IDS.X ? "twitter" : platform;
-        
+
         // Get media for this platform (if any)
         const platformMedia = mediaRecord[platform];
-        
+
         console.log(`[scheduleCampaignPosts] Day ${chat.day}, Platform ${platform}: media =`, platformMedia);
-        
-        // Instagram requires media - skip scheduling if no media exists
+
+        // Instagram requires existing media — auto-generation at post time is not supported
         if (platform === PLATFORM_IDS.INSTAGRAM && !platformMedia) {
           errors.push(
             `Skipped Instagram post for day ${chat.day}: No media found. Please generate or upload an image first.`
           );
           continue;
         }
+
+        // Use existing content if available; if empty the cron will auto-generate at post time
+        const content = contents[platform] || contents[platformName] || "";
 
         // Schedule the post
         try {
