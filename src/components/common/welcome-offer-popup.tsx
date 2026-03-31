@@ -7,6 +7,7 @@ import { useContinueWithGoogle, useSession } from "@/backend-apis/auth/hooks";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
+import { markEverAuthenticated, isReturningVisitorForOffer } from "@/lib/returning-visitor";
 
 const SESSION_KEY = "nextpostai_welcome_offer_shown";
 const TIMER_STORAGE_KEY = "nextpostai_cta_timer_start";
@@ -70,9 +71,15 @@ function fireConfetti() {
 interface WelcomeOfferPopupProps {
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  /** When true, never auto-open or react to external open (returning / repeat visitors). */
+  suppressPromoOffer?: boolean;
 }
 
-export function WelcomeOfferPopup({ externalOpen, onExternalOpenChange }: WelcomeOfferPopupProps) {
+export function WelcomeOfferPopup({
+  externalOpen,
+  onExternalOpenChange,
+  suppressPromoOffer = false,
+}: WelcomeOfferPopupProps) {
   const { data: session, isLoading } = useSession();
   const [internalOpen, setInternalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TIMER_DURATION_MS);
@@ -89,14 +96,15 @@ export function WelcomeOfferPopup({ externalOpen, onExternalOpenChange }: Welcom
         if (res?.data?.bearerToken) {
           localStorage.setItem("nextpostai_token", res.data.bearerToken);
         }
+        markEverAuthenticated();
         router.replace("/dashboard");
       } catch {}
     },
     scope: "profile email",
   });
 
-  // The popup is open if either internal auto-trigger or external trigger
-  const open = internalOpen || (externalOpen ?? false);
+  // Returning visitors never see the promo dialog, even if parent toggles externalOpen.
+  const open = suppressPromoOffer ? false : internalOpen || (externalOpen ?? false);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -120,9 +128,11 @@ export function WelcomeOfferPopup({ externalOpen, onExternalOpenChange }: Welcom
 
   // Auto-show after 1 second for non-authenticated users
   useEffect(() => {
+    if (suppressPromoOffer) return;
     if (isLoading) return;
     if (session?.user) return;
     if (typeof window === "undefined") return;
+    if (isReturningVisitorForOffer()) return;
     if (sessionStorage.getItem(SESSION_KEY)) return;
 
     const showTimer = setTimeout(() => {
@@ -141,10 +151,11 @@ export function WelcomeOfferPopup({ externalOpen, onExternalOpenChange }: Welcom
       clearTimeout(showTimer);
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [session?.user, isLoading, startTimer]);
+  }, [session?.user, isLoading, startTimer, suppressPromoOffer]);
 
   // When opened externally (via timer click), start the countdown in the dialog
   useEffect(() => {
+    if (suppressPromoOffer) return;
     if (externalOpen) {
       setTimeLeft(getTimeRemaining());
       startTimer();
@@ -155,7 +166,7 @@ export function WelcomeOfferPopup({ externalOpen, onExternalOpenChange }: Welcom
         clearInterval(timerRef.current);
       }
     };
-  }, [externalOpen, startTimer]);
+  }, [externalOpen, startTimer, suppressPromoOffer]);
 
   if (!open) return null;
 

@@ -30,6 +30,12 @@ const CtaTimer = dynamic(
 import { CircularFlowDiagram } from "@/components/circular-flow-diagram";
 
 import {
+  incrementLandingVisitCount,
+  isReturningVisitorForOffer,
+  NEW_VISITOR_PRIMARY_CTA,
+  RETURNING_VISITOR_PRIMARY_CTA,
+} from "@/lib/returning-visitor";
+import {
   Sparkles,
   Zap,
   Calendar,
@@ -96,7 +102,18 @@ export default function ModernLanding() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
   const [showOfferPopup, setShowOfferPopup] = useState(false);
+  /** unset = before client hydration (treat like returning: no urgency UI). */
+  const [visitorPromoMode, setVisitorPromoMode] = useState<"unset" | "new" | "returning">("unset");
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  useEffect(() => {
+    incrementLandingVisitCount();
+    setVisitorPromoMode(isReturningVisitorForOffer() ? "returning" : "new");
+  }, []);
+
+  const showNewVisitorPromo = visitorPromoMode === "new";
+  const primaryCtaLabel =
+    showNewVisitorPromo ? NEW_VISITOR_PRIMARY_CTA : RETURNING_VISITOR_PRIMARY_CTA;
 
   // Handle smooth scroll to section and close menu
   const scrollToSection = (href: string) => {
@@ -240,7 +257,11 @@ export default function ModernLanding() {
 
   return (
     <>
-      <WelcomeOfferPopup externalOpen={showOfferPopup} onExternalOpenChange={setShowOfferPopup} />
+      <WelcomeOfferPopup
+        externalOpen={showOfferPopup}
+        onExternalOpenChange={setShowOfferPopup}
+        suppressPromoOffer={!showNewVisitorPromo}
+      />
       <NewsletterPopup />
       <Script
         src="https://link.msgsndr.com/js/am.js"
@@ -396,9 +417,11 @@ export default function ModernLanding() {
                   <div className="flex items-center gap-3">
                     <GoogleLoginButton 
                       triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white flex items-center gap-2"
-                      buttonText="Start Free with 100 Posts"
+                      buttonText={primaryCtaLabel}
                     />
-                    <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                    {showNewVisitorPromo && (
+                      <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                    )}
                   </div>
                   
                   {/* Trust Badges */}
@@ -492,9 +515,11 @@ export default function ModernLanding() {
               <div className="inline-flex items-center gap-3">
                 <GoogleLoginButton 
                   triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white"
-                  buttonText="Start Free with 100 Posts"
+                  buttonText={primaryCtaLabel}
                 />
-                <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                {showNewVisitorPromo && (
+                  <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                )}
               </div>
             </div>
           </div>
@@ -751,9 +776,11 @@ export default function ModernLanding() {
                 <div className="flex items-center gap-3">
                   <GoogleLoginButton 
                     triggerClassName="w-full py-4 text-lg font-semibold rounded-xl text-white bg-white/10 hover:bg-white/20 transition-colors border border-white/20"
-                    buttonText="Get Started Free"
+                    buttonText={primaryCtaLabel}
                   />
-                  <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                  {showNewVisitorPromo && (
+                    <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                  )}
                 </div>
               </div>
 
@@ -804,7 +831,9 @@ export default function ModernLanding() {
                     showPricingAfterLogin={true}
                     billingPeriod={billingPeriod}
                   />
-                  <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                  {showNewVisitorPromo && (
+                    <CtaTimer onClick={() => setShowOfferPopup(true)} />
+                  )}
                 </div>
               </div>
             </div>
@@ -834,9 +863,11 @@ export default function ModernLanding() {
             <div className="inline-flex items-center gap-3">
               <GoogleLoginButton 
                 triggerClassName="glow-button px-10 py-5 text-xl font-bold rounded-2xl text-white inline-flex items-center gap-3"
-                buttonText="Start Free with 100 Posts"
+                buttonText={primaryCtaLabel}
               />
-              <CtaTimer onClick={() => setShowOfferPopup(true)} />
+              {showNewVisitorPromo && (
+                <CtaTimer onClick={() => setShowOfferPopup(true)} />
+              )}
             </div>
             <p className="text-gray-400 text-sm mt-6">
               No card required. Upgrade anytime.

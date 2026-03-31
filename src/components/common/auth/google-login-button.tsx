@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { MoveRight, Lock, Shield, Check } from "lucide-react";
 import { EmailLogin } from "./email-login";
 import Link from "next/link";
+import { markEverAuthenticated } from "@/lib/returning-visitor";
 
 type Props = {
   triggerClassName?: string;
@@ -65,6 +66,7 @@ const GoogleLoginButton = ({
         if (res?.data?.bearerToken) {
           localStorage.setItem("nextpostai_token", res.data.bearerToken);
         }
+        markEverAuthenticated();
 
         router.replace("/dashboard");
       } catch {}

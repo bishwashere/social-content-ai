@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { authValidator } from "@/validators/auth";
 import { useEmailLogin } from "@/backend-apis/auth/hooks";
 import { useRouter } from "next/navigation";
+import { markEverAuthenticated } from "@/lib/returning-visitor";
 
 const formSchema = authValidator.emailLogin;
 
@@ -38,6 +39,7 @@ const EmailLogin = ({ onBackClick }: { onBackClick: () => void }) => {
       if (res?.data?.bearerToken) {
         localStorage.setItem("nextpostai_token", res.data.bearerToken);
       }
+      markEverAuthenticated();
 
       router.replace("/dashboard");
     } catch {}

@@ -7,6 +7,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { FeatureRequestWidget } from "@/components/common/feature-request-widget";
 import { NewsletterWidget } from "@/components/common/newsletter-widget";
 import { WidgetVisibilityProvider } from "./widget-visibility-provider";
+import { MarkReturningVisitorOnSession } from "@/components/common/mark-returning-visitor-on-session";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ const RootProvider = ({ children }: Props) => {
         clientId={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID as string}
       >
         <SessionProvider>
+          <MarkReturningVisitorOnSession />
           <WidgetVisibilityProvider>
             {children}
             <FeatureRequestWidget />
