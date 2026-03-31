@@ -1883,67 +1883,70 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                   }
                                 }}
                               />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                data-campaign-mini-tour="generate"
-                                data-campaign-mini-tour-campaign-id={campaign.id}
-                                aria-label="AI generate campaign content"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  try {
-                                    const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
-                                    if (!selectedCampaignPlanner) {
-                                      toast.error("Failed to find plan");
-                                      return;
-                                    }
-                                    const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
-                                    if (!intensityPlans) {
-                                      toast.error("Failed to find plan");
-                                      return;
-                                    }
-                                    const requiredCoins = intensityPlans.data.length * campaign.platforms.length;
-                                    const userCoins = session?.user?.remainingChatGenerations || 0;
-                                    
-                                    if (userCoins < requiredCoins) {
-                                      toast.error(`You need ${requiredCoins} coins to regenerate all content. You have ${userCoins} coins.`);
-                                      return;
-                                    }
-                                    
-                                    const yes = await confirm({
-                                      title: "Regenerate all contents for this campaign?",
-                                      description: `Regenerating content will use your ${requiredCoins} coins`
-                                    });
-                                    if (!yes) return;
-
-                                    const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
-
-                                    const d = await campaignPlannerMutation.mutateAsync({
-                                      id: campaign.id,
-                                      projectId: projectId as string,
-                                      campaignName: campaign.name || "",
-                                      plan,
-                                      platforms: campaign.platforms
-                                    });
-
-                                    for (const chat of (d?.data?.chats || [])) {
-                                      if (chat.status === "PENDING") {
-                                        await generateChat(projectId as string, campaign.id, chat.day, chat.title);
-                                        await sleep(2000);
-                                        campaignPlannerData.refetch();
-                                        // Clear loaded chats cache for this campaign
-                                        setLoadedChats(prev => {
-                                          const next = { ...prev };
-                                          delete next[campaign.id];
-                                          return next;
-                                        });
+                              {/* Blog News uses the scheduled pipeline per day, not bulk social generateChat */}
+                              {campaign.goal !== "Blog News" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  data-campaign-mini-tour="generate"
+                                  data-campaign-mini-tour-campaign-id={campaign.id}
+                                  aria-label="AI generate campaign content"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
+                                      if (!selectedCampaignPlanner) {
+                                        toast.error("Failed to find plan");
+                                        return;
                                       }
-                                    }
-                                  } catch { }
-                                }}
-                              >
-                                <Sparkles className="h-4 w-4 mr-1" />
-                              </Button>
+                                      const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
+                                      if (!intensityPlans) {
+                                        toast.error("Failed to find plan");
+                                        return;
+                                      }
+                                      const requiredCoins = intensityPlans.data.length * campaign.platforms.length;
+                                      const userCoins = session?.user?.remainingChatGenerations || 0;
+                                      
+                                      if (userCoins < requiredCoins) {
+                                        toast.error(`You need ${requiredCoins} coins to regenerate all content. You have ${userCoins} coins.`);
+                                        return;
+                                      }
+                                      
+                                      const yes = await confirm({
+                                        title: "Regenerate all contents for this campaign?",
+                                        description: `Regenerating content will use your ${requiredCoins} coins`
+                                      });
+                                      if (!yes) return;
+
+                                      const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
+
+                                      const d = await campaignPlannerMutation.mutateAsync({
+                                        id: campaign.id,
+                                        projectId: projectId as string,
+                                        campaignName: campaign.name || "",
+                                        plan,
+                                        platforms: campaign.platforms
+                                      });
+
+                                      for (const chat of (d?.data?.chats || [])) {
+                                        if (chat.status === "PENDING") {
+                                          await generateChat(projectId as string, campaign.id, chat.day, chat.title);
+                                          await sleep(2000);
+                                          campaignPlannerData.refetch();
+                                          // Clear loaded chats cache for this campaign
+                                          setLoadedChats(prev => {
+                                            const next = { ...prev };
+                                            delete next[campaign.id];
+                                            return next;
+                                          });
+                                        }
+                                      }
+                                    } catch { }
+                                  }}
+                                >
+                                  <Sparkles className="h-4 w-4 mr-1" />
+                                </Button>
+                              )}
                             </div>
                             <div className="flex justify-end sm:hidden">
                               <Button variant="outline" className="-mr-4" size="sm" onClick={(e) => { e.stopPropagation(); openCampaignStartDateSettings(campaign.id) }}><Settings /></Button>
@@ -2037,63 +2040,63 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                         </div>
                                         <div className="flex justify-end">
                                           {campaign.goal === "Blog News" ? (
-                                            // Blog News play button
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="border-dashed border-primary"
-                                              onClick={async () => {
-                                                // Always fetch metadata from database
-                                                const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
-                                                const metadata = await getBlogNewsMetadataFromCampaign(campaign.id);
-                                                
-                                                if (!metadata) {
-                                                  toast.error("Blog News metadata not found. This campaign may have been created before metadata storage was implemented. Please recreate the campaign with topics, angles, and webhook URL.");
-                                                  return;
-                                                }
-                                                
-                                                // Validate metadata has required fields
-                                                if (!metadata.topics || metadata.topics.length === 0) {
-                                                  toast.error("Topics are missing from campaign metadata. Please recreate the campaign.");
-                                                  return;
-                                                }
-                                                if (!metadata.angles || metadata.angles.length === 0) {
-                                                  toast.error("Angles are missing from campaign metadata. Please recreate the campaign.");
-                                                  return;
-                                                }
-                                                if (!metadata.webhook || !metadata.webhook.trim()) {
-                                                  toast.error("Webhook URL is missing from campaign metadata. Please recreate the campaign with a webhook URL.");
-                                                  return;
-                                                }
-                                                
-                                                const yes = await confirm({
-                                                  title: `Generate blog for Day ${timeline.day}?`,
-                                                  description: `This will fetch an article and generate a blog with the selected angles.\nThis will use 3 coins.`
-                                                });
-                                                if (!yes) return;
-                                                
-                                                generateBlogNews.mutate(
-                                                  {
-                                                    campaignId: campaign.id,
-                                                    day: timeline.day,
-                                                    topics: metadata.topics,
-                                                    angles: metadata.angles,
-                                                    webhook: metadata.webhook,
-                                                  },
-                                                  {
-                                                    onSuccess: (result) => {
-                                                      if (!result.success && result.insufficientCoins) {
-                                                        handleCoinsFinished();
-                                                      }
-                                                    },
+                                            /* With auto-post on, each day runs on its schedule via the blog pipeline — no per-day manual trigger */
+                                            !campaign.autoPostEnabled ? (
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-dashed border-primary"
+                                                onClick={async () => {
+                                                  const { getBlogNewsMetadataFromCampaign } = await import("@/backend-apis/campaign-planner/blog-news");
+                                                  const metadata = await getBlogNewsMetadataFromCampaign(campaign.id);
+
+                                                  if (!metadata) {
+                                                    toast.error("Blog News metadata not found. This campaign may have been created before metadata storage was implemented. Please recreate the campaign with topics, angles, and webhook URL.");
+                                                    return;
                                                   }
-                                                );
-                                              }}
-                                              loading={Boolean(generateBlogNews.isPending && generateBlogNews.variables?.day === timeline.day)}
-                                              disabled={generateBlogNews.isPending}
-                                            >
-                                              <Sparkles className="h-4 w-4" />
-                                            </Button>
+
+                                                  if (!metadata.topics || metadata.topics.length === 0) {
+                                                    toast.error("Topics are missing from campaign metadata. Please recreate the campaign.");
+                                                    return;
+                                                  }
+                                                  if (!metadata.angles || metadata.angles.length === 0) {
+                                                    toast.error("Angles are missing from campaign metadata. Please recreate the campaign.");
+                                                    return;
+                                                  }
+                                                  if (!metadata.webhook || !metadata.webhook.trim()) {
+                                                    toast.error("Webhook URL is missing from campaign metadata. Please recreate the campaign with a webhook URL.");
+                                                    return;
+                                                  }
+
+                                                  const yes = await confirm({
+                                                    title: `Generate blog for Day ${timeline.day}?`,
+                                                    description: `This will fetch an article and generate a blog with the selected angles.\nThis will use 3 coins.`
+                                                  });
+                                                  if (!yes) return;
+
+                                                  generateBlogNews.mutate(
+                                                    {
+                                                      campaignId: campaign.id,
+                                                      day: timeline.day,
+                                                      topics: metadata.topics,
+                                                      angles: metadata.angles,
+                                                      webhook: metadata.webhook,
+                                                    },
+                                                    {
+                                                      onSuccess: (result) => {
+                                                        if (!result.success && result.insufficientCoins) {
+                                                          handleCoinsFinished();
+                                                        }
+                                                      },
+                                                    }
+                                                  );
+                                                }}
+                                                loading={Boolean(generateBlogNews.isPending && generateBlogNews.variables?.day === timeline.day)}
+                                                disabled={generateBlogNews.isPending}
+                                              >
+                                                <Sparkles className="h-4 w-4" />
+                                              </Button>
+                                            ) : null
                                           ) : (
                                             // Regular campaign buttons
                                             <>
@@ -2989,58 +2992,60 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                               disabled={updateCampaignData.isPending}
                             />
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
-                                if (!selectedCampaignPlanner) {
-                                  toast.error("Failed to find plan");
-                                  return;
-                                }
-                                const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
-                                if (!intensityPlans) {
-                                  toast.error("Failed to find plan");
-                                  return;
-                                }
-                                const requiredCoins = intensityPlans.data.length * campaign.platforms.length;
-                                const userCoins = session?.user?.remainingChatGenerations || 0;
-                                
-                                if (userCoins < requiredCoins) {
-                                  toast.error(`You need ${requiredCoins} coins to regenerate all content. You have ${userCoins} coins.`);
-                                  return;
-                                }
-                                
-                                const yes = await confirm({
-                                  title: "Regenerate all contents for this campaign?",
-                                  description: `Regenerating content will use your ${requiredCoins} coins`
-                                });
-                                if (!yes) return;
-
-                                const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
-
-                                const d = await campaignPlannerMutation.mutateAsync({
-                                  id: campaign.id,
-                                  projectId: projectId as string,
-                                  campaignName: campaign.name || "",
-                                  plan,
-                                  platforms: campaign.platforms
-                                });
-
-                                for (const chat of (d?.data?.chats || [])) {
-                                  if (chat.status === "PENDING") {
-                                    await generateChat(projectId as string, campaign.id, chat.day, chat.title);
-                                    await sleep(2000);
-                                    campaignPlannerData.refetch();
+                          {campaign.goal !== "Blog News" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const selectedCampaignPlanner = campaignPlanner.find(goal => goal.goal.toLowerCase() === campaign.goal.toLowerCase());
+                                  if (!selectedCampaignPlanner) {
+                                    toast.error("Failed to find plan");
+                                    return;
                                   }
-                                }
-                              } catch { }
-                            }}
-                          >
-                            <Sparkles className="h-4 w-4 mr-1" />
-                          </Button>
+                                  const intensityPlans = selectedCampaignPlanner.intensityPlans.find(p => p.targetAudience.toLowerCase() === campaign.targetAudience.toLowerCase());
+                                  if (!intensityPlans) {
+                                    toast.error("Failed to find plan");
+                                    return;
+                                  }
+                                  const requiredCoins = intensityPlans.data.length * campaign.platforms.length;
+                                  const userCoins = session?.user?.remainingChatGenerations || 0;
+                                  
+                                  if (userCoins < requiredCoins) {
+                                    toast.error(`You need ${requiredCoins} coins to regenerate all content. You have ${userCoins} coins.`);
+                                    return;
+                                  }
+                                  
+                                  const yes = await confirm({
+                                    title: "Regenerate all contents for this campaign?",
+                                    description: `Regenerating content will use your ${requiredCoins} coins`
+                                  });
+                                  if (!yes) return;
+
+                                  const plan = { ...intensityPlans, goal: selectedCampaignPlanner.goal };
+
+                                  const d = await campaignPlannerMutation.mutateAsync({
+                                    id: campaign.id,
+                                    projectId: projectId as string,
+                                    campaignName: campaign.name || "",
+                                    plan,
+                                    platforms: campaign.platforms
+                                  });
+
+                                  for (const chat of (d?.data?.chats || [])) {
+                                    if (chat.status === "PENDING") {
+                                      await generateChat(projectId as string, campaign.id, chat.day, chat.title);
+                                      await sleep(2000);
+                                      campaignPlannerData.refetch();
+                                    }
+                                  }
+                                } catch { }
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4 mr-1" />
+                            </Button>
+                          )}
                         </div>
                       </DialogContent>
                     </Dialog>
