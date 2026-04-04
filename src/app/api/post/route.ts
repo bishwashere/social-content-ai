@@ -6,6 +6,7 @@ import { getLinkedinTokensForUser } from "@/lib/auth";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
 import { postToSocial } from "@/lib/post-to-social";
 import { Linkedin } from "@/lib/3rd-providers/linkedin";
+import { checkAndRefreshLinkedinToken } from "@/lib/3rd-providers/linkedin";
 import { Fb } from "@/lib/3rd-providers/fb";
 import { Threads } from "@/lib/3rd-providers/threads";
 import { Instagram } from "@/lib/3rd-providers/instagram";
@@ -904,10 +905,29 @@ export const GET = applyMiddleware(
             };
           }
 
+          // Check and refresh LinkedIn token if expired
+          const linkedinTokenResult = await checkAndRefreshLinkedinToken(
+            project.user.id.toString(),
+            oauthProvider.pageId || ""
+          );
+
+          if (!linkedinTokenResult.success) {
+            console.log(`❌ LinkedIn token refresh failed for post ID: ${post.id}: ${linkedinTokenResult.error}`);
+            await updatePostStatus(post.id, "failed", linkedinTokenResult.error || "LinkedIn token refresh failed");
+            return {
+              id: post.id,
+              success: false,
+              error: linkedinTokenResult.error,
+            };
+          }
+
+          // Use the fresh access token (may have been refreshed)
+          const linkedinAccessToken = linkedinTokenResult.accessToken || oauthProvider.accessToken;
+
           // Post to Linkedin
           const linkedinResult = await postToLinkedin(
             oauthProvider.pageId || "",
-            oauthProvider.accessToken,
+            linkedinAccessToken,
             oauthProvider.expiresAt || 0,
             applyPlaceholders(post.content, getProjectPlaceholders(post.project as any)),
             post.media

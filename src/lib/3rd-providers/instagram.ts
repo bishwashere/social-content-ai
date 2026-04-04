@@ -241,7 +241,40 @@ class Instagram {
           );
 
           const publishData = publishResponse.data;
-          console.log("✅ Successfully published video to Instagram:", publishData);
+
+          // Meta Graph API returns HTTP 200 even for errors — check body explicitly
+          if (publishData?.error) {
+            const apiError = publishData.error;
+            console.error(`❌ Instagram media_publish API error (attempt ${attempt}/${maxAttempts}):`, apiError);
+
+            // Code 9007 / subcode 2207027 = "Media ID is not available" — transient, retry
+            const isTransient =
+              apiError.code === 9007 ||
+              (typeof apiError.message === "string" &&
+                apiError.message.toLowerCase().includes("media id is not available"));
+
+            if (isTransient && attempt < maxAttempts) {
+              console.log(`⏳ Transient media_publish error (code ${apiError.code}), retrying after ${delayMs}ms...`);
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              continue;
+            }
+
+            return {
+              success: false,
+              error: apiError.message || `Media publish failed with code ${apiError.code}`,
+            };
+          }
+
+          if (!publishData?.id) {
+            console.error(`❌ Instagram media_publish returned no ID (attempt ${attempt}/${maxAttempts}):`, publishData);
+            if (attempt < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              continue;
+            }
+            return { success: false, error: "Media published but no media ID returned" };
+          }
+
+          console.log("✅ Successfully published to Instagram:", publishData);
           return { success: true, data: publishData };
         }
 
@@ -341,6 +374,29 @@ class Instagram {
       );
 
       const publishData = publishResp.data ?? {};
+
+      // Meta Graph API returns HTTP 200 even for errors — check body explicitly
+      if (publishData?.error) {
+        const apiError = publishData.error;
+        console.error("❌ Instagram media_publish API error:", apiError);
+        return {
+          success: false,
+          error: apiError.message || `Media publish failed with code ${apiError.code}`,
+          containerStatus,
+          raw: publishData,
+        };
+      }
+
+      if (!publishData?.id) {
+        console.error("❌ Instagram media_publish returned no ID:", publishData);
+        return {
+          success: false,
+          error: "Media published but no media ID returned",
+          containerStatus,
+          raw: publishData,
+        };
+      }
+
       console.log("✅ Successfully published to Instagram:", publishData);
 
       return { success: true, publishData, containerStatus };

@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from "axios";
 import { get } from 'https';
 import { s3 } from "../s3";
-import { decryptToken } from "@/backend-apis/encryption";
+import { decryptToken, encryptTokenFields } from "@/backend-apis/encryption";
+import { prisma } from "@/lib/prisma";
 
 class Linkedin {
   private _accessToken: string;
@@ -239,3 +240,98 @@ class Linkedin {
 }
 
 export { Linkedin };
+
+/**
+ * Check if the LinkedIn access token for a given user+page is expired,
+ * and refresh it if so. LinkedIn expiresAt is stored as a millisecond timestamp.
+ * Returns the (possibly refreshed) encrypted access token.
+ */
+export const checkAndRefreshLinkedinToken = async (
+  userId: string,
+  pageId: string
+): Promise<{ success: boolean; accessToken?: string; error?: string }> => {
+  console.log(`🔍 Checking LinkedIn token for user: ${userId}, page: ${pageId}`);
+
+  try {
+    const oauthData = await prisma.oauthProvider.findFirst({
+      where: { userId, platform: "linkedin", pageId },
+    });
+
+    if (!oauthData) {
+      return { success: false, error: "No LinkedIn authentication found" };
+    }
+
+    const isExpired = (oauthData.expiresAt || 0) <= Date.now();
+
+    if (!isExpired) {
+      console.log("✅ LinkedIn token is still valid");
+      return { success: true, accessToken: oauthData.accessToken };
+    }
+
+    console.log("⚠️ LinkedIn token expired, attempting to refresh");
+
+    if (!oauthData.refreshToken) {
+      return {
+        success: false,
+        error: "LinkedIn token expired and no refresh token available. User must reconnect LinkedIn.",
+      };
+    }
+
+    const decryptedRefreshToken = decryptToken(oauthData.refreshToken);
+    const clientId = process.env.AUTH_LINKEDIN_ID;
+    const clientSecret = process.env.AUTH_LINKEDIN_SECRET;
+
+    if (!clientId || !clientSecret) {
+      return { success: false, error: "LinkedIn API credentials not configured" };
+    }
+
+    const response = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: decryptedRefreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      console.error("❌ LinkedIn token refresh failed:", errBody);
+      return {
+        success: false,
+        error: `LinkedIn token refresh failed (${response.status}): ${JSON.stringify(errBody)}`,
+      };
+    }
+
+    const token = await response.json();
+    const newExpiresAt = Date.now() + token.expires_in * 1000;
+
+    const encrypted = encryptTokenFields(
+      {
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token || decryptedRefreshToken,
+      },
+      ["accessToken", "refreshToken"]
+    );
+
+    await prisma.oauthProvider.update({
+      where: { id: oauthData.id },
+      data: {
+        accessToken: encrypted.accessToken,
+        refreshToken: encrypted.refreshToken,
+        expiresAt: newExpiresAt,
+      },
+    });
+
+    console.log("✅ LinkedIn token refreshed and saved");
+    return { success: true, accessToken: encrypted.accessToken };
+  } catch (error) {
+    console.error("❌ Error refreshing LinkedIn token:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
