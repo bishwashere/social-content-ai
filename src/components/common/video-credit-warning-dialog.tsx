@@ -66,7 +66,7 @@ export function VideoCreditWarningDialog({ open, onOpenChange, onConfirm }: Prop
             Video Generation Cost
           </DialogTitle>
           <DialogDescription className="text-base pt-2">
-            Creating a video will deduct <strong className="text-purple-600 font-bold">2 credits</strong> from your account.
+            Creating a video will deduct <strong className="text-purple-600 font-bold">10 credits</strong> from your account.
           </DialogDescription>
         </DialogHeader>
 

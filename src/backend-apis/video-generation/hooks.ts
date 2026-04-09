@@ -2,6 +2,7 @@ import {
   addMetadataToVideo,
   copyVideo,
   deleteProcessingVideo,
+  getFreeVideoLimitStatus,
   getPresignedUrlForDemoVideoUpload,
   getSignedKeyForScheduledPost,
   getSignedKeyForCampaignChat,
@@ -99,7 +100,7 @@ export const useGenerateVideo = () => {
 
     onError: (error) => {
       console.error("Upload error:", error);
-      toast.error("Failed to upload video");
+      toast.error(error.message || "Failed to upload video");
     },
     onSuccess: (result) => {
       toast.success("Video added to queue for render!");
@@ -380,5 +381,15 @@ export const useDeleteProcessingVideo = () => {
       console.error("Delete error:", error);
       toast.error(error.message || "Failed to delete video");
     },
+  });
+};
+
+export const useGetFreeVideoLimitStatus = () => {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ["free-video-limit-status", session?.user?.id],
+    queryFn: () => getFreeVideoLimitStatus(session?.user?.id || ""),
+    enabled: !!session?.user?.id,
   });
 };

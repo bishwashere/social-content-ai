@@ -67,6 +67,22 @@ export const addMetadataToVideo = async ({
   return true;
 };
 
+export const getFreeVideoLimitStatus = async (userId: string) => {
+  const [user, activeSubscription, videoCount] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
+    prisma.subscription.findFirst({
+      where: { userId, status: "active" },
+      select: { id: true },
+    }),
+    prisma.uploadedVideo.count({ where: { userId } }),
+  ]);
+
+  if (!user) throw new Error("User not found");
+
+  const isFreeUser = !activeSubscription;
+  return { isFreeUser, videoCount, hasReachedFreeLimit: isFreeUser && videoCount >= 1 };
+};
+
 export const saveVideoDataToDb = async ({
   folderId,
   text,
@@ -89,6 +105,21 @@ export const saveVideoDataToDb = async ({
 
   if (!user) {
     throw new Error("User not found");
+  }
+
+  // Free users (no active subscription) are limited to 1 video
+  const activeSubscription = await prisma.subscription.findFirst({
+    where: { userId, status: "active" },
+    select: { id: true },
+  });
+
+  if (!activeSubscription) {
+    const existingVideoCount = await prisma.uploadedVideo.count({ where: { userId } });
+    if (existingVideoCount >= 1) {
+      throw new Error(
+        "FREE_VIDEO_LIMIT_REACHED: Free plan users can only generate 1 video. Upgrade to a paid plan to generate more."
+      );
+    }
   }
 
   const CREDITS_PER_VIDEO = 10;

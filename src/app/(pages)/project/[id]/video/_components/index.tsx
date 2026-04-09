@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { Upload, SparklesIcon } from "lucide-react"
+import { Upload, SparklesIcon, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,7 +11,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Skeleton } from "@/components/ui/skeleton"
 import chunk from "@/lib/chunk"
 import { toast } from "sonner"
-import { useGenerateVideo, useQueryViralVideos } from "@/backend-apis/video-generation/hooks"
+import { useGenerateVideo, useGetFreeVideoLimitStatus, useQueryViralVideos } from "@/backend-apis/video-generation/hooks"
 import { VideoCard } from "./video-card"
 import SelectVideoDialog from "./select-video-dialog"
 import { MediaSelectionDialog } from "./select-music-dialog"
@@ -37,6 +37,7 @@ export default function VideoSelectionPage() {
   const searchParams = useSearchParams();
   const router = useRouter()
   const { data: session } = useSession()
+  const { data: freeVideoLimit } = useGetFreeVideoLimitStatus()
 
   const { data: tooltipData } = useQuery({
     queryKey: ["first-view-tooltip", session?.user?.id],
@@ -96,6 +97,31 @@ export default function VideoSelectionPage() {
     })
   }
 
+
+  if (freeVideoLimit?.hasReachedFreeLimit) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 py-16 space-y-6">
+        <div className="p-5 bg-purple-100 rounded-full">
+          <Lock className="h-10 w-10 text-purple-600" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">You&apos;ve used your free video</h2>
+          <p className="text-muted-foreground max-w-md">
+            Free plan includes <strong>1 video generation</strong> so you can try it out.
+            Upgrade to a paid plan to generate unlimited videos — your remaining credits
+            can still be used for posts and other content.
+          </p>
+        </div>
+        <Button
+          size="lg"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-8"
+          onClick={() => router.push("/dashboard/billing")}
+        >
+          Upgrade to Generate More Videos
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div>

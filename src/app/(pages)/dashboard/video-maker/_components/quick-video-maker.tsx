@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { Upload, Check, ChevronRight, ChevronDown } from "lucide-react"
+import { Upload, Check, ChevronRight, ChevronDown, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import chunk from "@/lib/chunk"
 import { toast } from "sonner"
-import { useGenerateVideo, useQueryViralVideos } from "@/backend-apis/video-generation/hooks"
+import { useGenerateVideo, useGetFreeVideoLimitStatus, useQueryViralVideos } from "@/backend-apis/video-generation/hooks"
 import { VideoCard } from "@/app/(pages)/project/[id]/video/_components/video-card"
 import SelectVideoDialog from "@/app/(pages)/project/[id]/video/_components/select-video-dialog"
 import { MediaSelectionDialog } from "@/app/(pages)/project/[id]/video/_components/select-music-dialog"
@@ -43,6 +43,7 @@ export default function QuickVideoMaker() {
   const viralVideos = useQueryViralVideos()
   const generate = useGenerateVideo()
   const { data: session } = useSession()
+  const { data: freeVideoLimit } = useGetFreeVideoLimitStatus()
 
   // Hook suggestions
   const hookSuggestions = [
@@ -189,6 +190,31 @@ export default function QuickVideoMaker() {
     { id: 3, label: "Preview", completed: !!uploadedVideo && !!hookText && !!selectedVideo },
     { id: 4, label: "Generate", completed: generate.isSuccess },
   ]
+
+  if (freeVideoLimit?.hasReachedFreeLimit) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 py-16 space-y-6">
+        <div className="p-5 bg-purple-100 rounded-full">
+          <Lock className="h-10 w-10 text-purple-600" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">You&apos;ve used your free video</h2>
+          <p className="text-muted-foreground max-w-md">
+            Free plan includes <strong>1 video generation</strong> so you can try it out.
+            Upgrade to a paid plan to generate unlimited videos — your remaining credits
+            can still be used for posts and other content.
+          </p>
+        </div>
+        <Button
+          size="lg"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-8"
+          onClick={() => window.location.href = "/dashboard/billing"}
+        >
+          Upgrade to Generate More Videos
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div>
