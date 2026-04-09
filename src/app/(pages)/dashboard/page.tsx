@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import { VoiceInput } from "./_components/voice-input";
 import { DashboardChat, type DashboardChatMode } from "./_components/dashboard-chat";
 import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
+import { AdminQuickLinks } from "./_components/admin-quick-links";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -220,6 +221,7 @@ export default function Home() {
               >
                 Brainstorm content idea
               </button>
+              <AdminQuickLinks isInternalAdmin={session?.isInternalAdmin} />
             </div>
 
             {/* Show GetStartedGuide only for new users */}

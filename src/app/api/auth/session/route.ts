@@ -106,6 +106,7 @@ export const GET = applyMiddleware(
       data: {
         user,
         subscription,
+        isInternalAdmin: user.email === process.env.PLATFORM_OWNER_REF,
       },
     });
   })

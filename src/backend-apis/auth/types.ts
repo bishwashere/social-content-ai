@@ -11,6 +11,7 @@ export type ContinueWithGoogleResponse = {
 export type GetUserSessionResponse = {
   user: User;
   subscription?: Subscription | null;
+  isInternalAdmin?: boolean;
 };
 
 export type EmailLoginParams = AuthValidatorType["emailLogin"];
