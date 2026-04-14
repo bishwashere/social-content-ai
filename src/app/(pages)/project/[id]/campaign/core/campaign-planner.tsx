@@ -3047,6 +3047,19 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                             </Button>
                           )}
                         </div>
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center justify-center gap-2 border rounded-md px-3 py-1.5"
+                        >
+                          <Switch
+                            checked={campaign.repeatNextMonth || false}
+                            onCheckedChange={(checked) =>
+                              updateCampaignData.mutate({ id: campaign.id, repeatNextMonth: checked })
+                            }
+                            disabled={updateCampaignData.isPending}
+                          />
+                          <Label className="text-xs cursor-pointer">Repeat next month</Label>
+                        </div>
                       </DialogContent>
                     </Dialog>
                   </div>

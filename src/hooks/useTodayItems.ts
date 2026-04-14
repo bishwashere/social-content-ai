@@ -6,6 +6,7 @@ import { parseISO, format, addDays } from "date-fns";
 
 export type TimelineItemType = 
   | "urgent" // Failed posts, errors
+  | "warning" // Ending soon but auto-renewing
   | "action" // Needs user action now
   | "scheduled" // Upcoming scheduled post
   | "suggestion" // Stay ahead suggestions
@@ -213,7 +214,7 @@ export function useTodayItems() {
 
         const itemType: TimelineItemType = 
           task.type === "failed_post" ? "urgent" :
-          task.type === "campaign_ending_soon" ? "urgent" :
+          task.type === "campaign_ending_soon" ? (project.repeatNextMonth ? "warning" : "urgent") :
           task.type === "stuck_blog_news" ? "urgent" :
           "action";
 
@@ -458,6 +459,7 @@ export function useTodayItems() {
   const groupedItems = useMemo(() => {
     return {
       urgent: timelineItems.filter(i => i.type === "urgent"),
+      warning: timelineItems.filter(i => i.type === "warning"),
       action: timelineItems.filter(i => i.type === "action"),
       scheduled: timelineItems.filter(i => i.type === "scheduled"),
       suggestions: timelineItems.filter(i => i.type === "suggestion"),
@@ -467,7 +469,7 @@ export function useTodayItems() {
 
   // Get only actionable items (not activity/suggestions)
   const actionableItems = useMemo(() => {
-    return timelineItems.filter(i => i.type === "urgent" || i.type === "action" || i.type === "scheduled");
+    return timelineItems.filter(i => i.type === "urgent" || i.type === "warning" || i.type === "action" || i.type === "scheduled");
   }, [timelineItems]);
 
   return {

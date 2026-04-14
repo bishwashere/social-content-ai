@@ -4,13 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   LayoutGrid,
-  BarChart2,
-  CalendarDays,
-  Users,
   Activity,
   Video,
   FileText,
   Share2,
+  Users,
   UserCheck,
   CreditCard,
   ChevronDown,
@@ -19,19 +17,11 @@ import { cn } from "@/lib/cn";
 
 const CATEGORIES = [
   {
-    label: "Analytics",
-    icon: BarChart2,
-    links: [
-      { label: "Dashboard Analytics", href: "/dashboard/analytics", icon: BarChart2 },
-      { label: "Content Planner", href: "/dashboard/content-planner", icon: CalendarDays },
-    ],
-  },
-  {
     label: "User Activity",
     icon: Activity,
     links: [
-      { label: "Video Admin", href: "/video-admin", icon: Video },
-      { label: "User Activity", href: "/video-admin/campaigns", icon: Users },
+      { label: "User Activity", href: "/user-activity", icon: Video },
+      { label: "User Activity", href: "/user-activity/campaigns", icon: Users },
     ],
   },
   {

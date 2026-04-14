@@ -452,10 +452,10 @@ export default function CampaignsAdminPage() {
             </Link>
             <span className="text-muted-foreground mx-2">/</span>
             <Link
-              href="/video-admin"
+              href="/user-activity"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Video Admin
+              User Activity
             </Link>
             <span className="text-muted-foreground mx-2">/</span>
             <span className="text-muted-foreground">
@@ -476,7 +476,7 @@ export default function CampaignsAdminPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         <div className="mb-6 flex items-center gap-3">
-          <Link href="/video-admin">
+          <Link href="/user-activity">
             <Button variant="outline" size="icon" className="h-8 w-8">
               <ArrowLeft className="h-4 w-4" />
             </Button>

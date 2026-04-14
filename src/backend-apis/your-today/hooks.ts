@@ -20,6 +20,7 @@ export type YourTodayProject = {
     recentImpressions: number;
   };
   daysSinceLastPost?: number | null;
+  repeatNextMonth?: boolean;
 };
 
 export type YourTodayTask = {

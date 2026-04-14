@@ -1160,7 +1160,8 @@ export async function GET(request: NextRequest) {
                   campaignId: campaign.id,
                   campaignName: campaign.name || "Untitled Campaign",
                   userRole: userRole,
-                  needsAction: true
+                  needsAction: true,
+                  repeatNextMonth: (campaign as any).repeatNextMonth ?? false,
                 });
               }
             }

@@ -234,6 +234,7 @@ export const useChangeCampaignData = () => {
       autoPostTime,
       autoPostPlatforms,
       blogNewsMetadata,
+      repeatNextMonth,
     }: {
       id: string;
       name?: string;
@@ -242,7 +243,8 @@ export const useChangeCampaignData = () => {
       autoPostTime?: string;
       autoPostPlatforms?: string[];
       blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; timezone?: string };
-    }) => changeCampaignData(id, name, startDate, autoPostEnabled, autoPostTime, autoPostPlatforms, blogNewsMetadata),
+      repeatNextMonth?: boolean;
+    }) => changeCampaignData(id, name, startDate, autoPostEnabled, autoPostTime, autoPostPlatforms, blogNewsMetadata, repeatNextMonth),
 
     onSuccess: (projectId: string | boolean) => {
       if (projectId)

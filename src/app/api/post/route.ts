@@ -15,6 +15,7 @@ import { generateCampaignChat } from "@/backend-apis/campaign-planner/campaign-g
 import { schedulePost } from "@/server-actions/schedule-post";
 import { logger } from "@/utils/logger";
 import { applyPlaceholders, getProjectPlaceholders } from "@/lib/placeholders";
+import { repeatEndedCampaigns } from "@/lib/repeat-campaign";
 
 export const dynamic = "force-dynamic";
 // Increase timeout for blog generation (Vercel Pro allows up to 60s, Hobby is 10s)
@@ -107,6 +108,8 @@ export const GET = applyMiddleware(
     console.log(`⏰ Current time (UTC): ${now.toISOString()}`);
     console.log(`⏰ Current time (local): ${now.toLocaleString()}`);
     console.log(`⏰ Current time (EST): ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}`);
+
+    await repeatEndedCampaigns().catch(err => console.error("[repeat-campaign] Error:", err));
     
     // Query for pending posts
     // Use a slightly more lenient date range to account for potential timezone issues

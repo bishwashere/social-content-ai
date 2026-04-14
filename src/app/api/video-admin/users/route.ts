@@ -65,14 +65,19 @@ export const GET = applyMiddleware(
       },
     });
 
-    // Sort users by their most recent video attempt (newest first)
+    // Sort users by their most recent video in the last 6 months (newest first)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
     const sortedUsers = [...users].sort((a, b) => {
-      const aLatest = a.uploadedVideos.length > 0
-        ? new Date(a.uploadedVideos[0].createdAt).getTime()
-        : 0;
-      const bLatest = b.uploadedVideos.length > 0
-        ? new Date(b.uploadedVideos[0].createdAt).getTime()
-        : 0;
+      const aRecent = a.uploadedVideos.find(
+        (v) => new Date(v.createdAt) >= sixMonthsAgo
+      );
+      const bRecent = b.uploadedVideos.find(
+        (v) => new Date(v.createdAt) >= sixMonthsAgo
+      );
+      const aLatest = aRecent ? new Date(aRecent.createdAt).getTime() : 0;
+      const bLatest = bRecent ? new Date(bRecent.createdAt).getTime() : 0;
       return bLatest - aLatest;
     });
 

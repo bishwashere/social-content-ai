@@ -368,7 +368,7 @@ export default function VideoAdminPage() {
               <span className="font-semibold text-lg">NextPostAI</span>
             </Link>
             <span className="text-muted-foreground mx-2">/</span>
-            <span className="text-muted-foreground">Video Admin</span>
+            <span className="text-muted-foreground">User Activity</span>
           </div>
           <Button
             variant="outline"
@@ -385,7 +385,7 @@ export default function VideoAdminPage() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Video Submissions Dashboard</h1>
+            <h1 className="text-3xl font-bold">User Activity</h1>
             <p className="text-muted-foreground mt-2">
               View and manage all user video submissions
             </p>
@@ -411,7 +411,7 @@ export default function VideoAdminPage() {
         {/* Stats Cards */}
         {data?.stats && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <Link href="/video-admin/campaigns">
+            <Link href="/user-activity/campaigns">
               <Card className="cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
@@ -440,7 +440,7 @@ export default function VideoAdminPage() {
                 </div>
               </CardContent>
             </Card>
-            <Link href="/video-admin/campaigns">
+            <Link href="/user-activity/campaigns">
               <Card className="cursor-pointer hover:ring-2 hover:ring-green-300 transition-all">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">

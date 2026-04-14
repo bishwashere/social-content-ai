@@ -31,6 +31,7 @@ export const getCampaignPlanner = async (projectId: string) => {
           autoPostTime: p.autoPostTime,
           autoPostPlatforms: p.autoPostPlatforms || [],
           blogNewsMetadata: (p as any).blogNewsMetadata || null, // Blog News metadata at campaign level
+          repeatNextMonth: p.repeatNextMonth ?? false,
         }))
         .sort((a, b) => {
           // Sort by updatedAt descending (latest first) for all campaigns
@@ -73,6 +74,7 @@ export const getCampaignPlannerMetadata = async (projectId: string, limit?: numb
         autoPostPlatforms: true,
         blogNewsMetadata: true,
         totalDays: true, // Include totalDays from campaign table
+        repeatNextMonth: true,
       },
       orderBy: {
         updatedAt: 'desc', // Latest first
@@ -135,6 +137,7 @@ export const getCampaignPlannerMetadata = async (projectId: string, limit?: numb
         blogNewsMetadata: (p as any).blogNewsMetadata || null,
         chatCount: p.totalDays || 0, // Use totalDays from campaign table
         chats: [], // Empty - will be loaded on demand
+        repeatNextMonth: p.repeatNextMonth ?? false,
       })),
       hasOldCampaigns: oldCampaignsCount > 0, // Inform UI if old campaigns exist
     };

@@ -472,6 +472,15 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
             </div>
           )}
 
+          {/* Warning Items - Ending soon but auto-renewing */}
+          {groupedItems.warning.length > 0 && (
+            <div className="space-y-3">
+              {groupedItems.warning.map((item) => (
+                <TimelineCard key={item.id} item={item} variant="warning" />
+              ))}
+            </div>
+          )}
+
           {/* Action Items - Primary tasks for today */}
           {(groupedItems.action.length > 0 || hasUnlinkedPages || isWithinFirstProjectHour) && (
             <div className="space-y-3" data-dashboard-section="action-required">
@@ -904,7 +913,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
 
 interface TimelineCardProps {
   item: TimelineItem;
-  variant: "urgent" | "action" | "suggestion" | "activity";
+  variant: "urgent" | "warning" | "action" | "suggestion" | "activity";
   compact?: boolean;
 }
 
@@ -931,6 +940,8 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
     switch (variant) {
       case "urgent":
         return "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/50";
+      case "warning":
+        return "border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/50";
       case "action":
         return "border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/30";
       case "suggestion":
@@ -1125,6 +1136,9 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
                 {variant === "urgent" && (
                   <Badge variant="destructive" className="text-xs">Urgent</Badge>
                 )}
+                {variant === "warning" && (
+                  <Badge className="text-xs bg-orange-500 text-white hover:bg-orange-500">Auto-renewing</Badge>
+                )}
               </div>
               {item.description && (
                 <p className="text-sm text-muted-foreground mt-1">
@@ -1144,6 +1158,8 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
                 "flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium",
                 variant === "urgent" 
                   ? "bg-red-600 text-white" 
+                  : variant === "warning"
+                  ? "bg-orange-500 text-white"
                   : "bg-primary text-primary-foreground"
               )}
             >

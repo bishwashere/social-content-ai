@@ -152,7 +152,8 @@ export const changeCampaignData = async (
   autoPostEnabled?: boolean,
   autoPostTime?: string,
   autoPostPlatforms?: string[],
-  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; timezone?: string }
+  blogNewsMetadata?: { topics: string[]; angles: string[]; webhook: string; platforms?: string[]; timezone?: string },
+  repeatNextMonth?: boolean
 ): Promise<string | false> => {
   try {
     const updateFields: Record<string, any> = {};
@@ -162,6 +163,7 @@ export const changeCampaignData = async (
     if (autoPostEnabled !== undefined) updateFields.autoPostEnabled = autoPostEnabled;
     if (autoPostTime !== undefined) updateFields.autoPostTime = autoPostTime;
     if (autoPostPlatforms !== undefined) updateFields.autoPostPlatforms = autoPostPlatforms;
+    if (repeatNextMonth !== undefined) updateFields.repeatNextMonth = repeatNextMonth;
     
     // Store Blog News metadata at campaign level
     if (blogNewsMetadata !== undefined) {
