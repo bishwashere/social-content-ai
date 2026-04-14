@@ -1545,17 +1545,13 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
 
                                 // Calculate Loading and real progress bar
                 const totalChats = campaign.chats.length;
-                // const loadedChats = campaign.chats.filter(chat =>
-                //   chat.contents && Object.keys(chat.contents).length > 0
-                // ).length;
-                // const completedChats = campaign.chats.filter(chat => chat.completed).length;
                 const passedDays = campaign.chats.filter((chat: { day: number }) => {
                   const chatDate = new Date(baseDate.getTime() + (chat.day - 1) * 86400000);
                   chatDate.setHours(0, 0, 0, 0);
                   return chatDate < today;
                 }).length;
-                // const loadingProgress = totalChats > 0 ? (loadedChats / totalChats) * 100 : 0;
                 const realProgress = totalChats > 0 ? (passedDays / totalChats) * 100 : 0;
+                const hasGeneratedContent = campaign.chats.some((c: any) => c.status !== "PENDING");
 
 
                 return (
@@ -1600,7 +1596,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                         </div>
                         <div className="flex justify-end">
                           <div className="px-4 py-0 flex flex-col justify-center gap-3">
-                            <div className="hidden sm:flex gap-2 justify-end items-center">
+                            <div className="flex flex-wrap gap-2 justify-end items-center">
 
                               {campaignIsPast && (
                                 <Button
@@ -1618,6 +1614,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                   <span className="sr-only">Duplicate as new campaign plan</span>
                                 </Button>
                               )}
+                              {!campaign.startDate && (
                               <div onClick={(e) => e.stopPropagation()} className="z-30">
                                 <DatePicker
                                   // selected={selectedDate}
@@ -1647,6 +1644,8 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                   disabled={updateCampaignData.isPending}
                                 />
                               </div>
+                              )}
+                              {!(campaign.autoPostEnabled || hasScheduledPosts) && (
                               <div
                                 data-campaign-mini-tour="auto-post"
                                 data-campaign-mini-tour-campaign-id={campaign.id}
@@ -1707,6 +1706,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                   );
                                 })()}
                               </div>
+                              )}
                               {/* Platform Selection Dialog */}
                               <Dialog
                                 open={isPlatformSelectorOpen[campaign.id] || false}
@@ -1884,7 +1884,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                 }}
                               />
                               {/* Blog News uses the scheduled pipeline per day, not bulk social generateChat */}
-                              {campaign.goal !== "Blog News" && (
+                              {campaign.goal !== "Blog News" && !hasGeneratedContent && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1947,9 +1947,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                   <Sparkles className="h-4 w-4 mr-1" />
                                 </Button>
                               )}
-                            </div>
-                            <div className="flex justify-end sm:hidden">
-                              <Button variant="outline" className="-mr-4" size="sm" onClick={(e) => { e.stopPropagation(); openCampaignStartDateSettings(campaign.id) }}><Settings /></Button>
+                              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openCampaignStartDateSettings(campaign.id) }}><Settings /></Button>
                             </div>
                           </div>
 
@@ -3060,6 +3058,50 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                           />
                           <Label className="text-xs cursor-pointer">Repeat next month</Label>
                         </div>
+                        {(campaign.autoPostEnabled || hasScheduledPosts) && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center justify-center gap-2 border rounded-md px-3 py-1.5"
+                          >
+                            <Switch
+                              checked={campaign.autoPostEnabled || hasScheduledPosts || false}
+                              onCheckedChange={async (checked) => {
+                                if (checked) {
+                                  if (!selectedPlatformsForAutoPost[campaign.id]) {
+                                    setSelectedPlatformsForAutoPost({
+                                      ...selectedPlatformsForAutoPost,
+                                      [campaign.id]: campaign.autoPostPlatforms && campaign.autoPostPlatforms.length > 0
+                                        ? campaign.autoPostPlatforms
+                                        : campaign.platforms,
+                                    });
+                                  }
+                                  setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                } else {
+                                  await updateCampaignData.mutateAsync({ id: campaign.id, autoPostEnabled: false });
+                                }
+                              }}
+                            />
+                            <Label className="text-xs cursor-pointer">Auto-post</Label>
+                            {campaign.autoPostEnabled && campaign.autoPostTime && (() => {
+                              const tz = (campaign.blogNewsMetadata as any)?.timezone || campaignTimezones[campaign.id] || "America/New_York";
+                              const tzAbbr = (() => {
+                                try { return new Date().toLocaleString("en-US", { timeZoneName: "short", timeZone: tz }).split(" ").pop() || tz; }
+                                catch { return tz; }
+                              })();
+                              return (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-1 text-xs"
+                                  onClick={() => setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true })}
+                                >
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {campaign.autoPostTime} {tzAbbr}
+                                </Button>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </DialogContent>
                     </Dialog>
                   </div>
