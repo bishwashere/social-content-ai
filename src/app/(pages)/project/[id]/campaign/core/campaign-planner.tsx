@@ -3051,9 +3051,16 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                         >
                           <Switch
                             checked={campaign.repeatNextMonth || false}
-                            onCheckedChange={(checked) =>
-                              updateCampaignData.mutate({ id: campaign.id, repeatNextMonth: checked })
-                            }
+                            onCheckedChange={async (checked) => {
+                              if (checked) {
+                                const yes = await confirm({
+                                  title: "Repeat this campaign next month?",
+                                  description: `On the last day of this campaign, a new campaign named "${campaign.name || "Campaign"} ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" })}" will be created automatically with the same settings.`,
+                                });
+                                if (!yes) return;
+                              }
+                              updateCampaignData.mutate({ id: campaign.id, repeatNextMonth: checked });
+                            }}
                             disabled={updateCampaignData.isPending}
                           />
                           <Label className="text-xs cursor-pointer">Repeat next month</Label>
