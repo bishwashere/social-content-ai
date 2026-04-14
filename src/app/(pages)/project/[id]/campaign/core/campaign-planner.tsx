@@ -589,6 +589,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
   const [showPast, setShowPast] = useState(false);
 
   const [isCampaignStartDateSettingsOpen, setIsCampaignStartDateSettingsOpen] = useState<string[]>([]);
+  const [pendingRepeatConfirmId, setPendingRepeatConfirmId] = useState<string | null>(null);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState<Record<string, boolean>>({});
   const [isPlatformSelectorOpen, setIsPlatformSelectorOpen] = useState<Record<string, boolean>>({});
   const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
@@ -3053,13 +3054,10 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                             checked={campaign.repeatNextMonth || false}
                             onCheckedChange={async (checked) => {
                               if (checked) {
-                                const yes = await confirm({
-                                  title: "Repeat this campaign next month?",
-                                  description: `On the last day of this campaign, a new campaign named "${campaign.name || "Campaign"} ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" })}" will be created automatically with the same settings.`,
-                                });
-                                if (!yes) return;
+                                setPendingRepeatConfirmId(campaign.id);
+                                return;
                               }
-                              updateCampaignData.mutate({ id: campaign.id, repeatNextMonth: checked });
+                              updateCampaignData.mutate({ id: campaign.id, repeatNextMonth: false });
                             }}
                             disabled={updateCampaignData.isPending}
                           />
@@ -3109,6 +3107,29 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                             })()}
                           </div>
                         )}
+                      </DialogContent>
+                    </Dialog>
+                    {/* Repeat-next-month confirmation dialog */}
+                    <Dialog
+                      open={pendingRepeatConfirmId === campaign.id}
+                      onOpenChange={(open) => { if (!open) setPendingRepeatConfirmId(null); }}
+                    >
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Repeat this campaign next month?</DialogTitle>
+                          <DialogDescription>
+                            On the last day of this campaign, a new campaign named <strong>&ldquo;{campaign.name || "Campaign"} {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" })}&rdquo;</strong> will be created automatically with the same settings.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setPendingRepeatConfirmId(null)}>Cancel</Button>
+                          <Button onClick={() => {
+                            updateCampaignData.mutate({ id: campaign.id, repeatNextMonth: true });
+                            setPendingRepeatConfirmId(null);
+                          }}>
+                            Yes, repeat it
+                          </Button>
+                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   </div>
