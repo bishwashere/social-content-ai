@@ -32,6 +32,8 @@ import { useUserSettings, useUpdateUserSettings } from "@/backend-apis/user-sett
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/providers/theme-provider";
+import { ProjectOnboardingModal, isProjectOnboardingComplete } from "@/app/(pages)/project/[id]/_components/project-onboarding-modal";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HeaderProps {
   onTourStart?: () => void;
@@ -46,6 +48,7 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
   const projects = useGetAllProjects();
   const sidebar = useSidebar();
   const { data: settings } = useUserSettings();
+  const [onboardingOpen, setOnboardingOpen] = React.useState(false);
 
   return (
     <div className="w-full px-4 h-fit relative overflow-hidden flex items-center justify-center">
@@ -105,12 +108,39 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
               const project = projects?.data?.find(
                 (project) => project.id === id
               );
-              return project ? (
+              if (!project) return null;
+              const onboardingComplete = isProjectOnboardingComplete(project);
+              return (
                 <>
                   <ProjectEditModal project={project} />
                   <ProjectSocialLinks project={project} />
+                  {!onboardingComplete && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setOnboardingOpen(true)}
+                          className="relative flex items-center justify-center h-6 w-6 rounded-full hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                          aria-label="Complete project setup"
+                        >
+                          <span className="flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                          </span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        Complete project setup
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  <ProjectOnboardingModal
+                    open={onboardingOpen}
+                    onOpenChange={setOnboardingOpen}
+                    projectId={project.id}
+                    project={project}
+                  />
                 </>
-              ) : null;
+              );
             })()}
             {onTourStart && data?.user && (settings?.guidedTourEnabled ?? true) && (
               <button

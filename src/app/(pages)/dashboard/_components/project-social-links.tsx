@@ -139,7 +139,7 @@ export function ProjectSocialLinks({ project }: ProjectSocialLinksProps) {
   // First, add manual URLs as fallback
   if (manualPlatformUrls) {
     for (const [platform, url] of Object.entries(manualPlatformUrls)) {
-      if (url && url.trim() !== "") {
+      if (typeof url === "string" && url.trim() !== "") {
         platformUrlMap[platform as Platform] = url;
       }
     }
