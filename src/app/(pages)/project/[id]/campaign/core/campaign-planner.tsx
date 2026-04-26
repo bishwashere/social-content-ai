@@ -838,21 +838,21 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
 
     // For Blog News, we don't need coins since we're not generating content
     if (selectedGoal !== "blog-news") {
-      // Calculate initial coins needed (only for 1 day of initial data)
-      // Coins needed = number of selected platforms (1 coin per platform for 1 day)
-      const initialCoins = selectedPlatforms.length;
+      // Coins needed = platforms × total days (1 coin per platform per day)
+      const totalDays = intensityPlan.data.length;
+      const totalCoins = selectedPlatforms.length * totalDays;
       const userCoins = session?.user?.remainingChatGenerations || 0;
 
-      // Check if user has enough coins for initial generation
-      if (userCoins < initialCoins) {
-        toast.error(`You need ${initialCoins} coins to generate the initial campaign data.`);
+      // Check if user has enough coins for full campaign generation
+      if (userCoins < totalCoins) {
+        toast.error(`You need ${totalCoins} coins to auto-generate all ${totalDays} days of content (${selectedPlatforms.length} platforms × ${totalDays} days). You have ${userCoins}.`);
         handleCoinsFinished();
         return;
       }
 
       const yes = await confirm({
         title: 'Do you want to generate campaign?',
-        description: `Generating Campaign will use ${initialCoins} coins initially for the first day of content.`
+        description: `Generating Campaign will auto-generate all ${totalDays} days of content and use ${totalCoins} coins (${selectedPlatforms.length} platforms × ${totalDays} days).`
       })
       if (!yes) return;
     }
@@ -891,9 +891,12 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
       // Clear loaded chats cache since campaign data has changed
       setLoadedChats({});
 
-      // Only generate content for non-Blog News campaigns
-      if (selectedGoal !== "blog-news" && d?.chats && d?.chats[0]) {
-        await generateChat(projectId as string, d.id, d.chats[0].day, d.chats[0].title);
+      // Auto-generate content for every day (non-Blog News campaigns only)
+      if (selectedGoal !== "blog-news" && d?.chats && d.chats.length > 0) {
+        const sortedChats = [...d.chats].sort((a, b) => a.day - b.day);
+        for (const chat of sortedChats) {
+          await generateChat(projectId as string, d.id, chat.day, chat.title);
+        }
       }
     } catch { }
   };
