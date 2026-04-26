@@ -27,6 +27,7 @@ export function GetStartedGuide() {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [showSecurityInfo, setShowSecurityInfo] = useState(false);
   const [showCreatePostInfo, setShowCreatePostInfo] = useState(false);
+  const [showScheduleCampaignInfo, setShowScheduleCampaignInfo] = useState(false);
   const [showAddProjectInfo, setShowAddProjectInfo] = useState(false);
   const [hasWaved, setHasWaved] = useState(false);
   const [waveKey, setWaveKey] = useState(0);
@@ -147,7 +148,11 @@ export function GetStartedGuide() {
       steps.push({ type: 'add_project', number: stepNumber++ });
     }
     if (!hasScheduledOrPublished) {
-      steps.push({ type: 'create_post', number: stepNumber++ });
+      if (hasCampaigns) {
+        steps.push({ type: 'schedule_campaign', number: stepNumber++ });
+      } else {
+        steps.push({ type: 'create_post', number: stepNumber++ });
+      }
     }
     
     // Only show tasks 3 and 4 if first 2 tasks are completed
@@ -171,6 +176,14 @@ export function GetStartedGuide() {
   const handleCreatePost = () => {
     if (projects.data && projects.data.length > 0) {
       router.push(`/project/${projects.data[0].id}?tab=generate`);
+    } else {
+      router.push("/dashboard");
+    }
+  };
+
+  const handleScheduleCampaign = () => {
+    if (projects.data && projects.data.length > 0) {
+      router.push(`/project/${projects.data[0].id}?tab=campaign`);
     } else {
       router.push("/dashboard");
     }
@@ -411,8 +424,8 @@ export function GetStartedGuide() {
               </>
             )}
 
-            {/* Step 3: Create Your First Post */}
-            {!hasScheduledOrPublished && (
+            {/* Step 3: Create Your First Post - only when no campaign planner exists */}
+            {!hasScheduledOrPublished && !hasCampaigns && (
               <>
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
                   {visibleSteps.find(s => s.type === 'create_post')?.number || 3}
@@ -438,6 +451,38 @@ export function GetStartedGuide() {
                 <div className="flex-shrink-0">
                   <Button onClick={handleCreatePost} variant="outline" size="sm" className="min-w-[140px]">
                     Create Post
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 3 (alt): Schedule Your Campaign - when campaign exists but nothing scheduled yet */}
+            {hasCampaigns && !hasScheduledOrPublished && (
+              <>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                  {visibleSteps.find(s => s.type === 'schedule_campaign')?.number || 3}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Schedule Your Campaign
+                  </h3>
+                  <button
+                    onClick={() => setShowScheduleCampaignInfo(!showScheduleCampaignInfo)}
+                    className="text-muted-foreground text-sm hover:underline cursor-pointer mb-3 block"
+                  >
+                    More info
+                  </button>
+                  {showScheduleCampaignInfo && (
+                    <p className="text-muted-foreground mb-3">
+                      Your campaign is ready! Head to the Campaign Planner and schedule your posts so they 
+                      go live automatically across your connected social media accounts.
+                    </p>
+                  )}
+                </div>
+                <div className="flex-shrink-0">
+                  <Button onClick={handleScheduleCampaign} variant="outline" size="sm" className="min-w-[140px]">
+                    Schedule Campaign
                   </Button>
                 </div>
               </>

@@ -77,7 +77,7 @@ export function CampaignDemoFeatureTour({
         "ring-4",
         "ring-blue-500",
         "ring-offset-2",
-        "z-[60]",
+        "z-[10002]",
         "relative",
         "rounded",
         "backdrop-blur-0"
@@ -124,7 +124,7 @@ export function CampaignDemoFeatureTour({
         "ring-4",
         "ring-blue-500",
         "ring-offset-2",
-        "z-[60]",
+        "z-[10002]",
         "relative",
         "rounded",
         "backdrop-blur-0"
@@ -139,7 +139,7 @@ export function CampaignDemoFeatureTour({
 
   return (
     <>
-      <svg className="fixed inset-0 z-40 pointer-events-none" width="100%" height="100%">
+      <svg className="fixed inset-0 z-[10000] pointer-events-none" width="100%" height="100%">
         <defs>
           <mask id="campaign-feature-tour-mask">
             <rect width="100%" height="100%" fill="white" />
@@ -163,11 +163,11 @@ export function CampaignDemoFeatureTour({
           mask="url(#campaign-feature-tour-mask)"
         />
       </svg>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-[10000]" onClick={onClose} />
 
       <div
         ref={tooltipRef}
-        className="fixed z-[60] w-80 max-w-[calc(100vw-2rem)]"
+        className="fixed z-[10001] w-80 max-w-[calc(100vw-2rem)]"
         style={{
           isolation: "isolate",
           top: `${position.top}px`,

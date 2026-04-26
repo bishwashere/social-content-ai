@@ -895,13 +895,19 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
       if (selectedGoal !== "blog-news" && d?.chats && d.chats.length > 0) {
         const sortedChats = [...d.chats].sort((a, b) => a.day - b.day);
         for (const chat of sortedChats) {
-          await generateChat(projectId as string, d.id, chat.day, chat.title);
+          const result = await generateChat(projectId as string, d.id, chat.day, chat.title);
+          if (result.insufficientCoins) break;
         }
       }
     } catch { }
   };
 
-  const generateChat = async (projectId: string, campaignId: string, day: number, title: string | null) => {
+  const generateChat = async (
+    projectId: string,
+    campaignId: string,
+    day: number,
+    title: string | null
+  ): Promise<{ insufficientCoins: boolean }> => {
     setChatLoading({ campaignId: campaignId, day: day });
     try {
       const { success, message, insufficientCoins } = await generate.mutateAsync({
@@ -915,10 +921,11 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
         toast.error(message || "Failed to generate campaign chat");
         if (insufficientCoins) {
           handleCoinsFinished();
+          setChatLoading(null);
+          return { insufficientCoins: true };
         }
       }
       // Clear loaded chats cache for this campaign BEFORE refetching
-      // Use the local campaignId parameter to avoid stale closure issues
       setLoadedChats(prev => {
         const next = { ...prev };
         delete next[campaignId];
@@ -928,6 +935,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
       await campaignPlannerData.refetch();
     } catch { }
     setChatLoading(null);
+    return { insufficientCoins: false };
   }
 
   // Auto-generate pending chats for existing campaigns on initial page load
@@ -2943,8 +2951,12 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                           <div onClick={(e) => e.stopPropagation()}>
                             <ViewCampaignDetails campaign={campaign} />
                           </div>
-                          <button onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}>
+                          <button
+                            className="flex flex-col items-center gap-1 text-red-500 hover:text-red-600"
+                            onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id, campaign.projectId) }}
+                          >
                             <Trash className="size-4 stroke-red-500" />
+                            <span className="text-xs">Delete</span>
                           </button>
                         </div>
                         <div className="flex justify-center gap-4 items-center">
@@ -2953,7 +2965,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="w-fit text-xs"
+                              className="w-fit text-xs gap-1.5"
                               aria-label="Duplicate as new campaign plan"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2962,12 +2974,11 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                               }}
                             >
                               <CopyIcon className="h-4 w-4" />
-                              <span className="sr-only">Duplicate as new campaign plan</span>
+                              Duplicate
                             </Button>
                           )}
                           <div onClick={(e) => e.stopPropagation()} className="z-50">
                             <DatePicker
-                              // selected={selectedDate}
                               onChange={(date) => {
                                 if (date) {
                                   updateCampaignData.mutate({ id: campaign.id, startDate: date })
@@ -2984,11 +2995,11 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="w-fit text-xs"
+                                  className="w-fit text-xs gap-1.5"
                                   aria-label="Change campaign start date"
                                 >
-                                  <Calendar />
-                                  <span className="sr-only">Change campaign start date</span>
+                                  <Calendar className="h-4 w-4" />
+                                  Change Date
                                 </Button>
                               }
                               disabled={updateCampaignData.isPending}
@@ -2998,6 +3009,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                             <Button
                               variant="outline"
                               size="sm"
+                              className="gap-1.5"
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
@@ -3045,7 +3057,8 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                 } catch { }
                               }}
                             >
-                              <Sparkles className="h-4 w-4 mr-1" />
+                              <Sparkles className="h-4 w-4" />
+                              Regenerate All
                             </Button>
                           )}
                         </div>
