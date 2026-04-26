@@ -73,8 +73,12 @@ import { UploadImageButton } from "@/components/common/upload-image-button";
 import { useUploadMediaForCampaignChat } from "@/backend-apis/video-generation/hooks";
 import {
   PLATFORMS_WITH_MEDIA_SUPPORT,
+  PLATFORM_LABELS,
+  PLATFORM_ICONS,
   type PlatformId
 } from "@/constants/platforms";
+import { checkAllProjectOAuthProviders } from "@/server-actions/check-project-oauth-provider";
+import { type OauthPlatform } from "@prisma/client";
 import { CampaignAnalyticsSummary } from "../analytics/analytics-summary";
 import {
   PLATFORMS,
@@ -594,6 +598,12 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
   const [isPlatformSelectorOpen, setIsPlatformSelectorOpen] = useState<Record<string, boolean>>({});
   const [selectedPlatformsForAutoPost, setSelectedPlatformsForAutoPost] = useState<Record<string, string[]>>({});
   const [campaignTimezones, setCampaignTimezones] = useState<Record<string, string>>({});
+  const [disconnectedPlatformsWarning, setDisconnectedPlatformsWarning] = useState<{
+    campaignId: string;
+    disconnected: string[];
+    connected: string[];
+  } | null>(null);
+  const [checkingOAuthForCampaign, setCheckingOAuthForCampaign] = useState<string | null>(null);
   const [showOldCampaigns, setShowOldCampaigns] = useState(false);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
   const scheduleCampaignTasks = useScheduleCampaignTasks();
@@ -1784,18 +1794,123 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                       Cancel
                                     </Button>
                                     <Button
-                                      onClick={() => {
+                                      loading={checkingOAuthForCampaign === campaign.id}
+                                      onClick={async () => {
                                         const platforms = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
                                         if (platforms.length === 0) {
                                           toast.error("Please select at least one platform");
                                           return;
                                         }
                                         setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: false });
-                                        // Open time picker next
-                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
+
+                                        if (!session?.user?.id) return;
+                                        setCheckingOAuthForCampaign(campaign.id);
+                                        try {
+                                          // x → twitter to match OauthPlatform enum
+                                          const oauthPlatforms = platforms.map(
+                                            (p) => (p === "x" ? "twitter" : p)
+                                          ) as OauthPlatform[];
+                                          const results = await checkAllProjectOAuthProviders(
+                                            projectId as string,
+                                            session.user.id,
+                                            oauthPlatforms
+                                          );
+                                          const disconnected = platforms.filter((p) => {
+                                            const key = (p === "x" ? "twitter" : p) as OauthPlatform;
+                                            return !results[key]?.hasProviderConnected;
+                                          });
+                                          const connected = platforms.filter((p) => {
+                                            const key = (p === "x" ? "twitter" : p) as OauthPlatform;
+                                            return results[key]?.hasProviderConnected;
+                                          });
+                                          if (disconnected.length > 0) {
+                                            setDisconnectedPlatformsWarning({
+                                              campaignId: campaign.id,
+                                              disconnected,
+                                              connected,
+                                            });
+                                          } else {
+                                            setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
+                                          }
+                                        } finally {
+                                          setCheckingOAuthForCampaign(null);
+                                        }
                                       }}
                                     >
                                       Continue
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                              {/* Disconnected social accounts warning */}
+                              <Dialog
+                                open={disconnectedPlatformsWarning?.campaignId === campaign.id}
+                                onOpenChange={(open) => {
+                                  if (!open) setDisconnectedPlatformsWarning(null);
+                                }}
+                              >
+                                <DialogContent className="sm:max-w-[425px]">
+                                  <DialogHeader>
+                                    <DialogTitle>Social accounts not connected</DialogTitle>
+                                    <DialogDescription>
+                                      The following platforms selected for this campaign are not yet connected to your account.
+                                      Please connect them first to enable auto-posting.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="py-3 space-y-2">
+                                    {disconnectedPlatformsWarning?.disconnected.map((platform) => {
+                                      const platformKey = platform as PlatformId;
+                                      const icon = PLATFORM_ICONS[platformKey];
+                                      const label = PLATFORM_LABELS[platformKey] ?? (platform.charAt(0).toUpperCase() + platform.slice(1));
+                                      return (
+                                        <div key={platform} className="flex items-center gap-2 text-sm font-medium text-destructive">
+                                          {icon && (
+                                            <Image
+                                              src={icon}
+                                              width={16}
+                                              height={16}
+                                              alt={label}
+                                              className="dark:brightness-0 dark:invert"
+                                            />
+                                          )}
+                                          {label} — not connected
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <DialogFooter className="flex-col gap-2 sm:flex-col">
+                                    <Button
+                                      className="w-full"
+                                      onClick={() => {
+                                        setDisconnectedPlatformsWarning(null);
+                                        router.push("/dashboard/settings");
+                                      }}
+                                    >
+                                      Connect Accounts
+                                    </Button>
+                                    {(disconnectedPlatformsWarning?.connected.length ?? 0) > 0 && (
+                                      <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => {
+                                          const connectedPlatforms = disconnectedPlatformsWarning!.connected;
+                                          setSelectedPlatformsForAutoPost({
+                                            ...selectedPlatformsForAutoPost,
+                                            [campaign.id]: connectedPlatforms,
+                                          });
+                                          setDisconnectedPlatformsWarning(null);
+                                          setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
+                                        }}
+                                      >
+                                        Continue with connected only
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      className="w-full"
+                                      onClick={() => setDisconnectedPlatformsWarning(null)}
+                                    >
+                                      Cancel
                                     </Button>
                                   </DialogFooter>
                                 </DialogContent>
