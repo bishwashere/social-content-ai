@@ -16,6 +16,7 @@ model User {
   idFromProvider                   String
   remainingChatGenerations         Int       @default(100)
   dashboardChatSessionsUsed        Int       @default(0)
+  dashboardIntroShown              Boolean   @default(false)
   hasClaimedFreeTrial              Boolean   @default(false)
   freeCreditsCongratsShown         Boolean   @default(false)
   demoCampaignCreated              Boolean   @default(false)

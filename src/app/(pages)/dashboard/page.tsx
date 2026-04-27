@@ -18,6 +18,7 @@ import { VoiceInput } from "./_components/voice-input";
 import { DashboardChat, type DashboardChatMode } from "./_components/dashboard-chat";
 import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 import { AdminQuickLinks } from "./_components/admin-quick-links";
+import { DashboardIntroModal } from "./_components/dashboard-intro-modal";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { AUTH_TOKEN_COOKIE_NAME, FREE_DASHBOARD_CHAT_SESSIONS } from "@/constants/common";
 
@@ -45,6 +46,8 @@ export default function Home() {
   const [chatFlowType, setChatFlowType] = useState<DashboardChatMode>("chat");
   const [initialChatMessage, setInitialChatMessage] = useState("");
   const [sessionLimitReached, setSessionLimitReached] = useState(false);
+  const [dashboardIntroOpen, setDashboardIntroOpen] = useState(false);
+  const introShownRef = useRef(false);
 
   // Determine if user is new (has fewer than 3 projects)
   const isNewUser = (projects.data?.length ?? 0) < 3;
@@ -64,6 +67,34 @@ export default function Home() {
       }
     }
   }, [session, sessionLoading]);
+
+  // Show the one-time dashboard intro after the user has at least 1 project
+  // (meaning they've been through onboarding and demo — complete or cancelled).
+  // Guard: don't show while the onboarding or pricing modals are still open.
+  useEffect(() => {
+    if (sessionLoading || sessionError) return;
+    if (projects.isLoading) return;
+    if (pricingModalOpen || onboardingOpen) return;
+    if (introShownRef.current) return;
+
+    const hasProjects = (projects.data?.length ?? 0) >= 1;
+    const alreadySeen = (session?.user as { dashboardIntroShown?: boolean })
+      ?.dashboardIntroShown ?? false;
+
+    if (hasProjects && !alreadySeen) {
+      introShownRef.current = true;
+      const timer = setTimeout(() => setDashboardIntroOpen(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    sessionLoading,
+    sessionError,
+    projects.isLoading,
+    projects.data,
+    session,
+    pricingModalOpen,
+    onboardingOpen,
+  ]);
 
   const handleChatSubmit = useCallback(async (text: string, mode: DashboardChatMode = "chat") => {
     if (sessionLimitReached) return;
@@ -311,6 +342,10 @@ export default function Home() {
           open={onboardingOpen} 
           onProjectCreated={handleProjectCreated}
           onClose={() => setOnboardingOpen(false)}
+        />
+        <DashboardIntroModal
+          open={dashboardIntroOpen}
+          onClose={() => setDashboardIntroOpen(false)}
         />
       </div>
     </div>

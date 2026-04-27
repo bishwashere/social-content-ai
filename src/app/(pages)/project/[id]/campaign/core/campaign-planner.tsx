@@ -1682,17 +1682,54 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                       return;
                                     }
                                     if (checked) {
-                                      // Initialize selected platforms if not set
+                                      if (!session?.user?.id) return;
+
+                                      // Initialize selected platforms
+                                      const platformsToCheck =
+                                        campaign.autoPostPlatforms && campaign.autoPostPlatforms.length > 0
+                                          ? campaign.autoPostPlatforms
+                                          : campaign.platforms;
+
                                       if (!selectedPlatformsForAutoPost[campaign.id]) {
                                         setSelectedPlatformsForAutoPost({
                                           ...selectedPlatformsForAutoPost,
-                                          [campaign.id]: campaign.autoPostPlatforms && campaign.autoPostPlatforms.length > 0 
-                                            ? campaign.autoPostPlatforms 
-                                            : campaign.platforms,
+                                          [campaign.id]: platformsToCheck,
                                         });
                                       }
-                                      // Open platform selector first (for both regular and Blog News campaigns)
-                                      setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+
+                                      // Check OAuth connections before showing platform selector
+                                      setCheckingOAuthForCampaign(campaign.id);
+                                      try {
+                                        const oauthPlatforms = platformsToCheck.map(
+                                          (p) => (p === "x" ? "twitter" : p)
+                                        ) as OauthPlatform[];
+                                        const results = await checkAllProjectOAuthProviders(
+                                          projectId as string,
+                                          session.user.id,
+                                          oauthPlatforms
+                                        );
+                                        const disconnected = platformsToCheck.filter((p) => {
+                                          const key = (p === "x" ? "twitter" : p) as OauthPlatform;
+                                          return !results[key]?.hasProviderConnected;
+                                        });
+                                        const connected = platformsToCheck.filter((p) => {
+                                          const key = (p === "x" ? "twitter" : p) as OauthPlatform;
+                                          return results[key]?.hasProviderConnected;
+                                        });
+                                        if (disconnected.length > 0) {
+                                          // Show warning immediately — don't open platform selector yet
+                                          setDisconnectedPlatformsWarning({
+                                            campaignId: campaign.id,
+                                            disconnected,
+                                            connected,
+                                          });
+                                        } else {
+                                          // All connected — open platform selector
+                                          setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: true });
+                                        }
+                                      } finally {
+                                        setCheckingOAuthForCampaign(null);
+                                      }
                                       return;
                                     } else {
                                       // Disable auto-post
@@ -1794,47 +1831,14 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                       Cancel
                                     </Button>
                                     <Button
-                                      loading={checkingOAuthForCampaign === campaign.id}
-                                      onClick={async () => {
+                                      onClick={() => {
                                         const platforms = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
                                         if (platforms.length === 0) {
                                           toast.error("Please select at least one platform");
                                           return;
                                         }
                                         setIsPlatformSelectorOpen({ ...isPlatformSelectorOpen, [campaign.id]: false });
-
-                                        if (!session?.user?.id) return;
-                                        setCheckingOAuthForCampaign(campaign.id);
-                                        try {
-                                          // x → twitter to match OauthPlatform enum
-                                          const oauthPlatforms = platforms.map(
-                                            (p) => (p === "x" ? "twitter" : p)
-                                          ) as OauthPlatform[];
-                                          const results = await checkAllProjectOAuthProviders(
-                                            projectId as string,
-                                            session.user.id,
-                                            oauthPlatforms
-                                          );
-                                          const disconnected = platforms.filter((p) => {
-                                            const key = (p === "x" ? "twitter" : p) as OauthPlatform;
-                                            return !results[key]?.hasProviderConnected;
-                                          });
-                                          const connected = platforms.filter((p) => {
-                                            const key = (p === "x" ? "twitter" : p) as OauthPlatform;
-                                            return results[key]?.hasProviderConnected;
-                                          });
-                                          if (disconnected.length > 0) {
-                                            setDisconnectedPlatformsWarning({
-                                              campaignId: campaign.id,
-                                              disconnected,
-                                              connected,
-                                            });
-                                          } else {
-                                            setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
-                                          }
-                                        } finally {
-                                          setCheckingOAuthForCampaign(null);
-                                        }
+                                        setIsTimePickerOpen({ ...isTimePickerOpen, [campaign.id]: true });
                                       }}
                                     >
                                       Continue
@@ -1851,32 +1855,52 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                               >
                                 <DialogContent className="sm:max-w-[425px]">
                                   <DialogHeader>
-                                    <DialogTitle>Social accounts not connected</DialogTitle>
+                                    <DialogTitle>Connect your social accounts</DialogTitle>
                                     <DialogDescription>
-                                      The following platforms selected for this campaign are not yet connected to your account.
-                                      Please connect them first to enable auto-posting.
+                                      To enable auto-posting for this campaign, connect the accounts below.
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="py-3 space-y-2">
-                                    {disconnectedPlatformsWarning?.disconnected.map((platform) => {
-                                      const platformKey = platform as PlatformId;
-                                      const icon = PLATFORM_ICONS[platformKey];
-                                      const label = PLATFORM_LABELS[platformKey] ?? (platform.charAt(0).toUpperCase() + platform.slice(1));
-                                      return (
-                                        <div key={platform} className="flex items-center gap-2 text-sm font-medium text-destructive">
-                                          {icon && (
-                                            <Image
-                                              src={icon}
-                                              width={16}
-                                              height={16}
-                                              alt={label}
-                                              className="dark:brightness-0 dark:invert"
-                                            />
-                                          )}
-                                          {label} — not connected
-                                        </div>
-                                      );
-                                    })}
+                                    {/* All campaign platforms — connected ones shown as ✓, missing ones as ✗ */}
+                                    {[
+                                      ...(disconnectedPlatformsWarning?.disconnected ?? []),
+                                      ...(disconnectedPlatformsWarning?.connected ?? []),
+                                    ]
+                                      .sort((a, b) => {
+                                        const aConnected = disconnectedPlatformsWarning?.connected.includes(a);
+                                        const bConnected = disconnectedPlatformsWarning?.connected.includes(b);
+                                        return (bConnected ? 1 : 0) - (aConnected ? 1 : 0);
+                                      })
+                                      .map((platform) => {
+                                        const platformKey = platform as PlatformId;
+                                        const icon = PLATFORM_ICONS[platformKey];
+                                        const label = PLATFORM_LABELS[platformKey] ?? (platform.charAt(0).toUpperCase() + platform.slice(1));
+                                        const isConnected = disconnectedPlatformsWarning?.connected.includes(platform);
+                                        return (
+                                          <div
+                                            key={platform}
+                                            className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm ${isConnected ? "bg-muted/50" : "border border-destructive/30 bg-destructive/5"}`}
+                                          >
+                                            <div className="flex items-center gap-2 font-medium">
+                                              {icon && (
+                                                <Image
+                                                  src={icon}
+                                                  width={16}
+                                                  height={16}
+                                                  alt={label}
+                                                  className="dark:brightness-0 dark:invert"
+                                                />
+                                              )}
+                                              {label}
+                                            </div>
+                                            {isConnected ? (
+                                              <span className="text-xs text-green-600 font-medium">Connected ✓</span>
+                                            ) : (
+                                              <span className="text-xs text-destructive font-medium">Not connected</span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                   </div>
                                   <DialogFooter className="flex-col gap-2 sm:flex-col">
                                     <Button
