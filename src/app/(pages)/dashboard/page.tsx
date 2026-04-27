@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { Lock } from "lucide-react";
+import Cookie from "js-cookie";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Loading from "@/components/common/loading";
 import { AddGuidedProjectModal } from "./_components/add-guided-project-modal";
@@ -16,6 +18,8 @@ import { VoiceInput } from "./_components/voice-input";
 import { DashboardChat, type DashboardChatMode } from "./_components/dashboard-chat";
 import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 import { AdminQuickLinks } from "./_components/admin-quick-links";
+import { isSubscriptionExpired } from "@/lib/sub";
+import { AUTH_TOKEN_COOKIE_NAME, FREE_DASHBOARD_CHAT_SESSIONS } from "@/constants/common";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -32,7 +36,7 @@ export default function Home() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const { isLoading: sessionLoading, isError: sessionError, data: session } = useSession();
   const projects = useGetAllProjects();
-  const { open: pricingModalOpen } = usePricingModal();
+  const { open: pricingModalOpen, setOpen: setPricingModalOpen } = usePricingModal();
   const { focusContext } = useFocus();
   const { hideFeatureRequest, showFeatureRequest } = useWidgetVisibility();
   const onboardingShownRef = useRef(false);
@@ -40,16 +44,51 @@ export default function Home() {
   const [chatMode, setChatMode] = useState(false);
   const [chatFlowType, setChatFlowType] = useState<DashboardChatMode>("chat");
   const [initialChatMessage, setInitialChatMessage] = useState("");
-  
+  const [sessionLimitReached, setSessionLimitReached] = useState(false);
+
   // Determine if user is new (has fewer than 3 projects)
   const isNewUser = (projects.data?.length ?? 0) < 3;
   const greeting = getGreeting(session?.user?.name);
 
-  const handleChatSubmit = useCallback((text: string, mode: DashboardChatMode = "chat") => {
+  // Compute premium status and session limit on the client from cached session data
+  useEffect(() => {
+    if (sessionLoading || !session) return;
+    const sub = session.subscription;
+    const hasPremium =
+      !!sub && !isSubscriptionExpired(sub.endsAt).isExpired;
+    if (!hasPremium) {
+      const used = (session.user as { dashboardChatSessionsUsed?: number })
+        ?.dashboardChatSessionsUsed ?? 0;
+      if (used >= FREE_DASHBOARD_CHAT_SESSIONS) {
+        setSessionLimitReached(true);
+      }
+    }
+  }, [session, sessionLoading]);
+
+  const handleChatSubmit = useCallback(async (text: string, mode: DashboardChatMode = "chat") => {
+    if (sessionLimitReached) return;
+
+    const token = Cookie.get(AUTH_TOKEN_COOKIE_NAME);
+    try {
+      const res = await fetch("/api/dashboard-chat/session/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.status === 403) {
+        setSessionLimitReached(true);
+        return;
+      }
+    } catch {
+      // Network error – still allow entry to avoid blocking the user
+    }
+
     setInitialChatMessage(text);
     setChatFlowType(mode);
     setChatMode(true);
-  }, []);
+  }, [sessionLimitReached]);
 
   const handleBackToDashboard = useCallback(() => {
     setChatMode(false);
@@ -199,30 +238,65 @@ export default function Home() {
             </header>
 
             {/* Voice Input - Whisper transcription with waveform animation */}
-            <VoiceInput onSubmit={handleChatSubmit} />
+            <VoiceInput onSubmit={handleChatSubmit} disabled={sessionLimitReached} />
 
             {/* Quick suggestion bubbles */}
             <div className="flex items-center gap-2 -mt-3">
               <button
-                onClick={() => handleChatSubmit("Start a project", "start-project")}
-                className="px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 shadow-sm hover:shadow"
+                onClick={() => !sessionLimitReached && handleChatSubmit("Start a project", "start-project")}
+                disabled={sessionLimitReached}
+                className={cn(
+                  "px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground transition-all duration-200 shadow-sm",
+                  sessionLimitReached
+                    ? "opacity-40 cursor-not-allowed"
+                    : "hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:shadow"
+                )}
               >
                 Start a project
               </button>
               <button
-                onClick={() => handleChatSubmit("Help me brainstorm a new project idea")}
-                className="px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 shadow-sm hover:shadow"
+                onClick={() => !sessionLimitReached && handleChatSubmit("Help me brainstorm a new project idea")}
+                disabled={sessionLimitReached}
+                className={cn(
+                  "px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground transition-all duration-200 shadow-sm",
+                  sessionLimitReached
+                    ? "opacity-40 cursor-not-allowed"
+                    : "hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:shadow"
+                )}
               >
                 Brainstorm project idea
               </button>
               <button
-                onClick={() => handleChatSubmit("Help me brainstorm a new content idea")}
-                className="px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 shadow-sm hover:shadow"
+                onClick={() => !sessionLimitReached && handleChatSubmit("Help me brainstorm a new content idea")}
+                disabled={sessionLimitReached}
+                className={cn(
+                  "px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm text-muted-foreground transition-all duration-200 shadow-sm",
+                  sessionLimitReached
+                    ? "opacity-40 cursor-not-allowed"
+                    : "hover:text-foreground hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:shadow"
+                )}
               >
                 Brainstorm content idea
               </button>
               <AdminQuickLinks isInternalAdmin={session?.isInternalAdmin} />
             </div>
+
+            {/* Session limit upgrade banner */}
+            {sessionLimitReached && (
+              <div className="-mt-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  You&apos;ve used your {FREE_DASHBOARD_CHAT_SESSIONS} free chat sessions.{" "}
+                  <button
+                    onClick={() => setPricingModalOpen(true)}
+                    className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
+                  >
+                    Get premium
+                  </button>{" "}
+                  to have more access.
+                </p>
+              </div>
+            )}
 
             {/* Show GetStartedGuide only for new users */}
             {isNewUser && <GetStartedGuide />}

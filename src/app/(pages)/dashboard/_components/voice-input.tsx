@@ -16,9 +16,10 @@ interface VoiceInputProps {
   onSubmit?: (text: string) => void;
   className?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-export function VoiceInput({ onSubmit, className, placeholder }: VoiceInputProps) {
+export function VoiceInput({ onSubmit, className, placeholder, disabled }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -287,20 +288,20 @@ export function VoiceInput({ onSubmit, className, placeholder }: VoiceInputProps
         className="relative flex items-center gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          handleSubmit();
+          if (!disabled) handleSubmit();
         }}
       >
         {/* Mic Button */}
         <button
           type="button"
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isTranscribing}
+          onClick={disabled ? undefined : isRecording ? stopRecording : startRecording}
+          disabled={isTranscribing || disabled}
           className={cn(
             "relative flex-shrink-0 p-3 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             isRecording
               ? "bg-violet-600 text-white shadow-lg shadow-violet-600/30 hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600 dark:shadow-violet-500/30"
               : "bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600 shadow-md hover:shadow-lg",
-            isTranscribing && "opacity-50 cursor-not-allowed"
+            (isTranscribing || disabled) && "opacity-50 cursor-not-allowed"
           )}
           title={isRecording ? "Stop recording" : "Start voice input"}
         >
@@ -387,18 +388,20 @@ export function VoiceInput({ onSubmit, className, placeholder }: VoiceInputProps
             ref={inputRef}
             type="text"
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e) => !disabled && setInputText(e.target.value)}
             placeholder={placeholder || "What would you like to do today?"}
+            disabled={disabled}
             className={cn(
               "w-full h-full px-4 pr-12 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none",
-              (isRecording || isTranscribing) && "opacity-0 pointer-events-none"
+              (isRecording || isTranscribing) && "opacity-0 pointer-events-none",
+              disabled && "cursor-not-allowed"
             )}
-            tabIndex={isRecording || isTranscribing ? -1 : 0}
+            tabIndex={isRecording || isTranscribing || disabled ? -1 : 0}
           />
         </div>
 
         {/* Send Button - shown when there's text and not recording */}
-        {!isRecording && !isTranscribing && inputText.trim() && (
+        {!isRecording && !isTranscribing && !disabled && inputText.trim() && (
           <button
             type="submit"
             className="flex-shrink-0 p-3 rounded-full bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600 shadow-md hover:shadow-lg transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"

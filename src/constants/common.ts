@@ -21,3 +21,5 @@ export type SubscriptionTypes =
 
 export const CHAT_GENERATION_PER_MONTH = 100;
 
+export const FREE_DASHBOARD_CHAT_SESSIONS = 2;
+
