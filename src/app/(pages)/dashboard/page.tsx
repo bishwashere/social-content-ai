@@ -18,7 +18,7 @@ import { VoiceInput } from "./_components/voice-input";
 import { DashboardChat, type DashboardChatMode } from "./_components/dashboard-chat";
 import { useWidgetVisibility } from "@/providers/widget-visibility-provider";
 import { AdminQuickLinks } from "./_components/admin-quick-links";
-import { DashboardIntroModal } from "./_components/dashboard-intro-modal";
+import { DashboardIntroTour } from "@/components/common/dashboard-intro-tour";
 import { isSubscriptionExpired } from "@/lib/sub";
 import { AUTH_TOKEN_COOKIE_NAME, FREE_DASHBOARD_CHAT_SESSIONS } from "@/constants/common";
 
@@ -269,6 +269,7 @@ export default function Home() {
             </header>
 
             {/* Voice Input - Whisper transcription with waveform animation */}
+            <div data-dashboard-section="ai-input" className="space-y-3">
             <VoiceInput onSubmit={handleChatSubmit} disabled={sessionLimitReached} />
 
             {/* Quick suggestion bubbles */}
@@ -328,9 +329,14 @@ export default function Home() {
                 </p>
               </div>
             )}
+            </div>{/* end ai-input */}
 
             {/* Show GetStartedGuide only for new users */}
-            {isNewUser && <GetStartedGuide />}
+            {isNewUser && (
+              <div data-dashboard-section="get-started">
+                <GetStartedGuide />
+              </div>
+            )}
             
             {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
             <TodayTimelineView showGetStartedGuide={isNewUser} />
@@ -343,8 +349,8 @@ export default function Home() {
           onProjectCreated={handleProjectCreated}
           onClose={() => setOnboardingOpen(false)}
         />
-        <DashboardIntroModal
-          open={dashboardIntroOpen}
+        <DashboardIntroTour
+          isOpen={dashboardIntroOpen}
           onClose={() => setDashboardIntroOpen(false)}
         />
       </div>
