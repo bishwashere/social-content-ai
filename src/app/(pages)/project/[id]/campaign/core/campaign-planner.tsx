@@ -3223,7 +3223,19 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                     </div>
                     {/* </div> */}
                     <Dialog open={isCampaignStartDateSettingsOpen.includes(campaign.id)} onOpenChange={() => closeCampaignStartDateSettings(campaign.id)} key={campaign.id}>
-                      <DialogContent onInteractOutside={(e) => { if (isCalenderOpen.includes(campaign.id)) e.preventDefault(); }}>
+                      <DialogContent onInteractOutside={(e) => {
+                          const target = (e as CustomEvent)?.detail?.originalEvent?.target as Element | null;
+                          // Clicks on the react-datepicker calendar (portalled outside dialog DOM)
+                          // must not close the dialog or the calendar — this lets nav arrows work
+                          if (target?.closest?.('.react-datepicker') || target?.closest?.('.react-datepicker-popper')) {
+                            e.preventDefault();
+                            return;
+                          }
+                          if (isCalenderOpen.includes(campaign.id)) {
+                            e.preventDefault();
+                            closeCalendar(campaign.id);
+                          }
+                        }}>
                         <div className="flex justify-end">
                           <button onClick={() => closeCampaignStartDateSettings(campaign.id)}><X className="size-4" /></button>
                         </div>
