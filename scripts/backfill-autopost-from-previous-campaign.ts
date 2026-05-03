@@ -59,6 +59,20 @@ async function main() {
     orderBy: { updatedAt: "desc" },
   });
 
+  // Helper: returns true when a campaign's last day is strictly before today.
+  // Past/completed campaigns must never be auto-post enabled by this script.
+  function isCampaignPast(c: (typeof allCampaigns)[number]): boolean {
+    if (!c.startDate) return false;
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const totalDays = (c as any).totalDays ?? c.chats.length;
+    if (!totalDays || totalDays === 0) return false;
+    const lastDay = new Date(c.startDate);
+    lastDay.setUTCDate(lastDay.getUTCDate() + (totalDays - 1));
+    lastDay.setUTCHours(0, 0, 0, 0);
+    return lastDay < today;
+  }
+
   console.log(`Total campaigns across eligible projects: ${allCampaigns.length}`);
 
   // ── 3. Group by projectId ──────────────────────────────────────────────────
@@ -95,9 +109,15 @@ async function main() {
         ` | time=${refTime} | platforms=[${refPlatforms.join(", ")}]`
     );
 
-    // ── 5. Candidates: autoPostEnabled=false, most posts generated ──────────
+    // ── 5. Candidates: autoPostEnabled=false, most posts generated, NOT past ──
     const candidates = campaigns.filter((c) => {
       if (c.autoPostEnabled) return false; // already enabled
+
+      // Never touch campaigns that have already completed their run
+      if (isCampaignPast(c)) {
+        console.log(`  ⏭ Skip past campaign: "${c.name ?? c.id}"`);
+        return false;
+      }
 
       const total = c.chats.length;
       if (total === 0) return false; // no posts at all

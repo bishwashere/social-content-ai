@@ -196,7 +196,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
         const timeKey = item.scheduledTime
           ? format(new Date(item.scheduledTime), "HH:mm")
           : "unknown";
-        const groupKey = `${item.projectName}|${item.day ?? ""}|${timeKey}`;
+        const groupKey = `${item.projectName}|${item.campaignName ?? ""}|${item.day ?? ""}|${timeKey}`;
         const platformId = normalizePlatformId(item.platform);
 
         if (!grouped.has(groupKey)) {

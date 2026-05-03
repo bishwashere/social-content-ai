@@ -93,6 +93,7 @@ import { DemoChoiceDialog } from "../ui/demo/demo-choice-dialog";
 import { DashboardTourPromptDialog } from "../ui/demo/dashboard-tour-prompt-dialog";
 import { CampaignAutoplayOverlay } from "../ui/demo/autoplay-overlay";
 import { CampaignDemoFeatureTour } from "../ui/demo/feature-tour";
+import { ScheduleSuccessModal, type ScheduleSuccessData } from "../ui/schedule-success-modal";
 
 export { PLATFORMS };
 
@@ -625,6 +626,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
   } | null>(null);
   const [checkingOAuthForCampaign, setCheckingOAuthForCampaign] = useState<string | null>(null);
   const [showOldCampaigns, setShowOldCampaigns] = useState(false);
+  const [scheduleSuccess, setScheduleSuccess] = useState<ScheduleSuccessData | null>(null);
   const scheduleCampaignPosts = useScheduleCampaignPosts();
   const scheduleCampaignTasks = useScheduleCampaignTasks();
   const generateBlogNews = useGenerateBlogNewsContent();
@@ -2098,13 +2100,33 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                       },
                                     });
                                     // Schedule tasks instead of posts
-                                    scheduleCampaignTasks.mutate({
-                                      campaignId: campaign.id,
-                                      projectId: campaign.projectId,
-                                      autoPostTime: time,
-                                      timezone: selectedTimezone,
-                                      platforms: platformsToUse,
-                                    });
+                                    scheduleCampaignTasks.mutate(
+                                      {
+                                        campaignId: campaign.id,
+                                        projectId: campaign.projectId,
+                                        autoPostTime: time,
+                                        timezone: selectedTimezone,
+                                        platforms: platformsToUse,
+                                      },
+                                      {
+                                        onSuccess: (result) => {
+                                          if (result.success && campaign.startDate) {
+                                            setScheduleSuccess({
+                                              campaignName: campaign.name || "Campaign",
+                                              campaignId: campaign.id,
+                                              projectId: campaign.projectId,
+                                              platforms: platformsToUse,
+                                              startDate: campaign.startDate,
+                                              autoPostTime: time,
+                                              timezone: selectedTimezone,
+                                              scheduledCount: result.scheduledCount,
+                                              totalDays: (campaign.chats as any[])?.length ?? campaign.totalDays ?? 0,
+                                              isBlogNews: true,
+                                            });
+                                          }
+                                        },
+                                      }
+                                    );
                                   } else {
                                     // Get selected platforms from state or use saved ones
                                     const platformsToUse = selectedPlatformsForAutoPost[campaign.id] || campaign.autoPostPlatforms || campaign.platforms;
@@ -2123,13 +2145,33 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                                       autoPostPlatforms: platformsToUse,
                                     });
                                     // Schedule posts
-                                    scheduleCampaignPosts.mutate({
-                                      campaignId: campaign.id,
-                                      projectId: campaign.projectId,
-                                      autoPostTime: time,
-                                      timezone: selectedTimezone,
-                                      platforms: platformsToUse,
-                                    });
+                                    scheduleCampaignPosts.mutate(
+                                      {
+                                        campaignId: campaign.id,
+                                        projectId: campaign.projectId,
+                                        autoPostTime: time,
+                                        timezone: selectedTimezone,
+                                        platforms: platformsToUse,
+                                      },
+                                      {
+                                        onSuccess: (result) => {
+                                          if (result.success && campaign.startDate) {
+                                            setScheduleSuccess({
+                                              campaignName: campaign.name || "Campaign",
+                                              campaignId: campaign.id,
+                                              projectId: campaign.projectId,
+                                              platforms: platformsToUse,
+                                              startDate: campaign.startDate,
+                                              autoPostTime: time,
+                                              timezone: selectedTimezone,
+                                              scheduledCount: result.scheduledCount,
+                                              totalDays: (campaign.chats as any[])?.length ?? campaign.totalDays ?? 0,
+                                              isBlogNews: false,
+                                            });
+                                          }
+                                        },
+                                      }
+                                    );
                                   }
                                 }}
                               />
@@ -3450,6 +3492,14 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
         )
         }
       </div>
+
+      {scheduleSuccess && (
+        <ScheduleSuccessModal
+          open={!!scheduleSuccess}
+          onClose={() => setScheduleSuccess(null)}
+          data={scheduleSuccess}
+        />
+      )}
     </div>
   );
 }
