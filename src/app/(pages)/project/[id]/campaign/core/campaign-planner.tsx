@@ -3223,7 +3223,7 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
                     </div>
                     {/* </div> */}
                     <Dialog open={isCampaignStartDateSettingsOpen.includes(campaign.id)} onOpenChange={() => closeCampaignStartDateSettings(campaign.id)} key={campaign.id}>
-                      <DialogContent>
+                      <DialogContent onInteractOutside={(e) => { if (isCalenderOpen.includes(campaign.id)) e.preventDefault(); }}>
                         <div className="flex justify-end">
                           <button onClick={() => closeCampaignStartDateSettings(campaign.id)}><X className="size-4" /></button>
                         </div>
