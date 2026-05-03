@@ -171,6 +171,33 @@ export const changeCampaignData = async (
     if (autoPostTime !== undefined) updateFields.autoPostTime = autoPostTime;
     if (autoPostPlatforms !== undefined) updateFields.autoPostPlatforms = autoPostPlatforms;
     if (repeatNextMonth !== undefined) updateFields.repeatNextMonth = repeatNextMonth;
+
+    // Turning auto-post off: clear repeat flag and remove all pending scheduled posts
+    if (autoPostEnabled === false) {
+      updateFields.repeatNextMonth = false;
+
+      const allScheduledPosts = await prisma.scheduledPost.findMany({
+        where: { status: "pending" },
+        select: { id: true, meta: true },
+      });
+
+      const postsToDelete = allScheduledPosts.filter((post) => {
+        const metaCampaignId = (post.meta as any)?.campaignId;
+        return (
+          metaCampaignId === id ||
+          (typeof metaCampaignId === "string" && metaCampaignId.includes(id))
+        );
+      });
+
+      if (postsToDelete.length > 0) {
+        await prisma.scheduledPost.deleteMany({
+          where: { id: { in: postsToDelete.map((p) => p.id) } },
+        });
+        console.log(
+          `[changeCampaignData] Deleted ${postsToDelete.length} pending scheduled posts for campaign ${id}`
+        );
+      }
+    }
     
     // Store Blog News metadata at campaign level
     if (blogNewsMetadata !== undefined) {
