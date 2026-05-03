@@ -199,7 +199,9 @@ export async function runCampaignDayGeneration(
   if (!projectCampaign) return { success: false, message: "Campaign not found" };
 
   // --- Coin check ---
-  if (!skipCoinCheck) {
+  // Starter campaigns have free generation; coins are charged at schedule time instead.
+  const effectiveSkipCoinCheck = skipCoinCheck || !!projectCampaign.isStarterCampaign;
+  if (!effectiveSkipCoinCheck) {
     const requiredCoins = projectCampaign.platforms.length;
     if (user.remainingChatGenerations < requiredCoins) {
       return {
@@ -315,8 +317,8 @@ export async function runCampaignDayGeneration(
     },
   });
 
-  // --- Deduct coins (only when not bypassed) ---
-  if (!skipCoinCheck) {
+  // --- Deduct coins (only when not bypassed and not a starter campaign) ---
+  if (!effectiveSkipCoinCheck) {
     await prisma.user.update({
       where: { id: user.id },
       data: {

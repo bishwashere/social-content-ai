@@ -90,6 +90,7 @@ import {
 } from "./campaign.constants";
 import { BlogNewsDayContent } from "../content/blog-news-content";
 import { DemoChoiceDialog } from "../ui/demo/demo-choice-dialog";
+import { DashboardTourPromptDialog } from "../ui/demo/dashboard-tour-prompt-dialog";
 import { CampaignAutoplayOverlay } from "../ui/demo/autoplay-overlay";
 import { CampaignDemoFeatureTour } from "../ui/demo/feature-tour";
 
@@ -173,9 +174,11 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
   const [demoLabel, setDemoLabel] = useState<string>("");
   const [showPreDemoMessage, setShowPreDemoMessage] = useState(false); // New state for centered message BEFORE demo
   const [showDemoChoiceDialog, setShowDemoChoiceDialog] = useState(false);
+  const [showDashboardTourPrompt, setShowDashboardTourPrompt] = useState(false);
   const [showProjectLocationTour, setShowProjectLocationTour] = useState(false);
   const projectLocationTourShownRef = useRef(false);
   const demoChoiceResolveRef = useRef<((choice: "watch" | "skip") => void) | null>(null);
+  const dashboardTourPromptResolveRef = useRef<((choice: "yes" | "no") => void) | null>(null);
   const showCampaignFormRef = useRef(showCampaignForm);
 
   useEffect(() => {
@@ -578,6 +581,23 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
         markDemoCampaignCreated(session.user.id).catch(console.error);
       }
       
+      // Ask if user wants a dashboard tour
+      flushSync(() => {
+        setShowDashboardTourPrompt(true);
+      });
+      const tourChoice = await new Promise<"yes" | "no">((resolve) => {
+        dashboardTourPromptResolveRef.current = (choice) => {
+          dashboardTourPromptResolveRef.current = null;
+          resolve(choice);
+        };
+      });
+      flushSync(() => {
+        setShowDashboardTourPrompt(false);
+      });
+      if (tourChoice === "yes") {
+        router.push("/dashboard?tour=dashboard");
+      }
+
       console.log('[DEMO] Demo completed successfully');
       return;
     })();
@@ -853,18 +873,24 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
       const totalCoins = selectedPlatforms.length * totalDays;
       const userCoins = session?.user?.remainingChatGenerations || 0;
 
-      // Check if user has enough coins for full campaign generation
-      if (userCoins < totalCoins) {
-        toast.error(`You need ${totalCoins} coins to auto-generate all ${totalDays} days of content (${selectedPlatforms.length} platforms × ${totalDays} days). You have ${userCoins}.`);
-        handleCoinsFinished();
-        return;
-      }
+      // The first campaign for a project is a "starter campaign": generation is free,
+      // coins are only charged when the user confirms scheduling.
+      const isStarterCampaign = (campaignPlannerData.data?.chatsGroupedByCampaign?.length ?? 0) === 0;
 
-      const yes = await confirm({
-        title: 'Do you want to generate campaign?',
-        description: `Generating Campaign will auto-generate all ${totalDays} days of content and use ${totalCoins} coins (${selectedPlatforms.length} platforms × ${totalDays} days).`
-      })
-      if (!yes) return;
+      if (!isStarterCampaign) {
+        // Check if user has enough coins for full campaign generation
+        if (userCoins < totalCoins) {
+          toast.error(`You need ${totalCoins} coins to auto-generate all ${totalDays} days of content (${selectedPlatforms.length} platforms × ${totalDays} days). You have ${userCoins}.`);
+          handleCoinsFinished();
+          return;
+        }
+
+        const yes = await confirm({
+          title: 'Do you want to generate campaign?',
+          description: `Generating Campaign will auto-generate all ${totalDays} days of content and use ${totalCoins} coins (${selectedPlatforms.length} platforms × ${totalDays} days).`
+        })
+        if (!yes) return;
+      }
     }
 
     const plan = {
@@ -1098,6 +1124,11 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
         open={showDemoChoiceDialog}
         onCountdownZero={() => demoChoiceResolveRef.current?.("watch")}
         onSkip={() => demoChoiceResolveRef.current?.("skip")}
+      />
+      <DashboardTourPromptDialog
+        open={showDashboardTourPrompt}
+        onConfirm={() => dashboardTourPromptResolveRef.current?.("yes")}
+        onSkip={() => dashboardTourPromptResolveRef.current?.("no")}
       />
       {/* Pre-demo centered message - shows BEFORE demo starts */}
       {showPreDemoMessage && (

@@ -48,6 +48,7 @@ export default function Home() {
   const [sessionLimitReached, setSessionLimitReached] = useState(false);
   const [dashboardIntroOpen, setDashboardIntroOpen] = useState(false);
   const introShownRef = useRef(false);
+  const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Determine if user is new (has fewer than 3 projects)
   const isNewUser = (projects.data?.length ?? 0) < 3;
@@ -71,11 +72,18 @@ export default function Home() {
   // Show the one-time dashboard intro after the user has at least 1 project
   // (meaning they've been through onboarding and demo — complete or cancelled).
   // Guard: don't show while the onboarding or pricing modals are still open.
+  //
+  // IMPORTANT: the timer is stored in introTimerRef and is NOT cleared in this
+  // effect's own cleanup — only on component unmount.  Without this, React
+  // Query's stale-while-revalidate background refetch gives `session` a new
+  // object reference on client-side navigation, causing the effect cleanup to
+  // fire and cancel the timer before it can open the tour.
   useEffect(() => {
+    if (introShownRef.current) return;
     if (sessionLoading || sessionError) return;
     if (projects.isLoading) return;
     if (pricingModalOpen || onboardingOpen) return;
-    if (introShownRef.current) return;
+    if (!session) return;
 
     const hasProjects = (projects.data?.length ?? 0) >= 1;
     const alreadySeen = (session?.user as { dashboardIntroShown?: boolean })
@@ -83,8 +91,8 @@ export default function Home() {
 
     if (hasProjects && !alreadySeen) {
       introShownRef.current = true;
-      const timer = setTimeout(() => setDashboardIntroOpen(true), 600);
-      return () => clearTimeout(timer);
+      // Store in ref — not cleared on dep-change, only on unmount
+      introTimerRef.current = setTimeout(() => setDashboardIntroOpen(true), 600);
     }
   }, [
     sessionLoading,
@@ -95,6 +103,13 @@ export default function Home() {
     pricingModalOpen,
     onboardingOpen,
   ]);
+
+  // Clean up intro timer only when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    };
+  }, []);
 
   const handleChatSubmit = useCallback(async (text: string, mode: DashboardChatMode = "chat") => {
     if (sessionLimitReached) return;

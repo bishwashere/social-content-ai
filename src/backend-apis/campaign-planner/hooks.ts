@@ -257,6 +257,7 @@ export const useChangeCampaignData = () => {
 
 export const useScheduleCampaignPosts = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: ({
@@ -271,7 +272,7 @@ export const useScheduleCampaignPosts = () => {
       autoPostTime: string;
       timezone?: string;
       platforms: string[];
-    }) => scheduleCampaignPosts({ campaignId, projectId, autoPostTime, timezone, platforms }),
+    }) => scheduleCampaignPosts({ campaignId, projectId, autoPostTime, timezone, platforms, userId: session?.user?.id }),
 
     onSuccess: (result, variables) => {
       if (result.success) {
@@ -282,6 +283,8 @@ export const useScheduleCampaignPosts = () => {
         queryClient.invalidateQueries({
           queryKey: ["scheduledPosts"],
         });
+        // Refresh session so the coin balance in the UI updates
+        queryClient.invalidateQueries({ queryKey: ["session"] });
       } else {
         if (result.errors.length > 0) {
           toast.error(result.errors[0]);
@@ -298,6 +301,7 @@ export const useScheduleCampaignPosts = () => {
 
 export const useScheduleCampaignTasks = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: ({
@@ -312,7 +316,7 @@ export const useScheduleCampaignTasks = () => {
       autoPostTime: string;
       timezone?: string;
       platforms: string[];
-    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, timezone, platforms }),
+    }) => scheduleCampaignTasks({ campaignId, projectId, autoPostTime, timezone, platforms, userId: session?.user?.id }),
 
     onSuccess: (result, variables) => {
       if (result.success) {
@@ -320,6 +324,8 @@ export const useScheduleCampaignTasks = () => {
         queryClient.invalidateQueries({
           queryKey: ["campaignPlanner", variables.projectId],
         });
+        // Refresh session so the coin balance in the UI updates
+        queryClient.invalidateQueries({ queryKey: ["session"] });
       } else {
         if (result.errors.length > 0) {
           toast.error(result.errors[0]);

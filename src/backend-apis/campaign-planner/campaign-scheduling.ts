@@ -49,12 +49,14 @@ export const scheduleCampaignPosts = async ({
   autoPostTime,
   timezone,
   platforms,
+  userId,
 }: {
   campaignId: string;
   projectId: string;
   autoPostTime: string; // Format: "HH:mm"
   timezone?: string; // IANA timezone string (e.g., "America/New_York")
   platforms: string[];
+  userId?: string; // Required for coin deduction on starter campaigns
 }): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
   try {
     // Get campaign with chats
@@ -199,6 +201,34 @@ export const scheduleCampaignPosts = async ({
       }
     }
 
+    // --- Starter campaign: charge coins now that the user has confirmed scheduling ---
+    if (campaign.isStarterCampaign && userId) {
+      const generatedDays = campaign.chats.filter((c) => c.status === "GENERATED").length;
+      const coinsToCharge = generatedDays * campaign.platforms.length;
+      if (coinsToCharge > 0) {
+        // Check balance first; block scheduling if not enough coins
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user || user.remainingChatGenerations < coinsToCharge) {
+          return {
+            success: false,
+            scheduledCount: 0,
+            errors: [
+              `You need ${coinsToCharge} coins to schedule this campaign (${generatedDays} days × ${campaign.platforms.length} platforms). You have ${user?.remainingChatGenerations ?? 0}.`,
+            ],
+          };
+        }
+        await prisma.user.update({
+          where: { id: userId },
+          data: { remainingChatGenerations: { decrement: coinsToCharge } },
+        });
+      }
+      // Clear the starter flag so re-scheduling doesn't charge again
+      await prisma.campaignPlanner.update({
+        where: { id: campaignId },
+        data: { isStarterCampaign: false },
+      });
+    }
+
     return {
       success: errors.length === 0,
       scheduledCount,
@@ -222,12 +252,14 @@ export const scheduleCampaignTasks = async ({
   autoPostTime,
   timezone,
   platforms,
+  userId,
 }: {
   campaignId: string;
   projectId: string;
   autoPostTime: string; // Format: "HH:mm"
   timezone?: string; // IANA timezone string (e.g., "America/New_York")
   platforms: string[]; // Platforms to post to after blog is generated
+  userId?: string; // Required for coin deduction on starter campaigns
 }): Promise<{ success: boolean; scheduledCount: number; errors: string[] }> => {
   try {
     // Get campaign with chats
@@ -382,6 +414,33 @@ export const scheduleCampaignTasks = async ({
           `Failed to schedule day ${chat.day}: ${error instanceof Error ? error.message : "Unknown error"}`
         );
       }
+    }
+
+    // --- Starter campaign: charge coins now that the user has confirmed scheduling ---
+    if (campaign.isStarterCampaign && userId) {
+      const generatedDays = campaign.chats.filter((c) => c.status === "GENERATED").length;
+      const coinsToCharge = generatedDays * campaign.platforms.length;
+      if (coinsToCharge > 0) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user || user.remainingChatGenerations < coinsToCharge) {
+          return {
+            success: false,
+            scheduledCount: 0,
+            errors: [
+              `You need ${coinsToCharge} coins to schedule this campaign (${generatedDays} days × ${campaign.platforms.length} platforms). You have ${user?.remainingChatGenerations ?? 0}.`,
+            ],
+          };
+        }
+        await prisma.user.update({
+          where: { id: userId },
+          data: { remainingChatGenerations: { decrement: coinsToCharge } },
+        });
+      }
+      // Clear the starter flag so re-scheduling doesn't charge again
+      await prisma.campaignPlanner.update({
+        where: { id: campaignId },
+        data: { isStarterCampaign: false },
+      });
     }
 
     return {

@@ -53,8 +53,14 @@ export const startCampaignPlanner = async (
 
   // Allow creating empty campaigns without checking for all coins upfront
   // Coins will be deducted when generating individual chat content
-  // Only check if user has at least 1 coin to create the campaign structure
-  if (user.remainingChatGenerations < 1) {
+  // Only check if user has at least 1 coin to create the campaign structure.
+  // Starter campaigns (first campaign per project) are exempt: coins are charged at schedule time.
+  const existingCampaignCount = await prisma.campaignPlanner.count({
+    where: { projectId },
+  });
+  const isStarterCampaign = !id && existingCampaignCount === 0;
+
+  if (!isStarterCampaign && user.remainingChatGenerations < 1) {
     return {
       success: false,
       message: `You need at least 1 coin to create a campaign.`,
@@ -119,6 +125,7 @@ export const startCampaignPlanner = async (
       startDate: new Date(),
       platforms: platforms,
       totalDays: totalDays, // Save totalDays when creating campaign
+      isStarterCampaign,
       // Store Blog News metadata at campaign level
       ...(plan.goal === "Blog News" && blogNewsMetadata ? {
         blogNewsMetadata: {
