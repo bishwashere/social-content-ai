@@ -1451,6 +1451,74 @@ export default function CampaignPlannerPage({ project, analyticsEligible = false
               </label>
             </div>
 
+            {/* Cost estimator — shown once goal + platforms are chosen */}
+            {selectedGoal && selectedPlatforms.length > 0 && (() => {
+              if (selectedGoal === "blog-news") {
+                return (
+                  <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-1.5 text-sm">
+                    <div className="flex items-center gap-2 font-semibold text-foreground">
+                      <Sparkles className="h-4 w-4 text-blue-500" />
+                      Campaign Estimate
+                    </div>
+                    <p className="text-muted-foreground">
+                      Blog News campaigns are <span className="text-foreground font-medium">free to generate</span> — no coins required.
+                    </p>
+                  </div>
+                );
+              }
+              const plan = campaignPlanner.find(g => g.id === selectedGoal);
+              if (!plan) return null;
+              const intensityPlan = plan.intensityPlans[selectedTargetAudience - 1];
+              if (!intensityPlan) return null;
+              const totalDays = intensityPlan.data.length;
+              const totalCoins = selectedPlatforms.length * totalDays;
+              const isStarterCampaign = (campaignPlannerData.data?.chatsGroupedByCampaign?.length ?? 0) === 0;
+              const userCoins = session?.user?.remainingChatGenerations ?? 0;
+              const hasEnoughCoins = isStarterCampaign || userCoins >= totalCoins;
+              return (
+                <div className={cn(
+                  "rounded-xl border p-4 space-y-3 text-sm",
+                  hasEnoughCoins
+                    ? "border-border bg-muted/40"
+                    : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                )}>
+                  <div className="flex items-center gap-2 font-semibold text-foreground">
+                    <Sparkles className="h-4 w-4 text-blue-500" />
+                    Campaign Estimate
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-background rounded-lg p-2 border border-border">
+                      <p className="text-lg font-bold text-foreground">{totalDays}</p>
+                      <p className="text-xs text-muted-foreground">Days</p>
+                    </div>
+                    <div className="bg-background rounded-lg p-2 border border-border">
+                      <p className="text-lg font-bold text-foreground">{selectedPlatforms.length}</p>
+                      <p className="text-xs text-muted-foreground">Platforms</p>
+                    </div>
+                    <div className="bg-background rounded-lg p-2 border border-border">
+                      <p className={cn("text-lg font-bold", hasEnoughCoins ? "text-foreground" : "text-red-500")}>
+                        {totalCoins}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Coins</p>
+                    </div>
+                  </div>
+                  {isStarterCampaign ? (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      ✓ Your first campaign generates for free!
+                    </p>
+                  ) : !hasEnoughCoins ? (
+                    <p className="text-xs text-red-500 font-medium">
+                      You have {userCoins} coins — {totalCoins - userCoins} more needed to generate this campaign.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      You have {userCoins} coins. This campaign will use {totalCoins}.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             <Button
               size="lg"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
