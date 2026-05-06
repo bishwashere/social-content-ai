@@ -67,6 +67,25 @@ export type BlogNewsMetadata = {
   productRelated?: boolean;
 };
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripAnglePrefixFromTitle(title: string, angles: string[]): string {
+  const trimmedTitle = title.trim();
+
+  for (const angle of angles) {
+    const anglePrefixPattern = new RegExp(`^${escapeRegex(angle)}\\s*[:\\-]\\s*`, "i");
+    const titleWithoutAnglePrefix = trimmedTitle.replace(anglePrefixPattern, "").trim();
+
+    if (titleWithoutAnglePrefix && titleWithoutAnglePrefix !== trimmedTitle) {
+      return titleWithoutAnglePrefix;
+    }
+  }
+
+  return trimmedTitle;
+}
+
 /**
  * Get blog data from ScheduledPost for a campaign and day
  * This is where Python saves the blog after steps 1 and 2 complete
@@ -711,7 +730,7 @@ REQUIREMENTS:
 
 
 
-1. Create an engaging blog title (max 80 characters).
+1. Create an engaging blog title (max 80 characters). Use the selected angles to shape the article's perspective and analysis, but the title must read like a normal headline. Do NOT include or start with any selected angle label in the title (for example, do not write titles like "Regulatory Angle: ..." or "Economic Reality Angle: ..."). Angle labels belong only in the section headings.
 
 
 
@@ -905,7 +924,8 @@ ADDITIONAL RULES:
     }
 
     // Validate and clean the response
-    const title = parsedResponse.title || articleTitle;
+    const rawTitle = parsedResponse.title || articleTitle;
+    const title = stripAnglePrefixFromTitle(rawTitle, angles);
     const content = parsedResponse.content || `# ${title}\n\n${articleContent}`;
     const tags = Array.isArray(parsedResponse.tags)
       ? parsedResponse.tags.slice(0, 5)
