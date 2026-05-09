@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Lock } from "lucide-react";
+import { Lock, Home as HomeIcon, LayoutGrid } from "lucide-react";
 import Cookie from "js-cookie";
 import { useSession } from "@/backend-apis/auth/hooks";
 import Loading from "@/components/common/loading";
@@ -11,6 +11,7 @@ import { OnboardingModal } from "./_components/onboarding-modal";
 import { usePricingModal } from "@/providers/pricing-modal-provider";
 import { useGetAllProjects } from "@/backend-apis/projects/hooks";
 import { TodayTimelineView } from "./_components/today-timeline-view";
+import { AllProjectsView } from "./_components/all-projects-view";
 import { GetStartedGuide } from "./_components/get-started-guide";
 import { useFocus } from "@/providers/focus-provider";
 import { cn } from "@/lib/cn";
@@ -49,6 +50,7 @@ export default function Home() {
   const [dashboardIntroOpen, setDashboardIntroOpen] = useState(false);
   const introShownRef = useRef(false);
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeView, setActiveView] = useState<"today" | "all-projects">("today");
 
   // Determine if user is new (has fewer than 3 projects)
   const isNewUser = (projects.data?.length ?? 0) < 3;
@@ -346,15 +348,48 @@ export default function Home() {
             )}
             </div>{/* end ai-input */}
 
-            {/* Show GetStartedGuide only for new users */}
-            {isNewUser && (
-              <div data-dashboard-section="get-started">
-                <GetStartedGuide />
-              </div>
+            {/* View toggle — Today vs All Projects */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 w-fit">
+              <button
+                onClick={() => setActiveView("today")}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                  activeView === "today"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                <HomeIcon className="h-3.5 w-3.5" />
+                Today
+              </button>
+              <button
+                onClick={() => setActiveView("all-projects")}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                  activeView === "all-projects"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                All Projects
+              </button>
+            </div>
+
+            {/* View content */}
+            {activeView === "today" ? (
+              <>
+                {/* Show GetStartedGuide only for new users */}
+                {isNewUser && (
+                  <div data-dashboard-section="get-started">
+                    <GetStartedGuide />
+                  </div>
+                )}
+                <TodayTimelineView showGetStartedGuide={isNewUser} />
+              </>
+            ) : (
+              <AllProjectsView />
             )}
-            
-            {/* Unified Today Timeline View - replaces YourTodayPanel, PendingTasksPanel, RecentActivityFeed */}
-            <TodayTimelineView showGetStartedGuide={isNewUser} />
           </div>
         )}
         

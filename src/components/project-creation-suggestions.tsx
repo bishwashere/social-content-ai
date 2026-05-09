@@ -31,6 +31,16 @@ const PLATFORM_ICONS: Record<string, string> = {
 
 const DISMISSED_PAGES_STORAGE_KEY = "dismissed-project-suggestions";
 
+function loadDismissedNames(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const stored = localStorage.getItem(DISMISSED_PAGES_STORAGE_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
 export function ProjectCreationSuggestions({ 
   onHasPagesChange 
 }: { 
@@ -40,30 +50,12 @@ export function ProjectCreationSuggestions({
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   
-  // Load dismissed pages from localStorage - now tracking by oauthProviderId
-  const [dismissedProviderIds, setDismissedProviderIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem(DISMISSED_PAGES_STORAGE_KEY);
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
-  
-  // Save dismissed pages to localStorage whenever it changes
+  const [dismissedNames, setDismissedNames] = useState<Set<string>>(new Set);
+
+  // Read from localStorage after mount to avoid SSR mismatch
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(
-          DISMISSED_PAGES_STORAGE_KEY,
-          JSON.stringify(Array.from(dismissedProviderIds))
-        );
-      } catch (error) {
-        console.error("Failed to save dismissed pages:", error);
-      }
-    }
-  }, [dismissedProviderIds]);
+    setDismissedNames(loadDismissedNames());
+  }, []);
 
   const { data: unlinkedPages = [], isLoading } = useQuery({
     queryKey: ["unlinked-pages", session?.user?.id],
@@ -114,13 +106,14 @@ export function ProjectCreationSuggestions({
     createProjectMutation.mutate(pageName);
   };
 
-  const handleDismiss = (pageName: string, providerIds: string[]) => {
-    // Dismiss all provider IDs for this page name
-    // This way, if connection is reset (new provider ID), it will show again
-    setDismissedProviderIds((prev) => {
-      const newSet = new Set(prev);
-      providerIds.forEach(id => newSet.add(id));
-      return newSet;
+  const handleDismiss = (pageName: string) => {
+    setDismissedNames((prev) => {
+      const next = new Set(prev);
+      next.add(pageName);
+      try {
+        localStorage.setItem(DISMISSED_PAGES_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {/* ignore */}
+      return next;
     });
   };
 
@@ -136,17 +129,9 @@ export function ProjectCreationSuggestions({
     return groups;
   }, [unlinkedPages]);
 
-  // Filter out dismissed pages - check if ALL provider IDs for this page are dismissed
-  // If connection is reset (new provider ID), it will show again
+  // Filter out permanently dismissed page names
   const visiblePageGroups = Object.entries(groupedPages).filter(
-    ([pageName, pages]) => {
-      // Only hide if ALL providers for this page are dismissed
-      // If connection is reset (new provider ID), it will show again
-      const allDismissed = pages.every(page => 
-        dismissedProviderIds.has(page.oauthProviderId)
-      );
-      return !allDismissed;
-    }
+    ([pageName]) => !dismissedNames.has(pageName)
   );
 
   // Notify parent about page availability
@@ -173,7 +158,6 @@ export function ProjectCreationSuggestions({
         {visiblePageGroups.map(([pageName, pages]) => {
           // Get unique platforms for this page name
           const platforms = pages.map((p) => p.platform.toLowerCase());
-          const providerIds = pages.map((p) => p.oauthProviderId);
           
           return (
             <Button
@@ -204,7 +188,7 @@ export function ProjectCreationSuggestions({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDismiss(pageName, providerIds);
+                  handleDismiss(pageName);
                 }}
                 className="flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded p-0.5 transition-colors"
                 aria-label="Dismiss"
