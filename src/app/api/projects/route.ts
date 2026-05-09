@@ -180,10 +180,14 @@ export const POST = applyMiddleware(
       console.error("Error auto-linking providers to new project:", err);
     });
 
-    // Send first-project welcome email — only once, for the user's very first project
+    // FIRST_PROJECT_CREATED is a one-time email — guarded by isFirstProject + emailLog check.
     void (async () => {
       try {
-        if (isFirstProject) {
+        const alreadyLogged = await prisma.emailLog.findFirst({
+          where: { userId: user.id, template: "FIRST_PROJECT_CREATED" },
+        });
+
+        if (isFirstProject && !alreadyLogged) {
           const [totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive] =
             await Promise.all([
               prisma.campaignChat.count(),

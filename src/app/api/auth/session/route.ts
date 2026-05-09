@@ -69,6 +69,8 @@ export const GET = applyMiddleware(
         (p) => !activeProjects.includes(p.id)
       );
 
+      // INACTIVE_PROJECTS is a recurring email (every 3 days) — no one-time guard.
+      // Cadence is controlled solely by lastInformedAboutInactiveProject above.
       if (hasInactiveProjects) {
         const subject = `Your content is waiting for you`;
 
