@@ -7,7 +7,7 @@ export default function WelcomeEmail({ name, activationLink }: { name: string; a
       <Body style={{ backgroundColor: "#f3f4f6", color: "#000", fontFamily: "Arial, sans-serif", padding: "20px" }}>
         <Container style={{ padding: "24px", backgroundColor: "#ffffff", borderRadius: "8px", textAlign: "center" }}>
           <Text style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "12px" }}>
-            Welcome to NextPost AI, {name}!
+            Welcome to nextpostai.com, {name}!
           </Text>
           <Text style={{ fontSize: "16px", color: "#4b5563", marginBottom: "12px" }}>
             We are glad to have you onboard.

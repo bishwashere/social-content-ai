@@ -6,6 +6,8 @@ import { validateUserAuth } from "@/middlewares/validate-auth";
 import axios from "axios";
 import { AI } from "@/lib/ai";
 import { autoLinkAllProvidersToAllProjects } from "@/server-actions/auto-link-oauth-providers";
+import { mail } from "@/lib/mail";
+import { logEmail } from "@/lib/log-email";
 
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -138,6 +140,12 @@ export const POST = applyMiddleware(
       });
     }
 
+    // Capture before creation — if 0, this will be the user's very first project
+    const existingProjectCount = await prisma.projects.count({
+      where: { userId: user.id },
+    });
+    const isFirstProject = existingProjectCount === 0;
+
     // Create project
     const project = await prisma.projects.create({
       data: {
@@ -171,6 +179,53 @@ export const POST = applyMiddleware(
     autoLinkAllProvidersToAllProjects(user.id).catch(err => {
       console.error("Error auto-linking providers to new project:", err);
     });
+
+    // Send first-project welcome email — only once, for the user's very first project
+    void (async () => {
+      try {
+        if (isFirstProject) {
+          const [totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive] =
+            await Promise.all([
+              prisma.campaignChat.count(),
+              prisma.projects.count(),
+              prisma.oauthProvider.count(),
+              prisma.user.count(),
+            ]);
+
+          const appBaseUrl = process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "";
+          const projectUrl = `${appBaseUrl}/project/${project.id}`;
+
+          const subject = `You just launched "${project.name}". Here's what to do next`;
+
+          await mail.sendTemplate(
+            "FIRST_PROJECT_CREATED",
+            {
+              name: user.name,
+              projectName: project.name,
+              projectUrl,
+              platformStats: {
+                totalPostsGenerated,
+                totalProjectsCreated,
+                totalPlatformsConnected,
+                totalUsersActive,
+              },
+            },
+            { subject, to: [user.email] }
+          );
+
+          await logEmail({
+            userId: user.id,
+            email: user.email,
+            template: "FIRST_PROJECT_CREATED",
+            subject,
+            trigger: "auto",
+            meta: { projectId: project.id, projectName: project.name },
+          });
+        }
+      } catch (err) {
+        console.error("[api/projects][POST] Failed to send first-project email:", err);
+      }
+    })();
 
     // Best-effort background notify (must not crash the request on failure)
     const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL;

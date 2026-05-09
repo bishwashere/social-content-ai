@@ -1,3 +1,4 @@
+import React from "react";
 import { Html, Head, Body, Container, Text, Button, Row, Column, Section } from "@react-email/components";
 
 interface InactivityEmailProps {
@@ -22,7 +23,7 @@ export default function InactivityEmail({ name, dashboardUrl, stats }: Inactivit
           </Text>
 
           <Text style={{ fontSize: "16px", color: "#4b5563", lineHeight: "1.6", textAlign: "center", marginBottom: "32px" }}>
-            You've been building something meaningful. Here's a snapshot of everything you've put together so far — it's worth coming back to.
+            You've been building something meaningful. Here's a snapshot of everything you've put together so far. It's worth coming back to.
           </Text>
 
           <Section style={{ backgroundColor: "#f9fafb", borderRadius: "10px", padding: "20px", marginBottom: "32px" }}>
@@ -55,7 +56,7 @@ export default function InactivityEmail({ name, dashboardUrl, stats }: Inactivit
           </Section>
 
           <Text style={{ fontSize: "15px", color: "#4b5563", lineHeight: "1.6", textAlign: "center", marginBottom: "24px" }}>
-            Your projects are lined up and quietly waiting. Pick up where you left off — every piece of content you create compounds over time.
+            Your projects are lined up and quietly waiting. Pick up where you left off. Every piece of content you create compounds over time.
           </Text>
 
           <Section style={{ textAlign: "center", marginBottom: "32px" }}>

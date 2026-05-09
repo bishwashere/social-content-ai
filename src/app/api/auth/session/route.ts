@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { mail } from "@/lib/mail";
+import { logEmail } from "@/lib/log-email";
 import { PLATFORMS } from "@/lib/prompt";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
@@ -69,24 +70,36 @@ export const GET = applyMiddleware(
       );
 
       if (hasInactiveProjects) {
+        const subject = `Your content is waiting for you`;
+
         await mail.sendTemplate(
           "INACTIVE_PROJECTS",
           {
             name: user.name,
             dashboardUrl:
-              (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL as string) +
-              "/dashboard/content-planner",
+              (process.env.NEXT_PUBLIC_APP_PRODUCTION_URL as string) +
+              "/project",
             stats: {
               projectCount: allProjects.length,
               platformCount: connectedPlatforms.length,
               contentCount,
             },
           },
-          {
-            subject: `Your content is waiting for you`,
-            to: [user.email],
-          }
+          { subject, to: [user.email] }
         );
+
+        await logEmail({
+          userId: user.id,
+          email: user.email,
+          template: "INACTIVE_PROJECTS",
+          subject,
+          trigger: "auto",
+          meta: {
+            projectCount: allProjects.length,
+            platformCount: connectedPlatforms.length,
+            contentCount,
+          },
+        });
       }
     }
 

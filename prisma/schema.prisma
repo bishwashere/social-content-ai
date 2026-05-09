@@ -37,6 +37,7 @@ model User {
   ideas             Idea[]
   newsPreferences   UserNewsPreferences?
   featureRequests   FeatureRequest[]
+  emailLogs         EmailLog[]
 
   @@map("users")
 }
@@ -788,4 +789,22 @@ model PersonaResult {
 
   @@map("persona-results")
   @@index([personaDiscoveryId])
+}
+
+model EmailLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  email      String
+  template   String
+  subject    String
+  sentAt     DateTime @default(now())
+  trigger    String   // "auto" | "manual_backfill" | "test"
+  meta       Json?
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email-logs")
+  @@index([userId])
+  @@index([template])
+  @@index([sentAt])
 }
