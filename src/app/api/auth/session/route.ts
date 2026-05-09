@@ -20,9 +20,23 @@ export const GET = applyMiddleware(
     const lastInformed = user.lastInformedAboutInactiveProject?.getTime() || 0;
 
     if (lastInformed && now - lastInformed > 3 * 24 * 60 * 60 * 1000) {
-      const allProjects = await prisma.projects.findMany({
-        where: { userId: user.id },
-      });
+      const [allProjects, connectedPlatforms, contentCount] = await Promise.all(
+        [
+          prisma.projects.findMany({ where: { userId: user.id } }),
+          prisma.oauthProvider.findMany({
+            where: { userId: user.id },
+            select: { platform: true },
+            distinct: ["platform"],
+          }),
+          prisma.campaignChat.count({
+            where: {
+              planner: {
+                project: { userId: user.id },
+              },
+            },
+          }),
+        ]
+      );
 
       await prisma.user.update({
         where: { id: user.id },
@@ -50,49 +64,29 @@ export const GET = applyMiddleware(
         }
       );
 
-      const inactiveProjects = allProjects.filter(
+      const hasInactiveProjects = allProjects.some(
         (p) => !activeProjects.includes(p.id)
       );
 
-      if (inactiveProjects.length) {
-        const inactiveProjectsDetails: {
-          name: string;
-          inactivePlatforms: string[];
-        }[] = [];
-
-        await Promise.all(
-          inactiveProjects.map(async (p) => {
-            const trackings = trackingGroupByProject[p.id] || [];
-            const platforms = new Set(trackings.map((t) => t.platform));
-            const inactivePlatforms = PLATFORMS.filter(
-              (platform) => !platforms.has(platform)
-            );
-
-            inactiveProjectsDetails.push({
-              name: p.name,
-              inactivePlatforms,
-            });
-          })
+      if (hasInactiveProjects) {
+        await mail.sendTemplate(
+          "INACTIVE_PROJECTS",
+          {
+            name: user.name,
+            dashboardUrl:
+              (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL as string) +
+              "/dashboard/content-planner",
+            stats: {
+              projectCount: allProjects.length,
+              platformCount: connectedPlatforms.length,
+              contentCount,
+            },
+          },
+          {
+            subject: `Your content is waiting for you`,
+            to: [user.email],
+          }
         );
-
-        if (inactiveProjectsDetails.length) {
-          await Promise.resolve(
-            mail.sendTemplate(
-              "INACTIVE_PROJECTS",
-              {
-                name: user.name,
-                dashboardUrl:
-                  (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL as string) +
-                  "/dashboard/content-planner",
-                inactiveProjectsDetails,
-              },
-              {
-                subject: `Your Projects Are Ready to Shape`,
-                to: [user.email],
-              }
-            )
-          );
-        }
       }
     }
 
