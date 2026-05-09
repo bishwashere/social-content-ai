@@ -19,7 +19,7 @@ export const GET = applyMiddleware(
     const now = new Date().getTime();
     const lastInformed = user.lastInformedAboutInactiveProject?.getTime() || 0;
 
-    if (lastInformed && now - lastInformed > 3 * 24 * 60 * 60 * 1000) {
+    if (!lastInformed || now - lastInformed > 3 * 24 * 60 * 60 * 1000) {
       const [allProjects, connectedPlatforms, contentCount] = await Promise.all(
         [
           prisma.projects.findMany({ where: { userId: user.id } }),
