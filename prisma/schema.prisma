@@ -808,3 +808,15 @@ model EmailLog {
   @@index([template])
   @@index([sentAt])
 }
+
+// Template-level click counter — one document per email template.
+// Incremented every time a tracked link in that template is clicked.
+// No user-level data is stored; this is aggregate only.
+model EmailLinkClick {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  template    String   @unique
+  clickCount  Int      @default(0)
+  lastClickAt DateTime @default(now())
+
+  @@map("email-link-clicks")
+}

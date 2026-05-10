@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
 import { mail } from "@/lib/mail";
 import { logEmail } from "@/lib/log-email";
+import { buildTrackedUrl } from "@/lib/email-tracking";
 import { PLATFORMS } from "@/lib/prompt";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { applyMiddleware } from "@/middlewares/apply-middleware";
@@ -74,13 +75,14 @@ export const GET = applyMiddleware(
       if (hasInactiveProjects) {
         const subject = `Your content is waiting for you`;
 
+        const rawDashboardUrl =
+          (process.env.NEXT_PUBLIC_APP_PRODUCTION_URL as string) + "/project";
+
         await mail.sendTemplate(
           "INACTIVE_PROJECTS",
           {
             name: user.name,
-            dashboardUrl:
-              (process.env.NEXT_PUBLIC_APP_PRODUCTION_URL as string) +
-              "/project",
+            dashboardUrl: buildTrackedUrl(rawDashboardUrl, "INACTIVE_PROJECTS"),
             stats: {
               projectCount: allProjects.length,
               platformCount: connectedPlatforms.length,

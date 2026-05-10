@@ -8,6 +8,7 @@ import { AI } from "@/lib/ai";
 import { autoLinkAllProvidersToAllProjects } from "@/server-actions/auto-link-oauth-providers";
 import { mail } from "@/lib/mail";
 import { logEmail } from "@/lib/log-email";
+import { buildTrackedUrl } from "@/lib/email-tracking";
 
 export const GET = applyMiddleware(
   validateUserAuth({ errorIfNotAuthenticated: true }),
@@ -197,7 +198,8 @@ export const POST = applyMiddleware(
             ]);
 
           const appBaseUrl = process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "";
-          const projectUrl = `${appBaseUrl}/project/${project.id}`;
+          const rawProjectUrl = `${appBaseUrl}/project/${project.id}`;
+          const projectUrl = buildTrackedUrl(rawProjectUrl, "FIRST_PROJECT_CREATED");
 
           const subject = `You just launched "${project.name}". Here's what to do next`;
 
