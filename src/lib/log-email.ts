@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { EmailTemplate } from "@/components/email-templates";
 
 interface LogEmailOptions {
   userId: string;
   email: string;
-  template: EmailTemplate;
+  // Accepts any template key, including milestone sub-variants like MILESTONE_REACHED_POSTS
+  template: string;
   subject: string;
   trigger: "auto" | "manual_backfill" | "test";
   meta?: Record<string, unknown>;
