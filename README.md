@@ -30,6 +30,7 @@ Project documentation lives under **`ai-docs/`**, grouped by topic. Supported fo
 - `VIDEO_FLOW_DOCUMENTATION.md` — Video flow documentation
 - `QUICK_VIDEO_MAKER_FEATURE.md` — Quick video maker feature
 - `PROJECT_FOLDERS_FEATURE.md` — Project folders feature
+- `EMAIL_CLICK_TRACKING.md` — Email link click tracking (template-level, aggregate)
 
 ### ai-docs/decisions
 - `DOCUMENTATION_COVERAGE_CHECK.md` — Documentation coverage check (nextpostai.com vs codebase)
