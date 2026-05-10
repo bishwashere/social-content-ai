@@ -9,6 +9,7 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
 import { logEmail } from "../src/lib/log-email";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 
 const LIMIT = 20;
 
@@ -84,7 +85,7 @@ async function main() {
       continue;
     }
 
-    const projectUrl = `${appBaseUrl}/project/${firstProject.id}`;
+    const projectUrl = buildTrackedUrl(`${appBaseUrl}/project/${firstProject.id}`, "FIRST_PROJECT_CREATED");
     const subject = `You just launched "${firstProject.name}". Here's what to do next`;
 
     try {

@@ -7,6 +7,7 @@
 
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 
 // ─── SAFETY: test scripts may only send to a single, pre-approved address ───
 const ALLOWED_TEST_EMAIL = "bishwashere@gmail.com";
@@ -43,7 +44,7 @@ async function main() {
   console.log("Stats:", { totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive });
 
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "";
-  const projectUrl = `${appBaseUrl}/project/${project.id}`;
+  const projectUrl = buildTrackedUrl(`${appBaseUrl}/project/${project.id}`, "FIRST_PROJECT_CREATED");
 
   console.log(`Project URL: ${projectUrl}`);
   console.log(`Sending email to ${TO}...`);

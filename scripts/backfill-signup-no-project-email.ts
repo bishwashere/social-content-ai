@@ -9,6 +9,7 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
 import { logEmail } from "../src/lib/log-email";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 
 const LIMIT = 20;
 
@@ -18,7 +19,7 @@ async function main() {
     process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ??
     "";
 
-  const dashboardUrl = `${appBaseUrl}/project`;
+  const dashboardUrl = buildTrackedUrl(`${appBaseUrl}/project`, "SIGNUP_NO_PROJECT");
 
   // Global platform stats (fetched once)
   const [totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive] =

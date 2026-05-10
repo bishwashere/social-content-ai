@@ -14,6 +14,7 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
 import { logEmail } from "../src/lib/log-email";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 import type { MilestoneType } from "../src/components/email-templates/milestone-reached";
 
 const POSTS_THRESHOLD       = 10;
@@ -59,7 +60,7 @@ async function sendMilestone(
 ) {
   const logTemplate = LOG_TEMPLATE[milestoneType];
   const subject     = SUBJECT[milestoneType](user.name, milestoneValue);
-  const dashboardUrl = `${appBaseUrl}/project/${projectId}`;
+  const dashboardUrl = buildTrackedUrl(`${appBaseUrl}/project/${projectId}`, "MILESTONE_REACHED");
 
   await mail.sendTemplate(
     "MILESTONE_REACHED",

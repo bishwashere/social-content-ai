@@ -8,6 +8,7 @@
 
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 
 // ─── SAFETY: test scripts may only send to a single, pre-approved address ───
 const ALLOWED_TEST_EMAIL = "bishwashere@gmail.com";
@@ -44,7 +45,7 @@ async function main() {
 
   // 1. FIRST_PROJECT_CREATED
   if (firstProject) {
-    const projectUrl = `${appBaseUrl}/project/${firstProject.id}`;
+    const projectUrl = buildTrackedUrl(`${appBaseUrl}/project/${firstProject.id}`, "FIRST_PROJECT_CREATED");
     const subject = `You just launched "${firstProject.name}". Here's what to do next`;
     await mail.sendTemplate(
       "FIRST_PROJECT_CREATED",
@@ -60,7 +61,7 @@ async function main() {
   const noProjectSubject = `${user.name.split(" ")[0]}, your first project is one click away`;
   await mail.sendTemplate(
     "SIGNUP_NO_PROJECT",
-    { name: user.name, dashboardUrl: `${appBaseUrl}/project`, platformStats },
+    { name: user.name, dashboardUrl: buildTrackedUrl(`${appBaseUrl}/project`, "SIGNUP_NO_PROJECT"), platformStats },
     { subject: noProjectSubject, to: [TO] }
   );
   console.log(`[2/3] Sent SIGNUP_NO_PROJECT`);
@@ -80,7 +81,7 @@ async function main() {
     "INACTIVE_PROJECTS",
     {
       name: user.name,
-      dashboardUrl: `${appBaseUrl}/project`,
+      dashboardUrl: buildTrackedUrl(`${appBaseUrl}/project`, "INACTIVE_PROJECTS"),
       stats: {
         projectCount: allProjects.length,
         platformCount: connectedPlatforms.length,

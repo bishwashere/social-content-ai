@@ -1,5 +1,6 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 
 // ─── SAFETY: test scripts may only send to a single, pre-approved address ───
 const ALLOWED_TEST_EMAIL = "bishwashere@gmail.com";
@@ -31,7 +32,7 @@ async function main() {
     TEMPLATE,
     {
       name: user.name,
-      dashboardUrl: `${appBaseUrl}/project`,
+      dashboardUrl: buildTrackedUrl(`${appBaseUrl}/project`, "SIGNUP_NO_PROJECT"),
       platformStats: { totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive },
     },
     { subject, to: [TO] }

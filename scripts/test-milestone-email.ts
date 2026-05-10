@@ -8,6 +8,7 @@
 
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
+import { buildTrackedUrl } from "../src/lib/email-tracking";
 import type { MilestoneType } from "../src/components/email-templates/milestone-reached";
 
 // ─── SAFETY: test scripts may only send to a single, pre-approved address ───
@@ -29,9 +30,10 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
   const projectName = firstProject?.name ?? "My Project";
-  const dashboardUrl = firstProject
+  const rawDashboardUrl = firstProject
     ? `${appBaseUrl}/project/${firstProject.id}`
     : `${appBaseUrl}/project`;
+  const dashboardUrl = buildTrackedUrl(rawDashboardUrl, "MILESTONE_REACHED");
 
   const userStats = {
     totalPosts: await prisma.campaignChat.count({
