@@ -1,22 +1,19 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
 
+// ─── SAFETY: test scripts may only send to a single, pre-approved address ───
+const ALLOWED_TEST_EMAIL = "bishwashere@gmail.com";
 const TO = "bishwashere@gmail.com";
+
+if (!TO || TO.trim() === "") throw new Error("TEST BLOCKED: TO address is empty.");
+if (TO !== ALLOWED_TEST_EMAIL) throw new Error(`TEST BLOCKED: "${TO}" is not the approved test address.`);
+// ─────────────────────────────────────────────────────────────────────────────
+
 const TEMPLATE = "SIGNUP_NO_PROJECT" as const;
 
 async function main() {
   const user = await prisma.user.findUnique({ where: { email: TO } });
   if (!user) throw new Error(`No user found with email ${TO}`);
-
-  // Guard: never send this template twice to the same user
-  const alreadySent = await prisma.emailLog.findFirst({
-    where: { userId: user.id, template: TEMPLATE },
-  });
-  if (alreadySent) {
-    console.log(`Already sent ${TEMPLATE} to ${TO} on ${alreadySent.sentAt.toISOString()}. Skipping.`);
-    await prisma.$disconnect();
-    return;
-  }
 
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? "";
 
@@ -40,18 +37,7 @@ async function main() {
     { subject, to: [TO] }
   );
 
-  await prisma.emailLog.create({
-    data: {
-      userId: user.id,
-      email: user.email,
-      template: TEMPLATE,
-      subject,
-      trigger: "test",
-      meta: {},
-    },
-  });
-
-  console.log("Sent and logged!");
+  console.log("Sent!");
   await prisma.$disconnect();
 }
 

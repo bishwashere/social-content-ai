@@ -9,7 +9,13 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
 
+// ─── SAFETY: test scripts may only send to a single, pre-approved address ───
+const ALLOWED_TEST_EMAIL = "bishwashere@gmail.com";
 const TO = "bishwashere@gmail.com";
+
+if (!TO || TO.trim() === "") throw new Error("TEST BLOCKED: TO address is empty.");
+if (TO !== ALLOWED_TEST_EMAIL) throw new Error(`TEST BLOCKED: "${TO}" is not the approved test address.`);
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? "";

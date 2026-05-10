@@ -38,19 +38,27 @@ async function main() {
     alreadyEmailed.filter(e => e.template === "SIGNUP_NO_PROJECT").map(e => e.userId)
   );
 
-  // ── Category 1: Users WITH projects, not yet emailed ────────────────────────
-  const withProjects = await prisma.user.findMany({
+  // ── Category 1: Users with EXACTLY 1 project, not yet emailed ──────────────
+  // Fetch candidates (has at least 1 project, not yet emailed), then filter to exactly 1
+  const candidates = await prisma.user.findMany({
     where: {
       projects: { some: {} },
       id: { notIn: [...emailedFirstProject] },
     },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 60, // fetch extra so we still get 20 after filtering
     select: { id: true, name: true, email: true, createdAt: true },
   });
 
+  const withProjects: typeof candidates = [];
+  for (const u of candidates) {
+    if (withProjects.length >= 20) break;
+    const count = await prisma.projects.count({ where: { userId: u.id } });
+    if (count === 1) withProjects.push(u);
+  }
+
   console.log(`\n${"─".repeat(70)}`);
-  console.log(`NEXT 20 — Have a project, not yet emailed (FIRST_PROJECT_CREATED)`);
+  console.log(`NEXT 20 — Exactly 1 project, not yet emailed (FIRST_PROJECT_CREATED)`);
   console.log(`${"─".repeat(70)}`);
 
   if (withProjects.length === 0) {

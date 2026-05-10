@@ -30,19 +30,28 @@ async function main() {
   console.log("Platform stats:", { totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive });
   console.log("─".repeat(60));
 
-  // 20 most recently signed-up users
+  // 20 most recently signed-up users who have at least one project
+  // (exact count of 1 is verified per-user in the loop below)
   const recentUsers = await prisma.user.findMany({
+    where: { projects: { some: {} } },
     orderBy: { createdAt: "desc" },
     take: LIMIT,
   });
 
-  console.log(`Found ${recentUsers.length} recent users. Starting...\n`);
+  console.log(`Found ${recentUsers.length} candidates. Starting...\n`);
 
   let sent = 0;
   let skipped = 0;
 
   for (const user of recentUsers) {
-    // Pick the user's very first project (earliest created)
+    // Condition: user must have exactly 1 project (their very first — mirrors live trigger)
+    const projectCount = await prisma.projects.count({ where: { userId: user.id } });
+    if (projectCount !== 1) {
+      console.log(`[SKIP] ${user.email} — has ${projectCount} projects (not exactly 1)`);
+      skipped++;
+      continue;
+    }
+
     const firstProject = await prisma.projects.findFirst({
       where: { userId: user.id },
       orderBy: { createdAt: "asc" },

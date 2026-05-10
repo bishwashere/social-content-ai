@@ -8,7 +8,13 @@
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
 
+// ─── SAFETY: test scripts may only send to a single, pre-approved address ───
+const ALLOWED_TEST_EMAIL = "bishwashere@gmail.com";
 const TO = "bishwashere@gmail.com";
+
+if (!TO || TO.trim() === "") throw new Error("TEST BLOCKED: TO address is empty.");
+if (TO !== ALLOWED_TEST_EMAIL) throw new Error(`TEST BLOCKED: "${TO}" is not the approved test address.`);
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
   // Load the real user from the DB
@@ -24,16 +30,6 @@ async function main() {
 
   console.log(`User : ${user.name} (${user.email})`);
   console.log(`Project: ${project.name} (${project.id})`);
-
-  // Guard: never send this template twice to the same user
-  const alreadySent = await prisma.emailLog.findFirst({
-    where: { userId: user.id, template: "FIRST_PROJECT_CREATED" },
-  });
-  if (alreadySent) {
-    console.log(`Already sent FIRST_PROJECT_CREATED to ${TO} on ${alreadySent.sentAt.toISOString()}. Skipping.`);
-    await prisma.$disconnect();
-    return;
-  }
 
   // Real platform stats
   const [totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive] =
@@ -71,18 +67,7 @@ async function main() {
     }
   );
 
-  await prisma.emailLog.create({
-    data: {
-      userId: user.id,
-      email: user.email,
-      template: "FIRST_PROJECT_CREATED",
-      subject: `You just launched "${project.name}". Here's what to do next`,
-      trigger: "test",
-      meta: { projectId: project.id, projectName: project.name },
-    },
-  });
-
-  console.log("Email sent and logged successfully!");
+  console.log("Email sent successfully!");
   await prisma.$disconnect();
 }
 
