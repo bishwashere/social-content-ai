@@ -32,13 +32,22 @@ async function main() {
   console.log("Platform stats:", { totalPostsGenerated, totalProjectsCreated, totalPlatformsConnected, totalUsersActive });
   console.log("─".repeat(60));
 
-  // 20 most recently signed-up users who have no projects
+  // Exclude users already emailed for this template
+  const alreadyEmailedIds = (
+    await prisma.emailLog.findMany({
+      where: { template: "SIGNUP_NO_PROJECT" },
+      select: { userId: true },
+    })
+  ).map((r) => r.userId);
+
+  // Next batch: users with no projects, not yet emailed
   const recentUsers = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    take: LIMIT,
     where: {
       projects: { none: {} },
+      id: { notIn: alreadyEmailedIds },
     },
+    orderBy: { createdAt: "desc" },
+    take: LIMIT,
   });
 
   console.log(`Found ${recentUsers.length} users with no projects. Starting...\n`);
