@@ -8,6 +8,7 @@
 
 import { mail } from "../src/lib/mail";
 import { prisma } from "../src/lib/prisma";
+import { logEmail } from "../src/lib/log-email";
 
 const LIMIT = 20;
 
@@ -45,6 +46,17 @@ async function main() {
   let sent = 0;
 
   for (const user of recentUsers) {
+    // Guardrail: skip if this template was already sent to this user
+    const alreadySent = await prisma.emailLog.findFirst({
+      where: { userId: user.id, template: "SIGNUP_NO_PROJECT" },
+    });
+    if (alreadySent) {
+      console.log(`[SKIP] ${user.email} — already sent on ${alreadySent.sentAt.toISOString().slice(0, 10)}`);
+      continue;
+    }
+
+    const subject = `${user.name.split(" ")[0]}, your first project is one click away`;
+
     try {
       await mail.sendTemplate(
         "SIGNUP_NO_PROJECT",
@@ -58,11 +70,17 @@ async function main() {
             totalUsersActive,
           },
         },
-        {
-          subject: `${user.name.split(" ")[0]}, your first project is one click away`,
-          to: [user.email],
-        }
+        { subject, to: [user.email] }
       );
+
+      await logEmail({
+        userId: user.id,
+        email: user.email,
+        template: "SIGNUP_NO_PROJECT",
+        subject,
+        trigger: "manual_backfill",
+        meta: {},
+      });
 
       sent++;
       console.log(`[${sent.toString().padStart(2, "0")}] Sent → ${user.email}`);
