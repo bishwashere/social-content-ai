@@ -12,3 +12,13 @@ export function cleanDashes(content: string): string {
     .replace(DASH_CHARS, " - ")           // all Unicode dash variants
     .replace(/\s*--+\s*/g, " - ");       // two or more ASCII hyphens (with optional surrounding spaces)
 }
+
+/**
+ * Strip the angle label prefix from MDX H2 section headings.
+ * Converts "## Risk & Bubble Angle: Speculation & Systemic Impact"
+ * into "## Speculation & Systemic Impact".
+ * Matches any heading where the label ends with "Angle" followed by a colon.
+ */
+export function cleanAngleHeadings(content: string): string {
+  return content.replace(/^(## ).+ Angle: (.+)$/gm, "$1$2");
+}
