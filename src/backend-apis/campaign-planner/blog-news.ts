@@ -730,7 +730,7 @@ REQUIREMENTS:
 
 
 
-1. Create an engaging blog title (max 80 characters). Use the selected angles to shape the article's perspective and analysis, but the title must read like a normal headline. Do NOT include or start with any selected angle label in the title (for example, do not write titles like "Regulatory Angle: ..." or "Economic Reality Angle: ..."). Angle labels belong only in the section headings.
+1. Create an engaging blog title (max 80 characters). Use the selected angles to shape the article's perspective and analysis, but the title must read like a normal headline. Do NOT include or start with any selected angle label in the title (for example, do not write titles like "Regulatory Angle: ..." or "Economic Reality Angle: ..."). Angle labels must never appear in the title or section headings.
 
 
 
@@ -740,7 +740,7 @@ REQUIREMENTS:
 
    - A compelling introduction that hooks the reader
 
-   - Multiple clearly separated angle sections. For EACH angle above, create its OWN section using an MDX H2 heading (##) that contains the full angle text. Example: "## Economic Reality Angle: Job Displacement & Value Creation"
+   - Multiple clearly separated angle sections. For EACH angle above, create its OWN section using an MDX H2 heading (##). The heading must be a short, compelling descriptive title (3-7 words) that captures the theme of that angle's content — do NOT include the angle label itself (e.g., do not write "## Economic Reality Angle: ..." or "## Risk & Bubble Angle: ..."). Instead write something like "## Job Displacement & Value Creation" or "## Speculation & Systemic Impact". The section content must still be fully written from that angle's perspective.
 
    - Provide analysis, reasoning, and examples in each angle section
 
