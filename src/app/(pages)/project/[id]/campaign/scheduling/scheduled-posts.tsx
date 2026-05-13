@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type {
   OauthProvider,
   Projects as Project,
@@ -231,6 +232,11 @@ const truncateText = (text: string, maxLength = 50) => {
   if (firstLine.length <= maxLength) return firstLine;
   return firstLine.slice(0, maxLength) + "…";
 };
+
+const isExpiredTokenError = (error: string) =>
+  error.toLowerCase().includes("session has expired") ||
+  error.toLowerCase().includes("reconnect your") ||
+  error.toLowerCase().includes("access token");
 
 export function ScheduledPosts({ project }: Props) {
   const [selectedPost, setSelectedPost] = useState<PostWithProvider | null>(
@@ -804,9 +810,19 @@ export function ScheduledPosts({ project }: Props) {
                     <div className="px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md mt-2">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-destructive/90 line-clamp-2">
-                          {selectedPost.error}
-                        </p>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-destructive/90 line-clamp-2">
+                            {selectedPost.error}
+                          </p>
+                          {isExpiredTokenError(selectedPost.error) && (
+                            <Link
+                              href="/dashboard/settings"
+                              className="text-xs font-medium text-destructive underline underline-offset-2 hover:opacity-80"
+                            >
+                              Reconnect in Settings →
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -889,9 +905,19 @@ export function ScheduledPosts({ project }: Props) {
                     <div className="px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-destructive/90">
-                          {selectedPost.error}
-                        </p>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-destructive/90">
+                            {selectedPost.error}
+                          </p>
+                          {isExpiredTokenError(selectedPost.error) && (
+                            <Link
+                              href="/dashboard/settings"
+                              className="text-xs font-medium text-destructive underline underline-offset-2 hover:opacity-80"
+                            >
+                              Reconnect in Settings →
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

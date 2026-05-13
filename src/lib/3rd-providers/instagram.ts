@@ -22,6 +22,21 @@ type ConstructorProps = {
 };
 
 /**
+ * Returns true when a Meta/Instagram API error message indicates an expired or
+ * invalid access token that requires the user to reconnect their account.
+ */
+function isExpiredTokenError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("session has expired") ||
+    lower.includes("error validating access token") ||
+    lower.includes("invalid oauth access token") ||
+    lower.includes("access token has expired") ||
+    lower.includes("oauthexception")
+  );
+}
+
+/**
  * Instagram Business API Client
  * Supports two authentication flows:
  * 1. Instagram Login (standalone): Uses graph.instagram.com with instagram_business_* permissions
@@ -194,12 +209,14 @@ class Instagram {
       return publishResult;
     } catch (error: any) {
       console.error("❌ Error posting to Instagram:", error?.response?.data || error);
-      const errorMessage = error?.response?.data?.error?.message 
+      const rawMessage: string = error?.response?.data?.error?.message 
         || error?.message 
         || "Unknown error posting to Instagram";
       return {
         success: false,
-        error: errorMessage,
+        error: isExpiredTokenError(rawMessage)
+          ? "Your Instagram session has expired. Please reconnect your Instagram account in Settings → Connected Accounts."
+          : rawMessage,
       };
     }
   }
