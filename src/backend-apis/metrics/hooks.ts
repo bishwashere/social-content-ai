@@ -9,6 +9,7 @@ import {
   getThreadsMetrics,
   getInstagramMetrics,
   getTiktokMetrics,
+  getDashboardAnalyticsMetrics,
 } from "./actions";
 
 export type RedditPostData = {
@@ -113,6 +114,16 @@ export const useGetTiktokMetrics = (userId: string, projectId: string | null) =>
     queryKey: ["tiktok-metrics", projectId],
     queryFn: () => getTiktokMetrics(userId, projectId),
     enabled: !!projectId && !!userId,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useGetDashboardAnalyticsMetrics = (userId: string) => {
+  return useQuery({
+    queryKey: ["dashboard-analytics-metrics", userId],
+    queryFn: () => getDashboardAnalyticsMetrics(userId),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 min — dashboard widget doesn't need live updates
     refetchOnWindowFocus: false,
   });
 };

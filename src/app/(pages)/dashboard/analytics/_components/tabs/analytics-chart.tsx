@@ -36,6 +36,8 @@ type ChartDataPoint = {
 
 type AnalyticsChartProps = {
   chartData: ChartDataPoint[];
+  /** When true, renders without the Card shell and at a reduced height (for dashboard widgets). */
+  compact?: boolean;
 };
 
 const ChartTooltip = ({ active, label, payload }: TooltipProps<number, string>) => {
@@ -89,7 +91,7 @@ const calculateEngagementDomain = (chartData: ChartDataPoint[]): [number, number
   return maxValue === 0 ? [0, 10] : [0, "auto"];
 };
 
-export const AnalyticsChart = ({ chartData }: AnalyticsChartProps) => {
+export const AnalyticsChart = ({ chartData, compact = false }: AnalyticsChartProps) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -102,6 +104,105 @@ export const AnalyticsChart = ({ chartData }: AnalyticsChartProps) => {
   const postsDomain = calculatePostsDomain(chartData);
   const engagementDomain = calculateEngagementDomain(chartData);
 
+  const chart = (
+    <ResponsiveContainer width="100%" height={compact ? 220 : 300} className="flex">
+      <ComposedChart
+        data={chartData}
+        margin={isMobile ? { left: -18, right: -29 } : undefined}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          dataKey="label"
+          padding={{ left: 0, right: 0 }}
+          tick={{ fontSize: 13 }}
+        />
+
+        {/* Left Y-axis: Number of Posts */}
+        <YAxis
+          yAxisId="left"
+          domain={postsDomain as any}
+          allowDecimals={false}
+          label={!isMobile && !compact ? {
+            value: "Number of Posts",
+            angle: -90,
+            position: "insideLeft",
+            offset: 10,
+            style: { textAnchor: "middle", fill: "#666", fontSize: 13 },
+          } : undefined}
+          tick={{ fontSize: 10 }}
+        />
+
+        {/* Right Y-axis: Engagement Metrics */}
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          domain={engagementDomain as any}
+          label={!isMobile && !compact ? {
+            value: "Impressions / Likes / Comments",
+            angle: 90,
+            position: "insideRight",
+            offset: 10,
+            style: { textAnchor: "middle", fill: "#666", fontSize: 13 },
+          } : undefined}
+          tick={{ fontSize: 13 }}
+        />
+
+        <Tooltip content={<ChartTooltip />} />
+
+        <Legend
+          layout="horizontal"
+          verticalAlign="bottom"
+          align="center"
+          wrapperStyle={{ paddingTop: 8 }}
+          formatter={(value) => DATA_KEY_LABELS[value] || value}
+        />
+
+        {/* Bar: Posts Count (left axis) */}
+        <Bar
+          yAxisId="left"
+          dataKey="totalPosts"
+          maxBarSize={isMobile ? 20 : 40}
+          fill={CHART_COLORS.posts}
+          radius={[4, 4, 0, 0]}
+        />
+
+        {/* Line: Impressions (right axis) */}
+        <Line
+          yAxisId="right"
+          type="monotone"
+          dataKey="totalImpressions"
+          stroke={CHART_COLORS.impressions}
+          strokeWidth={2}
+          dot={{ fill: CHART_COLORS.impressions, stroke: "#fff", r: 4 }}
+        />
+
+        {/* Line: Likes (right axis) */}
+        <Line
+          yAxisId="right"
+          type="monotone"
+          dataKey="totalLikes"
+          stroke={CHART_COLORS.likes}
+          strokeWidth={2}
+          dot={{ fill: CHART_COLORS.likes, stroke: "#fff", r: 4 }}
+        />
+
+        {/* Line: Comments (right axis) */}
+        <Line
+          yAxisId="right"
+          type="monotone"
+          dataKey="totalComments"
+          stroke={CHART_COLORS.comments}
+          strokeWidth={2}
+          dot={{ fill: CHART_COLORS.comments, stroke: "#fff", r: 4 }}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+
+  if (compact) {
+    return <div className="w-full px-2 pt-1">{chart}</div>;
+  }
+
   return (
     <Card className="mt-8">
       <CardHeader>
@@ -111,98 +212,7 @@ export const AnalyticsChart = ({ chartData }: AnalyticsChartProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex p-0 sm:p-4 md:p-7 lg:p-10 w-full">
-        <ResponsiveContainer width="100%" height={300} className="flex">
-          <ComposedChart 
-            data={chartData} 
-            margin={isMobile ? { left: -18, right: -29 } : undefined}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="label" 
-              padding={{ left: 0, right: 0 }} 
-              tick={{ fontSize: 13 }} 
-            />
-            
-            {/* Left Y-axis: Number of Posts */}
-            <YAxis
-              yAxisId="left"
-              domain={postsDomain as any}
-              allowDecimals={false}
-              label={!isMobile ? {
-                value: "Number of Posts",
-                angle: -90,
-                position: "insideLeft",
-                offset: 10,
-                style: { textAnchor: "middle", fill: "#666", fontSize: 13 },
-              } : undefined}
-              tick={{ fontSize: 10 }}
-            />
-            
-            {/* Right Y-axis: Engagement Metrics */}
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              domain={engagementDomain as any}
-              label={!isMobile ? {
-                value: "Impressions / Likes / Comments",
-                angle: 90,
-                position: "insideRight",
-                offset: 10,
-                style: { textAnchor: "middle", fill: "#666", fontSize: 13 },
-              } : undefined}
-              tick={{ fontSize: 13 }}
-            />
-
-            <Tooltip content={<ChartTooltip />} />
-            
-            <Legend
-              layout="horizontal"
-              verticalAlign="bottom"
-              align="center"
-              wrapperStyle={{ paddingTop: 8 }}
-              formatter={(value) => DATA_KEY_LABELS[value] || value}
-            />
-
-            {/* Bar: Posts Count (left axis) */}
-            <Bar
-              yAxisId="left"
-              dataKey="totalPosts"
-              maxBarSize={isMobile ? 20 : 40}
-              fill={CHART_COLORS.posts}
-              radius={[4, 4, 0, 0]}
-            />
-
-            {/* Line: Impressions (right axis) */}
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="totalImpressions"
-              stroke={CHART_COLORS.impressions}
-              strokeWidth={2}
-              dot={{ fill: CHART_COLORS.impressions, stroke: "#fff", r: 4 }}
-            />
-
-            {/* Line: Likes (right axis) */}
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="totalLikes"
-              stroke={CHART_COLORS.likes}
-              strokeWidth={2}
-              dot={{ fill: CHART_COLORS.likes, stroke: "#fff", r: 4 }}
-            />
-
-            {/* Line: Comments (right axis) */}
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="totalComments"
-              stroke={CHART_COLORS.comments}
-              strokeWidth={2}
-              dot={{ fill: CHART_COLORS.comments, stroke: "#fff", r: 4 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+        {chart}
       </CardContent>
     </Card>
   );

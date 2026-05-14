@@ -34,6 +34,16 @@ import { Label } from "@/components/ui/label";
 import { useTheme } from "@/providers/theme-provider";
 import { ProjectOnboardingModal, isProjectOnboardingComplete } from "@/app/(pages)/project/[id]/_components/project-onboarding-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
+
+function getGreeting(name?: string | null): string {
+  const hour = new Date().getHours();
+  let timeGreeting = "Good morning";
+  if (hour >= 12 && hour < 17) timeGreeting = "Good afternoon";
+  else if (hour >= 17) timeGreeting = "Good evening";
+  const firstName = name?.split(" ")[0];
+  return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
+}
 
 interface HeaderProps {
   onTourStart?: () => void;
@@ -52,58 +62,26 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
 
   return (
     <div className="w-full px-4 h-fit relative overflow-hidden flex items-center justify-center">
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
       <div className="flex h-16 items-center justify-between bg-transparent w-full max-w-7xl 2xl:max-w-[90%] mx-auto px-2 md:px-4 lg:px-6 xl:px-10 2xl:px-14">
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-gray-100 transition-colors"
-            onClick={() => {
-              if (sidebar.isMobile) {
-                // On mobile, open/close the sidebar sheet
-                sidebar.toggleSidebar();
-              } else if (sidebar.hidden) {
-                // Un-hide and expand the sidebar
-                sidebar.setHidden(false);
-                sidebar.setOpen(true);
-              } else {
-                // Completely hide the sidebar
-                sidebar.setHidden(true);
-              }
-            }}
-          >
-            {sidebar.isMobile ? (
-              <PanelLeft className="h-4 w-4" />
-            ) : sidebar.hidden ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-            <span className="sr-only">Toggle Sidebar</span>
-          </Button>
-          {(sidebar.hidden || !sidebar.open) && (
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              <Image
-                src="/logo-transparent.png"
-                width="100"
-                height="100"
-                alt="NextPostAi"
-                className="size-6"
-              />
-            </button>
-          )}
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="truncate cursor-pointer hover:opacity-80 transition-opacity text-left"
-            >
-              {projects?.data?.find((project) => project.id === id)?.name ||
-                "Dashboard"}
-            </button>
+            {projects?.data?.find((project) => project.id === id) ? (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="truncate cursor-pointer hover:opacity-80 transition-opacity text-left"
+              >
+                {projects?.data?.find((project) => project.id === id)?.name}
+              </button>
+            ) : (
+              <div className="flex flex-col justify-center">
+                <p className="text-xs text-muted-foreground leading-none mb-0.5">
+                  {format(new Date(), "EEEE, MMMM d")}
+                </p>
+                <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent leading-tight">
+                  {getGreeting(data?.user?.name)}
+                </h1>
+              </div>
+            )}
             {(() => {
               const project = projects?.data?.find(
                 (project) => project.id === id

@@ -234,7 +234,7 @@ const Main = ({ children }: { children: React.ReactNode }) => {
           <div className="absolute top-1/2 -left-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl" />
           <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-gradient-to-br from-amber-400/10 to-orange-400/10 rounded-full blur-3xl" />
         </div>
-        <div className="w-full overflow-hidden mb-5 relative">
+        <div className="w-full overflow-hidden relative">
           <Header 
             onTourStart={handleTourStart}
             subscribeRef={subscribeRef}

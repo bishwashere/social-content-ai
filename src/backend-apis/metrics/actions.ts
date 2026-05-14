@@ -1184,3 +1184,79 @@ export const getAllPlatformMetrics = async (userId: string, projectId: string | 
     throw new Error("Could not load data!");
   }
 }
+
+/**
+ * Fetches platform post metrics across ALL projects for a user.
+ * Reads only from the local DB (no live API calls) — suitable for dashboard widgets.
+ */
+export const getDashboardAnalyticsMetrics = async (userId: string) => {
+  try {
+    if (!userId) {
+      return { success: false, message: "No user id provided", data: [] };
+    }
+
+    // Collect project IDs the user owns or has been invited to
+    const ownedProjects = await prisma.projects.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+
+    const invitedProjects = await prisma.invitedUser.findMany({
+      where: { userId },
+      select: { projectId: true },
+    });
+
+    const allProjectIds = [
+      ...ownedProjects.map((p) => p.id),
+      ...invitedProjects.map((p) => p.projectId),
+    ];
+
+    if (allProjectIds.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // Get all OauthProvider IDs linked to those projects
+    const linkedProviderLinks = await prisma.projectToOAuthProvider.findMany({
+      where: { projectId: { in: allProjectIds } },
+      select: { oauthProviderId: true },
+    });
+
+    const providerIds = [
+      ...new Set(
+        linkedProviderLinks
+          .map((l) => l.oauthProviderId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+
+    if (providerIds.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // Fetch all posts from those providers
+    const posts = await prisma.platformPost.findMany({
+      where: { oauthProviderId: { in: providerIds } },
+      select: {
+        id: true,
+        date: true,
+        likes: true,
+        comments: true,
+        impressions: true,
+      },
+      orderBy: { date: "asc" },
+    });
+
+    const serialized = posts.map((p) => ({
+      id: p.id,
+      date: p.date.toISOString(),
+      likes: p.likes ?? 0,
+      comments: p.comments ?? 0,
+      impressions: p.impressions ?? 0,
+    }));
+
+    return { success: true, data: serialized };
+  } catch (error) {
+    console.error("[getDashboardAnalyticsMetrics] Error:", error);
+    return { success: false, message: "Could not load analytics", data: [] };
+  }
+};

@@ -39,6 +39,11 @@ const Subscription = () => {
   }, null, 2));
 
 
+  // Pro users get no pill in the header
+  if (isActive && !isTrial) {
+    return null;
+  }
+
   // Determine status and styling
   let statusText = "";
   let statusColor = "";
@@ -47,14 +52,7 @@ const Subscription = () => {
   let borderColor = "";
 
   // Determine status
-  if (isActive && !isTrial) {
-    // Paid / Pro
-    statusText = "Pro";
-    statusColor = "✨";
-    bgColor = "bg-blue-50 dark:bg-blue-950/20";
-    textColor = "text-blue-700 dark:text-blue-400";
-    borderColor = "border-blue-200 dark:border-blue-800";
-  } else if (isTrial) {
+  if (isTrial) {
     // Premium mode
     statusText = "Premium";
     statusColor = "🟣";

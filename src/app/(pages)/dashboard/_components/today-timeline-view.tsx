@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -16,10 +16,12 @@ import {
   Folder,
   Lightbulb,
   Sparkles,
+  X,
   Zap,
   CheckCircle,
   AlertCircle,
-  Settings
+  Settings,
+  BellOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +63,53 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [hasUnlinkedPages, setHasUnlinkedPages] = useState(false);
+  const DISMISSED_ALERTS_KEY = `dashboard_dismissed_alerts_${new Date().toISOString().slice(0, 10)}`;
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem(DISMISSED_ALERTS_KEY);
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Snooze state for Action Required section
+  const ACTION_SNOOZE_KEY = "dashboard_action_required_snooze";
+  const [snoozeUntil, setSnoozeUntil] = useState<number | null>(null);
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
+
+  // Load snooze from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(ACTION_SNOOZE_KEY);
+    if (stored) {
+      const until = parseInt(stored, 10);
+      if (until > Date.now()) {
+        setSnoozeUntil(until);
+      } else {
+        localStorage.removeItem(ACTION_SNOOZE_KEY);
+      }
+    }
+  }, []);
+
+  const isSnoozed = snoozeUntil !== null && snoozeUntil > Date.now();
+
+  const handleSnooze = useCallback((hours: number) => {
+    const until = Date.now() + hours * 60 * 60 * 1000;
+    localStorage.setItem(ACTION_SNOOZE_KEY, String(until));
+    setSnoozeUntil(until);
+    setSnoozeOpen(false);
+  }, []);
+
+  const handleDismiss = useCallback((id: string) => {
+    setDismissedIds((prev) => {
+      const next = new Set([...prev, id]);
+      try {
+        localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...next]));
+      } catch { /* storage unavailable */ }
+      return next;
+    });
+  }, [DISMISSED_ALERTS_KEY]);
   const scheduledPosts = useGetAllScheduledPosts();
   const projects = useGetAllProjects();
 
@@ -151,6 +200,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
     }).map((post: any) => ({
       type: 'scheduled',
       projectName: post.project?.name || 'Unknown Project',
+      projectId: post.project?.id || null,
       campaignName: post.meta?.campaignName || null,
       day: post.meta?.day || null,
       platform: post.platform,
@@ -170,6 +220,7 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
     }).map((post: any) => ({
       type: 'scheduled',
       projectName: post.project?.name || 'Unknown Project',
+      projectId: post.project?.id || null,
       campaignName: post.meta?.campaignName || null,
       day: post.meta?.day || null,
       platform: post.platform,
@@ -464,29 +515,64 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
           )}
           
           {/* Urgent Items - Always show prominently */}
-          {groupedItems.urgent.length > 0 && (
+          {groupedItems.urgent.filter((item) => !dismissedIds.has(item.id)).length > 0 && (
             <div className="space-y-3">
-              {groupedItems.urgent.map((item) => (
-                <TimelineCard key={item.id} item={item} variant="urgent" />
-              ))}
+              {groupedItems.urgent
+                .filter((item) => !dismissedIds.has(item.id))
+                .map((item) => (
+                  <TimelineCard key={item.id} item={item} variant="urgent" onDismiss={handleDismiss} />
+                ))}
             </div>
           )}
 
           {/* Warning Items - Ending soon but auto-renewing */}
-          {groupedItems.warning.length > 0 && (
+          {groupedItems.warning.filter((item) => !dismissedIds.has(item.id)).length > 0 && (
             <div className="space-y-3">
-              {groupedItems.warning.map((item) => (
-                <TimelineCard key={item.id} item={item} variant="warning" />
-              ))}
+              {groupedItems.warning
+                .filter((item) => !dismissedIds.has(item.id))
+                .map((item) => (
+                  <TimelineCard key={item.id} item={item} variant="warning" onDismiss={handleDismiss} />
+                ))}
             </div>
           )}
 
           {/* Action Items - Primary tasks for today */}
-          {(groupedItems.action.length > 0 || hasUnlinkedPages || isWithinFirstProjectHour) && (
+          {!isSnoozed && (groupedItems.action.length > 0 || hasUnlinkedPages || isWithinFirstProjectHour) && (
             <div className="space-y-3" data-dashboard-section="action-required">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-500" />
                 Action Required
+                {/* Snooze button */}
+                <div className="relative ml-auto">
+                  <button
+                    onClick={() => setSnoozeOpen((o) => !o)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <BellOff className="w-3.5 h-3.5" />
+                    Snooze
+                  </button>
+                  {snoozeOpen && (
+                    <>
+                      {/* Backdrop to close on outside click */}
+                      <div className="fixed inset-0 z-10" onClick={() => setSnoozeOpen(false)} />
+                      <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-1.5 min-w-[140px]">
+                        <p className="px-3 py-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Snooze for</p>
+                        <button
+                          onClick={() => handleSnooze(1)}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
+                        >
+                          1 hour
+                        </button>
+                        <button
+                          onClick={() => handleSnooze(24)}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
+                        >
+                          1 day
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </h2>
               {isWithinFirstProjectHour ? (
                 <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-10">
@@ -598,7 +684,15 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
                       {calendarDetails.todayItems.length > 0 ? (
                         <div className="space-y-2 mt-3">
                           {calendarDetails.todayItems.map((item, index) => (
-                            <div key={index} className="text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                            <div key={index} className={cn(
+                              "text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 transition-colors duration-150",
+                              (item as any).projectId && "cursor-pointer hover:border-violet-400 dark:hover:border-violet-600 hover:bg-violet-50/50 dark:hover:bg-violet-500/10"
+                            )}
+                              onClick={() => {
+                                const projectId = (item as any).projectId;
+                                if (projectId) router.push(`/project/${projectId}?tab=campaign`);
+                              }}
+                            >
                               <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
                                 {(() => {
                                   // Check if time has passed and get status for indicator
@@ -804,7 +898,15 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
                       {calendarDetails.tomorrowItems.length > 0 ? (
                         <div className="space-y-2 mt-3">
                           {calendarDetails.tomorrowItems.map((item, index) => (
-                            <div key={index} className="text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                            <div key={index} className={cn(
+                              "text-xs p-2 rounded-md bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 transition-colors duration-150",
+                              (item as any).projectId && "cursor-pointer hover:border-violet-400 dark:hover:border-violet-600 hover:bg-violet-50/50 dark:hover:bg-violet-500/10"
+                            )}
+                              onClick={() => {
+                                const projectId = (item as any).projectId;
+                                if (projectId) router.push(`/project/${projectId}?tab=campaign`);
+                              }}
+                            >
                               <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
                                 <p className="font-medium text-slate-900 dark:text-slate-100 flex-shrink-0 truncate lg:max-w-none">{item.projectName}</p>
                                 {(() => {
@@ -915,9 +1017,10 @@ interface TimelineCardProps {
   item: TimelineItem;
   variant: "urgent" | "warning" | "action" | "suggestion" | "activity";
   compact?: boolean;
+  onDismiss?: (id: string) => void;
 }
 
-function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
+function TimelineCard({ item, variant, compact = false, onDismiss }: TimelineCardProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [expansionLevel, setExpansionLevel] = useState<0 | 1 | 2>(0); // 0 = none, 1 = 3 projects, 2 = all
@@ -1021,12 +1124,29 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
 
     return (
       <CardContent 
-        className={cn("p-4 transition-all hover:shadow-md rounded-lg border cursor-pointer", getVariantStyles())}
+        className={cn("relative p-4 transition-all hover:shadow-md rounded-lg border cursor-pointer", getVariantStyles())}
         onClick={handleToggle}
       >
-        <div className="flex items-start gap-3">
+        {onDismiss && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDismiss(item.id); }}
+            className={cn(
+              "absolute top-2 right-2 p-1.5 rounded-md transition-colors z-10",
+              variant === "urgent"
+                ? "text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50"
+                : variant === "warning"
+                ? "text-orange-400 hover:text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+            aria-label="Dismiss alert"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+        <div className={cn("flex items-start gap-3", onDismiss && "pr-8")}>
           <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
           <div className="min-w-0 flex-1">
+
             <div className={cn(
               shouldBeCollapsed && expansionLevel === 0 ? "mb-0" : "mb-3"
             )}>
@@ -1121,12 +1241,28 @@ function TimelineCard({ item, variant, compact = false }: TimelineCardProps) {
   return (
     <Card 
       className={cn(
-        "transition-all hover:shadow-md cursor-pointer", 
+        "relative transition-all hover:shadow-md cursor-pointer", 
         getVariantStyles()
       )}
       onClick={handleAction}
     >
-      <CardContent className="p-4">
+      {onDismiss && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDismiss(item.id); }}
+          className={cn(
+            "absolute top-2 right-2 p-1.5 rounded-md transition-colors z-10",
+            variant === "urgent"
+              ? "text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50"
+              : variant === "warning"
+              ? "text-orange-400 hover:text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/50"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+          aria-label="Dismiss alert"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+      <CardContent className={cn("p-4", onDismiss && "pr-10")}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0 flex-1">
             <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
