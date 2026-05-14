@@ -35,6 +35,7 @@ import { useTheme } from "@/providers/theme-provider";
 import { ProjectOnboardingModal, isProjectOnboardingComplete } from "@/app/(pages)/project/[id]/_components/project-onboarding-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { NotificationDrawer } from "./notification-drawer";
 
 function getGreeting(name?: string | null): string {
   const hour = new Date().getHours();
@@ -137,6 +138,8 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
           {!data?.user ? (
             <GoogleLoginButton triggerClassName="py-3 px-10 h-12 text-lg font-semibold text-white rounded-lg hover:bg-gray-700" />
           ) : (
+            <>
+            <NotificationDrawer />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -192,6 +195,7 @@ export function Header({ onTourStart, subscribeRef }: HeaderProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           )}
         </div>
       </div>

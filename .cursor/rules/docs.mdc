@@ -22,3 +22,15 @@ alwaysApply: true
   - **`ai-docs/features/`** — what a feature does, flows, demos, guides.
   - **`ai-docs/decisions/`** — why something was done, analyses, issue notes, checklists.
 - After adding a doc, update **root `README.md`**: add one line in the right category with the filename and a short description.
+
+# Code File Size
+
+When adding new code, try to keep files under **999 lines**. If a file is already close to or over that limit, do not refactor it — only avoid the situation when it's easily preventable.
+
+# Destructive Actions — Always Ask First
+
+Before performing any of the following, **stop and explicitly point it out to the user, then ask for confirmation**:
+
+- Deleting **multiple files** or entire directories
+- Deleting or dropping **database records, tables, or schemas**
+- Deleting or clearing **large blocks of text or content** (e.g. wiping a document, removing significant code sections)

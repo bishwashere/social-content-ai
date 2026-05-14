@@ -2,12 +2,6 @@
 
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useGetAllProjects, useGetProjectPulse } from "@/backend-apis/projects/hooks";
@@ -168,6 +162,15 @@ function ProjectPage() {
     },
   };
 
+  // Redirect to the projects dashboard if the project isn't found (e.g. deleted,
+  // wrong ID from an old email link). Only fires after the projects query has settled
+  // so we don't redirect prematurely while data is still loading.
+  useEffect(() => {
+    if (!projects.isLoading && !project) {
+      router.replace("/project");
+    }
+  }, [projects.isLoading, project, router]);
+
   if (projects.isLoading)
     return (
       <div className="p-6 space-y-6 items-center justify-center">
@@ -176,17 +179,7 @@ function ProjectPage() {
       </div>
     );
 
-  if (!project)
-    return (
-      <Card className="flex flex-wrap gap-2 items-center">
-        <CardHeader>
-          <CardTitle className="text-destructive">Project Not Found</CardTitle>
-          <CardDescription>
-            The project you&apos;re looking for doesn&apos;t exist or has been deleted.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+  if (!project) return null;
 
   return (
     <div className="flex-grow max-w-7xl 2xl:max-w-[90%] mx-auto py-6 px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 space-y-6 -mt-5 overflow-x-hidden">

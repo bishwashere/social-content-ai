@@ -38,6 +38,8 @@ model User {
   newsPreferences   UserNewsPreferences?
   featureRequests   FeatureRequest[]
   emailLogs         EmailLog[]
+  emailUserClicks   EmailUserClick[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -819,4 +821,50 @@ model EmailLinkClick {
   lastClickAt DateTime @default(now())
 
   @@map("email-link-clicks")
+}
+
+// Persisted notification record — written by the backfill script and by
+// real-time event hooks. The live on-the-fly API continues to work
+// independently; this table is an additive store.
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  type        String   // e.g. "posted", "post_failed", "campaign_created" …
+  sourceId    String   // deterministic ID derived from the source record — enables safe re-runs
+  icon        String
+  message     String
+  projectName String   @default("")
+  projectId   String   @default("")
+  platform    String?
+  campaignId  String?
+  videoId     String?
+  day         Int?
+  timestamp   DateTime // the time the underlying event occurred
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, sourceId])
+  @@index([userId, timestamp])
+  @@map("notifications")
+}
+
+// Per-user click record — one document per (user × template) pair.
+// Created the first time a user clicks a tracked link; clickCount
+// increments on subsequent clicks. Enables per-user suppression logic
+// (e.g. don't re-send an email a user already engaged with) and
+// per-user attribution that the aggregate EmailLinkClick cannot provide.
+model EmailUserClick {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  template    String
+  clickCount  Int      @default(0)
+  lastClickAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, template])
+  @@map("email-user-clicks")
+  @@index([userId])
+  @@index([template])
 }

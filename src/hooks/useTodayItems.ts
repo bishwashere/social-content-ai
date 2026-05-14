@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useGetYourToday, YourTodayTask, YourTodayProject } from "@/backend-apis/your-today/hooks";
 import { useGetPendingTasks, PendingTask, PendingTaskProject } from "@/backend-apis/pending-tasks/hooks";
-import { useGetRecentActivity, ActivityItem } from "@/backend-apis/recent-activity/hooks";
 import { parseISO, format, addDays } from "date-fns";
 
 export type TimelineItemType = 
@@ -195,9 +194,8 @@ function getDateLabel(startDate: string | undefined, day: number | undefined): s
 export function useTodayItems() {
   const { data: yourTodayTasks = [], isLoading: yourTodayLoading } = useGetYourToday();
   const { data: pendingTasks = [], isLoading: pendingLoading } = useGetPendingTasks();
-  const { data: recentActivity = [], isLoading: activityLoading } = useGetRecentActivity();
 
-  const isLoading = yourTodayLoading || pendingLoading || activityLoading;
+  const isLoading = yourTodayLoading || pendingLoading;
 
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = [];
@@ -430,30 +428,11 @@ export function useTodayItems() {
       items.push(groupedItem);
     });
 
-    // Process Recent Activity (completed items) - not grouped
-    recentActivity.slice(0, 5).forEach((activity, index) => {
-      const timestamp = activity.timestamp ? parseISO(activity.timestamp) : undefined;
-      
-      items.push({
-        id: `activity-${activity.type}-${activity.projectId}-${index}`,
-        type: "activity",
-        priority: 20,
-        icon: activity.icon,
-        title: activity.message,
-        projectId: activity.projectId,
-        projectName: activity.projectName,
-        campaignId: activity.campaignId,
-        day: activity.day,
-        timestamp,
-        platform: activity.platform,
-      });
-    });
-
     // Sort by priority (lower number = higher priority)
     items.sort((a, b) => a.priority - b.priority);
 
     return items;
-  }, [yourTodayTasks, pendingTasks, recentActivity]);
+  }, [yourTodayTasks, pendingTasks]);
 
   // Group items by type for easier rendering
   const groupedItems = useMemo(() => {

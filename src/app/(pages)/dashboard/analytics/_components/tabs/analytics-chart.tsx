@@ -71,24 +71,33 @@ const ChartTooltip = ({ active, label, payload }: TooltipProps<number, string>) 
 };
 
 /**
- * Calculate Y-axis domain for posts (left axis)
+ * Square-root scaled Y-axis domain.
+ *
+ * A sqrt scale gives proportionally more chart height to smaller values,
+ * where most data lives, and compresses the upper tail of occasional spikes.
+ * Example: if most days are ~25 and one day hits 85, the 0-25 band gets
+ * ~54 % of the chart height while 25-85 shares the remaining ~46 % —
+ * making day-to-day variation around the average clearly visible.
+ * Domain stays [0, actual max] so every data point is always shown;
+ * the sqrt scale handles the visual compression automatically.
  */
-const calculatePostsDomain = (chartData: ChartDataPoint[]): [number, number] | [number, "auto"] => {
-  if (chartData.length === 0) return [0, 10];
-  const maxPosts = Math.max(...chartData.map(d => d.totalPosts || 0));
-  return maxPosts === 0 ? [0, 10] : [0, "auto"];
+const sqrtDomain = (values: number[]): [number, number] => {
+  const max = Math.max(...values.filter(v => v > 0));
+  return max > 0 ? [0, max] : [0, 10];
 };
 
-/**
- * Calculate Y-axis domain for engagement metrics (right axis)
- */
-const calculateEngagementDomain = (chartData: ChartDataPoint[]): [number, number] | [number, "auto"] => {
+const calculatePostsDomain = (chartData: ChartDataPoint[]): [number, number] => {
   if (chartData.length === 0) return [0, 10];
-  const maxImpressions = Math.max(...chartData.map(d => d.totalImpressions || 0));
-  const maxLikes = Math.max(...chartData.map(d => d.totalLikes || 0));
-  const maxComments = Math.max(...chartData.map(d => d.totalComments || 0));
-  const maxValue = Math.max(maxImpressions, maxLikes, maxComments);
-  return maxValue === 0 ? [0, 10] : [0, "auto"];
+  return sqrtDomain(chartData.map(d => d.totalPosts || 0));
+};
+
+const calculateEngagementDomain = (chartData: ChartDataPoint[]): [number, number] => {
+  if (chartData.length === 0) return [0, 10];
+  return sqrtDomain(chartData.flatMap(d => [
+    d.totalImpressions || 0,
+    d.totalLikes || 0,
+    d.totalComments || 0,
+  ]));
 };
 
 export const AnalyticsChart = ({ chartData, compact = false }: AnalyticsChartProps) => {
@@ -120,7 +129,8 @@ export const AnalyticsChart = ({ chartData, compact = false }: AnalyticsChartPro
         {/* Left Y-axis: Number of Posts */}
         <YAxis
           yAxisId="left"
-          domain={postsDomain as any}
+          scale="sqrt"
+          domain={postsDomain}
           allowDecimals={false}
           label={!isMobile && !compact ? {
             value: "Number of Posts",
@@ -135,8 +145,9 @@ export const AnalyticsChart = ({ chartData, compact = false }: AnalyticsChartPro
         {/* Right Y-axis: Engagement Metrics */}
         <YAxis
           yAxisId="right"
+          scale="sqrt"
           orientation="right"
-          domain={engagementDomain as any}
+          domain={engagementDomain}
           label={!isMobile && !compact ? {
             value: "Impressions / Likes / Comments",
             angle: 90,

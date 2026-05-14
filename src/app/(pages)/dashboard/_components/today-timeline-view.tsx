@@ -12,7 +12,6 @@ import {
   ChevronDown, 
   ChevronRight,
   ChevronUp,
-  Clock, 
   Folder,
   Lightbulb,
   Sparkles,
@@ -61,7 +60,6 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
   const { data: session } = useSession();
   const { items, groupedItems, isLoading, isEmpty, hasUrgentItems } = useTodayItems();
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showActivity, setShowActivity] = useState(false);
   const [hasUnlinkedPages, setHasUnlinkedPages] = useState(false);
   const DISMISSED_ALERTS_KEY = `dashboard_dismissed_alerts_${new Date().toISOString().slice(0, 10)}`;
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
@@ -629,28 +627,6 @@ export function TodayTimelineView({ showGetStartedGuide = false }: TodayTimeline
                   <div className="space-y-2 pl-7">
                     {groupedItems.suggestions.map((item) => (
                       <TimelineCard key={item.id} item={item} variant="suggestion" compact />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Recent Activity - Collapsible */}
-            {groupedItems.activity.length > 0 && (
-              <div className="space-y-3" data-dashboard-section="activity">
-                <button
-                  onClick={() => setShowActivity(!showActivity)}
-                  className="flex items-center gap-2 text-lg font-semibold w-full text-left hover:text-primary transition-colors"
-                >
-                  {showActivity ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                  <Clock className="w-5 h-5 text-slate-500" />
-                  Recent Activity
-                  <Badge variant="secondary" className="ml-2">{groupedItems.activity.length}</Badge>
-                </button>
-                {showActivity && (
-                  <div className="space-y-2 pl-7">
-                    {groupedItems.activity.map((item) => (
-                      <TimelineCard key={item.id} item={item} variant="activity" compact />
                     ))}
                   </div>
                 )}

@@ -25,7 +25,8 @@
     "idea:draft": "npx tsx scripts/create-draft-idea-from-mdx.ts",
     "idea:clean-dashes": "npx tsx scripts/clean-idea-dashes.ts",
     "generate:ideas-admin": "npx tsx scripts/generate-ideas-admin-credentials.ts",
-    "campaign:backfill": "npx tsx scripts/backfill-campaign-days.ts"
+    "campaign:backfill": "npx tsx scripts/backfill-campaign-days.ts",
+    "notifications:backfill": "npx tsx scripts/backfill-notifications.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

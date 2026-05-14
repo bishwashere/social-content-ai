@@ -75,14 +75,22 @@ export const GET = applyMiddleware(
       if (hasInactiveProjects) {
         const subject = `Your content is waiting for you`;
 
-        const rawDashboardUrl =
-          (process.env.NEXT_PUBLIC_APP_PRODUCTION_URL as string) + "/project";
+        // Link directly to the first inactive project so the user lands in the
+        // right place. Fall back to the general projects list only when no
+        // specific inactive project can be identified.
+        const inactiveProjects = allProjects.filter(
+          (p) => !activeProjects.includes(p.id)
+        );
+        const targetProject = inactiveProjects[0] ?? null;
+        const rawDashboardUrl = targetProject
+          ? `${process.env.NEXT_PUBLIC_APP_PRODUCTION_URL as string}/project/${targetProject.id}`
+          : `${process.env.NEXT_PUBLIC_APP_PRODUCTION_URL as string}/project`;
 
         await mail.sendTemplate(
           "INACTIVE_PROJECTS",
           {
             name: user.name,
-            dashboardUrl: buildTrackedUrl(rawDashboardUrl, "INACTIVE_PROJECTS"),
+            dashboardUrl: buildTrackedUrl(rawDashboardUrl, "INACTIVE_PROJECTS", user.id),
             stats: {
               projectCount: allProjects.length,
               platformCount: connectedPlatforms.length,
@@ -102,6 +110,7 @@ export const GET = applyMiddleware(
             projectCount: allProjects.length,
             platformCount: connectedPlatforms.length,
             contentCount,
+            ...(targetProject ? { targetProjectId: targetProject.id } : {}),
           },
         });
       }

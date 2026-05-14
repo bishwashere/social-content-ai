@@ -3,8 +3,23 @@ import tryCatchAsync from "@/lib/try-catch-async";
 import api from "../axios";
 import { ApiError } from "../types";
 
+export type ActivityType =
+  | "posted"
+  | "scheduled_missed"
+  | "post_failed"
+  | "post_scheduled"
+  | "draft_ready"
+  | "video_completed"
+  | "collaborator_joined"
+  | "project_created"
+  | "campaign_created"
+  | "social_connected"
+  | "subscription_expiring"
+  | "pulse_improved"
+  | "post_performing";
+
 export type ActivityItem = {
-  type: "posted" | "scheduled_missed" | "draft_ready" | "video_completed";
+  type: ActivityType;
   icon: string;
   message: string;
   projectName: string;
