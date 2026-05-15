@@ -134,8 +134,8 @@ export function DashboardAnalyticsGraph() {
         </div>
       </div>
 
-      {/* Chart area */}
-      <div className="px-2 pb-3">
+      {/* Chart area — stop propagation so tapping/clicking the chart stays interactive */}
+      <div className="px-2 pb-3" onClick={(e) => e.stopPropagation()}>
         {isLoading ? (
           <Skeleton className="w-full h-[220px] rounded-xl mt-3" />
         ) : chartData.length === 0 ? (
