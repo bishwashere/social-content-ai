@@ -52,6 +52,7 @@ import {
   Lightbulb,
   Menu,
   Crown,
+  Lock,
 } from "lucide-react";
 
 // Section titles for dynamic browser tab
@@ -104,6 +105,7 @@ export default function ModernLanding() {
   const [showOfferPopup, setShowOfferPopup] = useState(false);
   /** unset = before client hydration (treat like returning: no urgency UI). */
   const [visitorPromoMode, setVisitorPromoMode] = useState<"unset" | "new" | "returning">("unset");
+  const [showSecurityInfo, setShowSecurityInfo] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
@@ -396,6 +398,14 @@ export default function ModernLanding() {
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-32">
             <div className="text-center space-y-4">
+              {/* Robot agent icon */}
+              <div className="flex justify-center mb-2">
+                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-600/30 to-purple-900/30 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm">
+                  <Bot className="w-10 h-10 text-purple-400" strokeWidth={1.5} />
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-black animate-pulse" />
+                </div>
+              </div>
+
               {/* Main heading */}
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white">
                 NextPostAI<span className="text-xl md:text-2xl lg:text-3xl font-normal align-baseline opacity-80">.com</span>
@@ -403,12 +413,12 @@ export default function ModernLanding() {
 
               {/* Tagline */}
               <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400">
-                Save 10+ Hours a Week on Marketing
+                Your AI Social Media Marketing Assistant
               </p>
 
               {/* Subheading */}
               <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto leading-relaxed opacity-90 px-4">
-                Create, publish, analyze, and improve → automatically.
+                Generate content, auto-schedule posts, track analytics, and grow consistently.
               </p>
 
               {/* CTA Button */}
@@ -438,7 +448,35 @@ export default function ModernLanding() {
                       <Check className="w-4 h-4 text-green-400" />
                       <span>No credit card required</span>
                     </div>
+                    <button
+                      onClick={() => setShowSecurityInfo(!showSecurityInfo)}
+                      className="flex items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors text-sm cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span className="underline underline-offset-2">Why it&apos;s safe</span>
+                    </button>
                   </div>
+
+                  {/* Security info panel */}
+                  {showSecurityInfo && (
+                    <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-4 text-left max-w-sm mx-auto backdrop-blur-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 bg-blue-500/20 rounded-full">
+                          <Shield className="h-4 w-4 text-blue-400" />
+                        </div>
+                        <h4 className="text-sm font-semibold text-white">Your Data is Secure</h4>
+                      </div>
+                      <p className="text-xs text-gray-400 leading-relaxed mb-3">
+                        Your social media keys and credentials are stored using industry-standard hashing and encryption. Your sensitive information is protected in multiple layers — no one can access it except you.
+                      </p>
+                      <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
+                        <li>Credentials hashed with secure algorithms</li>
+                        <li>Multi-step encryption protects your data</li>
+                        <li>Only you have access to your accounts</li>
+                        <li>We never store passwords or API keys in plain text</li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Avatars Section */}

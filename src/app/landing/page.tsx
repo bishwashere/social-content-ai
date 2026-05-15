@@ -273,7 +273,7 @@ export default function ModernLanding() {
 
               {/* Tagline */}
               <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400">
-                Save 10+ Hours a Week on Marketing
+                Your AI Social Media Marketing Assistant
               </p>
 
               {/* Subheading */}

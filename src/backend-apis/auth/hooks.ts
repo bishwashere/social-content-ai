@@ -3,6 +3,7 @@ import { ContinueWithGoogleParams, EmailLoginParams } from "./types";
 import { authService } from ".";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { markEverAuthenticated } from "@/lib/returning-visitor";
 
 /**
  * Hook to login with google
@@ -69,6 +70,9 @@ export const useLogout = () => {
     onSuccess: (data) => {
       toast.success(data);
       localStorage.clear();
+      // Re-set the ever-authenticated flag so the landing page shows
+      // "Continue with Google" instead of the new-visitor offer after logout.
+      markEverAuthenticated();
     },
   });
 };
