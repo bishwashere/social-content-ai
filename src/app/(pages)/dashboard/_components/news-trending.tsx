@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ExternalLink, MessageSquare, ArrowUp, Settings, X, Plus, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Loader2, MessageSquare, ArrowUp, Settings, X, Plus, ChevronDown, ChevronUp, Sparkles, Pencil } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -393,6 +394,7 @@ export function NewsTrendingSettingsButton() {
 }
 
 export function NewsTrending() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [trendingData, setTrendingData] = useState<TrendingData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -400,6 +402,23 @@ export function NewsTrending() {
   const [userTopics, setUserTopics] = useState<string[]>(DEFAULT_TOPICS);
   const [loadingPreferences, setLoadingPreferences] = useState(true);
   const hasAutoSelectedCategoryRef = useRef(false);
+
+  const handleCreatePost = (post: RedditPost | HackerNewsPost, type: "reddit" | "hackernews") => {
+    const title = "title" in post ? post.title : "";
+    const body = type === "reddit"
+      ? (post as RedditPost).selftext?.slice(0, 400) || ""
+      : decodeAndFormatHtml((post as HackerNewsPost).text || "")?.slice(0, 400) || "";
+    const source = type === "reddit" ? "Reddit" : "Hacker News";
+
+    const hint = `Write a social media post inspired by this trending story from ${source}: "${title}".${body ? ` Key context: ${body}` : ""}`.trim();
+
+    const params = new URLSearchParams({
+      hint,
+      title,
+      source,
+    });
+    router.push(`/dashboard/create-post?${params.toString()}`);
+  };
 
   // Load user preferences on mount and listen for updates
   useEffect(() => {
@@ -675,36 +694,12 @@ export function NewsTrending() {
                   </div>
                   <div className="pt-4 border-t flex items-center gap-3">
                     <Button
-                      variant="outline"
                       size="sm"
-                      asChild
+                      onClick={() => handleCreatePost(expandedItem.post, expandedItem.type)}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      <a
-                        href={
-                          expandedItem.type === "reddit"
-                            ? (() => {
-                                const redditPost = expandedItem.post as RedditPost;
-                                const raw = (redditPost.url || redditPost.permalink || "").trim();
-                                const norm = (s: string) => s.replace(/^https?\/\//i, "https://");
-                                if (!raw) return "https://www.reddit.com";
-                                if (!raw.startsWith("http")) {
-                                  const path = raw.startsWith("/") ? raw : `/${raw}`;
-                                  return `https://www.reddit.com${path}`;
-                                }
-                                let url = norm(raw);
-                                const doubleMatch = url.match(/reddit\.com(https?\/\/[^\s]+)/i);
-                                if (doubleMatch) url = norm(doubleMatch[1]);
-                                return url;
-                              })()
-                            : `https://news.ycombinator.com/item?id=${(expandedItem.post as HackerNewsPost).id}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        View Original
-                      </a>
+                      <Pencil className="h-4 w-4" />
+                      Create Post from This
                     </Button>
                   </div>
                 </CardContent>

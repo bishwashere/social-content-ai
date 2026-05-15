@@ -18,14 +18,15 @@ import { Projects as Project } from "@prisma/client";
 
 interface AdvanceCustomizationProps {
   project?: Project;
+  initialPrompt?: string;
 }
 
-export default function AdvanceCustomization({ project: initialProject }: AdvanceCustomizationProps = {} as AdvanceCustomizationProps) {
+export default function AdvanceCustomization({ project: initialProject, initialPrompt }: AdvanceCustomizationProps = {} as AdvanceCustomizationProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(true);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(initialPrompt || "");
   const [style, setStyle] = useState("persuasive");
   const [tone, setTone] = useState("formal");
   const [verb, setVerb] = useState("inform");
