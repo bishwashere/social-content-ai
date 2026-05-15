@@ -13,11 +13,79 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetRecentActivity, ActivityItem } from "@/backend-apis/recent-activity/hooks";
 
+// ── Stable per-notification key ───────────────────────────────────────────────
+function notifKey(activity: ActivityItem): string {
+  return `${activity.type}|${activity.projectId ?? ""}|${activity.timestamp}`;
+}
+
+// ── localStorage-backed read state ────────────────────────────────────────────
+const LS_READ_KEYS   = "nextpostai_notif_read";
+const LS_CLEARED_AT  = "nextpostai_notif_cleared_at";
+
+function loadReadKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem(LS_READ_KEYS);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function loadClearedAt(): number {
+  try {
+    return parseInt(localStorage.getItem(LS_CLEARED_AT) ?? "0", 10);
+  } catch {
+    return 0;
+  }
+}
+
+function useReadState(activities: ActivityItem[]) {
+  const [readKeys, setReadKeys] = React.useState<Set<string>>(() =>
+    typeof window === "undefined" ? new Set() : loadReadKeys()
+  );
+  const [clearedAt, setClearedAt] = React.useState<number>(() =>
+    typeof window === "undefined" ? 0 : loadClearedAt()
+  );
+
+  const isRead = React.useCallback(
+    (activity: ActivityItem): boolean => {
+      if (new Date(activity.timestamp).getTime() <= clearedAt) return true;
+      return readKeys.has(notifKey(activity));
+    },
+    [readKeys, clearedAt]
+  );
+
+  const markRead = React.useCallback((activity: ActivityItem) => {
+    setReadKeys((prev) => {
+      const next = new Set(prev);
+      next.add(notifKey(activity));
+      try { localStorage.setItem(LS_READ_KEYS, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }, []);
+
+  const clearAll = React.useCallback(() => {
+    const now = Date.now();
+    setClearedAt(now);
+    try { localStorage.setItem(LS_CLEARED_AT, String(now)); } catch {}
+    // Also wipe the individual keys to keep storage small
+    setReadKeys(new Set());
+    try { localStorage.removeItem(LS_READ_KEYS); } catch {}
+  }, []);
+
+  const unreadCount = React.useMemo(
+    () => activities.filter((a) => !isRead(a)).length,
+    [activities, isRead]
+  );
+
+  return { isRead, markRead, clearAll, unreadCount };
+}
+
+// ── Route resolver ────────────────────────────────────────────────────────────
 function getActivityRoute(activity: ActivityItem): string | null {
   switch (activity.type) {
     case "posted":
     case "post_performing":
-      return activity.projectId ? `/project/${activity.projectId}?tab=scheduled` : null;
     case "scheduled_missed":
     case "post_failed":
     case "post_scheduled":
@@ -27,7 +95,6 @@ function getActivityRoute(activity: ActivityItem): string | null {
         ? `/project/${activity.projectId}?tab=campaign`
         : null;
     case "video_completed":
-      return activity.projectId ? `/project/${activity.projectId}` : null;
     case "collaborator_joined":
     case "project_created":
     case "pulse_improved":
@@ -45,19 +112,25 @@ function getActivityRoute(activity: ActivityItem): string | null {
   }
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
 export function NotificationDrawer() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
   const { data: activities = [], isLoading } = useGetRecentActivity();
-
-  const hasActivity = activities.length > 0;
+  const { isRead, markRead, clearAll, unreadCount } = useReadState(activities);
 
   const handleActivityClick = (activity: ActivityItem) => {
+    markRead(activity);
     const route = getActivityRoute(activity);
     if (route) {
       setOpen(false);
       router.push(route);
     }
+  };
+
+  const handleClearAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    clearAll();
   };
 
   const handleExpandClick = () => {
@@ -75,7 +148,7 @@ export function NotificationDrawer() {
           aria-label="Open notifications"
         >
           <Bell className="h-4 w-4" />
-          {hasActivity && (
+          {unreadCount > 0 && (
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-violet-500" />
           )}
         </Button>
@@ -91,11 +164,19 @@ export function NotificationDrawer() {
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-violet-500" />
             <span className="text-sm font-semibold">Notifications</span>
+            {unreadCount > 0 && (
+              <span className="text-xs font-medium bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full px-1.5 py-0.5 leading-none">
+                {unreadCount} unread
+              </span>
+            )}
           </div>
-          {hasActivity && (
-            <span className="text-xs text-muted-foreground">
-              {activities.length} total
-            </span>
+          {activities.length > 0 && unreadCount > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
+              Clear
+            </button>
           )}
         </div>
 
@@ -124,29 +205,44 @@ export function NotificationDrawer() {
           ) : (
             <ul className="divide-y divide-border">
               {activities.map((activity, index) => {
+                const read = isRead(activity);
+                const isClickable = !!getActivityRoute(activity);
                 const timeAgo = formatDistanceToNow(new Date(activity.timestamp), {
                   addSuffix: true,
                   includeSeconds: false,
                 }).replace(/^about /i, "");
-                const isClickable = !!getActivityRoute(activity);
 
                 return (
                   <li
                     key={`${activity.type}-${activity.projectId}-${index}`}
                     onClick={() => handleActivityClick(activity)}
-                    className={`flex items-start gap-3 px-4 py-3.5 transition-colors ${
-                      isClickable
-                        ? "cursor-pointer hover:bg-muted/50"
-                        : "cursor-default"
-                    }`}
+                    className={[
+                      "flex items-start gap-3 px-4 py-3.5 transition-colors relative",
+                      isClickable ? "cursor-pointer hover:bg-muted/50" : "cursor-default",
+                      !read
+                        ? "bg-violet-50/60 dark:bg-violet-950/20"
+                        : "",
+                    ].join(" ")}
                   >
+                    {/* Unread indicator stripe */}
+                    {!read && (
+                      <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-violet-500 rounded-r" />
+                    )}
+
                     <span className="text-lg flex-shrink-0 leading-none mt-0.5">{activity.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm leading-snug">{activity.message}</p>
+                      <p className={`text-sm leading-snug ${!read ? "font-medium" : ""}`}>
+                        {activity.message}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {activity.projectName ? `${activity.projectName} · ` : ""}{timeAgo}
                       </p>
                     </div>
+
+                    {/* Unread dot */}
+                    {!read && (
+                      <span className="flex-shrink-0 mt-1.5 h-2 w-2 rounded-full bg-violet-500" />
+                    )}
                   </li>
                 );
               })}

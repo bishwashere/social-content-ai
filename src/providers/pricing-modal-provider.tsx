@@ -35,6 +35,9 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
   );
   const firstProjectCongratsShownRef = useRef(false);
   const premiumIntentCheckedRef = useRef(false);
+  const earlyPricingCheckedRef = useRef(false);
+  // Stores which callback to use when the user skips the paywall
+  const onSkippedPaywallRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     return () => {
@@ -75,6 +78,7 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
         }
         // Show pricing modal after a small delay to let the page load
         setTimeout(() => {
+          onSkippedPaywallRef.current = () => showFreeCreditsCongratsWithDelay(500);
           setOpen(true);
         }, 500);
       }
@@ -85,6 +89,29 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
       localStorage.removeItem(PREMIUM_INTENT_KEY);
     }
   }, [data?.user?.id, data?.subscription]);
+
+  // Soft pricing ask right after signup (0 projects, no subscription)
+  useEffect(() => {
+    if (earlyPricingCheckedRef.current) return;
+    if (!data?.user?.id) return;
+    if (projects.isLoading) return;
+
+    // Skip if already subscribed
+    if (data?.subscription && !isSubscriptionExpired(data.subscription.endsAt).isExpired) return;
+
+    // Only for users who haven't created any project yet
+    const projectsCount = projects.data?.length ?? 0;
+    if (projectsCount > 0) return;
+
+    const shownKey = `early_pricing_shown_${data.user.id}`;
+    if (localStorage.getItem(shownKey)) return;
+
+    earlyPricingCheckedRef.current = true;
+    localStorage.setItem(shownKey, "1");
+
+    onSkippedPaywallRef.current = undefined; // no congrats when skipping at this stage
+    setOpen(true);
+  }, [data?.user?.id, data?.subscription, projects.data, projects.isLoading]);
 
   const showFreeCreditsCongratsWithDelay = (delayMs = 0) => {
     // Optional delay so it can appear after other UI transitions.
@@ -141,8 +168,10 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
     const hasNoSubscription = !data?.subscription;
     
     if (hasNoTokens && hasNoSubscription) {
+      onSkippedPaywallRef.current = () => showFreeCreditsCongratsWithDelay(500);
       setOpen(true);
     } else if (data?.subscription?.status === "trial" || data?.subscription?.status === "trialing") {
+      onSkippedPaywallRef.current = () => showFreeCreditsCongratsWithDelay(500);
       setOpen(true);
     } else {
       setCoinsModalOpen(true);
@@ -153,7 +182,7 @@ export function PricingModalProvider({ children }: { children: React.ReactNode }
       <PricingModal
         open={open}
         setOpen={setOpen}
-        onSkippedPaywall={() => showFreeCreditsCongratsWithDelay(500)}
+        onSkippedPaywall={onSkippedPaywallRef.current}
         defaultBillingPeriod={defaultBillingPeriod}
       />
       <FreeCreditsCongratsModal open={freeCreditsCongratsOpen} setOpen={setFreeCreditsCongratsOpen} credits={100} />

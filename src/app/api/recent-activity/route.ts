@@ -370,14 +370,21 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // ── Sort & return ─────────────────────────────────────────────────────
+        // ── Sort ──────────────────────────────────────────────────────────────
         activities.sort(
           (a, b) =>
             new Date((b as { timestamp: string }).timestamp).getTime() -
             new Date((a as { timestamp: string }).timestamp).getTime()
         );
 
-        return NextResponse.json(activities);
+        // ── Pagination ────────────────────────────────────────────────────────
+        const url = new URL(request.url);
+        const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20", 10), 200);
+        const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10), 0);
+        const total = activities.length;
+        const page = activities.slice(offset, offset + limit);
+
+        return NextResponse.json({ items: page, total, offset, limit });
       } catch (error) {
         console.error("❌ Recent Activity API - Error:", error);
         throw error;

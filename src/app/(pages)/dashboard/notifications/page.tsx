@@ -2,16 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
-import { Bell, ArrowLeft } from "lucide-react";
+import { Bell, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetRecentActivity, ActivityItem } from "@/backend-apis/recent-activity/hooks";
+import { useGetRecentActivityInfinite, ActivityItem } from "@/backend-apis/recent-activity/hooks";
 
 function getActivityRoute(activity: ActivityItem): string | null {
   switch (activity.type) {
     case "posted":
     case "post_performing":
-      return activity.projectId ? `/project/${activity.projectId}?tab=scheduled` : null;
     case "scheduled_missed":
     case "post_failed":
     case "post_scheduled":
@@ -41,11 +40,22 @@ function getActivityRoute(activity: ActivityItem): string | null {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { data: activities = [], isLoading, error } = useGetRecentActivity();
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useGetRecentActivityInfinite();
+
+  const allItems = data?.pages.flatMap((p) => p.items) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8">
+
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button
@@ -60,6 +70,11 @@ export default function NotificationsPage() {
             <Bell className="h-5 w-5 text-violet-500" />
             <h1 className="text-xl font-semibold">Notifications</h1>
           </div>
+          {total > 0 && (
+            <span className="ml-auto text-sm text-muted-foreground">
+              {allItems.length} of {total}
+            </span>
+          )}
         </div>
 
         {/* Content */}
@@ -85,7 +100,7 @@ export default function NotificationsPage() {
                 {error instanceof Error ? error.message : "Please try again later"}
               </p>
             </div>
-          ) : activities.length === 0 ? (
+          ) : allItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
               <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
                 <Bell className="h-6 w-6 text-slate-400" />
@@ -95,7 +110,7 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {activities.map((activity, index) => {
+              {allItems.map((activity, index) => {
                 const date = new Date(activity.timestamp);
                 const timeAgo = formatDistanceToNow(date, {
                   addSuffix: true,
@@ -117,17 +132,14 @@ export default function NotificationsPage() {
                       <p className="text-sm leading-snug">{activity.message}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {activity.projectName && (
-                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                            {activity.projectName}
-                          </span>
+                          <>
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {activity.projectName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">·</span>
+                          </>
                         )}
-                        {activity.projectName && (
-                          <span className="text-xs text-muted-foreground">·</span>
-                        )}
-                        <span
-                          className="text-xs text-muted-foreground"
-                          title={fullDate}
-                        >
+                        <span className="text-xs text-muted-foreground" title={fullDate}>
                           {timeAgo}
                         </span>
                       </div>
@@ -139,11 +151,33 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {!isLoading && activities.length > 0 && (
+        {/* Load More */}
+        {hasNextPage && (
+          <div className="flex justify-center mt-5">
+            <Button
+              variant="outline"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="gap-2"
+            >
+              {isFetchingNextPage ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading…
+                </>
+              ) : (
+                "Load more"
+              )}
+            </Button>
+          </div>
+        )}
+
+        {!isLoading && !hasNextPage && allItems.length > 0 && (
           <p className="text-center text-xs text-muted-foreground mt-4">
-            Showing all {activities.length} notifications
+            All {total} notifications loaded
           </p>
         )}
+
       </div>
     </div>
   );
