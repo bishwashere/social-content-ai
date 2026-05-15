@@ -95,6 +95,7 @@ export function DashboardAnalyticsGraph() {
   }, [data, timeRange]);
 
   if (!userId) return null;
+  if (!isLoading && !data?.hasCampaigns) return null;
 
   const handleNavigate = () => router.push("/dashboard/analytics");
 

@@ -1212,7 +1212,16 @@ export const getDashboardAnalyticsMetrics = async (userId: string) => {
     ];
 
     if (allProjectIds.length === 0) {
-      return { success: true, data: [] };
+      return { success: true, data: [], hasCampaigns: false };
+    }
+
+    // Check if the user has any campaigns across their projects
+    const campaignCount = await prisma.campaignPlanner.count({
+      where: { projectId: { in: allProjectIds } },
+    });
+
+    if (campaignCount === 0) {
+      return { success: true, data: [], hasCampaigns: false };
     }
 
     // Get all OauthProvider IDs linked to those projects
@@ -1254,9 +1263,9 @@ export const getDashboardAnalyticsMetrics = async (userId: string) => {
       impressions: p.impressions ?? 0,
     }));
 
-    return { success: true, data: serialized };
+    return { success: true, data: serialized, hasCampaigns: true };
   } catch (error) {
     console.error("[getDashboardAnalyticsMetrics] Error:", error);
-    return { success: false, message: "Could not load analytics", data: [] };
+    return { success: false, message: "Could not load analytics", data: [], hasCampaigns: false };
   }
 };
