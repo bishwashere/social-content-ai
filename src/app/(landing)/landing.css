@@ -1,5 +1,65 @@
 /* Modern AI-Focused Landing Page Styles */
 
+/* ── Full-page section transition system ───────────────────────────────── */
+.landing-section {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Completely off — scale(0) is truly invisible, always in render tree so animations start cleanly */
+.section-hidden {
+  transform: scale(0);
+  pointer-events: none;
+}
+
+/* Fully settled active section */
+.section-active {
+  transform: scale(1);
+  pointer-events: auto;
+  z-index: 2;
+}
+
+/* Leaving: explodes outward, snaps invisible early */
+.section-leaving {
+  animation: section-explode-out 0.4s ease-out forwards;
+  z-index: 3;
+  visibility: hidden;
+}
+
+@keyframes section-explode-out {
+  0%   { transform: scale(1);  visibility: visible; }
+  64%  { transform: scale(8);  visibility: visible; }
+  65%  { transform: scale(8);  visibility: hidden;  }
+  100% { transform: scale(8);  visibility: hidden;  }
+}
+
+/* Entering: zooms in from nothing — React ensures this only starts after leaving is done */
+.section-entering {
+  transform: scale(0.01);
+  animation: section-zoom-in 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  z-index: 2;
+}
+
+@keyframes section-zoom-in {
+  0%   { transform: scale(0.01); }
+  100% { transform: scale(1);    }
+}
+
+/* ── Per-element parallax during scroll build-up ───────────────────────── */
+[data-p] { will-change: transform; transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.is-scrolling [data-p] { transition: none; }
+
+.section-active [data-p="icon"]    { transform: scale(calc(1 + var(--sp,0) * 2.0)); }
+.section-active [data-p="title"]   { transform: scale(calc(1 + var(--sp,0) * 1.5)); }
+.section-active [data-p="tagline"] { transform: scale(calc(1 + var(--sp,0) * 0.8)); }
+.section-active [data-p="sub"]     { transform: scale(calc(1 + var(--sp,0) * 0.5)); }
+.section-active [data-p="cta"]     { transform: scale(calc(1 + var(--sp,0) * 0.3)); }
+
 .landing-page {
   --accent: #7c3aed;
   --accent-light: #a78bfa;

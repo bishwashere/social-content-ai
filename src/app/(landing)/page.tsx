@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Script from "next/script";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -108,6 +108,75 @@ export default function ModernLanding() {
   const [showSecurityInfo, setShowSecurityInfo] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
+  // ── Full-page section transition controller ──────────────────────────────
+  const SECTION_IDS = ["hero", "how-it-works", "comparison", "trust", "pricing", "cta"];
+  const WHEEL_THRESHOLD = 180;
+  const [activeIdx, setActiveIdx]     = useState(0);
+  const [leavingIdx, setLeavingIdx]   = useState<number | null>(null);
+  const [enteringIdx, setEnteringIdx] = useState<number | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const wheelAccum = useRef(0);
+  const touchStartY = useRef(0);
+
+  const goTo = useCallback((idx: number) => {
+    if (idx < 0 || idx >= SECTION_IDS.length || transitioning) return;
+    wheelAccum.current = 0;
+    setScrollProgress(0);
+    setTransitioning(true);
+
+    // Step 1: explode old section out
+    setLeavingIdx(activeIdx);
+
+    // Step 2: once explosion snaps hidden (~260ms), bring new section in immediately
+    setTimeout(() => {
+      setLeavingIdx(null);
+      setActiveIdx(idx);
+      setEnteringIdx(idx);
+    }, 270);
+
+    // Step 3: once zoom-in done, settle as active
+    setTimeout(() => {
+      setEnteringIdx(null);
+      setTransitioning(false);
+    }, 970); // 270 + 700
+  }, [transitioning, activeIdx, SECTION_IDS.length]);
+
+  const goNext = useCallback(() => goTo(activeIdx + 1), [activeIdx, goTo]);
+  const goPrev = useCallback(() => goTo(activeIdx - 1), [activeIdx, goTo]);
+
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (transitioning) return;
+      wheelAccum.current += e.deltaY;
+      const progress = Math.min(1, Math.max(0, wheelAccum.current / WHEEL_THRESHOLD));
+      setScrollProgress(progress);
+      if (wheelAccum.current >= WHEEL_THRESHOLD) goNext();
+      else if (wheelAccum.current <= -WHEEL_THRESHOLD) goPrev();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); goNext(); }
+      if (e.key === "ArrowUp"   || e.key === "PageUp")   { e.preventDefault(); goPrev(); }
+    };
+    const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
+    const onTouchEnd = (e: TouchEvent) => {
+      const dy = touchStartY.current - e.changedTouches[0].clientY;
+      if (Math.abs(dy) < 40) return;
+      if (dy > 0) goNext(); else goPrev();
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [goNext, goPrev, transitioning]);
+
   useEffect(() => {
     incrementLandingVisitCount();
     setVisitorPromoMode(isReturningVisitorForOffer() ? "returning" : "new");
@@ -117,13 +186,27 @@ export default function ModernLanding() {
   const primaryCtaLabel =
     showNewVisitorPromo ? NEW_VISITOR_PRIMARY_CTA : RETURNING_VISITOR_PRIMARY_CTA;
 
-  // Handle smooth scroll to section and close menu
+  const spValue = transitioning || activeIdx === SECTION_IDS.length - 1
+    ? 0
+    : Math.max(0, scrollProgress);
+  const activeStyle = { "--sp": spValue.toFixed(4) } as React.CSSProperties;
+  const isScrollingActive = spValue > 0.01;
+
+  const sectionClass = (i: number) => {
+    if (i === leavingIdx)  return "section-leaving";
+    if (i === enteringIdx) return "section-entering";
+    if (i === activeIdx && leavingIdx === null && enteringIdx === null) return "section-active";
+    return "section-hidden";
+  };
+  const sectionStyle = (i: number) =>
+    i === activeIdx && leavingIdx === null && enteringIdx === null ? activeStyle : undefined;
+
+  // Nav jumps to section by index
   const scrollToSection = (href: string) => {
     setIsMenuOpen(false);
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    const id = href.replace("#", "");
+    const idx = SECTION_IDS.indexOf(id);
+    if (idx !== -1) goTo(idx);
   };
 
   // Handle responsive avatar count
@@ -279,7 +362,7 @@ export default function ModernLanding() {
         }}
       />
 
-      <div className="landing-page min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
+      <div className="landing-page bg-[#0a0a0f] text-white overflow-hidden" style={{ position: "fixed", inset: 0 }}>
         {/* Hamburger Menu Button - Fixed Position */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -347,11 +430,40 @@ export default function ModernLanding() {
           </div>
         )}
 
+        {/* Section dot navigation */}
+        <nav className="fixed right-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2.5" aria-label="Page sections">
+          {SECTION_IDS.map((id, i) => (
+            <button
+              key={id}
+              onClick={() => goTo(i)}
+              aria-label={`Go to section ${i + 1}`}
+              className="w-2.5 h-2.5 rounded-full border border-white/30 transition-all duration-300 cursor-pointer relative overflow-hidden"
+              style={{
+                background: i === activeIdx ? "rgba(167,139,250,1)" : "rgba(255,255,255,0.15)",
+                transform: i === activeIdx ? "scale(1.4)" : "scale(1)",
+              }}
+            >
+              {i === activeIdx && spValue > 0.05 && (
+                <span className="absolute inset-0 rounded-full" style={{
+                  background: "rgba(255,255,255,0.5)",
+                  transform: `scaleX(${spValue})`,
+                  transformOrigin: "left",
+                  transition: "none",
+                }} />
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Sections container */}
+        <div className={isScrollingActive ? "is-scrolling" : ""} style={{ position: "relative", width: "100%", height: "100%" }}>
+
         {/* Hero Section */}
         <section
           id="hero"
           ref={(el) => { sectionRefs.current["hero"] = el }}
-          className="relative min-h-screen flex items-center justify-center hero-gradient"
+          className={`landing-section hero-gradient ${sectionClass(0)}`}
+          style={sectionStyle(0)}
         >
           {/* Floating orbs */}
           <div className="floating-orb orb-1" />
@@ -399,7 +511,7 @@ export default function ModernLanding() {
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-32">
             <div className="text-center space-y-4">
               {/* Robot agent icon */}
-              <div className="flex justify-center mb-2">
+              <div className="flex justify-center mb-2" data-p="icon">
                 <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-600/30 to-purple-900/30 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm">
                   <Bot className="w-10 h-10 text-purple-400" strokeWidth={1.5} />
                   <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-black animate-pulse" />
@@ -407,22 +519,22 @@ export default function ModernLanding() {
               </div>
 
               {/* Main heading */}
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white" data-p="title">
                 NextPostAI<span className="text-xl md:text-2xl lg:text-3xl font-normal align-baseline opacity-80">.com</span>
               </h1>
 
               {/* Tagline */}
-              <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400">
+              <p className="text-2xl md:text-4xl lg:text-5xl font-semibold text-purple-400" data-p="tagline">
                 Your AI Social Media Marketing Assistant
               </p>
 
               {/* Subheading */}
-              <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto leading-relaxed opacity-90 px-4">
+              <p className="text-lg md:text-xl lg:text-2xl font-normal text-gray-300 max-w-3xl mx-auto leading-relaxed opacity-90 px-4" data-p="sub">
                 Generate content, auto-schedule posts, track analytics, and grow consistently.
               </p>
 
               {/* CTA Button */}
-              <div className="flex flex-col items-center justify-center gap-11 pt-10">
+              <div className="flex flex-col items-center justify-center gap-11 pt-10" data-p="cta">
                 <div className="flex flex-col items-center gap-4">
                   <div className="flex items-center gap-3">
                     <GoogleLoginButton 
@@ -526,13 +638,14 @@ export default function ModernLanding() {
         <section
           id="how-it-works"
           ref={(el) => { sectionRefs.current["how-it-works"] = el }}
-          className="relative py-24 lg:py-32"
+          className={`landing-section ${sectionClass(1)}`}
+          style={sectionStyle(1)}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent" />
           
           <div className={`relative z-10 max-w-7xl mx-auto px-6 reveal ${isVisible["how-it-works"] ? "visible" : ""}`}>
             {/* Section header */}
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-p="title">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-cyan-500/30 mb-6">
                 <Lightbulb className="w-4 h-4 text-cyan-400" />
                 <span className="text-sm text-cyan-200">Simple Process</span>
@@ -549,7 +662,7 @@ export default function ModernLanding() {
             </div>
 
             {/* CTA */}
-            <div className="text-center mt-12">
+            <div className="text-center mt-12" data-p="cta">
               <div className="inline-flex items-center gap-3">
                 <GoogleLoginButton 
                   triggerClassName="glow-button px-8 py-4 text-lg font-semibold rounded-xl text-white"
@@ -570,17 +683,18 @@ export default function ModernLanding() {
         <section
           id="comparison"
           ref={(el) => { sectionRefs.current["comparison"] = el }}
-          className="relative py-24 lg:py-32"
+          className={`landing-section ${sectionClass(2)}`}
+          style={sectionStyle(2)}
         >
           <div className={`max-w-7xl mx-auto px-6 reveal ${isVisible["comparison"] ? "visible" : ""}`}>
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-p="title">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
                 <span className="text-white">Stop Wasting Hours. </span>
                 <span className="gradient-text-accent">Get This Instead</span>
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto" data-p="tagline">
               {/* Traditional Approach */}
               <div className="comparison-card negative glass-card rounded-3xl p-8">
                 <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
@@ -699,19 +813,20 @@ export default function ModernLanding() {
         <section
           id="trust"
           ref={(el) => { sectionRefs.current["trust"] = el }}
-          className="relative py-12 lg:py-16"
+          className={`landing-section ${sectionClass(3)}`}
+          style={sectionStyle(3)}
         >
           <div className={`max-w-4xl mx-auto px-6 reveal ${isVisible["trust"] ? "visible" : ""}`}>
             <div className="flex flex-col md:flex-row items-center justify-center gap-8">
               {/* Privacy */}
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0" data-p="icon">
                 <Shield className="w-12 h-12 text-green-400" />
               </div>
-              <div>
+              <div data-p="title">
                 <h3 className="text-3xl font-bold gradient-text-accent mb-3">
                   Privacy <span className="text-white">& Security</span>
                 </h3>
-                <ul className="text-gray-400 space-y-2">
+                <ul className="text-gray-400 space-y-2" data-p="tagline">
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-400" /> 100% free to start
                   </li>
@@ -731,12 +846,13 @@ export default function ModernLanding() {
         <section
           id="pricing"
           ref={(el) => { sectionRefs.current["pricing"] = el }}
-          className="relative py-24 lg:py-32"
+          className={`landing-section ${sectionClass(4)}`}
+          style={sectionStyle(4)}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent" />
           
           <div className={`relative z-10 max-w-5xl mx-auto px-6 reveal ${isVisible["pricing"] ? "visible" : ""}`}>
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-p="title">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-green-500/30 mb-6">
                 <Crown className="w-4 h-4 text-green-400" />
                 <span className="text-sm text-green-200">Simple Pricing</span>
@@ -786,7 +902,7 @@ export default function ModernLanding() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto" data-p="sub">
               {/* Free Plan */}
               <div className="glass-card rounded-3xl p-8 border border-white/10 hover:border-purple-500/30 transition-colors">
                 <div className="text-center mb-8">
@@ -885,20 +1001,21 @@ export default function ModernLanding() {
         <section
           id="cta"
           ref={(el) => { sectionRefs.current["cta"] = el }}
-          className="relative py-24 lg:py-32"
+          className={`landing-section ${sectionClass(5)}`}
+          style={sectionStyle(5)}
         >
           <div className="absolute inset-0 cta-gradient" />
           
           <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6" data-p="title">
               <span className="text-white">Ready to Save 10+ Hours </span>
               <br />
               <span className="gradient-text-accent">& Launch Smarter?</span>
             </h2>
-            <p className="text-gray-300 text-lg mb-10 max-w-2xl mx-auto">
+            <p className="text-gray-300 text-lg mb-10 max-w-2xl mx-auto" data-p="tagline">
               Join 146+ creators using AI to plan, post, and grow - free to start.
             </p>
-            <div className="inline-flex items-center gap-3">
+            <div className="inline-flex items-center gap-3" data-p="cta">
               <GoogleLoginButton 
                 triggerClassName="glow-button px-10 py-5 text-xl font-bold rounded-2xl text-white inline-flex items-center gap-3"
                 buttonText={primaryCtaLabel}
@@ -911,24 +1028,26 @@ export default function ModernLanding() {
               No card required. Upgrade anytime.
             </p>
           </div>
+
+          {/* Footer inside last section */}
+          <footer className="border-t border-white/10 py-8 mt-8">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-6 text-sm text-gray-400">
+                  <Link href="/ideas" className="hover:text-white transition-colors">Ideas</Link>
+                  <Link href="/documentation" className="hover:text-white transition-colors">Documentation</Link>
+                  <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                  <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Copyright © 2026. All rights reserved. NextPostAI<span className="text-xs opacity-90">.com</span>
+                </p>
+              </div>
+            </div>
+          </footer>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-white/10 py-12">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex items-center gap-6 text-sm text-gray-400">
-                <Link href="/ideas" className="hover:text-white transition-colors">Ideas</Link>
-                <Link href="/documentation" className="hover:text-white transition-colors">Documentation</Link>
-                <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-                <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
-              </div>
-              <p className="text-sm text-gray-500">
-                Copyright © 2026. All rights reserved. NextPostAI<span className="text-xs opacity-90">.com</span>
-              </p>
-            </div>
-          </div>
-        </footer>
+        </div>{/* /sections container */}
       </div>
     </>
   );
