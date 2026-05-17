@@ -17,7 +17,7 @@ class Mail {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: "smtp.zoho.com",
       port: 465,
       secure: true,
       auth: {
@@ -29,7 +29,7 @@ class Mail {
 
   async send(options: Mail.EmailOptions) {
     return this.transporter.sendMail({
-      from: process.env.EMAIL,
+      from: `"nextpostai.com" <${process.env.EMAIL}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
