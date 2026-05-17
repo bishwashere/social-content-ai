@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-const FALLBACK_URL =
-  process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? "https://nextpostai.com";
+import { APP_PRODUCTION_URL as FALLBACK_URL } from "@/constants/common";
 
 /**
  * GET /api/email-click?t=<template>&r=<destination>&u=<userId>

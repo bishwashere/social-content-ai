@@ -1,4 +1,5 @@
 import { EmailTemplate } from "@/components/email-templates";
+import { APP_PRODUCTION_URL } from "@/constants/common";
 
 /**
  * Wraps a destination URL with the email-click tracking redirect endpoint.
@@ -15,10 +16,7 @@ export function buildTrackedUrl(
   template: EmailTemplate,
   userId?: string
 ): string {
-  const base =
-    process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? "https://nextpostai.com";
-
-  const url = new URL("/api/email-click", base);
+  const url = new URL("/api/email-click", APP_PRODUCTION_URL);
   url.searchParams.set("t", template);
   url.searchParams.set("r", destination);
   if (userId) {

@@ -1,14 +1,7 @@
 import { ProjectValidatorType } from "@/validators/projects";
+import { PLATFORM_CHARACTER_LIMITS } from "@/constants/platforms";
 
-export const PLATFORM_CHARACTER_LIMITS = {
-  facebook: 500,
-  instagram: 500,
-  x: 250,
-  linkedin: 500,
-  reddit: 1500,
-  threads: 250,
-  tiktok: 0,
-} as const;
+export { PLATFORM_CHARACTER_LIMITS };
 
 export const PLATFORM_CUSTOM_PROMPTS = {
   facebook:

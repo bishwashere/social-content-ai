@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = "https://nextpostai.com";
+import { SITE_URL as siteUrl } from "@/constants/common";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();

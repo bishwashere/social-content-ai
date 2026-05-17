@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
 import { generateBlogFromArticle } from "@/backend-apis/campaign-planner/blog-news";
+import { getServerBaseUrl } from "@/lib/server-base-url";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -82,8 +83,7 @@ export async function POST(request: NextRequest) {
       
       // Otherwise, try to retry Step 1
       logger.log(`[Step 2] Retrying Step 1 for postId: ${postId}`);
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+      const baseUrl = getServerBaseUrl();
       fetch(`${baseUrl}/api/blog/step-1-fetch-article`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -304,8 +304,7 @@ export async function POST(request: NextRequest) {
     logger.log(`[Step 2] ✅ Completed for postId: ${postId}. Blog stored.`);
 
     // 9. Trigger Step 3 (asynchronously)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    const baseUrl = getServerBaseUrl();
     const step3Url = `${baseUrl}/api/blog/step-3-send-webhook`;
     
     logger.log(`[Step 2] 🔄 Calling Step 3 for postId: ${postId} | URL: ${step3Url}`);

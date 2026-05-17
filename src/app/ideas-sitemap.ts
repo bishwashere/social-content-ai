@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAllIdeas } from "@/lib/blogs";
-
-const siteUrl = "https://nextpostai.com";
+import { SITE_URL as siteUrl } from "@/constants/common";
 
 export default async function ideasSitemap(): Promise<MetadataRoute.Sitemap> {
   const ideas = await getAllIdeas();

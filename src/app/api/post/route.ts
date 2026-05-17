@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import catchApiAsyncError from "@/lib/catch-api-async-error";
+import { getServerBaseUrl } from "@/lib/server-base-url";
 import { sendNextResponse } from "@/lib/send-next-response";
 import { checkAndRefreshTwitterToken } from "@/lib/3rd-providers/twitter";
 import { getLinkedinTokensForUser } from "@/lib/auth";
@@ -210,8 +211,7 @@ export const GET = applyMiddleware(
         logger.log(`[Stuck Recovery] Post ${post.id} stuck at step: ${lastStepCompleted}`);
         
         // First, try to retry the next step (if there is one)
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+        const baseUrl = getServerBaseUrl();
         
         let retryUrl = "";
         if (lastStepCompleted === "step1" && !meta?.step2Completed) {
@@ -433,8 +433,7 @@ export const GET = applyMiddleware(
 
             console.log(`🚀 Triggering Step 3 for Blog News post ID: ${post.id}`);
             
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+            const baseUrl = getServerBaseUrl();
             const step3Url = `${baseUrl}/api/blog/step-3-send-webhook`;
             
             try {
@@ -484,8 +483,7 @@ export const GET = applyMiddleware(
 
             console.log(`🚀 Triggering Step 4 for Blog News post ID: ${post.id}`);
             
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+            const baseUrl = getServerBaseUrl();
             const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
             
             try {
@@ -562,8 +560,7 @@ export const GET = applyMiddleware(
                 },
               });
 
-              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                              (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+              const baseUrl = getServerBaseUrl();
               const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
               
               try {

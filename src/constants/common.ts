@@ -2,6 +2,11 @@ export const AUTH_TOKEN_COOKIE_NAME = "social-ai-token";
 export const IDEAS_ADMIN_TOKEN_COOKIE_NAME = "ideas-admin-token";
 export const VIDEO_ADMIN_TOKEN_COOKIE_NAME = "video-admin-token";
 
+export const SITE_URL = "https://nextpostai.com";
+
+export const APP_PRODUCTION_URL =
+  process.env.NEXT_PUBLIC_APP_PRODUCTION_URL ?? SITE_URL;
+
 export const INVITED_USER_ROLES = {
   VIEWER: "viewer",
   EDITOR: "editor",

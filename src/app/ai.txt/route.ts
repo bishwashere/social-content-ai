@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { SITE_URL as siteUrl } from "@/constants/common";
 
 export async function GET() {
-  const siteUrl = "https://nextpostai.com";
   
   const aiTxtContent = `AI: allow
 Sitemap: ${siteUrl}/sitemap.xml

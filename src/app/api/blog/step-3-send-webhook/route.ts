@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
 import { sendBlogToWebhook } from "@/backend-apis/campaign-planner/blog-news";
+import { getServerBaseUrl } from "@/lib/server-base-url";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -208,8 +209,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Trigger Step 4
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+      const baseUrl = getServerBaseUrl();
       const step4Url = `${baseUrl}/api/blog/step-4-finalize`;
       
       logger.log(`[Step 3] 🔄 Calling Step 4 for postId: ${postId} | URL: ${step4Url}`);

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL as siteUrl } from "@/constants/common";
 
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = "https://nextpostai.com";
   return {
     rules: {
       userAgent: "*",
