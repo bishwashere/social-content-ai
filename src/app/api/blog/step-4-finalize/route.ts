@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
 import { schedulePost } from "@/server-actions/schedule-post";
-import { generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
+import {
+  BLOG_NEWS_EXCERPT_BY_PLATFORM,
+  generateSocialExcerpt,
+} from "@/backend-apis/campaign-planner/blog-news";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -328,17 +331,17 @@ export async function POST(request: NextRequest) {
 
     logger.log(`[Step 4] Creating platform posts for: ${platforms.join(", ")}`);
 
-    // 4. Generate social excerpt
+    // 4. Create ScheduledPost records for each platform (per-platform excerpt length)
     const blog = meta.blog;
-    const excerpt = await generateSocialExcerpt(blog.title, blog.content);
-    const socialContent = `${excerpt}\n\nRead more: ${articleUrl}`;
 
-    // 6. Create ScheduledPost records for each platform
     const platformPostResults = await Promise.all(
       platforms.map(async (platform: string) => {
         try {
           // Convert platform name (x -> twitter)
           const platformName = platform === "x" ? "twitter" : platform;
+          const excerptOptions = BLOG_NEWS_EXCERPT_BY_PLATFORM[platformName] ?? 200;
+          const excerpt = await generateSocialExcerpt(blog.title, blog.content, excerptOptions);
+          const socialContent = `${excerpt}\n\nRead more: ${articleUrl}`;
 
           // Schedule the post for the same time (or slightly after)
           const scheduledDate = new Date(post.date);

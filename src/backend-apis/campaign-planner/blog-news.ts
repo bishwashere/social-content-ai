@@ -6,56 +6,127 @@ import { prisma } from "@/lib/prisma";
 import axios from "axios";
 import { logger } from "@/utils/logger";
 
-/**
- * Generate a 1-2 line social media excerpt from blog content
- */
-export async function generateSocialExcerpt(blogTitle: string, blogContent: string, maxLength: number = 200): Promise<string> {
-  // Extract shortened title (first part before colon if exists, or truncate if too long)
+export type SocialExcerptOptions = {
+  maxLength?: number;
+  maxSentences?: number;
+  includeParagraphBreaks?: boolean;
+};
+
+/** Platform-specific excerpt sizes for blog-news social posts (Step 4). */
+export const BLOG_NEWS_EXCERPT_BY_PLATFORM: Record<string, number | SocialExcerptOptions> = {
+  linkedin: { maxLength: 1000, maxSentences: 8, includeParagraphBreaks: true },
+  facebook: { maxLength: 400, maxSentences: 4, includeParagraphBreaks: true },
+  reddit: { maxLength: 600, maxSentences: 6, includeParagraphBreaks: true },
+  instagram: { maxLength: 300, maxSentences: 3 },
+  threads: { maxLength: 220, maxSentences: 2 },
+  twitter: { maxLength: 180, maxSentences: 2 },
+  x: { maxLength: 180, maxSentences: 2 },
+};
+
+function shortenBlogTitle(blogTitle: string): string {
   let shortTitle = blogTitle;
   if (shortTitle.includes(":")) {
     shortTitle = shortTitle.split(":")[0].trim();
   }
-  // Truncate title if still too long (max 50 chars for title part)
-  if (shortTitle.length > 50) {
-    shortTitle = shortTitle.substring(0, 47) + "...";
+  if (shortTitle.length > 80) {
+    shortTitle = shortTitle.substring(0, 77) + "...";
   }
+  return shortTitle;
+}
 
-  // Remove markdown formatting
-  let plainText = blogContent
-    .replace(/#{1,6}\s+/g, "") // Remove headers
-    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold
-    .replace(/\*(.*?)\*/g, "$1") // Remove italic
-    .replace(/\[(.*?)\]\(.*?\)/g, "$1") // Remove links but keep text
-    .replace(/>\s*\*\*Quick Take:\*\*\s*/g, "") // Remove Quick Take blockquote
-    .replace(/>\s*/g, "") // Remove blockquotes
-    .replace(/\n+/g, " ") // Replace newlines with spaces
-    .trim();
-
-  // More aggressively remove "Quick Take:" text (case insensitive, with or without markdown)
-  plainText = plainText
+function stripMarkdownToPlainText(blogContent: string): string {
+  return blogContent
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+    .replace(/>\s*\*\*Quick Take:\*\*\s*/gi, "")
+    .replace(/>\s*/g, "")
     .replace(/\*\*Quick Take:\*\*/gi, "")
     .replace(/Quick Take:\s*/gi, "")
-    .replace(/quick take:\s*/gi, "")
+    .replace(/\n+/g, " ")
     .trim();
+}
 
-  // Try to find the first meaningful sentence/paragraph
-  const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 20);
-  
-  if (sentences.length > 0) {
-    // Use first 1-2 sentences
-    let excerpt = sentences.slice(0, 2).join(". ").trim();
-    // Calculate available length (account for title + ". " + "...")
-    const availableLength = maxLength - shortTitle.length - 3; // -3 for ". " and potential "..."
-    if (excerpt.length > availableLength) {
-      excerpt = excerpt.substring(0, availableLength - 3) + "...";
-    }
-    return `${shortTitle}. ${excerpt}`;
+function extractQuickTake(blogContent: string): string | null {
+  const match = blogContent.match(/>\s*\*\*Quick Take:\*\*\s*(.+?)(?:\n\n|\n(?=[#>])|$)/is);
+  if (!match?.[1]) return null;
+
+  return match[1]
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function truncateToLength(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + "...";
+}
+
+function ensureSentenceEnding(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return trimmed;
+  if (/[.!?…]$/.test(trimmed)) return trimmed;
+  return `${trimmed}.`;
+}
+
+/**
+ * Generate a social media excerpt from blog content.
+ * Short platforms get 1-2 sentences; LinkedIn gets a richer teaser (Quick Take + intro).
+ */
+export async function generateSocialExcerpt(
+  blogTitle: string,
+  blogContent: string,
+  options: number | SocialExcerptOptions = 200
+): Promise<string> {
+  const opts: SocialExcerptOptions = typeof options === "number" ? { maxLength: options } : options;
+  const maxLength = opts.maxLength ?? 200;
+  const includeParagraphBreaks = opts.includeParagraphBreaks ?? maxLength > 400;
+  const maxSentences =
+    opts.maxSentences ?? (maxLength <= 250 ? 2 : maxLength <= 500 ? 4 : 8);
+
+  const shortTitle = shortenBlogTitle(blogTitle);
+  const quickTake = maxLength > 300 ? extractQuickTake(blogContent) : null;
+  let plainText = stripMarkdownToPlainText(blogContent);
+
+  if (quickTake) {
+    plainText = plainText.replace(quickTake, "").trim();
   }
 
-  // Fallback: use title + first part of content
-  const availableLength = maxLength - shortTitle.length - 3; // -3 for ". " and potential "..."
-  const contentPreview = plainText.substring(0, availableLength);
-  return `${shortTitle}. ${contentPreview}${contentPreview.length < plainText.length ? "..." : ""}`;
+  const sentences = plainText.split(/[.!?]+/).filter((s) => s.trim().length > 20);
+  const bodyExcerpt = ensureSentenceEnding(
+    sentences.slice(0, maxSentences).map((s) => s.trim()).join(". ")
+  );
+
+  const separator = includeParagraphBreaks ? "\n\n" : ". ";
+  const parts: string[] = [shortTitle];
+  if (quickTake) parts.push(ensureSentenceEnding(quickTake));
+  if (bodyExcerpt) parts.push(bodyExcerpt);
+
+  let result = parts.join(separator);
+
+  if (result.length > maxLength) {
+    if (quickTake && includeParagraphBreaks) {
+      const titleBlock = shortTitle;
+      const quickTakeBlock = ensureSentenceEnding(quickTake);
+      const header = `${titleBlock}${separator}${quickTakeBlock}`;
+      const remaining = maxLength - header.length - separator.length - 3;
+
+      if (remaining > 50 && bodyExcerpt) {
+        result = `${header}${separator}${truncateToLength(bodyExcerpt, remaining)}`;
+      } else if (header.length <= maxLength) {
+        result = truncateToLength(header, maxLength);
+      } else {
+        result = truncateToLength(titleBlock, maxLength);
+      }
+    } else {
+      result = truncateToLength(result, maxLength);
+    }
+  }
+
+  return result;
 }
 
 export type BlogNewsMetadata = {
