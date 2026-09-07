@@ -147,7 +147,8 @@ export function CategoryTrending({ onStartIdea }: CategoryTrendingProps = {}) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch trending posts");
+        const errorResult = await response.json().catch(() => null);
+        throw new Error(errorResult?.message || "Failed to fetch trending posts");
       }
 
       const result = await response.json();

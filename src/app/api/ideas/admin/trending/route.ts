@@ -34,27 +34,39 @@ export const GET = applyMiddleware(
       });
     }
 
-    try {
-      // Fetch 2 posts from Reddit and 2 from HackerNews
-      const [redditPosts, hackerNewsPosts] = await Promise.all([
-        fetchRedditPosts(keywords, maxPosts),
-        fetchHackerNewsPosts(keywords, maxPosts),
-      ]);
+    const getErrorMessage = (result: PromiseSettledResult<unknown>, source: string) => {
+      if (result.status === "fulfilled") return null;
+      return `${source}: ${result.reason instanceof Error ? result.reason.message : "Failed to fetch posts"}`;
+    };
 
-      return sendNextResponse({
-        status: 200,
-        data: {
-          reddit: redditPosts.slice(0, maxPosts),
-          hackernews: hackerNewsPosts.slice(0, maxPosts),
-        },
-        message: `Successfully fetched ${redditPosts.length} Reddit and ${hackerNewsPosts.length} HackerNews posts`,
-      });
-    } catch (error) {
-      console.error("Error fetching trending posts:", error);
-      return sendNextResponse({
-        status: 500,
-        message: error instanceof Error ? error.message : "Failed to fetch trending posts",
-      });
+    // Fetch each source independently so one upstream issue does not break the
+    // entire trending response.
+    const [redditResult, hackerNewsResult] = await Promise.allSettled([
+      fetchRedditPosts(keywords, maxPosts),
+      fetchHackerNewsPosts(keywords, maxPosts),
+    ]);
+
+    const redditPosts = redditResult.status === "fulfilled" ? redditResult.value : [];
+    const hackerNewsPosts = hackerNewsResult.status === "fulfilled" ? hackerNewsResult.value : [];
+    const warnings = [
+      getErrorMessage(redditResult, "Reddit"),
+      getErrorMessage(hackerNewsResult, "HackerNews"),
+    ].filter(Boolean);
+
+    if (warnings.length) {
+      console.warn("Trending posts fetched with warnings:", warnings);
     }
+
+    return sendNextResponse({
+      status: 200,
+      data: {
+        reddit: redditPosts.slice(0, maxPosts),
+        hackernews: hackerNewsPosts.slice(0, maxPosts),
+        warnings,
+      },
+      message: warnings.length
+        ? `Fetched trending posts with ${warnings.length} warning(s)`
+        : `Successfully fetched ${redditPosts.length} Reddit and ${hackerNewsPosts.length} HackerNews posts`,
+    });
   })
 );
