@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
 import { schedulePost } from "@/server-actions/schedule-post";
-import {
-  BLOG_NEWS_EXCERPT_BY_PLATFORM,
-  generateSocialExcerpt,
-} from "@/backend-apis/campaign-planner/blog-news";
+import { generateSocialExcerpt } from "@/backend-apis/campaign-planner/blog-news";
+import { BLOG_NEWS_EXCERPT_BY_PLATFORM } from "@/backend-apis/campaign-planner/blog-news-constants";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -472,4 +470,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
