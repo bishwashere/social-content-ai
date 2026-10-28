@@ -1,3 +1,11 @@
+# NextPost AI: plan and publish social media posts with AI help
+
+NextPost AI helps creators and small businesses plan social media content, draft posts with AI, schedule them across Facebook, Instagram, LinkedIn, X, Threads, Reddit, and TikTok, and see how the posts perform.
+
+It is a full product: user accounts, campaign planning, a library of post ideas and templates, analytics, and subscription billing. The front end is a Next.js web app; the back end uses a MongoDB database through Prisma, Gemini for the AI features, and Stripe for payments. The technical documentation follows below.
+
+---
+
 # social-content-ai
 
 The primary web application for **NextPost AI** — an AI-powered social media content platform. Built with Next.js 14 (App Router), it lets users plan multi-day content campaigns, generate platform-specific posts with Google Gemini AI, schedule and auto-publish to seven social networks, and analyze post performance.
